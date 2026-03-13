@@ -1,0 +1,56 @@
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS/editor noise
+.DS_Store
+.idea/
+.vscode/
+
+# Project runtime outputs
+artifacts/
+logs/
+
+# Data files (large/local)
+data/
+
+# Local-only configs
+configs/local.yaml
+configs/*_test.yaml
+
+# Model/checkpoint style artifacts
+*.pt
+*.pth
+*.ckpt
+*.npz
+
+# Optional external cache
+nilearn_data/
+
+# tests
+tests/
+
+# archives
+archive/
+
