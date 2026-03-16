@@ -32,8 +32,8 @@ dist/
 artifacts/
 logs/
 
-# Data files (large/local)
-data/
+# Data files (large/local, only repo-root data folder)
+/data/
 
 # Local-only configs
 configs/local.yaml
@@ -48,9 +48,8 @@ configs/*_test.yaml
 # Optional external cache
 nilearn_data/
 
-# tests
-tests/
+# tests caches
+/tests/__pycache__/
 
 # archives
 archive/
-

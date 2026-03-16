@@ -1,11 +1,55 @@
 # Changelog
 
+## 2026-03-14 (Phase-2 Target >=300)
+
+### Added
+- New ds00* scanner script for Phase-2 dataset discovery: `scripts/scan_openneuro_ds00.py`.
+- New Phase-2 markdown report generator: `scripts/make_phase2_report.py`.
+- New collection config for 300-subject n100 path: `configs/phase2_collect300_n100.yaml`.
+- New Phase-2 report artifact: `docs/experiments/phase2_report_2026-03-14.md`.
+- New non-expert explainer: `docs/experiments/phase2_report_2026-03-14_public.md`.
+- New detailed Phase-2 execution note: `docs/experiments/experiments_note_phase2_2026-03-14.md`.
+
+### Changed
+- Phase-2 target updated from `150-250` to `>=300` in roadmap/configs.
+- `scripts/run_phase2.py` now accepts CLI controls for `nodes/sparsities/routings/priors` and `bal-epochs`.
+
+### Fixed
+- Phase-2 execution flexibility improved so large-scale collection can run with reduced node scope (`100` only) when needed for turnaround.
+
+## 2026-03-14 (OpenNeuro Multi-Dataset Fallback)
+
+### Added
+- `prepare_data` now supports `--openneuro-datasets "dsA,dsB,..."` for sequential multi-dataset collection until target subject count is reached.
+- `--openneuro-task` now accepts comma-separated task names (e.g., `rest,restingstate`) for cross-dataset task-label differences.
+- Subject-key collision prevention for multi-dataset imports via `{dataset_id}_{participant_id}` directory naming.
+- Unit tests for dataset-id parsing and fallback collection behavior (`tests/test_prepare_openneuro.py`).
+
+### Changed
+- Diagnosis matching in participant filtering now accepts multi-token patterns (comma/pipe separated) and handles label variants such as `CONTROL`, `HEALTHY CONTROL`, `HC`.
+
+### Fixed
+- Single-dataset hard-failure behavior replaced with skip-and-continue in multi-dataset mode, with skipped dataset reasons logged in output metadata.
+
+## 2026-03-14 (Phase 1 Closeout Progress)
+
+### Added
+- New HC127 balanced 3-seed reruns: `phase1_nr_hc127_mps100_bal3_20260314`, `phase1_nr_hc127_mps200_bal3_20260314`.
+- Cross-scale comparison bundle: `seed_metrics.csv`, `summary_mean_std.csv`, `significance_paired_ttest.csv`, `delta_200_minus_100.json` under `artifacts/phase1_nr_hc127_bal3_compare_20260314/reports/`.
+- Reproducibility freeze package: `repro_manifest.json`, `replay_commands.sh`, and run-specific resolved configs under `artifacts/phase1_nr_hc127_bal3_compare_20260314/reports/configs/`.
+
+### Changed
+- Efficiency profiling code updated to attempt MPS memory tracking (`mobse/profiling.py`) in addition to existing CUDA path.
+
+### Fixed
+- Evaluation rerun interruption due OS FD exhaustion by cleaning non-experiment background Python language-server processes before resuming seed-wise evaluation.
+
 ## 2026-03-13 (Roadmap Update)
 
 ### Added
 - Concept-aligned execution roadmap in `README.md` with explicit Phase 1/2/3 scope.
 - Phase-1 closeout checklist for the current PoC line (post-regression balanced 3-seed rerun, report refresh, efficiency profiling, reproducibility freeze).
-- Phase-2 HCP-scale validation plan (`150-250` subjects first, then expanded ablations).
+- Phase-2 HCP-scale validation plan (`>=300` subjects first, then expanded ablations).
 - Phase-3 method-extension plan (learnable template perturbation, graph mixture, oscillatory dynamics).
 
 ### Changed

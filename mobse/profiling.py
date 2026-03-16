@@ -42,9 +42,15 @@ def profile_latency_memory(
     model.eval()
     latencies = []
     seen = 0
+    peak_mem_bytes = 0
 
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats(device)
+    elif device.type == "mps" and hasattr(torch, "mps"):
+        try:
+            torch.mps.empty_cache()
+        except Exception:
+            pass
 
     with torch.no_grad():
         for batch in dataloader:
@@ -54,6 +60,11 @@ def profile_latency_memory(
                 _ = model(x, task=task)
                 if device.type == "cuda":
                     torch.cuda.synchronize(device)
+                elif device.type == "mps" and hasattr(torch, "mps"):
+                    try:
+                        peak_mem_bytes = max(peak_mem_bytes, int(torch.mps.current_allocated_memory()))
+                    except Exception:
+                        pass
                 seen += 1
                 continue
 
@@ -61,6 +72,11 @@ def profile_latency_memory(
             _ = model(x, task=task)
             if device.type == "cuda":
                 torch.cuda.synchronize(device)
+            elif device.type == "mps" and hasattr(torch, "mps"):
+                try:
+                    peak_mem_bytes = max(peak_mem_bytes, int(torch.mps.current_allocated_memory()))
+                except Exception:
+                    pass
             end = time.perf_counter()
             latencies.append((end - start) * 1000.0)
 
@@ -73,6 +89,8 @@ def profile_latency_memory(
 
     if device.type == "cuda":
         peak_mem = torch.cuda.max_memory_allocated(device) / (1024 * 1024)
+    elif device.type == "mps":
+        peak_mem = peak_mem_bytes / (1024 * 1024)
     else:
         peak_mem = 0.0
 
