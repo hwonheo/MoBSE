@@ -22,7 +22,7 @@ def forecasting_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, flo
 
 def routing_metrics(routing_weights: np.ndarray) -> Dict[str, float]:
     if routing_weights.size == 0:
-        return {"routing_entropy": 0.0, "routing_stability": 0.0}
+        return {"routing_entropy": 0.0, "routing_stability": 0.0, "routing_usage": []}
 
     eps = 1e-8
     ent = -np.sum(routing_weights * np.log(routing_weights + eps), axis=-1)
@@ -31,7 +31,13 @@ def routing_metrics(routing_weights: np.ndarray) -> Dict[str, float]:
     # stability as inverse coefficient of variation for per-expert usage
     usage = routing_weights.mean(axis=0)
     stability = float(1.0 / (np.std(usage) / (np.mean(usage) + eps) + eps))
+    usage_sum = float(np.sum(usage))
+    if usage_sum > eps:
+        usage_norm = (usage / usage_sum).tolist()
+    else:
+        usage_norm = usage.tolist()
     return {
         "routing_entropy": avg_entropy,
         "routing_stability": stability,
+        "routing_usage": [float(x) for x in usage_norm],
     }

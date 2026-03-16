@@ -11,7 +11,7 @@ Mixture of Brain-State Experts (MoBSE) proof-of-concept implementation with:
 
 ```bash
 pip install -e .[dev,neuro,profile]
-python -m mobse.cli prepare_data --config configs/config.yaml --mode openneuro_hc --subjects 30 --min-age 18 --diagnosis CONTROL --openneuro-dataset ds000030 --openneuro-task rest
+python -m mobse.cli prepare_data --config configs/config.yaml --mode openneuro_hc --subjects 30 --min-age 18 --diagnosis CONTROL --openneuro-datasets "ds000030,ds002790" --openneuro-task rest
 python -m mobse.cli build_templates --config configs/config.yaml
 python -m mobse.cli train --config configs/config.yaml
 python -m mobse.cli evaluate --config configs/config.yaml --checkpoint artifacts/<run_id>/checkpoints/model_seed42_best.pt
@@ -22,6 +22,9 @@ python -m mobse.cli report --config configs/config.yaml --eval-glob "artifacts/*
 
 - Concept note: [docs/concept/MoBSE_note.md](docs/concept/MoBSE_note.md)
 - Experiments note (2026-03-13): [docs/experiments/experiments_note_2026-03-13.md](docs/experiments/experiments_note_2026-03-13.md)
+- Phase-2 detailed note (2026-03-14): [docs/experiments/experiments_note_phase2_2026-03-14.md](docs/experiments/experiments_note_phase2_2026-03-14.md)
+- Phase-2 report (2026-03-14): [docs/experiments/phase2_report_2026-03-14.md](docs/experiments/phase2_report_2026-03-14.md)
+- Phase-2 public guide (easy version): [docs/experiments/phase2_report_2026-03-14_public.md](docs/experiments/phase2_report_2026-03-14_public.md)
 - Changelog summary: [docs/CHANGELOG.md](docs/CHANGELOG.md)
 
 ## Progress Tracking
@@ -39,9 +42,16 @@ python -m mobse.cli report --config configs/config.yaml --eval-glob "artifacts/*
 - Complete efficiency profiling in the same run matrix (FLOPs, peak memory, latency) and lock target hardware notes (MPS/CUDA).
 - Freeze reproducibility package: final public config, run manifests, and artifact index for one-command replay.
 
+### Phase 1 Status (2026-03-14)
+
+- Completed: balanced 3-seed reruns for `100-node` and `200-node` on HC127 (`phase1_nr_hc127_mps100_bal3_20260314`, `phase1_nr_hc127_mps200_bal3_20260314`).
+- Completed: comparison package with mean/std and paired significance table (`artifacts/phase1_nr_hc127_bal3_compare_20260314/reports/`).
+- Completed: reproducibility freeze bundle (`repro_manifest.json`, run-specific resolved configs, `replay_commands.sh`).
+- Note: MPS backend may report `peak_memory_mb=0` when backend telemetry is unavailable; latency/FLOPs are still reported.
+
 ### Phase 2 Plan (HCP-scale validation)
 
-- Move from open-source proxy data to HCP-accessible cohort (target `150-250` subjects first).
+- Move from open-source proxy data to HCP-accessible cohort (target `>=300` subjects first).
 - Re-run core ablations on HCP-scale data: atlas `100/200`, sparsity `10/20/30%`, routing `soft/hard`, template-prior on/off.
 - Confirm whether PoC trends persist under stricter cohort control and larger sample size.
 
@@ -76,7 +86,7 @@ If you have raw NIfTI files, set `data.os.nifti_manifest` (CSV with `subject_id,
 ### One-command data preparation
 
 - `prepare_data --mode openneuro_hc`: downloads ETTh1 and OpenNeuro dataset, applies strict HC filtering (requires diagnosis/group and age columns; defaults to `CONTROL`, `>=18`), then converts selected BOLD scans to OS-like ROI time-series.
-- `prepare_data --mode openneuro`: downloads ETTh1 and OpenNeuro dataset without strict HC requirement (auto-discovers files from OpenNeuro GraphQL API). Use `--openneuro-dataset`, `--openneuro-snapshot`, `--openneuro-task` to target other public fMRI datasets.
+- `prepare_data --mode openneuro`: downloads ETTh1 and OpenNeuro dataset without strict HC requirement (auto-discovers files from OpenNeuro GraphQL API). Use `--openneuro-dataset` or `--openneuro-datasets "dsA,dsB,..."`, plus `--openneuro-snapshot`, `--openneuro-task` (comma-separated allowed, e.g. `rest,restingstate`) to target/fallback across public fMRI datasets.
 - `prepare_data --mode public_proxy`: downloads ETTh1 and nilearn development fMRI proxy dataset, then converts into OS-like per-state ROI time-series.
 - `prepare_data --mode synthetic`: downloads ETTh1 and generates synthetic OS-like ROI time-series.
 

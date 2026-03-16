@@ -67,6 +67,14 @@ def _parse_args() -> argparse.Namespace:
         help="OpenNeuro dataset id, e.g. ds000030",
     )
     p_prepare.add_argument(
+        "--openneuro-datasets",
+        default="",
+        help=(
+            "Comma-separated OpenNeuro dataset ids, e.g. ds000030,ds002790. "
+            "When provided, datasets are scanned in order until requested subjects are collected."
+        ),
+    )
+    p_prepare.add_argument(
         "--openneuro-snapshot",
         default="",
         help="OpenNeuro snapshot tag (empty = latest public snapshot)",
@@ -74,7 +82,10 @@ def _parse_args() -> argparse.Namespace:
     p_prepare.add_argument(
         "--openneuro-task",
         default="rest",
-        help="BIDS task name to import from func/*_task-<task>_*_bold.nii.gz",
+        help=(
+            "BIDS task name(s) to import from func/*_task-<task>_*_bold.nii.gz. "
+            "Use comma-separated values for fallback (e.g. rest,restingstate)."
+        ),
     )
     p_prepare.add_argument(
         "--openneuro-api-url",
@@ -133,6 +144,7 @@ def main() -> None:
                 min_age=args.min_age,
                 diagnosis=args.diagnosis,
                 openneuro_dataset=args.openneuro_dataset,
+                openneuro_datasets=args.openneuro_datasets,
                 openneuro_snapshot=args.openneuro_snapshot,
                 openneuro_task=args.openneuro_task,
                 openneuro_api_url=args.openneuro_api_url,

@@ -112,3 +112,94 @@
   - `configs/archive/2026-03-13/manifest.json` (SHA256 포함)
 - GitHub 업로드용 일반화 최종 설정:
   - `configs/config.yaml`
+
+## 7) 2026-03-14 Phase-1 잔여 작업 진행 결과
+
+### 실행 런
+
+- `phase1_nr_hc127_mps100_bal3_20260314`
+- `phase1_nr_hc127_mps200_bal3_20260314`
+
+### 비교 산출물
+
+- `artifacts/phase1_nr_hc127_bal3_compare_20260314/reports/seed_metrics.csv`
+- `artifacts/phase1_nr_hc127_bal3_compare_20260314/reports/summary_mean_std.csv`
+- `artifacts/phase1_nr_hc127_bal3_compare_20260314/reports/significance_paired_ttest.csv`
+- `artifacts/phase1_nr_hc127_bal3_compare_20260314/reports/delta_200_minus_100.json`
+- `artifacts/phase1_nr_hc127_bal3_compare_20260314/reports/repro_manifest.json`
+
+### 요약 (3-seed, mean±std)
+
+- 100-node: Accuracy `0.1469±0.0239`, F1 `0.1141±0.0087`, MAE `2.2257±0.0168`, MSE `8.8458±0.1782`
+- 200-node: Accuracy `0.1099±0.0049`, F1 `0.0949±0.0093`, MAE `2.2380±0.1987`, MSE `8.7316±1.7394`
+- latency(평균): OS `2.54ms -> 8.80ms`, ETTh1 `2.23ms -> 7.80ms` (100 -> 200)
+
+### 통계(paired t-test, seed=42/43/44)
+
+- 분류 지표(Accuracy/F1) 차이는 p<0.05 미달.
+- 예측 지표(MAE/MSE) 차이는 p<0.05 미달.
+- latency 증가는 유의함:
+  - `os_latency_ms_mean`: p=`0.0093`
+  - `etth1_latency_ms_mean`: p=`0.0165`
+
+### 운영 이슈 및 대응
+
+- `prepare_data --mode openneuro_hc --subjects 127` 재실행 시 OpenNeuro GraphQL index 단계가 장시간 소요되어 본 실험은 기존 HC127 timeseries로 진행.
+- 평가 중 `Too many open files in system` 발생 시, 비실험 VSCode Python language-server 프로세스 정리 후 seed 평가 재개.
+- MPS 환경에서 `peak_memory_mb`가 0으로 보고될 수 있어, 현재 해석은 FLOPs/latency 중심으로 수행.
+
+## 8) 2026-03-14 OpenNeuro 다중 데이터셋 대응(Child 포함 데이터 회피)
+
+### 코드 변경
+
+- `prepare_data` CLI에 `--openneuro-datasets "dsA,dsB,..."` 추가.
+- `--openneuro-task`에 다중 task 이름(`rest,restingstate`) 허용 추가.
+- 다중 dataset 순차 수집 로직 추가:
+  - 앞 dataset 실패/부적합 시 skip하고 다음 dataset으로 진행.
+  - 목표 subject 수를 채울 때까지 반복.
+- multi-dataset subject 충돌 방지:
+  - 저장 키를 `{dataset_id}_{participant_id}`로 통일.
+- 진단 라벨 매칭 유연화:
+  - `CONTROL`, `HEALTHY CONTROL`, `HC` 등 표기 변형 대응(콤마/파이프 multi-token 허용).
+
+### 실제 fetch 스모크 결과
+
+- 테스트 1 (strict HC + fallback):
+  - 명령: `--mode openneuro_hc --openneuro-datasets "ds002785,ds000030" --openneuro-task rest --subjects 2`
+  - 결과: `ds002785`는 `diagnosis/group` 컬럼 부재로 skip, `ds000030`에서 성인 HC 2명 수집 성공.
+- 테스트 2 (adult-only on alternative dataset):
+  - 명령: `--mode openneuro --openneuro-dataset ds002790 --openneuro-task restingstate --min-age 18 --subjects 2`
+  - 결과: 성인 2명 수집 성공(`participants.tsv` age 필터 적용).
+
+### 해석
+
+- child 포함 dataset이라도 `openneuro` 모드에서 `--min-age`로 성인 선별은 가능.
+- HC 라벨이 필요한 경우(`openneuro_hc`)에는 dataset의 `participants.tsv`에 진단/그룹 컬럼이 반드시 있어야 함.
+
+## 9) 2026-03-14 Phase-2 목표 상향 (최소 300명)
+
+- 목표 변경: Phase-2 수집 목표를 `150`에서 `>=300`으로 상향.
+- ds00* 스캔 결과 산출물:
+  - `artifacts/phase2_ds00_scan_20260314/reports/ds00_scan.csv`
+  - `artifacts/phase2_ds00_scan_20260314/reports/phase2_dataset_pick.json`
+- 자동 선택 결과(성인, rest/restingstate 기준):
+  - `ds000030` (adult 272)
+  - `ds000243` (adult 120)
+  - 추정 합계: 392 (300 목표 충족)
+
+## 10) 2026-03-14 Phase-2 실행 완료 (300명, n100 경로)
+
+- 데이터 준비:
+  - config: `configs/phase2_collect300_n100.yaml`
+  - 실행: `prepare_data --mode openneuro --subjects 300 --openneuro-datasets "ds000030,ds000243" --openneuro-task "rest,restingstate" --min-age 18`
+  - 결과: `collected_subjects=300`, `timeseries/100` subject dir 300개 확인.
+- Phase-2 러너:
+  - study id: `phase2_ds00_adult300_n100_20260314`
+  - 실행 옵션: `--nodes 100 --quick-epochs 2 --bal-epochs 4`
+  - 산출물:
+    - `artifacts/phase2_ds00_adult300_n100_20260314_summary/reports/phase2_sweep_seed42.csv`
+    - `artifacts/phase2_ds00_adult300_n100_20260314_summary/reports/phase2_top3_bal3_summary.csv`
+    - `artifacts/phase2_ds00_adult300_n100_20260314_summary/reports/phase2_manifest.json`
+- 최종 분석 보고서:
+  - `docs/experiments/phase2_report_2026-03-14.md`
+  - 핵심(best run, bal3): OS Accuracy `0.1856 ± 0.0251`, OS F1 `0.0948 ± 0.0082`, ETTh1 MAE `2.2183 ± 0.1366`, MSE `8.3439 ± 1.2218`.
