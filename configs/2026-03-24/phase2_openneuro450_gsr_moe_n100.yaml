@@ -1,0 +1,87 @@
+data:
+  os:
+    root_dir: data/os_phase2_ds00_450_gsr_n100
+    timeseries_dir: data/os_phase2_ds00_450_gsr_n100/timeseries
+    nifti_manifest: ""
+    tr: 0.72
+    subjects_limit: 450
+    states: [rest, wm, motor, language, attention]
+    atlas_nodes_primary: 100
+    atlas_nodes_secondary: 200
+    window_len: 64
+    stride: 16
+    train_ratio: 0.7
+    val_ratio: 0.15
+    random_seed: 42
+    nuisance_strategy: gsr_only
+    nuisance_include_compcor: false
+    nuisance_compcor_components: 0
+    nuisance_include_gsr: true
+    nuisance_add_derivatives: true
+    nuisance_add_quadratic: true
+    nuisance_detrend: true
+    nuisance_high_pass: 0.008
+    nuisance_low_pass: 0.1
+  etth1:
+    csv_path: data/ETTh1.csv
+    target_col: OT
+    seq_len: 96
+    pred_len: 24
+    train_ratio: 0.7
+    val_ratio: 0.15
+
+template:
+  atlas_name: schaefer
+  atlas_nodes_options: [100]
+  sparsity_levels: [0.1]
+  default_sparsity: 0.1
+  threshold_mode: proportional
+  fisher_z_average: true
+  output_name: template_bank.npz
+
+model:
+  arch: moe
+  hidden_dim: 64
+  num_nodes: 100
+  num_graph_layers: 2
+  dropout: 0.1
+  num_experts: 5
+  routing_k: 2
+  routing_mode: soft
+  os_num_classes: 5
+  etth1_in_dim: 7
+  etth1_out_dim: 1
+  sparse_attn_window: 16
+  use_template_prior: false
+  template_bank_path: artifacts/phase2_openneuro450_gsr_moe_n100_20260324/templates/atlas100_sp10_template_bank.npz
+  os_windows_path: artifacts/phase2_openneuro450_gsr_moe_n100_20260324/templates/os_windows_nodes100.npz
+
+train:
+  tasks: [os, etth1]
+  batch_size: 32
+  epochs: 4
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seeds: [42, 43, 44, 45, 46]
+  os_loss_weight: 1.0
+  etth1_loss_weight: 1.0
+  etth1_loss_type: huber
+  etth1_huber_delta: 1.0
+  normalize_task_losses: true
+  task_loss_norm_batches: 8
+  selection_metric: weighted_normalized_loss
+  early_stopping_patience: 3
+  early_stopping_min_delta: 0.0005
+  use_amp: false
+  device: mps
+
+eval:
+  metrics: [accuracy, f1, mae, mse]
+  profile_batches: 10
+  latency_warmup: 3
+  output_prefix: eval
+
+artifacts:
+  root_dir: artifacts
+  run_id: phase2_openneuro450_gsr_moe_n100_20260324
