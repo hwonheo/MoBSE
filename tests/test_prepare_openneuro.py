@@ -2,8 +2,12 @@ import pytest
 
 from mobse.data.prepare import (
     OpenNeuroFileEntry,
+    _find_repo_cached_openneuro_file,
+    _materialize_cached_openneuro_file,
     _download_openneuro_rest_bold_multi,
+    _node_qc_status,
     _parse_openneuro_dataset_ids,
+    _resolve_subject_tr,
     _select_openneuro_bold_entries,
     _select_openneuro_subjects,
 )
@@ -76,6 +80,23 @@ sub-03\t31\tHC\t1
     assert result["filters_applied"]["diagnosis"] == ["CONTROL", "HC"]
 
 
+def test_select_openneuro_subjects_excludes_seen_ids():
+    tsv = """participant_id\tage
+sub-01\t25
+sub-02\t26
+sub-03\t27
+"""
+    result = _select_openneuro_subjects(
+        participants_tsv_text=tsv,
+        diagnosis="",
+        min_age=18,
+        n_subjects=2,
+        strict_hc=False,
+        exclude_subject_ids=["sub-01"],
+    )
+    assert result["participant_ids"] == ["sub-02", "sub-03"]
+
+
 def test_select_openneuro_bold_entries_prefers_participant_list():
     files = [
         OpenNeuroFileEntry(
@@ -131,6 +152,27 @@ def test_select_openneuro_bold_entries_supports_multi_task_names():
         n_subjects=2,
     )
     assert result["participant_ids"] == ["sub-01", "sub-02"]
+
+
+def test_select_openneuro_bold_entries_excludes_subjects_without_participant_list():
+    files = [
+        OpenNeuroFileEntry(
+            relative_path="sub-01/func/sub-01_task-rest_run-1_bold.nii.gz",
+            url="https://example.org/sub-01-rest",
+        ),
+        OpenNeuroFileEntry(
+            relative_path="sub-02/func/sub-02_task-rest_run-1_bold.nii.gz",
+            url="https://example.org/sub-02-rest",
+        ),
+    ]
+    result = _select_openneuro_bold_entries(
+        files=files,
+        participant_ids=[],
+        task="rest",
+        n_subjects=1,
+        exclude_subject_ids=["sub-01"],
+    )
+    assert result["participant_ids"] == ["sub-02"]
 
 
 def test_select_openneuro_bold_entries_raises_without_match():
@@ -213,3 +255,76 @@ def test_download_openneuro_rest_bold_multi_fallback(monkeypatch: pytest.MonkeyP
     assert result["records"][2]["subject_key"] == "ds_ok2_sub-10"
     assert len(result["skipped_datasets"]) == 1
     assert result["skipped_datasets"][0]["dataset_id"] == "ds_bad"
+
+
+def test_find_repo_cached_openneuro_file_reuses_other_data_root(tmp_path, monkeypatch: pytest.MonkeyPatch):
+    repo_root = tmp_path / "repo"
+    module_file = repo_root / "mobse" / "data" / "prepare.py"
+    module_file.parent.mkdir(parents=True, exist_ok=True)
+    module_file.write_text("# stub\n", encoding="utf-8")
+    monkeypatch.setattr("mobse.data.prepare.__file__", str(module_file))
+
+    cached = (
+        repo_root
+        / "data"
+        / "os_phase2_ds00_300_n100"
+        / "openneuro"
+        / "ds000030"
+        / "1.0.0"
+        / "uncompressed"
+        / "sub-01"
+        / "func"
+        / "sub-01_task-rest_bold.nii.gz"
+    )
+    cached.parent.mkdir(parents=True, exist_ok=True)
+    cached.write_bytes(b"cached")
+
+    target = (
+        repo_root
+        / "data"
+        / "os_phase2_ds00_450_gsr_n100"
+        / "openneuro"
+        / "ds000030"
+        / "1.0.0"
+        / "uncompressed"
+        / "sub-01"
+        / "func"
+        / "sub-01_task-rest_bold.nii.gz"
+    )
+
+    found = _find_repo_cached_openneuro_file(
+        dataset_id="ds000030",
+        snapshot_tag="1.0.0",
+        relative_path="sub-01/func/sub-01_task-rest_bold.nii.gz",
+        target_path=target,
+    )
+
+    assert found == cached
+
+
+def test_materialize_cached_openneuro_file_copies_payload(tmp_path):
+    src = tmp_path / "src.nii.gz"
+    dst = tmp_path / "nested" / "dst.nii.gz"
+    src.write_bytes(b"payload")
+
+    _materialize_cached_openneuro_file(src, dst)
+
+    assert dst.read_bytes() == b"payload"
+
+
+def test_resolve_subject_tr_prefers_image_header_when_enabled():
+    tr, source = _resolve_subject_tr(config_tr=0.72, image_tr=2.5, use_image_tr=True)
+    assert tr == 2.5
+    assert source == "image_header"
+
+
+def test_resolve_subject_tr_falls_back_to_config():
+    tr, source = _resolve_subject_tr(config_tr=0.72, image_tr=None, use_image_tr=True)
+    assert tr == 0.72
+    assert source == "config"
+
+
+def test_node_qc_status_rejects_shape_mismatch():
+    accepted, status = _node_qc_status(expected_nodes=100, actual_nodes=97, require_exact_nodes=True)
+    assert accepted is False
+    assert status == "node_mismatch"

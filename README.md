@@ -25,6 +25,16 @@ python -m mobse.cli report --config configs/config.yaml --eval-glob "artifacts/*
 - Phase-2 detailed note (2026-03-14): [docs/experiments/experiments_note_phase2_2026-03-14.md](docs/experiments/experiments_note_phase2_2026-03-14.md)
 - Phase-2 report (2026-03-14): [docs/experiments/phase2_report_2026-03-14.md](docs/experiments/phase2_report_2026-03-14.md)
 - Phase-2 public guide (easy version): [docs/experiments/phase2_report_2026-03-14_public.md](docs/experiments/phase2_report_2026-03-14_public.md)
+- Status and next experiments (2026-03-23): [docs/experiments/project_status_2026-03-23.md](docs/experiments/project_status_2026-03-23.md)
+- Phase-2 follow-up (2026-03-23): [docs/experiments/phase2_followup_2026-03-23.md](docs/experiments/phase2_followup_2026-03-23.md)
+- Benchmark goal and stage targets (2026-03-23): [docs/experiments/benchmark_goal_2026-03-23.md](docs/experiments/benchmark_goal_2026-03-23.md)
+- Baseline benchmark wave (2026-03-23): [docs/experiments/baseline_benchmark_2026-03-23.md](docs/experiments/baseline_benchmark_2026-03-23.md)
+- Cross-dataset generalization (2026-03-23): [docs/experiments/cross_dataset_2026-03-23.md](docs/experiments/cross_dataset_2026-03-23.md)
+- HCP-accessible validation (2026-03-23): [docs/experiments/hcp_validation_2026-03-23.md](docs/experiments/hcp_validation_2026-03-23.md)
+- Nuisance sensitivity wave (2026-03-24): [docs/experiments/nuisance_sensitivity_2026-03-24.md](docs/experiments/nuisance_sensitivity_2026-03-24.md)
+- OpenNeuro extension plan (2026-03-24): [docs/experiments/openneuro_extension_2026-03-24.md](docs/experiments/openneuro_extension_2026-03-24.md)
+- OpenNeuro strict-usable plan (2026-03-24): [docs/experiments/openneuro_usable_plan_2026-03-24.md](docs/experiments/openneuro_usable_plan_2026-03-24.md)
+- Experiment history index (2026-03-26): [docs/experiments/history_index_2026-03-26.md](docs/experiments/history_index_2026-03-26.md)
 - Changelog summary: [docs/CHANGELOG.md](docs/CHANGELOG.md)
 
 ## Progress Tracking
