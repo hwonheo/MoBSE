@@ -36,6 +36,9 @@ def _prepare_dataloaders(cfg: ExperimentConfig, windows_path: Path):
         train_ratio=cfg.data.os.train_ratio,
         val_ratio=cfg.data.os.val_ratio,
         seed=cfg.data.os.random_seed,
+        train_subject_prefixes=cfg.data.os.train_subject_prefixes,
+        val_subject_prefixes=cfg.data.os.val_subject_prefixes,
+        test_subject_prefixes=cfg.data.os.test_subject_prefixes,
     )
     etth_loaders = create_etth1_dataloaders(
         csv_path=cfg.data.etth1.csv_path,

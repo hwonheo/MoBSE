@@ -111,7 +111,7 @@ def build_template_bank(
             )
             if should_make_windows:
                 state_to_label = {state: idx for idx, state in enumerate(states)}
-                x, y = build_os_windows(
+                x, y, subject_ids = build_os_windows(
                     records=records,
                     state_to_label=state_to_label,
                     window_len=cfg.data.os.window_len,
@@ -122,12 +122,14 @@ def build_template_bank(
                     paths.templates / f"os_windows_nodes{num_nodes}.npz",
                     x=x,
                     y=y,
+                    subject_ids=subject_ids,
                     labels=np.array(states, dtype=object),
                 )
                 np.savez_compressed(
                     paths.templates / f"hcp_windows_nodes{num_nodes}.npz",
                     x=x,
                     y=y,
+                    subject_ids=subject_ids,
                     labels=np.array(states, dtype=object),
                 )
                 primary_windows_written = True
