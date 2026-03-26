@@ -14,6 +14,10 @@ class OSDataConfig:
     timeseries_dir: str = "data/os/timeseries"
     nifti_manifest: str = ""
     tr: float = 0.72
+    openneuro_use_image_tr: bool = True
+    openneuro_require_exact_nodes: bool = True
+    usable_target_subjects: int = 0
+    dataset_chunk_size: int = 25
     subjects_limit: int = 200
     states: List[str] = field(
         default_factory=lambda: ["rest", "wm", "motor", "language", "attention"]
@@ -24,6 +28,9 @@ class OSDataConfig:
     stride: int = 16
     train_ratio: float = 0.7
     val_ratio: float = 0.15
+    train_subject_prefixes: List[str] = field(default_factory=list)
+    val_subject_prefixes: List[str] = field(default_factory=list)
+    test_subject_prefixes: List[str] = field(default_factory=list)
     random_seed: int = 42
     nuisance_strategy: str = "paper_compcor_gsr"
     nuisance_include_compcor: bool = True

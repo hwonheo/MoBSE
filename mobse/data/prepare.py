@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import io
+import os
 import re
+import shutil
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -27,6 +29,65 @@ OPENNEURO_GRAPHQL_URL = "https://openneuro.org/crn/graphql"
 class OpenNeuroFileEntry:
     relative_path: str
     url: str
+
+
+def _resolve_subject_tr(config_tr: float, image_tr: Optional[float], use_image_tr: bool) -> tuple[float, str]:
+    if use_image_tr and image_tr is not None and image_tr > 0:
+        return float(image_tr), "image_header"
+    return float(config_tr), "config"
+
+
+def _node_qc_status(expected_nodes: int, actual_nodes: int, require_exact_nodes: bool) -> tuple[bool, str]:
+    if actual_nodes <= 0:
+        return False, "invalid_shape"
+    if require_exact_nodes and actual_nodes != expected_nodes:
+        return False, "node_mismatch"
+    return True, "accepted"
+
+
+def _read_nifti_tr(nifti_path: str | Path) -> Optional[float]:
+    try:
+        import nibabel as nib
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError("nibabel is required for OpenNeuro NIfTI TR inspection. Install with `pip install .[neuro]`.") from exc
+
+    img = nib.load(str(nifti_path))
+    zooms = img.header.get_zooms()
+    if len(zooms) < 4:
+        return None
+    tr = float(zooms[3])
+    return tr if tr > 0 else None
+
+
+def _find_repo_cached_openneuro_file(
+    dataset_id: str,
+    snapshot_tag: str,
+    relative_path: str,
+    target_path: str | Path,
+) -> Optional[Path]:
+    repo_data_root = Path(__file__).resolve().parents[2] / "data"
+    if not repo_data_root.exists():
+        return None
+
+    target = Path(target_path).resolve()
+    pattern = f"*/openneuro/{dataset_id}/{snapshot_tag}/uncompressed/{relative_path}"
+    for candidate in sorted(repo_data_root.glob(pattern)):
+        if not candidate.exists() or candidate.stat().st_size <= 0:
+            continue
+        if candidate.resolve() == target:
+            continue
+        return candidate
+    return None
+
+
+def _materialize_cached_openneuro_file(src: str | Path, dst: str | Path) -> None:
+    src_path = Path(src)
+    dst_path = Path(dst)
+    dst_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        os.link(src_path, dst_path)
+    except OSError:
+        shutil.copy2(src_path, dst_path)
 
 
 def _parse_openneuro_dataset_ids(single_dataset: str, datasets_csv: str = "") -> List[str]:
@@ -392,6 +453,7 @@ def _select_openneuro_subjects(
     min_age: int,
     n_subjects: int,
     strict_hc: bool,
+    exclude_subject_ids: Optional[List[str]] = None,
 ) -> Dict[str, object]:
     df = pd.read_csv(io.StringIO(participants_tsv_text), sep="\t", dtype=str)
 
@@ -450,6 +512,9 @@ def _select_openneuro_subjects(
 
     ids = [_normalize_subject_id(s) for s in df.loc[mask, subject_col].astype(str).tolist()]
     unique_ids = list(dict.fromkeys([s for s in ids if s]))
+    excluded = {_normalize_subject_id(s) for s in (exclude_subject_ids or [])}
+    if excluded:
+        unique_ids = [pid for pid in unique_ids if pid not in excluded]
 
     return {
         "participant_ids": unique_ids[:n_subjects],
@@ -471,6 +536,7 @@ def _select_openneuro_bold_entries(
     participant_ids: List[str],
     task: str,
     n_subjects: int,
+    exclude_subject_ids: Optional[List[str]] = None,
 ) -> Dict[str, object]:
     by_subject: Dict[str, List[OpenNeuroFileEntry]] = {}
     task_names = _parse_task_names(task)
@@ -497,10 +563,14 @@ def _select_openneuro_bold_entries(
     for subject_entries in by_subject.values():
         subject_entries.sort(key=lambda x: x.relative_path)
 
+    excluded = {_normalize_subject_id(pid) for pid in (exclude_subject_ids or [])}
+
     if participant_ids:
         candidate_ids = [_normalize_subject_id(pid) for pid in participant_ids]
     else:
         candidate_ids = sorted(by_subject.keys())
+    if excluded:
+        candidate_ids = [pid for pid in candidate_ids if pid not in excluded]
 
     selected_ids: List[str] = []
     selected_entries: List[OpenNeuroFileEntry] = []
@@ -548,14 +618,23 @@ def _download_openneuro_files(
         out_path.parent.mkdir(parents=True, exist_ok=True)
 
         if not (out_path.exists() and out_path.stat().st_size > 0):
-            with requests.get(entry.url, timeout=120, stream=True) as response:
-                response.raise_for_status()
-                tmp_path = out_path.with_suffix(out_path.suffix + ".part")
-                with open(tmp_path, "wb") as f:
-                    for chunk in response.iter_content(chunk_size=1024 * 512):
-                        if chunk:
-                            f.write(chunk)
-                tmp_path.replace(out_path)
+            cached = _find_repo_cached_openneuro_file(
+                dataset_id=dataset_id,
+                snapshot_tag=snapshot_tag,
+                relative_path=entry.relative_path,
+                target_path=out_path,
+            )
+            if cached is not None:
+                _materialize_cached_openneuro_file(cached, out_path)
+            else:
+                with requests.get(entry.url, timeout=120, stream=True) as response:
+                    response.raise_for_status()
+                    tmp_path = out_path.with_suffix(out_path.suffix + ".part")
+                    with open(tmp_path, "wb") as f:
+                        for chunk in response.iter_content(chunk_size=1024 * 512):
+                            if chunk:
+                                f.write(chunk)
+                    tmp_path.replace(out_path)
 
         resolved[entry.relative_path] = out_path
         if progress:
@@ -579,6 +658,7 @@ def _download_openneuro_rest_bold(
     strict_hc: bool,
     api_url: str,
     cache_root: str | Path,
+    exclude_participant_ids: Optional[List[str]] = None,
     progress: Optional[ProgressReporter] = None,
 ) -> Dict[str, object]:
     tag = _resolve_openneuro_snapshot_tag(dataset_id=dataset_id, snapshot_tag=snapshot_tag, api_url=api_url)
@@ -605,6 +685,7 @@ def _download_openneuro_rest_bold(
             min_age=min_age,
             n_subjects=n_subjects,
             strict_hc=strict_hc,
+            exclude_subject_ids=exclude_participant_ids,
         )
         participant_ids = participant_meta["participant_ids"]
     elif strict_hc:
@@ -624,6 +705,7 @@ def _download_openneuro_rest_bold(
         participant_ids=participant_ids,
         task=task,
         n_subjects=n_subjects,
+        exclude_subject_ids=exclude_participant_ids,
     )
 
     to_download = list(selected["entries"])
@@ -769,6 +851,11 @@ def prepare_openneuro_proxy(
     atlas_nodes_options: List[int],
     n_subjects: int,
     tr: float,
+    use_image_tr: bool,
+    require_exact_nodes: bool,
+    usable_target_subjects: int,
+    dataset_chunk_size: int,
+    target_num_nodes: int,
     min_age: int,
     diagnosis: str,
     dataset_id: str,
@@ -796,26 +883,19 @@ def prepare_openneuro_proxy(
             "nilearn is required for OpenNeuro mode. Install with `pip install .[neuro]`."
         ) from exc
 
-    resolved_dataset_ids = dataset_ids if dataset_ids else [dataset_id]
-    source = _download_openneuro_rest_bold_multi(
-        dataset_ids=resolved_dataset_ids,
-        snapshot_tag=snapshot_tag,
-        task=task,
-        n_subjects=n_subjects,
-        min_age=min_age,
-        diagnosis=diagnosis,
-        strict_hc=strict_hc,
-        api_url=api_url,
-        cache_root=cache_root,
-        progress=progress,
-    )
-
-    subject_records = list(source["records"])
-
     root = Path(timeseries_root)
     root.mkdir(parents=True, exist_ok=True)
 
-    stats: Dict[str, int] = {}
+    resolved_dataset_ids = dataset_ids if dataset_ids else [dataset_id]
+    use_usable_target = int(usable_target_subjects) > 0
+    chunk_size = max(1, int(dataset_chunk_size))
+    stats: Dict[str, int] = {f"nodes_{num_nodes}": 0 for num_nodes in atlas_nodes_options}
+    qc_rows: List[Dict[str, object]] = []
+    source_records: List[Dict[str, str]] = []
+    per_dataset: List[Dict[str, object]] = []
+
+    atlases: Dict[int, object] = {}
+    maskers_by_node_tr: Dict[int, Dict[float, NiftiLabelsMasker]] = {}
     for node_idx, num_nodes in enumerate(atlas_nodes_options, start=1):
         if progress:
             progress.update(
@@ -824,86 +904,257 @@ def prepare_openneuro_proxy(
                 total=len(atlas_nodes_options),
                 message=f"parcellation num_nodes={num_nodes}",
             )
+        atlases[num_nodes] = fetch_atlas_schaefer_2018(n_rois=num_nodes)
+        maskers_by_node_tr[num_nodes] = {}
+        (root / str(num_nodes)).mkdir(parents=True, exist_ok=True)
 
-        atlas = fetch_atlas_schaefer_2018(n_rois=num_nodes)
-        masker = NiftiLabelsMasker(
-            labels_img=atlas.maps,
-            standardize="zscore_sample",
-            t_r=tr,
-            detrend=nuisance_detrend,
-            high_pass=(nuisance_high_pass if nuisance_high_pass > 0 else None),
-            low_pass=(nuisance_low_pass if nuisance_low_pass > 0 else None),
-        )
-        node_root = root / str(num_nodes)
-        node_root.mkdir(parents=True, exist_ok=True)
+    accepted_subject_keys: set[str] = set()
 
-        written = 0
-        for idx, record in enumerate(subject_records, start=1):
+    def _process_records(records: List[Dict[str, str]], max_accepted_target: int = 0) -> tuple[int, int]:
+        accepted_in_batch = 0
+        processed_count = 0
+        for idx, record in enumerate(records, start=1):
+            if max_accepted_target > 0 and len(accepted_subject_keys) >= max_accepted_target:
+                break
             pid = str(record["participant_id"])
             subject_key = str(record["subject_key"])
             dataset = str(record["dataset_id"])
             bold_path = Path(str(record["bold_file"]))
-            nuisance = build_paper_nuisance_confounds(
-                bold_path=bold_path,
-                tr=tr,
-                external_confounds=None,
-                include_compcor=nuisance_include_compcor,
-                compcor_components=nuisance_compcor_components,
-                include_gsr=nuisance_include_gsr,
-                add_derivatives=nuisance_add_derivatives,
-                add_quadratic=nuisance_add_quadratic,
-            )
-            base_ts = masker.fit_transform(str(bold_path), confounds=nuisance)
-            variants = _state_variants(base_ts, states=states, seed=idx + num_nodes)
+            image_tr = _read_nifti_tr(bold_path)
+            subject_tr, tr_source = _resolve_subject_tr(tr, image_tr=image_tr, use_image_tr=use_image_tr)
 
-            subject_dir = node_root / subject_key
-            subject_dir.mkdir(parents=True, exist_ok=True)
-            for state, ts in variants.items():
-                np.save(subject_dir / f"{state}.npy", ts)
-            written += 1
+            accepted_for_target = False
+            for num_nodes in atlas_nodes_options:
+                masker_cache = maskers_by_node_tr[num_nodes]
+                if subject_tr not in masker_cache:
+                    masker_cache[subject_tr] = NiftiLabelsMasker(
+                        labels_img=atlases[num_nodes].maps,
+                        standardize="zscore_sample",
+                        t_r=subject_tr,
+                        detrend=nuisance_detrend,
+                        high_pass=(nuisance_high_pass if nuisance_high_pass > 0 else None),
+                        low_pass=(nuisance_low_pass if nuisance_low_pass > 0 else None),
+                    )
+                masker = masker_cache[subject_tr]
+                nuisance = build_paper_nuisance_confounds(
+                    bold_path=bold_path,
+                    tr=subject_tr,
+                    external_confounds=None,
+                    include_compcor=nuisance_include_compcor,
+                    compcor_components=nuisance_compcor_components,
+                    include_gsr=nuisance_include_gsr,
+                    add_derivatives=nuisance_add_derivatives,
+                    add_quadratic=nuisance_add_quadratic,
+                )
+                base_ts = masker.fit_transform(str(bold_path), confounds=nuisance)
+                actual_nodes = int(base_ts.shape[1]) if base_ts.ndim == 2 else 0
+                accepted, qc_status = _node_qc_status(
+                    expected_nodes=num_nodes,
+                    actual_nodes=actual_nodes,
+                    require_exact_nodes=require_exact_nodes,
+                )
+                qc_rows.append(
+                    {
+                        "dataset_id": dataset,
+                        "participant_id": pid,
+                        "subject_key": subject_key,
+                        "bold_file": str(bold_path),
+                        "num_nodes_requested": int(num_nodes),
+                        "num_nodes_extracted": int(actual_nodes),
+                        "configured_tr": float(tr),
+                        "image_tr": float(image_tr) if image_tr is not None else None,
+                        "effective_tr": float(subject_tr),
+                        "tr_source": tr_source,
+                        "status": qc_status,
+                    }
+                )
+                if not accepted:
+                    continue
+
+                variants = _state_variants(base_ts, states=states, seed=idx + num_nodes)
+                subject_dir = root / str(num_nodes) / subject_key
+                subject_dir.mkdir(parents=True, exist_ok=True)
+                for state, ts in variants.items():
+                    np.save(subject_dir / f"{state}.npy", ts)
+                stats[f"nodes_{num_nodes}"] += 1
+                if num_nodes == target_num_nodes and subject_key not in accepted_subject_keys:
+                    accepted_subject_keys.add(subject_key)
+                    accepted_for_target = True
 
             if progress:
                 progress.update(
                     stage="prepare_data:openneuro_subject",
                     current=idx,
-                    total=len(subject_records),
-                    message=f"nodes={num_nodes} dataset={dataset} subject={pid}",
+                    total=len(records),
+                    message=f"dataset={dataset} subject={pid} accepted_total={len(accepted_subject_keys)}",
                 )
+            if accepted_for_target:
+                accepted_in_batch += 1
+            processed_count += 1
+        return accepted_in_batch, processed_count
 
-        stats[f"nodes_{num_nodes}"] = written
+    if not use_usable_target:
+        source = _download_openneuro_rest_bold_multi(
+            dataset_ids=resolved_dataset_ids,
+            snapshot_tag=snapshot_tag,
+            task=task,
+            n_subjects=n_subjects,
+            min_age=min_age,
+            diagnosis=diagnosis,
+            strict_hc=strict_hc,
+            api_url=api_url,
+            cache_root=cache_root,
+            progress=progress,
+        )
+        source_records = list(source["records"])
+        _process_records(source_records)
+        per_dataset = list(source["per_dataset"])
+    else:
+        for dataset_idx, current_dataset_id in enumerate(resolved_dataset_ids, start=1):
+            if len(accepted_subject_keys) >= usable_target_subjects:
+                break
+            seen_ids: set[str] = set()
+            ds_meta: Dict[str, object] = {
+                "dataset_id": current_dataset_id,
+                "snapshot_tag": "",
+                "openneuro_root": "",
+                "participants_path": "",
+                "selection": {"chunks": []},
+                "missing_ids": [],
+                "selected_count": 0,
+                "requested_count": 0,
+                "accepted_count": 0,
+                "chunks": 0,
+            }
+            while len(accepted_subject_keys) < usable_target_subjects:
+                if progress:
+                    progress.update(
+                        stage="prepare_data:openneuro_dataset",
+                        current=dataset_idx,
+                        total=len(resolved_dataset_ids),
+                        message=(
+                            f"dataset={current_dataset_id} accepted={len(accepted_subject_keys)} "
+                            f"target={usable_target_subjects}"
+                        ),
+                    )
+                chunk = _download_openneuro_rest_bold(
+                    dataset_id=current_dataset_id,
+                    snapshot_tag=snapshot_tag,
+                    task=task,
+                    n_subjects=chunk_size,
+                    min_age=min_age,
+                    diagnosis=diagnosis,
+                    strict_hc=strict_hc,
+                    api_url=api_url,
+                    cache_root=cache_root,
+                    exclude_participant_ids=sorted(seen_ids),
+                    progress=progress,
+                )
+                chunk_ids = list(chunk["participant_ids"])
+                if not chunk_ids:
+                    break
+                seen_ids.update(chunk_ids)
+                chunk_records = []
+                for pid, bold in zip(chunk_ids, chunk["bold_files"]):
+                    chunk_records.append(
+                        {
+                            "dataset_id": current_dataset_id,
+                            "participant_id": pid,
+                            "subject_key": _compose_subject_key(current_dataset_id, pid),
+                            "bold_file": bold,
+                        }
+                    )
+                accepted_before = len(accepted_subject_keys)
+                accepted_chunk, processed_count = _process_records(
+                    chunk_records,
+                    max_accepted_target=usable_target_subjects,
+                )
+                source_records.extend(chunk_records[:processed_count])
+                accepted_after = len(accepted_subject_keys)
+                ds_meta["snapshot_tag"] = chunk["snapshot_tag"]
+                ds_meta["openneuro_root"] = chunk["openneuro_root"]
+                ds_meta["participants_path"] = chunk["participants_path"]
+                ds_meta["selected_count"] = int(ds_meta["selected_count"]) + len(chunk_ids)
+                ds_meta["requested_count"] = int(ds_meta["requested_count"]) + chunk_size
+                ds_meta["accepted_count"] = int(ds_meta["accepted_count"]) + accepted_chunk
+                ds_meta["chunks"] = int(ds_meta["chunks"]) + 1
+                ds_meta["missing_ids"].extend(chunk["missing_ids"])
+                cast_selection = dict(chunk.get("selection") or {})
+                cast_selection["selected_count"] = len(chunk_ids)
+                cast_selection["accepted_before"] = accepted_before
+                cast_selection["accepted_after"] = accepted_after
+                cast_selection["accepted_in_chunk"] = accepted_chunk
+                ds_meta["selection"]["chunks"].append(cast_selection)
+                if len(chunk_ids) < chunk_size:
+                    break
+            per_dataset.append(ds_meta)
+
+        if not source_records:
+            joined = ",".join(resolved_dataset_ids)
+            raise RuntimeError(f"No subjects collected from datasets [{joined}] under usable-target mode")
+
+    qc_df = pd.DataFrame(qc_rows)
+    qc_csv = root / "openneuro_qc.csv"
+    qc_json = root / "openneuro_qc.json"
+    qc_df.to_csv(qc_csv, index=False)
+    qc_json.write_text(qc_df.to_json(orient="records", indent=2), encoding="utf-8")
+
+    qc_summary: Dict[str, object] = {}
+    if not qc_df.empty:
+        accepted_df = qc_df[qc_df["status"] == "accepted"]
+        qc_summary = {
+            "accepted_total": int(len(accepted_df)),
+            "rejected_total": int(len(qc_df) - len(accepted_df)),
+            "accepted_by_dataset": {
+                str(k): int(v) for k, v in accepted_df.groupby("dataset_id").size().to_dict().items()
+            },
+            "rejected_by_dataset": {
+                str(k): int(v)
+                for k, v in qc_df[qc_df["status"] != "accepted"].groupby("dataset_id").size().to_dict().items()
+            },
+            "status_counts": {
+                str(k): int(v) for k, v in qc_df.groupby("status").size().to_dict().items()
+            },
+        }
 
     return {
         "source": {
             "dataset": resolved_dataset_ids[0] if len(resolved_dataset_ids) == 1 else ",".join(resolved_dataset_ids),
             "datasets": resolved_dataset_ids,
             "snapshot_tag": (
-                source["per_dataset"][0]["snapshot_tag"] if len(source["per_dataset"]) == 1 else ""
+                per_dataset[0]["snapshot_tag"] if len(per_dataset) == 1 else ""
             ),
             "snapshot_tags": {
-                item["dataset_id"]: item["snapshot_tag"] for item in source["per_dataset"]
+                item["dataset_id"]: item["snapshot_tag"] for item in per_dataset
             },
             "task": task,
             "strict_hc": strict_hc,
             "diagnosis": diagnosis,
             "min_age": min_age,
             "openneuro_root": (
-                source["per_dataset"][0]["openneuro_root"] if len(source["per_dataset"]) == 1 else ""
+                per_dataset[0]["openneuro_root"] if len(per_dataset) == 1 else ""
             ),
             "participants_path": (
-                source["per_dataset"][0]["participants_path"] if len(source["per_dataset"]) == 1 else ""
+                per_dataset[0]["participants_path"] if len(per_dataset) == 1 else ""
             ),
             "participants_paths": {
-                item["dataset_id"]: item["participants_path"] for item in source["per_dataset"]
+                item["dataset_id"]: item["participants_path"] for item in per_dataset
             },
-            "missing_ids": [item["missing_ids"] for item in source["per_dataset"]],
+            "missing_ids": [item["missing_ids"] for item in per_dataset],
             "selection": (
-                source["per_dataset"][0]["selection"]
-                if len(source["per_dataset"]) == 1
-                else {"per_dataset": source["per_dataset"]}
+                per_dataset[0]["selection"]
+                if len(per_dataset) == 1
+                else {"per_dataset": per_dataset}
             ),
-            "requested_subjects": source["requested_subjects"],
-            "collected_subjects": source["collected_subjects"],
-            "skipped_datasets": source["skipped_datasets"],
+            "requested_subjects": int(n_subjects),
+            "collected_subjects": int(len(source_records)),
+            "accepted_subjects": int(len(accepted_subject_keys)),
+            "usable_target_subjects": int(usable_target_subjects),
+            "dataset_chunk_size": int(chunk_size),
+            "skipped_datasets": ([] if use_usable_target else source["skipped_datasets"]),
+            "qc_manifest_csv": str(qc_csv),
+            "qc_manifest_json": str(qc_json),
+            "qc_summary": qc_summary,
         },
         "os_stats": stats,
         "hcp_stats": stats,
@@ -977,6 +1228,11 @@ def prepare_data(
             atlas_nodes_options=cfg.template.atlas_nodes_options,
             n_subjects=subjects,
             tr=cfg.data.os.tr,
+            use_image_tr=cfg.data.os.openneuro_use_image_tr,
+            require_exact_nodes=cfg.data.os.openneuro_require_exact_nodes,
+            usable_target_subjects=cfg.data.os.usable_target_subjects,
+            dataset_chunk_size=cfg.data.os.dataset_chunk_size,
+            target_num_nodes=cfg.model.num_nodes,
             min_age=min_age,
             diagnosis=resolved_diagnosis,
             dataset_id=resolved_dataset_ids[0],
