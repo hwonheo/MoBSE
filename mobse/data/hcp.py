@@ -189,9 +189,10 @@ def build_os_windows(
     state_to_label: Dict[str, int],
     window_len: int,
     stride: int,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     windows: List[np.ndarray] = []
     labels: List[int] = []
+    subject_ids: List[str] = []
 
     for record in records:
         ts = np.load(record.path)
@@ -203,13 +204,15 @@ def build_os_windows(
             window = ts[start : start + window_len]
             windows.append(window.astype(np.float32))
             labels.append(label)
+            subject_ids.append(record.subject_id)
 
     if not windows:
         raise RuntimeError("No OS windows generated. Adjust window_len/stride or input data.")
 
     x = np.stack(windows, axis=0)
     y = np.array(labels, dtype=np.int64)
-    return x, y
+    subjects = np.array(subject_ids, dtype=object)
+    return x, y, subjects
 
 
 def split_indices(n: int, train_ratio: float, val_ratio: float, seed: int) -> Dict[str, np.ndarray]:
@@ -250,12 +253,64 @@ def create_os_dataloaders(
     train_ratio: float,
     val_ratio: float,
     seed: int,
+    train_subject_prefixes: List[str] | None = None,
+    val_subject_prefixes: List[str] | None = None,
+    test_subject_prefixes: List[str] | None = None,
 ) -> Dict[str, DataLoader]:
-    pack = np.load(npz_path)
+    pack = np.load(npz_path, allow_pickle=True)
     x = pack["x"]
     y = pack["y"]
+    subjects = pack["subject_ids"].astype(str) if "subject_ids" in pack else None
 
-    splits = split_indices(len(x), train_ratio=train_ratio, val_ratio=val_ratio, seed=seed)
+    train_subject_prefixes = train_subject_prefixes or []
+    val_subject_prefixes = val_subject_prefixes or []
+    test_subject_prefixes = test_subject_prefixes or []
+
+    if train_subject_prefixes or val_subject_prefixes or test_subject_prefixes:
+        if subjects is None:
+            raise ValueError("Explicit subject-prefix split requested, but `subject_ids` is missing from the OS windows NPZ.")
+
+        idx = np.arange(len(x))
+
+        def prefix_mask(prefixes: List[str]) -> np.ndarray:
+            if not prefixes:
+                return np.zeros(len(subjects), dtype=bool)
+            return np.array([any(subject.startswith(prefix) for prefix in prefixes) for subject in subjects], dtype=bool)
+
+        train_mask = prefix_mask(train_subject_prefixes)
+        val_mask = prefix_mask(val_subject_prefixes)
+        test_mask = prefix_mask(test_subject_prefixes)
+
+        if np.any(train_mask & val_mask) or np.any(train_mask & test_mask) or np.any(val_mask & test_mask):
+            raise ValueError("Explicit subject-prefix splits overlap. Train/val/test subject sets must be disjoint.")
+
+        if val_subject_prefixes:
+            train_pool = idx[train_mask] if train_subject_prefixes else idx[~(val_mask | test_mask)]
+            val_idx = idx[val_mask]
+            train_idx = train_pool
+        else:
+            train_pool = idx[train_mask] if train_subject_prefixes else idx[~test_mask]
+            if len(train_pool) == 0:
+                raise ValueError("No samples matched the requested train subject prefixes.")
+            val_fraction = val_ratio / max(train_ratio + val_ratio, 1e-8)
+            rng = np.random.default_rng(seed)
+            shuffled = np.array(train_pool, copy=True)
+            rng.shuffle(shuffled)
+            train_end = int(len(shuffled) * (1.0 - val_fraction))
+            train_idx = shuffled[:train_end]
+            val_idx = shuffled[train_end:]
+
+        test_idx = idx[test_mask] if test_subject_prefixes else idx[~np.isin(idx, np.concatenate([train_idx, val_idx]))]
+
+        if len(train_idx) == 0 or len(val_idx) == 0 or len(test_idx) == 0:
+            raise ValueError(
+                "Explicit subject-prefix split produced an empty split. "
+                f"train={len(train_idx)} val={len(val_idx)} test={len(test_idx)}"
+            )
+
+        splits = {"train": train_idx, "val": val_idx, "test": test_idx}
+    else:
+        splits = split_indices(len(x), train_ratio=train_ratio, val_ratio=val_ratio, seed=seed)
     datasets = {
         split: OSClassificationDataset(x[idx], y[idx])
         for split, idx in splits.items()
