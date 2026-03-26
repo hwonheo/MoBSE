@@ -1,29 +1,23 @@
 data:
   os:
-    # This Phase-2 setup intentionally reuses the shared 300-subject ds00 collection root
-    # that already contains both `timeseries/100` and `timeseries/200`.
-    root_dir: data/os_phase2_ds00_300_n100
-    timeseries_dir: data/os_phase2_ds00_300_n100/timeseries
-    nifti_manifest: ""
+    root_dir: data/hcp
+    timeseries_dir: data/hcp_openneuro_hc127/timeseries
+    nifti_manifest: ''
     tr: 0.72
-    subjects_limit: 300
-    states: [rest, wm, motor, language, attention]
-    atlas_nodes_primary: 200
-    atlas_nodes_secondary: 100
+    subjects_limit: 127
+    states:
+    - rest
+    - wm
+    - motor
+    - language
+    - attention
+    atlas_nodes_primary: 100
+    atlas_nodes_secondary: 200
     window_len: 64
     stride: 16
     train_ratio: 0.7
     val_ratio: 0.15
     random_seed: 42
-    nuisance_strategy: paper_compcor_gsr
-    nuisance_include_compcor: true
-    nuisance_compcor_components: 5
-    nuisance_include_gsr: true
-    nuisance_add_derivatives: true
-    nuisance_add_quadratic: true
-    nuisance_detrend: true
-    nuisance_high_pass: 0.008
-    nuisance_low_pass: 0.1
   etth1:
     csv_path: data/ETTh1.csv
     target_col: OT
@@ -31,16 +25,16 @@ data:
     pred_len: 24
     train_ratio: 0.7
     val_ratio: 0.15
-
 template:
   atlas_name: schaefer
-  atlas_nodes_options: [200]
-  sparsity_levels: [0.2]
+  atlas_nodes_options:
+  - 200
+  sparsity_levels:
+  - 0.2
   default_sparsity: 0.2
   threshold_mode: proportional
   fisher_z_average: true
   output_name: template_bank.npz
-
 model:
   arch: mobse
   hidden_dim: 64
@@ -55,17 +49,21 @@ model:
   etth1_out_dim: 1
   sparse_attn_window: 16
   use_template_prior: true
-  template_bank_path: ""
-  os_windows_path: ""
-
+  template_bank_path: ''
+  os_windows_path: ''
 train:
-  tasks: [os, etth1]
+  tasks:
+  - os
+  - etth1
   batch_size: 32
   epochs: 12
   learning_rate: 0.001
   weight_decay: 0.0001
   grad_clip_norm: 1.0
-  seeds: [42, 43, 44]
+  seeds:
+  - 42
+  - 43
+  - 44
   os_loss_weight: 1.0
   etth1_loss_weight: 1.0
   etth1_loss_type: huber
@@ -77,13 +75,15 @@ train:
   early_stopping_min_delta: 0.0005
   use_amp: false
   device: mps
-
 eval:
-  metrics: [accuracy, f1, mae, mse]
+  metrics:
+  - accuracy
+  - f1
+  - mae
+  - mse
   profile_batches: 10
   latency_warmup: 3
   output_prefix: eval
-
 artifacts:
   root_dir: artifacts
-  run_id: "phase2_collect300_ds00_n200_20260314"
+  run_id: poc1_hc127_mps200_balanced3
