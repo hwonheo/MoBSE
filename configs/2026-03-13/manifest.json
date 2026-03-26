@@ -1,0 +1,196 @@
+{
+  "created_at": "2026-03-13",
+  "files": [
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/20260313_010946.yaml",
+      "sha256": "c166885455419ea84c25ff1e050f5cb398e431f793a4168d97dd0ab9ef0e9199",
+      "bytes": 1447
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/20260313_010950.yaml",
+      "sha256": "54cd3cc3753fb2fd635bc340af1a1aad00291c5eda2a10e1143c053e9cdd5515",
+      "bytes": 1447
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/20260313_010954.yaml",
+      "sha256": "33c8ba34197622f3a84d4f8436f4ad2b98b238db860a120f7b22a8d021a741eb",
+      "bytes": 1447
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/20260313_011314.yaml",
+      "sha256": "fdb22b83e3ff526a01a41c0c2e7fa99ec03b47bb78d00e9467d55ae4837a69fd",
+      "bytes": 1447
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/20260313_011412.yaml",
+      "sha256": "0a100ef77fce3b4c9397e7882d7421eada6b69dd53bf6522b531219ab507e5a3",
+      "bytes": 1447
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/20260313_011508.yaml",
+      "sha256": "a6c7e398b773893d2ebc85430dfadcb1274dd8cd6ec93ecc9b7737b715893c44",
+      "bytes": 1447
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/20260313_011520.yaml",
+      "sha256": "80b01980f7b9f5925871f9481afb5c986f8716809fa2cab67ea5cb52b3816d0f",
+      "bytes": 1447
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/20260313_012448.yaml",
+      "sha256": "9f47211bfa9df3c665186cc814ab4f4d1bcab8375f35bb3d94d72f8e79a93ce3",
+      "bytes": 1447
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/20260313_013540.yaml",
+      "sha256": "86d9d199a671d03e733f0d709b18c3f1ae327821b06ff6eec62eb6ab0b3292f6",
+      "bytes": 1447
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/20260313_021111.yaml",
+      "sha256": "5fd7e4adafb42278944f8c3647b9a0e28b191f9a655c1b56cdf8a3f6ded1a47c",
+      "bytes": 1447
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/mps_2sub_test.yaml",
+      "sha256": "01d5f3195f8c2455405b23eaa773be18d551f30c954488c2e955209045c567e9",
+      "bytes": 1409
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/os_fetch_regression_check.yaml",
+      "sha256": "354bf0125601927e5bdd6e21ded857ff1e9d759c1d4d3f51247cd5a04fc037bf",
+      "bytes": 1963
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/os_fetch_smoke_real.yaml",
+      "sha256": "3eccfdcaa9378eae29087bba6a0673bca4e39bf3f73b3acb381912a857618f9f",
+      "bytes": 1636
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/poc1_hc127_analysis.yaml",
+      "sha256": "728870131107883116f93a2edab63d7fa681fb829f68520d1ef9be7115ee447f",
+      "bytes": 1434
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/poc1_hc127_mps.yaml",
+      "sha256": "c79e5712e68e4b8c782d6a6db00b478f176ad439cebf2c282181e3e7099978f3",
+      "bytes": 1429
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/poc1_hc127_mps100.yaml",
+      "sha256": "e32b7f9b24d2d64bec43b0037953129a717f63db52d008158d01bcd5fb83075d",
+      "bytes": 1424
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/poc1_hc127_mps100_balanced.yaml",
+      "sha256": "1931fd3a7d2c6026db35bd5d8a7af61fa67239bca7234322aa09185b8aa535c6",
+      "bytes": 1654
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/poc1_hc127_mps100_balanced3.yaml",
+      "sha256": "5325833a6c51ea18217ca6617d6911bf1ce4c70a17bf169ab092dff41c7ae651",
+      "bytes": 1661
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/poc1_hc127_mps100_full.yaml",
+      "sha256": "6dae199565e61b8732b483ed17bf72738b8bc8bf52dde9fa11631465e8489181",
+      "bytes": 1437
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/poc1_hc127_mps200_balanced3.yaml",
+      "sha256": "2c72eaab7dbcc5883dc46d35c9ac24629d35c5a4e91961ded3f5bc050fc79e4d",
+      "bytes": 1661
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/poc1_hc127_mps200_fill.yaml",
+      "sha256": "1ac71bee1109e2718a20d0b381b642dc5a08a98e79e03d66f0a0e77595cef09f",
+      "bytes": 1429
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/poc1_hc127_mps200_full.yaml",
+      "sha256": "2cc4721dec1e4c5ca216022614357af19192807aa7f63dacb67bee82813747b5",
+      "bytes": 1429
+    },
+    {
+      "path": "configs/archive/2026-03-13/resolved_configs/progress_smoke.yaml",
+      "sha256": "ab2ddcf066294b64c1c8fff074820e18de15076e49fb76812ea93f0dcd82daa7",
+      "bytes": 1429
+    },
+    {
+      "path": "configs/archive/2026-03-13/source_configs/default.yaml",
+      "sha256": "77960e1be454628814ad920c8500444fc3c9e23ad9cfc722717b8e69a0dbd04b",
+      "bytes": 1880
+    },
+    {
+      "path": "configs/archive/2026-03-13/source_configs/final_public.yaml",
+      "sha256": "26e7d5ea3885e35429d909c4393a08f02c127f634857713518008cb7040b9dbe",
+      "bytes": 1870
+    },
+    {
+      "path": "configs/archive/2026-03-13/source_configs/local.yaml",
+      "sha256": "c8a1b5244742a9ae84c19a4778eb3b257bba744351c328a111382c1b552641d6",
+      "bytes": 1880
+    },
+    {
+      "path": "configs/archive/2026-03-13/source_configs/mps_2sub_test.yaml",
+      "sha256": "1703788518671de5905933d53c23a317a2ee17928490eead57c0c62f8ce281f7",
+      "bytes": 1619
+    },
+    {
+      "path": "configs/archive/2026-03-13/source_configs/os_fetch_regression_check.yaml",
+      "sha256": "02728ce8216022012b1b9943b23597ab68079336cce25c6991a74ebe314d820d",
+      "bytes": 1669
+    },
+    {
+      "path": "configs/archive/2026-03-13/source_configs/os_fetch_smoke_real.yaml",
+      "sha256": "4d8d75701072506f0542f94c6eeaa1e590888641ec3ba457756b815ab851ca73",
+      "bytes": 1639
+    },
+    {
+      "path": "configs/archive/2026-03-13/source_configs/poc1_hc127.yaml",
+      "sha256": "96dff90a5ed5ffb4af3d639e6ccd7383de2a6abfeaf66019cc6f42777634023a",
+      "bytes": 1641
+    },
+    {
+      "path": "configs/archive/2026-03-13/source_configs/poc1_hc127_analysis.yaml",
+      "sha256": "d887b6e00dcddfb664d746e817d1c3c19108a556e224d390ce1e29f049fa3818",
+      "bytes": 1646
+    },
+    {
+      "path": "configs/archive/2026-03-13/source_configs/poc1_hc127_mps100.yaml",
+      "sha256": "0f0e883dfc5e187f9ea65e9cbf8b338a2a1e42b6740a7c0405f5df6de7804691",
+      "bytes": 1636
+    },
+    {
+      "path": "configs/archive/2026-03-13/source_configs/poc1_hc127_mps100_balanced.yaml",
+      "sha256": "1931fd3a7d2c6026db35bd5d8a7af61fa67239bca7234322aa09185b8aa535c6",
+      "bytes": 1654
+    },
+    {
+      "path": "configs/archive/2026-03-13/source_configs/poc1_hc127_mps100_balanced3.yaml",
+      "sha256": "4585396eb083678253b1ac93dad9f1823934648e077a3516ab57f709c92e1ab6",
+      "bytes": 1614
+    },
+    {
+      "path": "configs/archive/2026-03-13/source_configs/poc1_hc127_mps100_full.yaml",
+      "sha256": "bd76bb032712c6d80bc0ad558103a33189fe10a1bf3b763993685cbe27559163",
+      "bytes": 1649
+    },
+    {
+      "path": "configs/archive/2026-03-13/source_configs/poc1_hc127_mps200_balanced3.yaml",
+      "sha256": "e519bad876f5a80d2bf62f5df79ebbc18f4df225a8d6355729db124ae0031501",
+      "bytes": 1614
+    },
+    {
+      "path": "configs/archive/2026-03-13/source_configs/poc1_hc127_mps200_full.yaml",
+      "sha256": "b8e68f09ee16a012c7af1c6defed32eca3813d2d06ca557ed58969a3445e8c68",
+      "bytes": 1641
+    },
+    {
+      "path": "configs/archive/2026-03-13/source_configs/poc1_hc127_mps200_only.yaml",
+      "sha256": "ca33a6c1d659f33c0f0422074e3d4291b32ae13413bbb15fb8d44c2541e4f59c",
+      "bytes": 1641
+    }
+  ],
+  "count": 38
+}

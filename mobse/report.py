@@ -1,13 +1,22 @@
 from __future__ import annotations
 
 import glob
+import os
+import tempfile
 from pathlib import Path
 from typing import Dict, List
 
-import matplotlib.pyplot as plt
+_MPLCONFIGDIR = Path(tempfile.gettempdir()) / "mobse-mpl"
+_MPLCONFIGDIR.mkdir(parents=True, exist_ok=True)
+os.environ.setdefault("MPLCONFIGDIR", str(_MPLCONFIGDIR))
+
+import matplotlib
 import pandas as pd
 import seaborn as sns
 from scipy.stats import ttest_ind
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 from mobse.artifacts import ArtifactPaths
 from mobse.config import ExperimentConfig

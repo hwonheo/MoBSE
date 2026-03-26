@@ -1,15 +1,13 @@
 data:
   os:
-    # This Phase-2 setup intentionally reuses the shared 300-subject ds00 collection root
-    # that already contains both `timeseries/100` and `timeseries/200`.
-    root_dir: data/os_phase2_ds00_300_n100
-    timeseries_dir: data/os_phase2_ds00_300_n100/timeseries
+    root_dir: data/os
+    timeseries_dir: data/os/timeseries
     nifti_manifest: ""
     tr: 0.72
-    subjects_limit: 300
+    subjects_limit: 150
     states: [rest, wm, motor, language, attention]
-    atlas_nodes_primary: 200
-    atlas_nodes_secondary: 100
+    atlas_nodes_primary: 100
+    atlas_nodes_secondary: 200
     window_len: 64
     stride: 16
     train_ratio: 0.7
@@ -34,8 +32,8 @@ data:
 
 template:
   atlas_name: schaefer
-  atlas_nodes_options: [200]
-  sparsity_levels: [0.2]
+  atlas_nodes_options: [100, 200]
+  sparsity_levels: [0.1, 0.2, 0.3]
   default_sparsity: 0.2
   threshold_mode: proportional
   fisher_z_average: true
@@ -44,7 +42,7 @@ template:
 model:
   arch: mobse
   hidden_dim: 64
-  num_nodes: 200
+  num_nodes: 100
   num_graph_layers: 2
   dropout: 0.1
   num_experts: 5
@@ -61,7 +59,7 @@ model:
 train:
   tasks: [os, etth1]
   batch_size: 32
-  epochs: 12
+  epochs: 20
   learning_rate: 0.001
   weight_decay: 0.0001
   grad_clip_norm: 1.0
@@ -80,10 +78,10 @@ train:
 
 eval:
   metrics: [accuracy, f1, mae, mse]
-  profile_batches: 10
-  latency_warmup: 3
+  profile_batches: 20
+  latency_warmup: 5
   output_prefix: eval
 
 artifacts:
   root_dir: artifacts
-  run_id: "phase2_collect300_ds00_n200_20260314"
+  run_id: ""

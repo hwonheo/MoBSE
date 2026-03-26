@@ -1,0 +1,87 @@
+data:
+  os:
+    root_dir: data/os_fetch_real
+    timeseries_dir: data/os_fetch_real/timeseries
+    nifti_manifest: ''
+    tr: 0.72
+    subjects_limit: 2
+    states:
+    - rest
+    - wm
+    - motor
+    - language
+    - attention
+    atlas_nodes_primary: 100
+    atlas_nodes_secondary: 200
+    window_len: 64
+    stride: 16
+    train_ratio: 0.7
+    val_ratio: 0.15
+    random_seed: 42
+  etth1:
+    csv_path: data/ETTh1.csv
+    target_col: OT
+    seq_len: 96
+    pred_len: 24
+    train_ratio: 0.7
+    val_ratio: 0.15
+template:
+  atlas_name: schaefer
+  atlas_nodes_options:
+  - 100
+  sparsity_levels:
+  - 0.2
+  default_sparsity: 0.2
+  threshold_mode: proportional
+  fisher_z_average: true
+  output_name: template_bank.npz
+model:
+  arch: mobse
+  hidden_dim: 64
+  num_nodes: 100
+  num_graph_layers: 2
+  dropout: 0.1
+  num_experts: 5
+  routing_k: 2
+  routing_mode: soft
+  os_num_classes: 5
+  etth1_in_dim: 7
+  etth1_out_dim: 1
+  sparse_attn_window: 16
+  use_template_prior: true
+  template_bank_path: ''
+  os_windows_path: ''
+train:
+  tasks:
+  - os
+  - etth1
+  batch_size: 16
+  epochs: 1
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seeds:
+  - 42
+  os_loss_weight: 1.0
+  etth1_loss_weight: 1.0
+  etth1_loss_type: huber
+  etth1_huber_delta: 1.0
+  normalize_task_losses: true
+  task_loss_norm_batches: 8
+  selection_metric: weighted_normalized_loss
+  early_stopping_patience: 0
+  early_stopping_min_delta: 0.0
+  use_amp: false
+  device: mps
+eval:
+  metrics:
+  - accuracy
+  - f1
+  - mae
+  - mse
+  profile_batches: 2
+  latency_warmup: 1
+  output_prefix: eval
+artifacts:
+  root_dir: artifacts
+  run_id: os_fetch_smoke_real

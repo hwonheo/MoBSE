@@ -12,6 +12,13 @@ import pandas as pd
 import yaml
 
 
+def _portable_path(path: Path, repo_root: Path) -> str:
+    try:
+        return str(path.relative_to(repo_root))
+    except ValueError:
+        return str(path)
+
+
 def _parse_int_list(value: str) -> List[int]:
     return [int(x.strip()) for x in value.split(",") if x.strip()]
 
@@ -384,11 +391,11 @@ def main() -> None:
     manifest = {
         "study_id": args.study_id,
         "source_config": str(cfg_path),
-        "sweep_seed42": str(out_reports / "phase2_sweep_seed42.csv"),
-        "top3_seed42": str(out_reports / "phase2_top3_seed42.csv"),
-        "top3_bal3_seed_metrics": str(out_reports / "phase2_top3_bal3_seed_metrics.csv"),
-        "top3_bal3_summary": str(out_reports / "phase2_top3_bal3_summary.csv"),
-        "config_dir": str(cfg_dir),
+        "sweep_seed42": _portable_path(out_reports / "phase2_sweep_seed42.csv", repo_root),
+        "top3_seed42": _portable_path(out_reports / "phase2_top3_seed42.csv", repo_root),
+        "top3_bal3_seed_metrics": _portable_path(out_reports / "phase2_top3_bal3_seed_metrics.csv", repo_root),
+        "top3_bal3_summary": _portable_path(out_reports / "phase2_top3_bal3_summary.csv", repo_root),
+        "config_dir": _portable_path(cfg_dir, repo_root),
     }
     (out_reports / "phase2_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(json.dumps(manifest, indent=2))

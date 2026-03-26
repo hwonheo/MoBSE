@@ -1,29 +1,18 @@
 data:
   os:
-    # This Phase-2 setup intentionally reuses the shared 300-subject ds00 collection root
-    # that already contains both `timeseries/100` and `timeseries/200`.
-    root_dir: data/os_phase2_ds00_300_n100
-    timeseries_dir: data/os_phase2_ds00_300_n100/timeseries
+    root_dir: data/hcp
+    timeseries_dir: data/hcp_openneuro_hc127/timeseries
     nifti_manifest: ""
     tr: 0.72
-    subjects_limit: 300
+    subjects_limit: 127
     states: [rest, wm, motor, language, attention]
-    atlas_nodes_primary: 200
-    atlas_nodes_secondary: 100
+    atlas_nodes_primary: 100
+    atlas_nodes_secondary: 200
     window_len: 64
     stride: 16
     train_ratio: 0.7
     val_ratio: 0.15
     random_seed: 42
-    nuisance_strategy: paper_compcor_gsr
-    nuisance_include_compcor: true
-    nuisance_compcor_components: 5
-    nuisance_include_gsr: true
-    nuisance_add_derivatives: true
-    nuisance_add_quadratic: true
-    nuisance_detrend: true
-    nuisance_high_pass: 0.008
-    nuisance_low_pass: 0.1
   etth1:
     csv_path: data/ETTh1.csv
     target_col: OT
@@ -34,7 +23,7 @@ data:
 
 template:
   atlas_name: schaefer
-  atlas_nodes_options: [200]
+  atlas_nodes_options: [100]
   sparsity_levels: [0.2]
   default_sparsity: 0.2
   threshold_mode: proportional
@@ -44,7 +33,7 @@ template:
 model:
   arch: mobse
   hidden_dim: 64
-  num_nodes: 200
+  num_nodes: 100
   num_graph_layers: 2
   dropout: 0.1
   num_experts: 5
@@ -86,4 +75,4 @@ eval:
 
 artifacts:
   root_dir: artifacts
-  run_id: "phase2_collect300_ds00_n200_20260314"
+  run_id: poc1_hc127_mps100_balanced3
