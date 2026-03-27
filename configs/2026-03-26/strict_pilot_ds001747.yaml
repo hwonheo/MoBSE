@@ -1,0 +1,26 @@
+data:
+  os:
+    root_dir: data/os_strict_pilot_ds001747
+    timeseries_dir: data/os_strict_pilot_ds001747/timeseries
+    tr: 0.72
+    openneuro_use_image_tr: true
+    openneuro_require_exact_nodes: true
+    usable_target_subjects: 0
+    dataset_chunk_size: 25
+    subjects_limit: 25
+    atlas_nodes_primary: 100
+    atlas_nodes_secondary: 200
+    nuisance_strategy: gsr_only
+    nuisance_include_compcor: false
+    nuisance_compcor_components: 0
+    nuisance_include_gsr: true
+  etth1:
+    csv_path: data/ETTh1.csv
+
+template:
+  atlas_name: schaefer
+  atlas_nodes_options: [100]
+
+artifacts:
+  root_dir: artifacts
+  run_id: strict_pilot_ds001747_20260326
