@@ -4,6 +4,7 @@ import argparse
 import csv
 import io
 import json
+import re
 from pathlib import Path
 from typing import Dict, List
 
@@ -14,6 +15,7 @@ from mobse.data.prepare import (
     _list_openneuro_files,
     _openneuro_graphql_query,
     _pick_column,
+    _parse_task_names,
     _resolve_openneuro_snapshot_tag,
     _select_openneuro_bold_entries,
     _select_openneuro_subjects,
@@ -38,6 +40,7 @@ def _fetch_dataset_ids(api_url: str, prefix: str, limit: int) -> List[str]:
     """
     after = None
     out: List[str] = []
+    seen: set[str] = set()
     while len(out) < limit:
         data = _openneuro_graphql_query(
             api_url=api_url,
@@ -47,7 +50,8 @@ def _fetch_dataset_ids(api_url: str, prefix: str, limit: int) -> List[str]:
         conn = data["datasets"]
         for edge in conn["edges"]:
             dataset_id = str(edge["node"]["id"])
-            if dataset_id.startswith(prefix):
+            if dataset_id.startswith(prefix) and dataset_id not in seen:
+                seen.add(dataset_id)
                 out.append(dataset_id)
                 if len(out) >= limit:
                     break
@@ -64,6 +68,39 @@ def _scan_dataset(
     task: str,
     probe_subjects: int,
 ) -> Dict[str, object]:
+    def _index_proxy_counts(dataset_id: str, snapshot_tag: str, task_value: str) -> Dict[str, object]:
+        task_names = _parse_task_names(task_value)
+        task_tokens = [f"_task-{name}_" for name in task_names]
+        files = _list_openneuro_files(
+            dataset_id=dataset_id,
+            snapshot_tag=snapshot_tag,
+            api_url=api_url,
+            progress=None,
+            recursive=True,
+        )
+        subject_ids = set()
+        bold_count = 0
+        for entry in files:
+            rel = entry.relative_path
+            rel_lower = rel.lower()
+            if "/derivatives/" in rel_lower:
+                continue
+            if "/func/" not in rel_lower:
+                continue
+            if not rel_lower.endswith("_bold.nii.gz"):
+                continue
+            if not any(token in rel_lower for token in task_tokens):
+                continue
+            bold_count += 1
+            match = re.search(r"(sub-[^/]+)/func/", rel_lower)
+            if match:
+                subject_ids.add(match.group(1))
+        return {
+            "index_subject_count": int(len(subject_ids)),
+            "index_bold_count": int(bold_count),
+            "rest_like": bool(subject_ids),
+        }
+
     tag = _resolve_openneuro_snapshot_tag(dataset_id=dataset_id, snapshot_tag=None, api_url=api_url)
     root_files = _list_openneuro_files(
         dataset_id=dataset_id,
@@ -77,13 +114,14 @@ def _scan_dataset(
         None,
     )
     if participants_entry is None:
+        proxy = _index_proxy_counts(dataset_id=dataset_id, snapshot_tag=tag, task_value=task)
         return {
             "dataset_id": dataset_id,
             "snapshot_tag": tag,
             "has_participants": False,
-            "adult_count": 0,
-            "rest_like": False,
-            "error": "participants.tsv missing",
+            "adult_count": int(proxy["index_subject_count"]),
+            "rest_like": bool(proxy["rest_like"]),
+            "error": "participants.tsv missing (index-proxy used)",
         }
 
     participants_text = requests.get(participants_entry.url, timeout=60).text
@@ -92,16 +130,17 @@ def _scan_dataset(
     diagnosis_col = _pick_column(df, ["diagnosis", "group", "dx"])
 
     if age_col is None:
+        proxy = _index_proxy_counts(dataset_id=dataset_id, snapshot_tag=tag, task_value=task)
         return {
             "dataset_id": dataset_id,
             "snapshot_tag": tag,
             "has_participants": True,
-            "adult_count": 0,
-            "rest_like": False,
+            "adult_count": int(proxy["index_subject_count"]),
+            "rest_like": bool(proxy["rest_like"]),
             "rows": int(len(df)),
             "has_age": False,
             "has_diagnosis": bool(diagnosis_col),
-            "error": "age column missing",
+            "error": "age column missing (index-proxy used)",
         }
 
     selection = _select_openneuro_subjects(
