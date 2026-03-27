@@ -1,5 +1,39 @@
 # Changelog
 
+## 2026-03-27 (ETTh1 Storyline Hardening)
+
+### Stage 1: Readiness Closure
+- Added ETTh1 readiness audit script: `scripts/audit_etth1_story_readiness.py`.
+- Closed readiness gates from `17/19` to `19/19` by implementing temporal control and completing high-power seed evidence.
+- Added audit documentation and closure record:
+  - `docs/experiments/etth1_journal_readiness_audit_2026-03-27.md`
+  - `docs/experiments/current_status_etth1_story_2026-03-27.md`
+
+### Stage 2: Modeling Controls and Experimental Execution
+- Added temporal control switch: `model.etth1_temporal_encoder: mean|gru` in:
+  - `mobse/config.py`
+  - `mobse/models/mobse.py`
+  - `mobse/models/baselines.py`
+  - `mobse/models/__init__.py`
+- Added/used controlled `10`-seed configs:
+  - `configs/2026-03-27/phase2_etth1_story_moe_n100_*`
+- Completed four controlled run regimes (`ETTh1-only/Dual-task` x `mean/GRU`) and generated paired comparisons.
+
+### Stage 3: Figures and Reporting
+- Added ETTh1 story figure builder: `scripts/make_etth1_story_figures.py`.
+- Generated ETTh1 figure package (`F1~F5`) in both `PNG` and `PDF`:
+  - `artifacts/figures_etth1_story_20260327/reports/`
+- Added focused run summary/pairwise tables:
+  - `artifacts/etth1_story_followup_20260327/reports/story_run_summary.csv`
+  - `artifacts/etth1_story_followup_20260327/reports/story_pairwise_focus.csv`
+
+### Stage 4: Documentation Consolidation
+- Added execution and figure-planning docs:
+  - `docs/experiments/etth1_story_execution_log_2026-03-27.md`
+  - `docs/experiments/etth1_figure_execution_plan_2026-03-27.md`
+  - `docs/experiments/development_note_etth1_story_2026-03-27.md`
+- Updated storyline/index docs to reflect closed gaps and current claim boundaries.
+
 ## 2026-03-14 (Phase-2 Target >=300)
 
 ### Added

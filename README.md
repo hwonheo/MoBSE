@@ -18,6 +18,19 @@ python -m mobse.cli evaluate --config configs/config.yaml --checkpoint artifacts
 python -m mobse.cli report --config configs/config.yaml --eval-glob "artifacts/*/logs/eval_*.json"
 ```
 
+## Latest Status (2026-03-27)
+
+- ETTh1 journal readiness audit is fully closed: `19/19 ready`.
+- Temporal control ablation implemented: `model.etth1_temporal_encoder: mean|gru`.
+- Controlled evidence completed with high power: `10` seeds x `4` regimes (`ETTh1-only/Dual-task` x `mean/GRU`).
+- ETTh1 storyline figure package generated: `F1~F5` in `PNG` and `PDF`.
+
+Primary references:
+
+- Current status: [docs/experiments/current_status_etth1_story_2026-03-27.md](docs/experiments/current_status_etth1_story_2026-03-27.md)
+- Execution log: [docs/experiments/etth1_story_execution_log_2026-03-27.md](docs/experiments/etth1_story_execution_log_2026-03-27.md)
+- Figure execution plan: [docs/experiments/etth1_figure_execution_plan_2026-03-27.md](docs/experiments/etth1_figure_execution_plan_2026-03-27.md)
+
 ## Docs
 
 - Concept note: [docs/concept/MoBSE_note.md](docs/concept/MoBSE_note.md)
@@ -35,6 +48,9 @@ python -m mobse.cli report --config configs/config.yaml --eval-glob "artifacts/*
 - OpenNeuro extension plan (2026-03-24): [docs/experiments/openneuro_extension_2026-03-24.md](docs/experiments/openneuro_extension_2026-03-24.md)
 - OpenNeuro strict-usable plan (2026-03-24): [docs/experiments/openneuro_usable_plan_2026-03-24.md](docs/experiments/openneuro_usable_plan_2026-03-24.md)
 - Experiment history index (2026-03-26): [docs/experiments/history_index_2026-03-26.md](docs/experiments/history_index_2026-03-26.md)
+- ETTh1 top-journal storyline (2026-03-27): [docs/experiments/etth1_storyline_top_journal_2026-03-27.md](docs/experiments/etth1_storyline_top_journal_2026-03-27.md)
+- ETTh1 readiness audit (2026-03-27): [docs/experiments/etth1_journal_readiness_audit_2026-03-27.md](docs/experiments/etth1_journal_readiness_audit_2026-03-27.md)
+- ETTh1 development note (2026-03-27): [docs/experiments/development_note_etth1_story_2026-03-27.md](docs/experiments/development_note_etth1_story_2026-03-27.md)
 - Changelog summary: [docs/CHANGELOG.md](docs/CHANGELOG.md)
 
 ## Progress Tracking
@@ -75,21 +91,39 @@ python -m mobse.cli report --config configs/config.yaml --eval-glob "artifacts/*
 
 ### OS timeseries input
 
-`build_templates` expects preprocessed time-series files by default:
+`build_templates` supports both node-scoped and legacy flat layouts.
+
+Preferred (node-scoped) layout:
+
+```text
+<data.os.timeseries_dir>/
+  100/
+    sub-0001/
+      rest.npy
+      wm.npy
+      motor.npy
+      language.npy
+      attention.npy
+    sub-0002/
+      ...
+  200/
+    sub-0001/
+      ...
+```
+
+Legacy flat layout (still accepted):
 
 ```text
 <data.os.timeseries_dir>/
   sub-0001/
     rest.npy
-    wm.npy
-    motor.npy
-    language.npy
-    attention.npy
-  sub-0002/
     ...
 ```
 
 Each file is a 2D array shaped `[time, nodes]`.
+
+`build_templates` resolves `<timeseries_dir>/<num_nodes>/` first, and falls back to
+`<timeseries_dir>/` if the node directory does not exist.
 
 If you have raw NIfTI files, set `data.os.nifti_manifest` (CSV with `subject_id,state,nifti_path[,confounds_path]`) and `build_templates` will parcellate with Schaefer atlas automatically.
 
@@ -129,6 +163,7 @@ All runs are written under `artifacts/<run_id>/`:
 - `model.use_template_prior=true|false`: use fixed OS brain templates vs learned random expert graphs.
 - `model.routing_mode=soft|hard`: routing policy.
 - `model.arch=mobse|transformer|sparse_transformer|moe`: baseline family.
+- `model.etth1_temporal_encoder=mean|gru`: ETTh1 temporal summary branch (`mean` baseline vs `GRU` control).
 
 ## Loss Stabilization (Dual-task)
 
