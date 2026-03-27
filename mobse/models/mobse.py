@@ -41,6 +41,7 @@ class MoBSEModel(nn.Module):
         etth1_out_dim: int,
         pred_len: int,
         template_bank: torch.Tensor,
+        etth1_temporal_encoder: str = "mean",
         use_template_prior: bool = True,
     ):
         super().__init__()
@@ -52,6 +53,18 @@ class MoBSEModel(nn.Module):
         self.pred_len = pred_len
         self.etth1_out_dim = etth1_out_dim
         self.use_template_prior = use_template_prior
+        self.etth1_temporal_encoder = etth1_temporal_encoder.strip().lower()
+        if self.etth1_temporal_encoder not in {"mean", "gru"}:
+            raise ValueError(
+                "etth1_temporal_encoder must be one of {'mean', 'gru'} "
+                f"(got: {etth1_temporal_encoder})"
+            )
+        if self.etth1_temporal_encoder == "gru":
+            self.etth1_temporal_gru = nn.GRU(
+                input_size=etth1_in_dim,
+                hidden_size=etth1_in_dim,
+                batch_first=True,
+            )
 
         self.os_adapter = nn.Linear(num_nodes, num_nodes * hidden_dim)
         self.etth1_adapter = nn.Linear(etth1_in_dim, num_nodes * hidden_dim)
@@ -88,8 +101,21 @@ class MoBSEModel(nn.Module):
         self.os_head = nn.Linear(hidden_dim, os_num_classes)
         self.etth1_head = nn.Linear(hidden_dim, pred_len * etth1_out_dim)
 
-    def _pool_for_gate(self, x: torch.Tensor, task: str, etth1_in_dim: int) -> torch.Tensor:
-        pooled = x.mean(dim=1)
+    def _pool_etth1(self, x: torch.Tensor) -> torch.Tensor:
+        if self.etth1_temporal_encoder == "gru":
+            # temporal encoder control (no mean pooling for ETTh1)
+            out, _ = self.etth1_temporal_gru(x)
+            return out[:, -1, :]
+        return x.mean(dim=1)
+
+    def _pool_for_gate(
+        self,
+        x: torch.Tensor,
+        task: str,
+        etth1_in_dim: int,
+        pooled_override: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        pooled = pooled_override if pooled_override is not None else x.mean(dim=1)
         if task == "os":
             if pooled.shape[-1] < self.num_nodes:
                 pad = pooled.new_zeros(pooled.shape[0], self.num_nodes - pooled.shape[-1])
@@ -150,14 +176,19 @@ class MoBSEModel(nn.Module):
 
         if task == "os":
             adapter = self.os_adapter
+            pooled = x.mean(dim=1)
         else:
             adapter = self.etth1_adapter
-
-        pooled = x.mean(dim=1)
+            pooled = self._pool_etth1(x)
         node_latent = adapter(pooled).reshape(x.shape[0], self.num_nodes, self.hidden_dim)
         node_latent = self.dropout(node_latent)
 
-        gate_input = self._pool_for_gate(x, task=task, etth1_in_dim=self.etth1_adapter.in_features)
+        gate_input = self._pool_for_gate(
+            x,
+            task=task,
+            etth1_in_dim=self.etth1_adapter.in_features,
+            pooled_override=pooled if task == "etth1" else None,
+        )
         routing = self._routing_weights(gate_input)
 
         graph_out = self._graph_forward(node_latent, routing)
