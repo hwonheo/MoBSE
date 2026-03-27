@@ -92,6 +92,7 @@ class ModelConfig:
     os_num_classes: int = 5
     etth1_in_dim: int = 7
     etth1_out_dim: int = 1
+    etth1_temporal_encoder: str = "mean"  # mean | gru
     sparse_attn_window: int = 16
     use_template_prior: bool = True
     template_bank_path: str = ""

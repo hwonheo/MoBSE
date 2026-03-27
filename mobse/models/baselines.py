@@ -33,6 +33,7 @@ class TransformerBaseline(nn.Module):
         os_num_classes: int,
         pred_len: int,
         etth1_out_dim: int,
+        etth1_temporal_encoder: str = "mean",
     ):
         super().__init__()
         self.encoder = _TaskEncoder(os_in_dim, etth1_in_dim, hidden_dim)
@@ -49,13 +50,32 @@ class TransformerBaseline(nn.Module):
         self.pred_head = nn.Linear(hidden_dim, pred_len * etth1_out_dim)
         self.pred_len = pred_len
         self.etth1_out_dim = etth1_out_dim
+        self.etth1_temporal_encoder = etth1_temporal_encoder.strip().lower()
+        if self.etth1_temporal_encoder not in {"mean", "gru"}:
+            raise ValueError(
+                "etth1_temporal_encoder must be one of {'mean', 'gru'} "
+                f"(got: {etth1_temporal_encoder})"
+            )
+        if self.etth1_temporal_encoder == "gru":
+            self.etth1_temporal_gru = nn.GRU(
+                input_size=hidden_dim,
+                hidden_size=hidden_dim,
+                batch_first=True,
+            )
+
+    def _pool_hidden(self, h: torch.Tensor, task: str) -> torch.Tensor:
+        if task == "etth1" and self.etth1_temporal_encoder == "gru":
+            # temporal encoder control (no mean pooling for ETTh1)
+            out, _ = self.etth1_temporal_gru(h)
+            return out[:, -1, :]
+        return h.mean(dim=1)
 
     def forward(self, x: torch.Tensor, task: str) -> Dict[str, torch.Tensor]:
         if task == "hcp":
             task = "os"
         h = self.encoder(x, task)
         h = self.backbone(h)
-        pooled = h.mean(dim=1)
+        pooled = self._pool_hidden(h, task)
         if task == "os":
             return {"logits": self.cls_head(pooled), "routing_weights": torch.empty(0, device=x.device)}
         pred = self.pred_head(pooled).reshape(x.shape[0], self.pred_len, self.etth1_out_dim)
@@ -116,6 +136,7 @@ class StandardMoE(nn.Module):
         os_num_classes: int,
         pred_len: int,
         etth1_out_dim: int,
+        etth1_temporal_encoder: str = "mean",
     ):
         super().__init__()
         self.encoder = _TaskEncoder(os_in_dim, etth1_in_dim, hidden_dim)
@@ -137,12 +158,31 @@ class StandardMoE(nn.Module):
         self.pred_head = nn.Linear(hidden_dim, pred_len * etth1_out_dim)
         self.pred_len = pred_len
         self.etth1_out_dim = etth1_out_dim
+        self.etth1_temporal_encoder = etth1_temporal_encoder.strip().lower()
+        if self.etth1_temporal_encoder not in {"mean", "gru"}:
+            raise ValueError(
+                "etth1_temporal_encoder must be one of {'mean', 'gru'} "
+                f"(got: {etth1_temporal_encoder})"
+            )
+        if self.etth1_temporal_encoder == "gru":
+            self.etth1_temporal_gru = nn.GRU(
+                input_size=hidden_dim,
+                hidden_size=hidden_dim,
+                batch_first=True,
+            )
+
+    def _pool_hidden(self, h: torch.Tensor, task: str) -> torch.Tensor:
+        if task == "etth1" and self.etth1_temporal_encoder == "gru":
+            # temporal encoder control (no mean pooling for ETTh1)
+            out, _ = self.etth1_temporal_gru(h)
+            return out[:, -1, :]
+        return h.mean(dim=1)
 
     def forward(self, x: torch.Tensor, task: str) -> Dict[str, torch.Tensor]:
         if task == "hcp":
             task = "os"
         h = self.encoder(x, task)
-        pooled = h.mean(dim=1)
+        pooled = self._pool_hidden(h, task)
         gate = self.gate_os(pooled) if task == "os" else self.gate_etth1(pooled)
         routing = F.softmax(gate, dim=-1)
 

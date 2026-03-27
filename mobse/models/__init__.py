@@ -17,6 +17,7 @@ def build_model(cfg: ExperimentConfig, template_bank: torch.Tensor):
         os_num_classes=cfg.model.os_num_classes,
         pred_len=cfg.data.etth1.pred_len,
         etth1_out_dim=cfg.model.etth1_out_dim,
+        etth1_temporal_encoder=cfg.model.etth1_temporal_encoder,
     )
 
     if arch == "mobse":
@@ -31,6 +32,7 @@ def build_model(cfg: ExperimentConfig, template_bank: torch.Tensor):
             os_num_classes=cfg.model.os_num_classes,
             etth1_in_dim=cfg.model.etth1_in_dim,
             etth1_out_dim=cfg.model.etth1_out_dim,
+            etth1_temporal_encoder=cfg.model.etth1_temporal_encoder,
             pred_len=cfg.data.etth1.pred_len,
             template_bank=template_bank,
             use_template_prior=cfg.model.use_template_prior,
