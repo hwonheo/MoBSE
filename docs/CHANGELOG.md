@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-04-01 (ds000243 Ingest, Template, Network Discussion)
+
+### Added
+- New ds000243 ingest/preprocessing execution note:
+  - `docs/experiments/openneuro_ds000243_ingest_preproc_2026-04-01.md`
+- New ds000243 network-interpretation discussion note:
+  - `docs/experiments/openneuro_ds000243_network_discussion_2026-04-01.md`
+- New template-network analysis script:
+  - `scripts/analyze_template_networks.py`
+- New ds000243 template/eval config:
+  - `configs/2026-04-01/ds000243_rest_templates_100_200_20260401.yaml`
+
+### Changed
+- README experiment links updated to archived experiment paths under:
+  - `docs/experiments/archive_derived_2026-03-31/`
+- README docs section extended with ds000243 note/discussion entry points.
+
+### Data/Artifacts Produced
+- Timeseries conversion outputs for Schaefer `100` and `200`:
+  - `data/current_canonical/openneuro_ds000243/timeseries/{100,200}`
+- Template banks:
+  - `artifacts/current_canonical/ds000243_rest_templates_100_200_20260401/templates/atlas{100,200}_sp{10,20}_template_bank.npz`
+- Network metrics reports:
+  - `artifacts/current_canonical/ds000243_rest_templates_100_200_20260401/reports/template_network_metrics.{csv,json,md}`
+
 ## 2026-03-27 (ETTh1 Storyline Hardening)
 
 ### Stage 1: Readiness Closure

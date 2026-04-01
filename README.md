@@ -27,30 +27,17 @@ python -m mobse.cli report --config configs/config.yaml --eval-glob "artifacts/*
 
 Primary references:
 
-- Current status: [docs/experiments/current_status_etth1_story_2026-03-27.md](docs/experiments/current_status_etth1_story_2026-03-27.md)
-- Execution log: [docs/experiments/etth1_story_execution_log_2026-03-27.md](docs/experiments/etth1_story_execution_log_2026-03-27.md)
-- Figure execution plan: [docs/experiments/etth1_figure_execution_plan_2026-03-27.md](docs/experiments/etth1_figure_execution_plan_2026-03-27.md)
+- Current status (archived): [docs/experiments/archive_derived_2026-03-31/current_status_etth1_story_2026-03-27.md](docs/experiments/archive_derived_2026-03-31/current_status_etth1_story_2026-03-27.md)
+- Execution log (archived): [docs/experiments/archive_derived_2026-03-31/etth1_story_execution_log_2026-03-27.md](docs/experiments/archive_derived_2026-03-31/etth1_story_execution_log_2026-03-27.md)
+- Figure execution plan (archived): [docs/experiments/archive_derived_2026-03-31/etth1_figure_execution_plan_2026-03-27.md](docs/experiments/archive_derived_2026-03-31/etth1_figure_execution_plan_2026-03-27.md)
 
 ## Docs
 
 - Concept note: [docs/concept/MoBSE_note.md](docs/concept/MoBSE_note.md)
-- Experiments note (2026-03-13): [docs/experiments/experiments_note_2026-03-13.md](docs/experiments/experiments_note_2026-03-13.md)
-- Phase-2 detailed note (2026-03-14): [docs/experiments/experiments_note_phase2_2026-03-14.md](docs/experiments/experiments_note_phase2_2026-03-14.md)
-- Phase-2 report (2026-03-14): [docs/experiments/phase2_report_2026-03-14.md](docs/experiments/phase2_report_2026-03-14.md)
-- Phase-2 public guide (easy version): [docs/experiments/phase2_report_2026-03-14_public.md](docs/experiments/phase2_report_2026-03-14_public.md)
-- Status and next experiments (2026-03-23): [docs/experiments/project_status_2026-03-23.md](docs/experiments/project_status_2026-03-23.md)
-- Phase-2 follow-up (2026-03-23): [docs/experiments/phase2_followup_2026-03-23.md](docs/experiments/phase2_followup_2026-03-23.md)
-- Benchmark goal and stage targets (2026-03-23): [docs/experiments/benchmark_goal_2026-03-23.md](docs/experiments/benchmark_goal_2026-03-23.md)
-- Baseline benchmark wave (2026-03-23): [docs/experiments/baseline_benchmark_2026-03-23.md](docs/experiments/baseline_benchmark_2026-03-23.md)
-- Cross-dataset generalization (2026-03-23): [docs/experiments/cross_dataset_2026-03-23.md](docs/experiments/cross_dataset_2026-03-23.md)
-- HCP-accessible validation (2026-03-23): [docs/experiments/hcp_validation_2026-03-23.md](docs/experiments/hcp_validation_2026-03-23.md)
-- Nuisance sensitivity wave (2026-03-24): [docs/experiments/nuisance_sensitivity_2026-03-24.md](docs/experiments/nuisance_sensitivity_2026-03-24.md)
-- OpenNeuro extension plan (2026-03-24): [docs/experiments/openneuro_extension_2026-03-24.md](docs/experiments/openneuro_extension_2026-03-24.md)
-- OpenNeuro strict-usable plan (2026-03-24): [docs/experiments/openneuro_usable_plan_2026-03-24.md](docs/experiments/openneuro_usable_plan_2026-03-24.md)
-- Experiment history index (2026-03-26): [docs/experiments/history_index_2026-03-26.md](docs/experiments/history_index_2026-03-26.md)
-- ETTh1 top-journal storyline (2026-03-27): [docs/experiments/etth1_storyline_top_journal_2026-03-27.md](docs/experiments/etth1_storyline_top_journal_2026-03-27.md)
-- ETTh1 readiness audit (2026-03-27): [docs/experiments/etth1_journal_readiness_audit_2026-03-27.md](docs/experiments/etth1_journal_readiness_audit_2026-03-27.md)
-- ETTh1 development note (2026-03-27): [docs/experiments/development_note_etth1_story_2026-03-27.md](docs/experiments/development_note_etth1_story_2026-03-27.md)
+- Experiments archive index: [docs/experiments/archive_derived_2026-03-31/history_index_2026-03-26.md](docs/experiments/archive_derived_2026-03-31/history_index_2026-03-26.md)
+- Full archived experiment set: [`docs/experiments/archive_derived_2026-03-31/`](docs/experiments/archive_derived_2026-03-31/)
+- ds000243 ingest/preproc note (2026-04-01): [docs/experiments/openneuro_ds000243_ingest_preproc_2026-04-01.md](docs/experiments/openneuro_ds000243_ingest_preproc_2026-04-01.md)
+- ds000243 network discussion note (2026-04-01): [docs/experiments/openneuro_ds000243_network_discussion_2026-04-01.md](docs/experiments/openneuro_ds000243_network_discussion_2026-04-01.md)
 - Changelog summary: [docs/CHANGELOG.md](docs/CHANGELOG.md)
 
 ## Progress Tracking
@@ -127,10 +114,25 @@ Each file is a 2D array shaped `[time, nodes]`.
 
 If you have raw NIfTI files, set `data.os.nifti_manifest` (CSV with `subject_id,state,nifti_path[,confounds_path]`) and `build_templates` will parcellate with Schaefer atlas automatically.
 
+If you want to use preprocessed ABIDE PCP images (without running local fMRIPrep), generate a manifest first:
+
+```bash
+./.venv/bin/python scripts/make_abide_pcp_manifest.py \
+  --out-manifest data/abide_pcp_manifest_rest.csv \
+  --data-dir data/_nilearn_cache \
+  --pipeline cpac \
+  --min-age 18 \
+  --dx-group 2 \
+  --n-subjects 300
+```
+
+Then set `data.os.nifti_manifest` to that CSV and run `build_templates`.
+
 ### One-command data preparation
 
 - `prepare_data --mode openneuro_hc`: downloads ETTh1 and OpenNeuro dataset, applies strict HC filtering (requires diagnosis/group and age columns; defaults to `CONTROL`, `>=18`), then converts selected BOLD scans to OS-like ROI time-series.
 - `prepare_data --mode openneuro`: downloads ETTh1 and OpenNeuro dataset without strict HC requirement (auto-discovers files from OpenNeuro GraphQL API). Use `--openneuro-dataset` or `--openneuro-datasets "dsA,dsB,..."`, plus `--openneuro-snapshot`, `--openneuro-task` (comma-separated allowed, e.g. `rest,restingstate`) to target/fallback across public fMRI datasets.
+- `prepare_data --mode abide_control`: downloads ABIDE PCP control subjects (`DX_GROUP=2`) with `rois_cc200` or `rois_cc400`, then builds network-state variants by partitioning ROI nodes into `len(data.os.states)` clusters from group functional connectivity.
 - `prepare_data --mode public_proxy`: downloads ETTh1 and nilearn development fMRI proxy dataset, then converts into OS-like per-state ROI time-series.
 - `prepare_data --mode synthetic`: downloads ETTh1 and generates synthetic OS-like ROI time-series.
 
