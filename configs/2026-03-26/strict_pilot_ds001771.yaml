@@ -1,7 +1,7 @@
 data:
   os:
-    root_dir: data/os_strict_pilot_ds001771
-    timeseries_dir: data/os_strict_pilot_ds001771/timeseries
+    root_dir: data/legacy_strict/os_strict_pilot_ds001771
+    timeseries_dir: data/legacy_strict/os_strict_pilot_ds001771/timeseries
     tr: 0.72
     openneuro_use_image_tr: true
     openneuro_require_exact_nodes: true
@@ -15,7 +15,7 @@ data:
     nuisance_compcor_components: 0
     nuisance_include_gsr: true
   etth1:
-    csv_path: data/ETTh1.csv
+    csv_path: data/reference_raw/ETTh1.csv
 
 template:
   atlas_name: schaefer

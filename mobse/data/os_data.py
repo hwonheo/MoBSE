@@ -321,11 +321,3 @@ def create_os_dataloaders(
         "val": DataLoader(datasets["val"], batch_size=batch_size, shuffle=False),
         "test": DataLoader(datasets["test"], batch_size=batch_size, shuffle=False),
     }
-
-
-# Backward compatibility aliases.
-HCPStateRecord = OSStateRecord
-discover_hcp_timeseries = discover_os_timeseries
-build_hcp_windows = build_os_windows
-HCPClassificationDataset = OSClassificationDataset
-create_hcp_dataloaders = create_os_dataloaders

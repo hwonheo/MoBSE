@@ -1,7 +1,7 @@
 data:
   os:
-    root_dir: data/hcp
-    timeseries_dir: data/hcp/timeseries
+    root_dir: data/reference_raw/openneuro_abide152
+    timeseries_dir: data/reference_raw/openneuro_abide152/timeseries
     nifti_manifest: ""
     tr: 0.72
     subjects_limit: 152
@@ -23,7 +23,7 @@ data:
     nuisance_high_pass: 0.008
     nuisance_low_pass: 0.1
   etth1:
-    csv_path: data/ETTh1.csv
+    csv_path: data/reference_raw/ETTh1.csv
     target_col: OT
     seq_len: 96
     pred_len: 24
@@ -53,8 +53,8 @@ model:
   etth1_out_dim: 1
   sparse_attn_window: 16
   use_template_prior: false
-  template_bank_path: artifacts/phase2_hcp152_templates_n100_20260323/templates/atlas100_sp10_template_bank.npz
-  os_windows_path: artifacts/phase2_hcp152_templates_n100_20260323/templates/os_windows_nodes100.npz
+  template_bank_path: artifacts/phase2_openneuro_abide152_templates_n100_20260323/templates/atlas100_sp10_template_bank.npz
+  os_windows_path: artifacts/phase2_openneuro_abide152_templates_n100_20260323/templates/os_windows_nodes100.npz
 
 train:
   tasks: [os, etth1]
@@ -84,4 +84,4 @@ eval:
 
 artifacts:
   root_dir: artifacts
-  run_id: phase2_hcp152_moe_n100_20260323
+  run_id: phase2_openneuro_abide152_moe_n100_20260323

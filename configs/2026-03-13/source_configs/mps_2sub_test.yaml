@@ -19,7 +19,7 @@ data:
     val_ratio: 0.15
     random_seed: 42
   etth1:
-    csv_path: data/ETTh1.csv
+    csv_path: data/reference_raw/ETTh1.csv
     target_col: OT
     seq_len: 96
     pred_len: 24

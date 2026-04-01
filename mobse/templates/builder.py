@@ -7,7 +7,7 @@ import numpy as np
 
 from mobse.artifacts import ArtifactPaths
 from mobse.config import ExperimentConfig
-from mobse.data.hcp import (
+from mobse.data.os_data import (
     build_os_windows,
     build_state_templates,
     discover_os_timeseries,

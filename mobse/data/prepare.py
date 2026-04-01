@@ -23,6 +23,8 @@ DEFAULT_ETTH1_URL = "https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/
 DEFAULT_OPENNEURO_DATASET = "ds000030"
 DEFAULT_OPENNEURO_TASK = "rest"
 OPENNEURO_GRAPHQL_URL = "https://openneuro.org/crn/graphql"
+DEFAULT_ABIDE_PIPELINE = "cpac"
+DEFAULT_ABIDE_DERIVATIVE = "rois_cc200"
 
 
 @dataclass
@@ -150,6 +152,199 @@ def _state_variants(base_ts: np.ndarray, states: List[str], seed: int) -> Dict[s
         variants[state] = ts.astype(np.float32)
 
     return variants
+
+
+def _abide_subject_key(file_id: str) -> str:
+    token = re.sub(r"[^A-Za-z0-9_-]+", "", str(file_id).strip())
+    return f"abide_{token}" if token else "abide_unknown"
+
+
+def prepare_abide_control_proxy(
+    timeseries_root: str | Path,
+    states: List[str],
+    n_subjects: int,
+    min_age: int,
+    pipeline: str,
+    derivative: str,
+    data_dir: str | Path,
+    quality_checked: bool,
+    partition_subjects: int,
+    random_seed: int,
+    progress: Optional[ProgressReporter] = None,
+) -> Dict[str, object]:
+    try:
+        from nilearn.datasets import fetch_abide_pcp
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError("nilearn is required for ABIDE mode. Install with `pip install .[neuro]`.") from exc
+
+    try:
+        from sklearn.cluster import SpectralClustering
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError("scikit-learn is required for ABIDE network partition. Install with `pip install scikit-learn`.") from exc
+
+    if not states:
+        raise ValueError("ABIDE mode requires at least one state label in config.data.os.states.")
+    requested_subjects = int(n_subjects)
+    fetch_subjects = None if requested_subjects <= 0 else requested_subjects
+    partition_cap = max(1, int(partition_subjects))
+
+    if progress:
+        progress.update(stage="prepare_data:abide_fetch", message=f"fetching ABIDE PCP derivative={derivative}")
+    bunch = fetch_abide_pcp(
+        data_dir=str(data_dir),
+        n_subjects=fetch_subjects,
+        pipeline=pipeline,
+        derivatives=[derivative],
+        quality_checked=bool(quality_checked),
+        DX_GROUP=2,  # control-only
+        verbose=1,
+    )
+
+    signals = list(getattr(bunch, derivative, []))
+    pheno = pd.DataFrame(getattr(bunch, "phenotypic", pd.DataFrame())).reset_index(drop=True)
+    if not signals:
+        raise RuntimeError(f"ABIDE derivative fetch returned no data: {derivative}")
+    if pheno.empty:
+        raise RuntimeError("ABIDE phenotypic table is empty.")
+
+    if len(signals) != len(pheno):
+        n = min(len(signals), len(pheno))
+        signals = signals[:n]
+        pheno = pheno.iloc[:n].copy()
+
+    age_col = _pick_column(pheno, ["AGE_AT_SCAN", "age", "age_years", "ageinyears"])
+    file_col = _pick_column(pheno, ["FILE_ID", "file_id"])
+
+    filtered: List[Dict[str, object]] = []
+    for idx in range(len(pheno)):
+        ts = np.asarray(signals[idx], dtype=np.float32)
+        if ts.ndim != 2 or ts.shape[1] <= 0:
+            continue
+        row = pheno.iloc[idx]
+        age_value = None
+        if age_col is not None:
+            age_num = pd.to_numeric(pd.Series([row[age_col]]), errors="coerce").iloc[0]
+            age_value = None if pd.isna(age_num) else float(age_num)
+            if min_age > 0 and (age_value is None or age_value < float(min_age)):
+                continue
+        elif min_age > 0:
+            # If age is unavailable, keep row (same policy as non-strict openneuro mode).
+            age_value = None
+
+        file_id = str(row[file_col]).strip() if file_col is not None else f"subj_{idx:05d}"
+        filtered.append(
+            {
+                "file_id": file_id,
+                "subject_id": _abide_subject_key(file_id),
+                "age": age_value,
+                "ts": ts,
+            }
+        )
+
+    if not filtered:
+        raise RuntimeError("No ABIDE control subjects available after filtering.")
+
+    if requested_subjects > 0:
+        filtered = filtered[:requested_subjects]
+
+    num_nodes = int(filtered[0]["ts"].shape[1])
+    filtered = [row for row in filtered if int(row["ts"].shape[1]) == num_nodes]
+    if not filtered:
+        raise RuntimeError("No ABIDE subjects with consistent node dimension remained after filtering.")
+
+    n_networks = int(len(states))
+    if n_networks > num_nodes:
+        raise ValueError(f"Number of states ({n_networks}) cannot exceed num_nodes ({num_nodes}).")
+
+    affinity = np.zeros((num_nodes, num_nodes), dtype=np.float64)
+    used = 0
+    for idx, row in enumerate(filtered[:partition_cap], start=1):
+        ts = np.asarray(row["ts"], dtype=np.float32)
+        corr = np.corrcoef(ts, rowvar=False)
+        corr = np.nan_to_num(corr, nan=0.0, posinf=0.0, neginf=0.0)
+        np.fill_diagonal(corr, 1.0)
+        affinity += np.abs(corr)
+        used += 1
+        if progress:
+            progress.update(
+                stage="prepare_data:abide_partition",
+                current=idx,
+                total=min(len(filtered), partition_cap),
+                message=f"building affinity matrix n_nodes={num_nodes}",
+            )
+    affinity /= max(used, 1)
+    affinity = (affinity + affinity.T) / 2.0
+    np.fill_diagonal(affinity, 1.0)
+
+    cluster = SpectralClustering(
+        n_clusters=n_networks,
+        affinity="precomputed",
+        assign_labels="kmeans",
+        random_state=int(random_seed),
+        n_init=10,
+    )
+    node_labels = cluster.fit_predict(affinity).astype(np.int64)
+    present = sorted(set(node_labels.tolist()))
+    if len(present) != n_networks:
+        raise RuntimeError(f"Network partition failed: expected {n_networks} clusters, got {len(present)}.")
+
+    # Deterministic remap: largest cluster -> first state.
+    ordered = sorted(present, key=lambda c: (-int(np.sum(node_labels == c)), int(c)))
+    remap = {old: new for new, old in enumerate(ordered)}
+    node_labels = np.array([remap[int(v)] for v in node_labels], dtype=np.int64)
+
+    root = Path(timeseries_root)
+    node_root = root / str(num_nodes)
+    node_root.mkdir(parents=True, exist_ok=True)
+
+    for idx, row in enumerate(filtered, start=1):
+        ts = np.asarray(row["ts"], dtype=np.float32)
+        centered = ts - ts.mean(axis=0, keepdims=True)
+        subject_dir = node_root / str(row["subject_id"])
+        subject_dir.mkdir(parents=True, exist_ok=True)
+        for state_idx, state in enumerate(states):
+            masked = np.zeros_like(centered, dtype=np.float32)
+            node_idx = np.where(node_labels == state_idx)[0]
+            masked[:, node_idx] = centered[:, node_idx]
+            np.save(subject_dir / f"{state}.npy", masked)
+        if progress:
+            progress.update(
+                stage="prepare_data:abide_subject",
+                current=idx,
+                total=len(filtered),
+                message=f"subject={row['subject_id']} saved",
+            )
+
+    partition_rows = []
+    state_sizes: Dict[str, int] = {}
+    for state_idx, state in enumerate(states):
+        count = int(np.sum(node_labels == state_idx))
+        state_sizes[state] = count
+    for node_idx, label in enumerate(node_labels, start=1):
+        state = states[int(label)]
+        partition_rows.append({"node_index": int(node_idx), "cluster": int(label), "state": state})
+
+    partition_path = root / f"abide_{derivative}_network_partition.csv"
+    pd.DataFrame(partition_rows).to_csv(partition_path, index=False)
+
+    source = {
+        "dataset": "ABIDE_pcp",
+        "derivative": derivative,
+        "pipeline": pipeline,
+        "quality_checked": bool(quality_checked),
+        "dx_group": 2,
+        "min_age": int(min_age),
+        "subjects_requested": requested_subjects,
+        "subjects_collected": int(len(filtered)),
+        "num_nodes": int(num_nodes),
+        "network_partition_csv": str(partition_path),
+        "network_sizes": state_sizes,
+        "data_dir": str(data_dir),
+    }
+    return {
+        "os_stats": {f"nodes_{num_nodes}": int(len(filtered))},
+        "source": source,
+    }
 
 
 def prepare_public_fmri_proxy(
@@ -1173,6 +1368,11 @@ def prepare_data(
     openneuro_snapshot: str = "",
     openneuro_task: str = DEFAULT_OPENNEURO_TASK,
     openneuro_api_url: str = OPENNEURO_GRAPHQL_URL,
+    abide_pipeline: str = DEFAULT_ABIDE_PIPELINE,
+    abide_derivative: str = DEFAULT_ABIDE_DERIVATIVE,
+    abide_data_dir: str = "data/cache/_nilearn_cache",
+    abide_quality_checked: bool = True,
+    abide_partition_subjects: int = 200,
     progress: Optional[ProgressReporter] = None,
 ) -> Dict[str, object]:
     if progress:
@@ -1181,6 +1381,7 @@ def prepare_data(
     if progress:
         progress.update(stage="prepare_data:etth1", message=f"ready {etth1_path}")
 
+    payload: Dict[str, object] | None = None
     if mode == "synthetic":
         root = Path(cfg.data.os.timeseries_dir)
         for idx, num_nodes in enumerate(cfg.template.atlas_nodes_options, start=1):
@@ -1215,6 +1416,21 @@ def prepare_data(
             nuisance_low_pass=cfg.data.os.nuisance_low_pass,
             progress=progress,
         )
+    elif mode == "abide_control":
+        payload = prepare_abide_control_proxy(
+            timeseries_root=cfg.data.os.timeseries_dir,
+            states=cfg.data.os.states,
+            n_subjects=subjects,
+            min_age=min_age,
+            pipeline=abide_pipeline,
+            derivative=abide_derivative,
+            data_dir=abide_data_dir,
+            quality_checked=abide_quality_checked,
+            partition_subjects=abide_partition_subjects,
+            random_seed=cfg.data.os.random_seed,
+            progress=progress,
+        )
+        os_stats = payload["os_stats"]
     elif mode in {"openneuro_hc", "openneuro"}:
         strict_hc = mode == "openneuro_hc"
         resolved_diagnosis = diagnosis if diagnosis else ("CONTROL" if strict_hc else "")
@@ -1256,7 +1472,7 @@ def prepare_data(
     else:
         raise ValueError(
             "Unsupported mode: "
-            f"{mode}. Use 'public_proxy', 'openneuro_hc', 'openneuro', or 'synthetic'."
+            f"{mode}. Use 'public_proxy', 'abide_control', 'openneuro_hc', 'openneuro', or 'synthetic'."
         )
 
     result = {
@@ -1279,6 +1495,6 @@ def prepare_data(
     # Backward compatibility keys.
     result["hcp_timeseries_root"] = result["os_timeseries_root"]
     result["hcp_stats"] = result["os_stats"]
-    if mode in {"openneuro_hc", "openneuro"}:
+    if payload is not None and mode in {"openneuro_hc", "openneuro", "abide_control"}:
         result.update(payload["source"])
     return result
