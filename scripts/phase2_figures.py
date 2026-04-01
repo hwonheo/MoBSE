@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+from mobse.viz import save_multi, set_nature_style
 
 def _summary_dir(study_id: str) -> Path:
     return Path("artifacts") / f"{study_id}_summary" / "reports"
@@ -85,30 +86,40 @@ def _scatter(
 ) -> None:
     if df.empty or x not in df.columns or y not in df.columns:
         return
-    plt.figure(figsize=(8, 5))
+    fig, ax = plt.subplots(figsize=(3.5, 2.625))
     sns.scatterplot(
         data=df,
         x=x,
         y=y,
         hue="nodes",
         style="template_prior",
-        s=90,
-        alpha=0.9,
+        s=20,
+        alpha=0.8,
+        ax=ax,
+        linewidth=0,
     )
-    plt.title(title)
+    ax.set_title(title)
     plt.tight_layout()
-    plt.savefig(out, dpi=180)
+    save_multi(out)
     plt.close()
 
 
 def _routing_entropy_plot(df: pd.DataFrame, out: Path) -> None:
     if df.empty or "routing_entropy" not in df.columns:
         return
-    plt.figure(figsize=(8, 5))
-    sns.boxplot(data=df, x="nodes", y="routing_entropy", hue="task")
-    plt.title("Routing Entropy by Node Size and Task")
+    fig, ax = plt.subplots(figsize=(3.5, 2.625))
+    sns.boxplot(
+        data=df, 
+        x="nodes", 
+        y="routing_entropy", 
+        hue="task",
+        ax=ax,
+        linewidth=0.5,
+        fliersize=2.0
+    )
+    ax.set_title("Routing Entropy by Node Size and Task")
     plt.tight_layout()
-    plt.savefig(out, dpi=180)
+    save_multi(out)
     plt.close()
 
 
@@ -147,12 +158,12 @@ def _routing_usage_best_plot(df: pd.DataFrame, best_runs: Dict[str, str], out: P
     if usage_df.empty:
         return
 
-    plt.figure(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(7.2, 2.625))
     usage_df["series"] = usage_df["study_id"] + "_" + usage_df["task"]
-    sns.barplot(data=usage_df, x="expert", y="usage", hue="series")
-    plt.title("Best-Run Expert Usage Distribution")
+    sns.barplot(data=usage_df, x="expert", y="usage", hue="series", ax=ax, linewidth=0.5, edgecolor="black")
+    ax.set_title("Best-Run Expert Usage Distribution")
     plt.tight_layout()
-    plt.savefig(out, dpi=180)
+    save_multi(out)
     plt.close()
 
 
@@ -165,12 +176,12 @@ def main() -> None:
     )
     ap.add_argument(
         "--out-dir",
-        default="artifacts/phase2_figures_20260314",
+        default="artifacts/current_canonical/phase2_figures_20260331",
         help="Output directory for figures and manifest",
     )
     args = ap.parse_args()
 
-    sns.set_theme(style="whitegrid")
+    set_nature_style()
     study_ids = [token.strip() for token in args.study_ids.split(",") if token.strip()]
     if not study_ids:
         raise ValueError("No study ids provided.")
