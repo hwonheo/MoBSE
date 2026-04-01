@@ -1,0 +1,74 @@
+[
+  {
+    "figure_no": "Fig1",
+    "file_png": "fig_f1_hook_routing_vs_scale.png",
+    "file_pdf": "fig_f1_hook_routing_vs_scale.pdf",
+    "script": "scripts/make_etth1_story_figures.py",
+    "source": "artifacts/current_canonical/figures_etth1_story_20260331_rerun10/reports/figure_manifest.json",
+    "exists_png": true,
+    "exists_pdf": true
+  },
+  {
+    "figure_no": "Fig2",
+    "file_png": "fig_f2_etth1_model_schematic.png",
+    "file_pdf": "fig_f2_etth1_model_schematic.pdf",
+    "script": "scripts/make_etth1_story_figures.py",
+    "source": "artifacts/current_canonical/figures_etth1_story_20260331_rerun10/reports/figure_manifest.json",
+    "exists_png": true,
+    "exists_pdf": true
+  },
+  {
+    "figure_no": "Fig3",
+    "file_png": "fig_f3_temporal_bottleneck_control.png",
+    "file_pdf": "fig_f3_temporal_bottleneck_control.pdf",
+    "script": "scripts/make_etth1_story_figures.py",
+    "source": "artifacts/current_canonical/figures_etth1_story_20260331_rerun10/reports/figure_manifest.json",
+    "exists_png": true,
+    "exists_pdf": true
+  },
+  {
+    "figure_no": "Fig4",
+    "file_png": "fig_f4_prior_boundary_map.png",
+    "file_pdf": "fig_f4_prior_boundary_map.pdf",
+    "script": "scripts/make_etth1_story_figures.py",
+    "source": "artifacts/current_canonical/figures_etth1_story_20260331_rerun10/reports/figure_manifest.json",
+    "exists_png": true,
+    "exists_pdf": true
+  },
+  {
+    "figure_no": "Fig5",
+    "file_png": "fig_f5_etth1_pareto_frontier.png",
+    "file_pdf": "fig_f5_etth1_pareto_frontier.pdf",
+    "script": "scripts/make_etth1_story_figures.py",
+    "source": "artifacts/current_canonical/figures_etth1_story_20260331_rerun10/reports/figure_manifest.json",
+    "exists_png": true,
+    "exists_pdf": true
+  },
+  {
+    "figure_no": "Fig6",
+    "file_png": "fig_f6_ett_family_mae_mse_s10.png",
+    "file_pdf": "fig_f6_ett_family_mae_mse_s10.pdf",
+    "script": "scripts/make_ett_family_extension_figure.py",
+    "source": "artifacts/current_canonical/ett_family_extension_20260331_rerun10/reports/manifest.json",
+    "exists_png": true,
+    "exists_pdf": true
+  },
+  {
+    "figure_no": "Fig7",
+    "file_png": "fig_f7_strict_split_abide_vs_simul.png",
+    "file_pdf": "fig_f7_strict_split_abide_vs_simul.pdf",
+    "script": "scripts/make_strict_split_figure.py",
+    "source": "artifacts/current_canonical/robustness_figures_20260331_draft/reports/figure_manifest_fig7.json",
+    "exists_png": true,
+    "exists_pdf": true
+  },
+  {
+    "figure_no": "Fig8",
+    "file_png": "fig_f8_nuisance_threeway_core_metrics.png",
+    "file_pdf": "fig_f8_nuisance_threeway_core_metrics.pdf",
+    "script": "scripts/make_nuisance_threeway_figure.py",
+    "source": "artifacts/current_canonical/robustness_figures_20260331_draft/reports/figure_manifest_fig8.json",
+    "exists_png": true,
+    "exists_pdf": true
+  }
+]

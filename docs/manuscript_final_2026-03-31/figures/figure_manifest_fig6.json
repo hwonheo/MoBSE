@@ -1,0 +1,6 @@
+{
+  "summary_csv": "/Users/hwon/Documents/Git/MoBSE/artifacts/current_canonical/ett_family_extension_20260331_rerun10/reports/ett_family_summary_s10.csv",
+  "figure_png": "/Users/hwon/Documents/Git/MoBSE/artifacts/current_canonical/ett_family_extension_20260331_rerun10/reports/fig_ett_family_mae_mse_s10.png",
+  "figure_pdf": "/Users/hwon/Documents/Git/MoBSE/artifacts/current_canonical/ett_family_extension_20260331_rerun10/reports/fig_ett_family_mae_mse_s10.pdf",
+  "script": "/Users/hwon/Documents/Git/MoBSE/scripts/make_ett_family_extension_figure.py"
+}

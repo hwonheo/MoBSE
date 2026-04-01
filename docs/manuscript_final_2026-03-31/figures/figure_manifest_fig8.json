@@ -1,0 +1,6 @@
+{
+  "summary_csv": "/Users/hwon/Documents/Git/MoBSE/artifacts/current_canonical/nuisance_wave_mobse_20260331/reports/nuisance_benchmark_summary.csv",
+  "figure_png": "/Users/hwon/Documents/Git/MoBSE/artifacts/current_canonical/robustness_figures_20260331_draft/reports/fig_rb_nuisance_threeway_core_metrics.png",
+  "figure_pdf": "/Users/hwon/Documents/Git/MoBSE/artifacts/current_canonical/robustness_figures_20260331_draft/reports/fig_rb_nuisance_threeway_core_metrics.pdf",
+  "script": "/Users/hwon/Documents/Git/MoBSE/scripts/make_nuisance_threeway_figure.py"
+}
