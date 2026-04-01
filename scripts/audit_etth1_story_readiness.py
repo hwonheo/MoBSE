@@ -105,7 +105,7 @@ def build_items(repo_root: Path) -> List[Item]:
         ("phase2_report", "docs/experiments/phase2_report_2026-03-14.md"),
         ("baseline_benchmark", "docs/experiments/baseline_benchmark_2026-03-23.md"),
         ("etth1_storyline", "docs/experiments/etth1_storyline_top_journal_2026-03-27.md"),
-        ("etth1_csv", "data/ETTh1.csv"),
+        ("etth1_csv", "data/reference_raw/ETTh1.csv"),
         ("mobse_model_code", "mobse/models/mobse.py"),
         ("trainer_code", "mobse/train.py"),
         ("etth1_data_code", "mobse/data/etth1.py"),

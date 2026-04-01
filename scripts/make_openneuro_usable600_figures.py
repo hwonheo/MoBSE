@@ -9,10 +9,9 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 
-import matplotlib
-
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
+from mobse.viz import save_multi, set_nature_style
 
 
 def _load_raw(run_id: str) -> pd.DataFrame:
@@ -36,9 +35,8 @@ def _run_label(run_id: str) -> str:
 
 
 def _save_figure(fig: plt.Figure, path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
     fig.tight_layout()
-    fig.savefig(path, dpi=300)
+    save_multi(path, fig)
     plt.close(fig)
 
 
@@ -61,7 +59,7 @@ def _plot_f1_gate_summary(plan_manifest: Path, prepare_log: Path, out_path: Path
     values = [projected, target, accepted]
     colors = ["#4c78a8", "#f58518", "#54a24b"]
 
-    fig, ax = plt.subplots(figsize=(7.5, 4.5))
+    fig, ax = plt.subplots(figsize=(3.5, 3.5))
     bars = ax.bar(labels, values, color=colors)
     ax.set_ylabel("subjects")
     ax.set_title("F1. Strict-Usable Gate Summary")
@@ -97,7 +95,7 @@ def _plot_f2_dataset_contribution(prepare_log: Path, out_path: Path) -> Dict[str
         .reset_index(drop=True)
     )
 
-    fig, ax = plt.subplots(figsize=(8, 5))
+    fig, ax = plt.subplots(figsize=(3.5, 3.5))
     ax.barh(df["dataset_id"], df["accepted_count"], color="#4c78a8")
     ax.set_xlabel("accepted subjects")
     ax.set_title("F2. Accepted Subjects by Dataset")
@@ -140,7 +138,7 @@ def _paired_metric_plot(
 
 
 def _plot_f3_os_metrics(df_a: pd.DataFrame, df_b: pd.DataFrame, label_a: str, label_b: str, out_path: Path) -> Dict[str, object]:
-    fig, axes = plt.subplots(1, 2, figsize=(10.5, 4.5))
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.5))
     _paired_metric_plot(
         ax=axes[0],
         df_a=df_a,
@@ -170,7 +168,7 @@ def _plot_f3_os_metrics(df_a: pd.DataFrame, df_b: pd.DataFrame, label_a: str, la
 def _plot_f4_etth1_metrics(
     df_a: pd.DataFrame, df_b: pd.DataFrame, label_a: str, label_b: str, out_path: Path
 ) -> Dict[str, object]:
-    fig, axes = plt.subplots(1, 2, figsize=(10.5, 4.5))
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.5))
     _paired_metric_plot(
         ax=axes[0],
         df_a=df_a,
@@ -213,7 +211,7 @@ def _plot_f5_efficiency(df_a: pd.DataFrame, df_b: pd.DataFrame, label_a: str, la
             )
     eff = pd.DataFrame(rows)
 
-    fig, axes = plt.subplots(1, 2, figsize=(10.5, 4.5))
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.5))
     task_order = ["os", "etth1"]
     x = np.arange(len(task_order))
     width = 0.35
@@ -264,7 +262,7 @@ def main() -> None:
     ap.add_argument("--run-b", required=True)
     ap.add_argument("--plan-manifest", default="")
     ap.add_argument("--prepare-log", default="")
-    ap.add_argument("--out-dir", default="artifacts/figures_openneuro_usable600_20260327/reports")
+    ap.add_argument("--out-dir", default="artifacts/current_canonical/figures_openneuro_usable600_20260331/reports")
     args = ap.parse_args()
 
     out_dir = Path(args.out_dir)
@@ -276,6 +274,8 @@ def main() -> None:
     df_b = _load_raw(args.run_b)
     label_a = _run_label(args.run_a)
     label_b = _run_label(args.run_b)
+
+    set_nature_style()
 
     metric_table = pd.concat([df_a, df_b], ignore_index=True)
     metric_table_path = out_dir / "figure_metrics_table.csv"

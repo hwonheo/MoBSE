@@ -78,10 +78,10 @@ def main() -> None:
     ap.add_argument(
         "--pilot-roots",
         default=(
-            "ds001747:data/os_strict_pilot_ds001747,"
-            "ds001796:data/os_strict_pilot_ds001796,"
-            "ds001386:data/os_strict_pilot_ds001386,"
-            "ds001771:data/os_strict_pilot_ds001771"
+            "ds001747:data/legacy_strict/os_strict_pilot_ds001747,"
+            "ds001796:data/legacy_strict/os_strict_pilot_ds001796,"
+            "ds001386:data/legacy_strict/os_strict_pilot_ds001386,"
+            "ds001771:data/legacy_strict/os_strict_pilot_ds001771"
         ),
         help="Comma-separated dataset_id:path pairs",
     )

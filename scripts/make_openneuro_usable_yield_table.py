@@ -73,8 +73,8 @@ def main() -> None:
         default="artifacts/phase2_ds_scan_20260324/reports/ds00_scan.csv,artifacts/phase2_ds00_scan_20260314/reports/ds00_scan.csv",
         help="Comma-separated scan CSVs; the highest adult_count per dataset is kept",
     )
-    ap.add_argument("--openneuro-root", default="data/os_phase2_ds00_600_gsr_n100/openneuro")
-    ap.add_argument("--timeseries-root", default="data/os_phase2_ds00_600_gsr_n100/timeseries")
+    ap.add_argument("--openneuro-root", default="data/legacy_phase2/os_phase2_ds00_600_gsr_n100/openneuro")
+    ap.add_argument("--timeseries-root", default="data/legacy_phase2/os_phase2_ds00_600_gsr_n100/timeseries")
     ap.add_argument("--expected-nodes", type=int, default=100)
     ap.add_argument(
         "--datasets",
