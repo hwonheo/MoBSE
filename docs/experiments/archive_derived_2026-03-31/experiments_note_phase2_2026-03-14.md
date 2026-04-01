@@ -68,7 +68,7 @@
   - `artifacts/phase2_collect300_ds00_n100_20260314/logs/prepare_data.json`
   - `collected_subjects=300`, `requested_subjects=300`
   - `os_stats.nodes_100=300`
-  - timeseries 디렉토리 확인: `data/os_phase2_ds00_300_n100/timeseries/100` 하위 300 subject dir
+  - timeseries 디렉토리 확인: `data/legacy_phase2/os_phase2_ds00_300_n100/timeseries/100` 하위 300 subject dir
 
 ## 5) Phase-2 실험 매트릭스
 

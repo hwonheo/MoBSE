@@ -1,0 +1,16 @@
+{
+  "sources": {
+    "summary_csv": "artifacts/current_canonical/etth1_story_followup_20260331_rerun10/reports/story_run_summary.csv",
+    "pairwise_csv": "artifacts/current_canonical/etth1_story_followup_20260331_rerun10/reports/story_pairwise_focus.csv",
+    "sweep_n100": "artifacts/legacy_phase2/phase2_ds00_adult300_n100_20260314_summary/reports/phase2_sweep_seed42.csv",
+    "sweep_n200": "artifacts/legacy_phase2/phase2_ds00_adult300_n200_20260314_summary/reports/phase2_sweep_seed42.csv"
+  },
+  "figures": {
+    "f1_hook_routing_vs_scale": "artifacts/current_canonical/figures_etth1_story_20260331_rerun10/reports/fig_f1_hook_routing_vs_scale.png",
+    "f2_etth1_model_schematic": "artifacts/current_canonical/figures_etth1_story_20260331_rerun10/reports/fig_f2_etth1_model_schematic.png",
+    "f3_temporal_bottleneck_control": "artifacts/current_canonical/figures_etth1_story_20260331_rerun10/reports/fig_f3_temporal_bottleneck_control.png",
+    "f4_prior_boundary_map": "artifacts/current_canonical/figures_etth1_story_20260331_rerun10/reports/fig_f4_prior_boundary_map.png",
+    "f5_etth1_pareto_frontier": "artifacts/current_canonical/figures_etth1_story_20260331_rerun10/reports/fig_f5_etth1_pareto_frontier.png",
+    "captions": "artifacts/current_canonical/figures_etth1_story_20260331_rerun10/reports/figure_captions.md"
+  }
+}

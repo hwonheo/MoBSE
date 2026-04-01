@@ -23,7 +23,7 @@ Generated audit artifacts:
 
 Raw ETTh1 checksum:
 
-- `data/ETTh1.csv` sha256:
+- `data/reference_raw/ETTh1.csv` sha256:
   - `f18de3ad269cef59bb07b5438d79bb3042d3be49bdeecf01c1cd6d29695ee066`
 
 ## Audit Result Snapshot
@@ -40,7 +40,7 @@ Raw ETTh1 checksum:
    - `docs/experiments/phase2_report_2026-03-14.md`
    - `docs/experiments/baseline_benchmark_2026-03-23.md`
 2. ETTh1 raw data + core code exist:
-   - `data/ETTh1.csv`
+   - `data/reference_raw/ETTh1.csv`
    - `mobse/data/etth1.py`
    - `mobse/models/mobse.py`
    - `mobse/train.py`

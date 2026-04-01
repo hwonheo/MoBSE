@@ -100,7 +100,7 @@ The originally suggested next step was:
 
 Current local constraint:
 
-- `data/hcp` and `data/hcp_openneuro_hc127` contain precomputed ROI time-series only
+- `data/reference_raw/openneuro_abide152` and `data/reference_raw/openneuro_abide127` contain precomputed ROI time-series only
 - raw HCP/OpenNeuro NIfTI inputs are not present alongside those HCP cohorts
 
 Implication:

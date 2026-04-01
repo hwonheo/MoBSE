@@ -16,8 +16,8 @@
 ## 2) 로컬 기준으로 확인한 사실
 
 - Phase 2 데이터는 로컬에 존재한다.
-  - `data/os_phase2_ds00_300_n100/timeseries/100`: subject dir 300개
-  - `data/os_phase2_ds00_300_n100/timeseries/200`: subject dir 300개
+  - `data/legacy_phase2/os_phase2_ds00_300_n100/timeseries/100`: subject dir 300개
+  - `data/legacy_phase2/os_phase2_ds00_300_n100/timeseries/200`: subject dir 300개
 - Phase 2 요약 산출물도 로컬에 존재한다.
   - `artifacts/phase2_ds00_adult300_n100_20260314_summary/reports/phase2_top3_bal3_summary.csv`
   - `artifacts/phase2_ds00_adult300_n200_20260314_summary/reports/phase2_top3_bal3_summary.csv`
@@ -44,7 +44,7 @@
 
 ### C. n200 config의 데이터 루트 네이밍 혼선
 
-- `configs/phase2_collect300_n200.yaml`은 `n200` 설정이지만 `data/os_phase2_ds00_300_n100`을 root/timeseries_dir로 사용한다.
+- `configs/phase2_collect300_n200.yaml`은 `n200` 설정이지만 `data/legacy_phase2/os_phase2_ds00_300_n100`을 root/timeseries_dir로 사용한다.
 - 실제 데이터는 `timeseries/100`과 `timeseries/200`을 함께 담아 실험 자체가 성립할 수 있으나, 관리/청소/재실행 관점에서 혼란을 유발한다.
 
 ### D. README의 timeseries layout 설명과 실제 구현 차이
@@ -281,16 +281,16 @@ strict-usable 재평가:
 
 로컬에서 확인한 HCP 계열 데이터:
 
-- `data/hcp_openneuro_hc127/timeseries/100`: `127` subjects
-- `data/hcp/timeseries/100`: `152` subjects
+- `data/reference_raw/openneuro_abide127/timeseries/100`: `127` subjects
+- `data/reference_raw/openneuro_abide152/timeseries/100`: `152` subjects
 
 이번 턴에서는 `hc127` cohort로 Stage E를 먼저 실행한 뒤, 곧바로 `152-subject` recovery rerun까지 이어갔다.
 
 - 상세 문서:
   - `docs/experiments/hcp_validation_2026-03-23.md`
 - 실행 run:
-  - `phase2_hcp_moe_hc127_n100_20260323`
-  - `phase2_hcp_mobse_hc127_n100_20260323`
+  - `phase2_openneuro_abide127_moe_n100_20260323`
+  - `phase2_openneuro_abide127_mobse_n100_20260323`
 
 핵심 결과:
 

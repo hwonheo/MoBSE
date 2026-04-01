@@ -6,19 +6,19 @@ Stage E evaluates whether the selected public-data mainline survives transfer to
 
 Dataset used in this run:
 
-- `data/hcp_openneuro_hc127/timeseries`
+- `data/reference_raw/openneuro_abide127/timeseries`
 - subject count: `127`
 - atlas size: `100`
 - seeds: `42, 43, 44, 45, 46`
 
 Runs:
 
-- `phase2_hcp_moe_hc127_n100_20260323`
-- `phase2_hcp_mobse_hc127_n100_20260323`
+- `phase2_openneuro_abide127_moe_n100_20260323`
+- `phase2_openneuro_abide127_mobse_n100_20260323`
 
 Comparison table:
 
-- `artifacts/phase2_hcp_moe_hc127_n100_20260323__vs__phase2_hcp_mobse_hc127_n100_20260323/reports/followup_paired_stats.csv`
+- `artifacts/phase2_openneuro_abide127_moe_n100_20260323__vs__phase2_openneuro_abide127_mobse_n100_20260323/reports/followup_paired_stats.csv`
 
 ## 2. Mean Results
 
@@ -100,7 +100,7 @@ But the roadmap-level HCP claim is not yet fully locked because:
 
 The next HCP recovery sequence should be:
 
-1. rerun the same Stage E recipe on the local `data/hcp/timeseries` `152-subject` cohort
+1. rerun the same Stage E recipe on the local `data/reference_raw/openneuro_abide152/timeseries` `152-subject` cohort
 2. if OS accuracy still stays low, extend epochs slightly before changing architecture
 3. only after that open `128` / `150` node sweep and nuisance-sensitivity checks
 
@@ -108,18 +108,18 @@ The next HCP recovery sequence should be:
 
 Recovery dataset:
 
-- `data/hcp/timeseries`
+- `data/reference_raw/openneuro_abide152/timeseries`
 - subject count: `152`
 
 Runs:
 
-- `phase2_hcp152_moe_n100_20260323`
-- `phase2_hcp152_mobse_n100_20260323`
+- `phase2_openneuro_abide152_moe_n100_20260323`
+- `phase2_openneuro_abide152_mobse_n100_20260323`
 
 Comparison tables:
 
-- `artifacts/phase2_hcp152_moe_n100_20260323__vs__phase2_hcp152_mobse_n100_20260323/reports/followup_summary.csv`
-- `artifacts/phase2_hcp152_moe_n100_20260323__vs__phase2_hcp152_mobse_n100_20260323/reports/followup_paired_stats.csv`
+- `artifacts/phase2_openneuro_abide152_moe_n100_20260323__vs__phase2_openneuro_abide152_mobse_n100_20260323/reports/followup_summary.csv`
+- `artifacts/phase2_openneuro_abide152_moe_n100_20260323__vs__phase2_openneuro_abide152_mobse_n100_20260323/reports/followup_paired_stats.csv`
 
 ### `MoE n100` on `hcp152`
 
