@@ -49,7 +49,7 @@ HCPDataConfig = OSDataConfig
 
 @dataclass
 class ETTh1DataConfig:
-    csv_path: str = "data/ETTh1.csv"
+    csv_path: str = "data/reference_raw/ETTh1.csv"
     target_col: str = "OT"
     seq_len: int = 96
     pred_len: int = 24

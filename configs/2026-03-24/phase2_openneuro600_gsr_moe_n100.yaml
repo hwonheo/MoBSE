@@ -1,7 +1,7 @@
 data:
   os:
-    root_dir: data/os_phase2_ds00_600_gsr_n100
-    timeseries_dir: data/os_phase2_ds00_600_gsr_n100/timeseries
+    root_dir: data/legacy_phase2/os_phase2_ds00_600_gsr_n100
+    timeseries_dir: data/legacy_phase2/os_phase2_ds00_600_gsr_n100/timeseries
     nifti_manifest: ""
     tr: 0.72
     subjects_limit: 600
@@ -23,7 +23,7 @@ data:
     nuisance_high_pass: 0.008
     nuisance_low_pass: 0.1
   etth1:
-    csv_path: data/ETTh1.csv
+    csv_path: data/reference_raw/ETTh1.csv
     target_col: OT
     seq_len: 96
     pred_len: 24

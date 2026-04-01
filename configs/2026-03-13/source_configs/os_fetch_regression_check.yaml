@@ -1,7 +1,7 @@
 data:
   os:
-    root_dir: data/os_fetch_regression_check
-    timeseries_dir: data/os_fetch_regression_check/timeseries
+    root_dir: data/legacy_smoke/os_fetch_regression_check
+    timeseries_dir: data/legacy_smoke/os_fetch_regression_check/timeseries
     nifti_manifest: ''
     tr: 0.72
     subjects_limit: 2
@@ -19,7 +19,7 @@ data:
     val_ratio: 0.15
     random_seed: 42
   etth1:
-    csv_path: data/ETTh1.csv
+    csv_path: data/reference_raw/ETTh1.csv
     target_col: OT
     seq_len: 96
     pred_len: 24

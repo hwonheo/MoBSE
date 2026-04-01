@@ -28,10 +28,11 @@ def _parse_args() -> argparse.Namespace:
     p_prepare.add_argument(
         "--mode",
         default="openneuro_hc",
-        choices=["openneuro_hc", "openneuro", "public_proxy", "synthetic"],
+        choices=["openneuro_hc", "openneuro", "abide_control", "public_proxy", "synthetic"],
         help=(
             "openneuro_hc: OpenNeuro 성인 HC 필터(진단/나이 컬럼 필요), "
             "openneuro: OpenNeuro 일반 fMRI import, "
+            "abide_control: ABIDE PCP control-only ROI import + network-state generation, "
             "public_proxy: development_fmri, "
             "synthetic: synthetic open-source-like states"
         ),
@@ -92,6 +93,35 @@ def _parse_args() -> argparse.Namespace:
         default="https://openneuro.org/crn/graphql",
         help="OpenNeuro GraphQL endpoint",
     )
+    p_prepare.add_argument(
+        "--abide-pipeline",
+        default="cpac",
+        choices=["cpac", "ccs", "dparsf", "niak"],
+        help="ABIDE PCP preprocessing pipeline (abide_control mode)",
+    )
+    p_prepare.add_argument(
+        "--abide-derivative",
+        default="rois_cc200",
+        choices=["rois_cc200", "rois_cc400"],
+        help="ABIDE PCP derivative to fetch (abide_control mode)",
+    )
+    p_prepare.add_argument(
+        "--abide-data-dir",
+        default="data/cache/_nilearn_cache",
+        help="ABIDE PCP download/cache directory (abide_control mode)",
+    )
+    p_prepare.add_argument(
+        "--abide-quality-checked",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Apply ABIDE quality_checked filter (abide_control mode)",
+    )
+    p_prepare.add_argument(
+        "--abide-partition-subjects",
+        type=int,
+        default=200,
+        help="Number of subjects to estimate network partition from (abide_control mode)",
+    )
 
     p_train = sub.add_parser("train", help="Train model (single or dual-task)")
     p_train.add_argument("--config", required=True, help="YAML config path")
@@ -148,6 +178,11 @@ def main() -> None:
                 openneuro_snapshot=args.openneuro_snapshot,
                 openneuro_task=args.openneuro_task,
                 openneuro_api_url=args.openneuro_api_url,
+                abide_pipeline=args.abide_pipeline,
+                abide_derivative=args.abide_derivative,
+                abide_data_dir=args.abide_data_dir,
+                abide_quality_checked=args.abide_quality_checked,
+                abide_partition_subjects=args.abide_partition_subjects,
                 progress=progress,
             )
             dump_json(result, paths.logs / "prepare_data.json")

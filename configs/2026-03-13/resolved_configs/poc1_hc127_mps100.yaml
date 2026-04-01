@@ -1,7 +1,7 @@
 data:
   hcp:
-    root_dir: data/hcp
-    timeseries_dir: data/hcp_openneuro_hc127/timeseries
+    root_dir: data/reference_raw/openneuro_abide152
+    timeseries_dir: data/reference_raw/openneuro_abide127/timeseries
     nifti_manifest: ''
     tr: 0.72
     subjects_limit: 127
@@ -19,7 +19,7 @@ data:
     val_ratio: 0.15
     random_seed: 42
   etth1:
-    csv_path: data/ETTh1.csv
+    csv_path: data/reference_raw/ETTh1.csv
     target_col: OT
     seq_len: 96
     pred_len: 24
