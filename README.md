@@ -24,6 +24,9 @@ python -m mobse.cli report --config configs/config.yaml --eval-glob "artifacts/*
 - Temporal control ablation implemented: `model.etth1_temporal_encoder: mean|gru`.
 - Controlled evidence completed with high power: `10` seeds x `4` regimes (`ETTh1-only/Dual-task` x `mean/GRU`).
 - ETTh1 storyline figure package generated: `F1~F5` in `PNG` and `PDF`.
+- ds000243 fMRIPrep resting-state ingest and Nilearn connectivity suite completed (6-subject pilot):
+  - outputs: `artifacts/current_canonical/ds000243_nilearn_rest_suite_20260402/reports/`
+  - note: dataset is already preprocessed (`derivatives/fmriprep`), and analysis used confounds-based regression (non-XCP-D path).
 
 Primary references:
 
@@ -38,6 +41,7 @@ Primary references:
 - Full archived experiment set: [`docs/experiments/archive_derived_2026-03-31/`](docs/experiments/archive_derived_2026-03-31/)
 - ds000243 ingest/preproc note (2026-04-01): [docs/experiments/openneuro_ds000243_ingest_preproc_2026-04-01.md](docs/experiments/openneuro_ds000243_ingest_preproc_2026-04-01.md)
 - ds000243 network discussion note (2026-04-01): [docs/experiments/openneuro_ds000243_network_discussion_2026-04-01.md](docs/experiments/openneuro_ds000243_network_discussion_2026-04-01.md)
+- ds000243 ingest/preproc+Nilearn log (updated 2026-04-02): [docs/experiments/openneuro_ds000243_ingest_preproc_2026-04-01.md](docs/experiments/openneuro_ds000243_ingest_preproc_2026-04-01.md)
 - Changelog summary: [docs/CHANGELOG.md](docs/CHANGELOG.md)
 
 ## Progress Tracking

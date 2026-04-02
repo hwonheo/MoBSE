@@ -93,6 +93,7 @@ class SparseTransformerBaseline(TransformerBaseline):
         pred_len: int,
         etth1_out_dim: int,
         window: int,
+        etth1_temporal_encoder: str = "mean",
     ):
         super().__init__(
             os_in_dim=os_in_dim,
@@ -102,6 +103,7 @@ class SparseTransformerBaseline(TransformerBaseline):
             os_num_classes=os_num_classes,
             pred_len=pred_len,
             etth1_out_dim=etth1_out_dim,
+            etth1_temporal_encoder=etth1_temporal_encoder,
         )
         self.window = window
 
@@ -118,7 +120,7 @@ class SparseTransformerBaseline(TransformerBaseline):
         mask = self._local_mask(h.shape[1], h.device)
         for layer in self.backbone.layers:
             h = layer(h, src_mask=mask)
-        pooled = h.mean(dim=1)
+        pooled = self._pool_hidden(h, task)
         if task == "os":
             return {"logits": self.cls_head(pooled), "routing_weights": torch.empty(0, device=x.device)}
         pred = self.pred_head(pooled).reshape(x.shape[0], self.pred_len, self.etth1_out_dim)
