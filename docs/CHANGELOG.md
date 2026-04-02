@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-04-02 (ds000243 Resting-State Nilearn Suite + Docs Consolidation)
+
+### Added
+- New end-to-end resting-state Nilearn suite runner:
+  - `scripts/run_ds000243_nilearn_rest_suite.py`
+- New ds000243 resting-state suite artifacts:
+  - `artifacts/current_canonical/ds000243_nilearn_rest_suite_20260402/reports/nilearn_rest_suite_manifest.json`
+  - `artifacts/current_canonical/ds000243_nilearn_rest_suite_20260402/reports/nilearn_rest_suite_report.md`
+  - plus generated connectivity/decomposition/seed/region outputs under the same report directory.
+
+### Changed
+- Fixed Nilearn probabilistic-atlas extraction step by explicitly wiring `t_r` in `NiftiMapsMasker`.
+- Updated `SparseTransformerBaseline` argument compatibility for model-comparison runs:
+  - `mobse/models/baselines.py`
+- Extended ds000243 experiment log with:
+  - fMRIPrep-complete input declaration,
+  - nuisance-regression policy note (`CompCor/GSR` lineage vs non-XCP-D path),
+  - discussion anchor for integrated-network interpretation.
+
+### Documentation
+- README latest-status/docs entry refreshed to include ds000243 Nilearn rest-suite outputs and current interpretation scope.
+
 ## 2026-04-01 (ds000243 Ingest, Template, Network Discussion)
 
 ### Added
