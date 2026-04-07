@@ -1,0 +1,93 @@
+data:
+  os:
+    root_dir: data/current_canonical/openneuro_ds000243
+    timeseries_dir: data/current_canonical/openneuro_ds000243/timeseries
+    nifti_manifest: ''
+    tr: 2.5
+    subjects_limit: 90
+    states:
+    - rest
+    atlas_nodes_primary: 100
+    atlas_nodes_secondary: 200
+    window_len: 64
+    stride: 16
+    train_ratio: 0.7
+    val_ratio: 0.15
+    random_seed: 42
+    nuisance_strategy: fmriprep_confounds_only
+    nuisance_include_compcor: false
+    nuisance_compcor_components: 0
+    nuisance_include_gsr: false
+    nuisance_add_derivatives: true
+    nuisance_add_quadratic: true
+    nuisance_detrend: true
+    nuisance_high_pass: 0.008
+    nuisance_low_pass: 0.1
+  etth1:
+    csv_path: data/reference_raw/ETTh1.csv
+    target_col: OT
+    seq_len: 96
+    pred_len: 24
+    train_ratio: 0.7
+    val_ratio: 0.15
+template:
+  atlas_name: schaefer
+  atlas_nodes_options:
+  - 100
+  - 200
+  sparsity_levels:
+  - 0.1
+  - 0.2
+  default_sparsity: 0.1
+  threshold_mode: proportional
+  fisher_z_average: true
+  output_name: template_bank.npz
+model:
+  arch: sparse_transformer
+  hidden_dim: 64
+  num_nodes: 200
+  num_graph_layers: 2
+  dropout: 0.1
+  num_experts: 1
+  routing_k: 1
+  routing_mode: soft
+  os_num_classes: 1
+  etth1_in_dim: 7
+  etth1_out_dim: 1
+  sparse_attn_window: 16
+  use_template_prior: false
+  template_bank_path: artifacts/current_canonical/ds000243_connectivity_templates_20260402/templates/atlas200_sp10_tangent_template_bank.npz
+  os_windows_path: artifacts/current_canonical/ds000243_rest_templates_n200_windows_20260402/templates/os_windows_nodes200.npz
+train:
+  tasks:
+  - etth1
+  batch_size: 32
+  epochs: 5
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seeds:
+  - 45
+  os_loss_weight: 1.0
+  etth1_loss_weight: 1.0
+  etth1_loss_type: huber
+  etth1_huber_delta: 1.0
+  normalize_task_losses: true
+  task_loss_norm_batches: 4
+  selection_metric: weighted_normalized_loss
+  early_stopping_patience: 0
+  early_stopping_min_delta: 0.0
+  use_amp: false
+  device: cpu
+eval:
+  metrics:
+  - accuracy
+  - f1
+  - mae
+  - mse
+  profile_batches: 5
+  latency_warmup: 2
+  output_prefix: eval
+artifacts:
+  root_dir: artifacts/current_canonical
+  run_id: ds000243_modelcomp_connectivity_tangent_dualtask_s5e5_20260402_sparse_transformer_n200_sp10_s45
