@@ -1,5 +1,177 @@
 # Changelog
 
+## 2026-09-18 (v2 implementation + WI-02/03 execution + G0 conditionally cleared)
+
+All figures measured; the producing artifact is named for each.
+
+### Added
+- **`mobse/v2/` — 16 modules, 4,114 lines.** The ten specified in the work instructions
+  (manifests, preprocess, splits, features, templates, models, train, evaluate,
+  statistics, cli) plus five not in the spec: cohort, config, extract, labels, locks.
+  *The protocol and work instructions still describe only ten and need updating.*
+- **`tests/v2/` — under active development.** Measured at 2026-09-18 10:30: 22 files,
+  5,001 lines, 492 tests collected; local run 451 passed / 26 failed / 17 skipped. All 26
+  failures are `ModuleNotFoundError` (sklearn 22, scipy 2, torch 2) — environment, not
+  defects. An earlier measurement the same morning read 470 tests (439/26/7), so these
+  counts move hour to hour; re-measure rather than quoting them. The analysis-host
+  snapshot (11 modules, 9 test files) passed 170/170.
+- **`configs/redesign_v1/`** — `main.yaml`, `pilot.yaml`, `external.yaml`. These restate
+  code constants to lock them; `mobse/v2/config.py` validates each against the module
+  constant and rejects unknown keys as typos.
+- **WI-02 extraction outputs** — parcellated windows re-derived from source BOLD for both
+  cohorts. These are the canonical time-series, replacing the earlier derivatives.
+- **Schaefer-100 atlas in MNI152NLin2009cAsym**, matching the BOLD space. Distinct from
+  the FSLMNI152 copy under `~/nilearn_data`; the two must not be mixed.
+
+### Changed
+- **Gate evidence advanced to revision 22** (2026-09-18T08:40Z).
+  **G0 Provenance: blocked → conditionally_cleared** (2 of 10 checks still fail).
+  G1–G5 planned; G1 has two failing checks (`group_id` constructible from local
+  metadata, PIOP1/PIOP2 subject ID namespace).
+- **Cohorts locked (WI-03)**: PIOP1 216 → 157 eligible (pilot 31 / main 126);
+  PIOP2 226 → 189 eligible as external hold-out. Rule version protocol-1.1 §3.3,
+  requiring all three tasks. Revision 22 promoted the re-extraction to canonical,
+  raising PIOP1 eligibility 153 → 157; the existing 1,560 windows were byte-identical
+  and were promoted without overwrite.
+- **Wave 2 BOLD acquisition completed**: 2,590 files, 209.7 GiB, 0 failures
+  (emomatching 860 / restingstate 868 / workingmemory 862; PIOP1 1,250 + PIOP2 1,340).
+
+### Confirmed defect in prior work
+- `existing extraction TR correctness` = **fail**. The earlier extraction applied 0.75 s
+  to every run, so both primary targets were filtered at a 2.67× wrong rate. PIOP1
+  restingstate was correct only by coincidence. **Existing derived time-series
+  (`data/aomic`, `data/current_canonical`, `data/legacy_*`) cannot be reused for the
+  main analysis**, and resampling them is not a repair.
+
+### Known discrepancy
+- `locks/measurement_lock.json` (00:45Z) records a G1 lock, while gate evidence rev 22
+  (08:40Z) still lists G1 as planned. The later evidence takes precedence; a person must
+  reconcile these.
+
+### Repository policy
+Per the team data policy — **code to GitHub, data and outputs to local storage and the
+in-house storage server** — the repository now carries only the *brief* of a release.
+
+- Kept in the repo: `gate_evidence.json`, `locks/`, `reports/` (decision and verdict
+  records, ~400 KB).
+- Not in the repo: `results/**/provenance/` (run-level records, ~10 MB), raw BOLD,
+  parcellated time-series. These live on the analysis host and are registered as rows in
+  the Notion `🗄️ Data Assets` database with their physical paths and checksums.
+- The 2026-04 expert routing report (`.docx`) and its seven figures were moved to a local
+  archive. **They were never committed** — no history rewrite was involved. Three
+  superseded April documents still reference `figures/…` by relative path; the archive's
+  README records where the files went.
+
+### Documentation
+- `README.md`, `CLAUDE.md` rewritten against measured state; 2026-04-17 versions
+  preserved under `.backup/`.
+- Work Logs 01–08 recorded in Notion under series `MOBSE`, with data assets linked.
+
+## 2026-09-17 (Redesign: research question and evaluation target replaced)
+
+### Added
+- **Literature review** (`docs/experiments/mobse_literature_review_2026-09-17.md`) — 11
+  works (R1–R10, D1). dFCExpert (IEEE TMI 45(3), 2026-03) and MoRE-Brain (NeurIPS 2025)
+  identified as direct prior work.
+- **Audit of existing experiments** (`..._existing_experiments_audit_2026-09-17.md`) —
+  352 training summaries, 624 seed results, 624 checkpoints inventoried. This corrected
+  an earlier judgment that validation was missing: strict subject splits, nuisance
+  sensitivity, prior/routing sweeps, baseline comparison and cross-dataset transfer had
+  all already been run. The counts are **not** 352 independent hypothesis tests.
+- **Protocol v1.1** (`..._redesign_protocol_2026-09-17.md`) and **work instructions
+  v1.0** (`..._redesign_work_instructions_2026-09-17.md`).
+- **Two-wave acquisition plan** (`h197_acquisition_plan_2026-09-17.md`) — metadata first,
+  BOLD only after the native TR is known.
+- Protocol figures RD1–RD4 (`docs/experiments/figures_redesign_2026-09-17/`).
+
+### Changed
+- **Primary target replaced.** From dFC centroid pseudo-labels to the run identity of
+  PIOP1 `emomatching` vs `workingmemory` — independent of the clustering. Hypotheses
+  H1 (input-dependent routing) and H2 (aligned brain bank) pre-specified with a minimum
+  effect of interest δ = 0.02 balanced accuracy.
+- **Priority claims withdrawn.** First brain-state MoE, atlas-free operation, cognitive
+  load marker and sparse-compute superiority are no longer claims of this study.
+- **Simple baselines made mandatory** — mean-only, FC+linear and FC+MLP controls.
+- **PIOP2 reinstated.** Wave 1 measured emomatching 222 runs and workingmemory 224 runs,
+  all supporting the analysis window, superseding the 2026-04-17 exclusion for "short
+  scans". It is used as a locked cohort replication and is deliberately **not** called
+  cross-site, since it shares the research environment.
+- **ds000030 demoted.** No longer a substitute target for cross-site replication.
+
+### Key result
+- **Native TR of both primary targets confirmed to be 2.0 s**, single-valued across
+  1,295 audited runs (emomatching 135 volumes, workingmemory 162). The window design
+  holds without change. The two cohorts' resting-state scans use *different* TRs
+  (PIOP1 0.75 s, PIOP2 2.0 s), which is why the target TR could not be inferred.
+
+## 2026-04-17 (Manuscript Integration + Cross-Site Validation Pipeline)
+
+> **Superseded.** The dataset decisions below were overturned by measurement on
+> 2026-09-17 — PIOP2 was reinstated as the external hold-out and ds000030 was dropped as
+> a cross-site target. Retained as written for provenance.
+
+### Added
+- **Integrated manuscript storyline**: `docs/manuscript_final_2026-03-31/mobse_integrated_storyline_2026-04-16.md`
+  - Two-stage validation narrative: Phase 1 (atlas-based Yeo-7/ABIDE) + Phase 2 (data-driven dFC/PIOP1).
+  - Updated paper structure (R1–R7), figure plan (F1–F14), table plan (T1–T6).
+  - Submission strategy analysis: single unified paper recommended.
+  - Remaining gaps prioritized (P1–P3) with dataset exclusion rationale.
+- **ds000030 (UCLA CNP) cross-site validation pipeline**:
+  - `scripts/probe_ds000030.py` — URL index probe: 8 tasks confirmed (rest, bart, bht, pamenc, pamret, scap, stopsignal, taskswitch), N=207–262 per task, MNI152NLin2009cAsym fMRIPrep derivatives.
+  - `scripts/fetch_ds000030_timeseries.py` — streaming download + Schaefer-100 extraction pipeline. Subject-level: download → parcellation → BOLD delete (disk-efficient). tqdm progress. Supports `--max-subjects`, `--tasks`, `--keep-bold`, `--download-only`.
+  - `artifacts/ds000030_probe_result.json` — probe output.
+
+### Changed
+- Gap table updated: PIOP2/HCP/ID1000 excluded with documented rationale.
+  - PIOP2: 2-day download, short scan time → insufficient dFC windows.
+  - HCP: DUA approval required, data access uncertain.
+  - AOMIC-ID1000: no resting-state scan → no low-demand routing anchor.
+- ds000030 promoted to P1 cross-site replication target (nilearn selective download, different site/scanner).
+- ABIDE dFC replication added as P1 for Phase 1↔2 bridge.
+
+### Documentation
+- `CLAUDE.md` updated: ds000030 paths, cross-site validation section, excluded datasets, next steps refreshed to 2026-04-17.
+- `README.md` updated: latest status 2026-04-17, integrated storyline link, Phase 2 plan refreshed with dataset selection decisions.
+- `docs/CHANGELOG.md`: this entry.
+
+## 2026-04-16 (Expert Routing Anti-Collapse + dFC All-Tasks Pipeline)
+
+### Critical Fix
+- **Expert collapse resolved**: replaced `scatter_(values)` with differentiable masking (`weights * mask`) in `_routing_weights()` — gradient now flows from balance loss through routing to gate parameters.
+  - `mobse/models/mobse.py`: both `soft` and `hard` routing modes fixed.
+
+### Added
+- Entropy-based MoE load balancing loss (`_load_balance_loss()`) in `mobse/train.py`.
+- `balance_loss_weight` (TrainConfig) and `gate_temperature` (ModelConfig) in `mobse/config.py`.
+- Gate temperature scaling in `mobse/models/mobse.py` `_routing_weights()`.
+- `gate_temperature` wiring in `mobse/models/__init__.py` `build_model()`.
+- `pca_object` field in `DFCResult` dataclass (`mobse/data/dfc.py`), PCA pickle saving in `scripts/run_piop1_dfc.py`.
+- Centroid-based label assignment for all-task windows: `assign_label_by_centroid()` and `build_dfc_windows_all_tasks()` in `mobse/templates/dfc_bridge.py`.
+- New scripts:
+  - `scripts/build_alltasks_windows.py` — standalone all-tasks window generation (no torch).
+  - `scripts/eval_routing.py` — routing weight analysis & brain-state interpretability visualization.
+  - `scripts/debug_balance_grad.py` — gradient flow diagnostic for balance loss.
+- New configs:
+  - `config_dfc_alltasks_balanced_C.yaml` (k=2, balance=1.0, temp=3.0) — **best configuration**.
+  - `config_dfc_alltasks_balanced_D.yaml` (k=3, balance=1.0, temp=3.0).
+  - `config_dfc_alltasks_balanced_E.yaml` (k=3, balance=0.1, temp=3.0) — pending.
+- Publication-quality report: `MoBSE_Expert_Routing_Report.docx` with 7 figures, 3 tables.
+- Figures directory: `figures/fig1–fig7` (300 DPI PNG).
+
+### Changed
+- `scripts/prepare_dfc_for_training.py`: added `--all-tasks` flag and `--tasks` argument for all-tasks pipeline.
+- Training loop in `mobse/train.py`: captures routing weights, adds balance loss when `balance_loss_weight > 0`.
+
+### Key Results
+- Exp C (routing_k=2): task-specific routing confirmed — emomatching/workingmemory route to dfc_2 (50%/46%), rest/anticipation to dfc_1 (37%).
+- Exp D (routing_k=3): perfectly uniform routing (entropy=log(3)) — balance loss too strong, no task differentiation.
+- All-tasks data augmentation: 5,670 → 15,817 windows from 6 PIOP1 tasks.
+
+### Documentation
+- New experiment note: `docs/experiments/phase2_expert_routing_experiments_2026-04-16.md`.
+- `CLAUDE.md` created for project context.
+- README updated: latest status, Phase 2 plan, new config keys.
+
 ## 2026-04-02 (ds000243 Resting-State Nilearn Suite + Docs Consolidation)
 
 ### Added
