@@ -36,6 +36,7 @@ def build_model(cfg: ExperimentConfig, template_bank: torch.Tensor):
             pred_len=cfg.data.etth1.pred_len,
             template_bank=template_bank,
             use_template_prior=cfg.model.use_template_prior,
+            gate_temperature=getattr(cfg.model, "gate_temperature", 1.0),
         )
     if arch == "transformer":
         return TransformerBaseline(**common)

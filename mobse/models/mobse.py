@@ -43,6 +43,7 @@ class MoBSEModel(nn.Module):
         template_bank: torch.Tensor,
         etth1_temporal_encoder: str = "mean",
         use_template_prior: bool = True,
+        gate_temperature: float = 1.0,
     ):
         super().__init__()
         self.num_nodes = num_nodes
@@ -50,6 +51,7 @@ class MoBSEModel(nn.Module):
         self.num_experts = num_experts
         self.routing_k = routing_k
         self.routing_mode = routing_mode
+        self.gate_temperature = gate_temperature
         self.pred_len = pred_len
         self.etth1_out_dim = etth1_out_dim
         self.use_template_prior = use_template_prior
@@ -134,17 +136,24 @@ class MoBSEModel(nn.Module):
 
     def _routing_weights(self, gate_input: torch.Tensor) -> torch.Tensor:
         logits = self.gate(gate_input)
+        if self.gate_temperature != 1.0:
+            logits = logits / self.gate_temperature
         weights = F.softmax(logits, dim=-1)
         if self.routing_mode == "hard":
             topv, topi = torch.topk(weights, k=min(self.routing_k, self.num_experts), dim=-1)
-            hard = torch.zeros_like(weights)
-            hard.scatter_(1, topi, topv)
+            # Use differentiable masking instead of scatter_ to preserve gradient flow
+            mask = torch.zeros_like(weights)
+            mask.scatter_(1, topi, 1.0)
+            hard = weights * mask
             weights = hard / torch.clamp(hard.sum(dim=-1, keepdim=True), min=1e-8)
         elif self.routing_mode == "soft":
             if self.routing_k < self.num_experts:
                 topv, topi = torch.topk(weights, k=self.routing_k, dim=-1)
-                pruned = torch.zeros_like(weights)
-                pruned.scatter_(1, topi, topv)
+                # Use differentiable masking: multiply weights by binary mask
+                # instead of scatter_(values) which breaks autograd on the pruned tensor
+                mask = torch.zeros_like(weights)
+                mask.scatter_(1, topi, 1.0)
+                pruned = weights * mask
                 weights = pruned / torch.clamp(pruned.sum(dim=-1, keepdim=True), min=1e-8)
         else:
             raise ValueError(f"Unknown routing_mode: {self.routing_mode}")
