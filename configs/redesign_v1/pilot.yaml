@@ -1,0 +1,80 @@
+# MoBSE 재설계 v1 runtime config — redesign_v1_pilot
+#
+# 이 파일은 코드 상수를 **다시 적어 잠그는** 문서다. 값을 바꿔서 동작을 바꾸는
+# 용도가 아니다. mobse/v2/config.py 의 검증기가 각 값을 해당 모듈의 상수와
+# 대조하고, 어긋나면 실패시킨다. 알고리즘을 바꾸려면 상수와 이 파일을 함께
+# 고치고 계획서 개정 기록을 남겨야 한다 (계획서 §11).
+#
+# 미지의 키는 오타로 보고 거부한다 (조용한 default 금지, T02).
+# 경로는 전부 명시한다 (glob fallback 금지, U20).
+
+meta:
+  name: "redesign_v1_pilot"
+  protocol_version: "1.1"
+  role: "pilot"
+
+timing:
+  analysis_start_s: 12.0
+  analysis_end_s: 252.0
+  target_grid_s: 2.0
+  window_len_s: 60.0
+  window_starts_s: [12.0, 72.0, 132.0, 192.0]
+  samples_per_window: 30
+
+qc:
+  fd_mean_max: 0.2
+  fd_spike: 0.5
+  fd_spike_ratio_max: 0.1
+  min_residual_dof: 30
+
+splits:
+  pilot_seed: 20260917
+  outer_seed: 20260918
+  inner_seed_base: 20261000
+  external_seed: 20262000
+  pilot_cap: 32
+  pilot_fraction: 0.2
+  n_outer_folds: 5
+  n_inner_folds: 3
+
+bank:
+  k: 3
+  n_init: 50
+  max_iter: 500
+  edge_density: 0.2
+  seed_base: 30000
+  null_seed: 1729
+  null_seeds_sensitivity: [1730, 1731, 1732, 1733]
+  pca_components: 10
+
+train:
+  learning_rates: [0.001, 0.0003]
+  dropouts: [0.1, 0.3]
+  weight_decays: [0.0001, 0.001]
+  batch_size: 32
+  max_epochs: 50
+  patience: 5
+  min_delta: 0.0005
+  grad_clip: 1.0
+  model_seeds: [42, 43, 44]
+  cells: ["A", "B", "C", "D"]
+
+stats:
+  bootstrap_seed: 9001
+  n_bootstrap: 10000
+  familywise_pct: [1.25, 98.75]
+  nominal_pct: [2.5, 97.5]
+  threshold: 0.5
+  delta: 0.02
+
+paths:
+  source_manifest: "results/redesign_v1/20260917_3c458d507e82_nocfg/provenance/source_runs.jsonl"
+  split_manifest: "results/redesign_v1/20260917_3c458d507e82_nocfg/splits/folds_pilot.json"
+  atlas_spec: "results/redesign_v1/20260917_3c458d507e82_nocfg/provenance/atlas_spec.json"
+  output_root: "results/redesign_v1"
+
+runtime:
+  backend: "dense"
+  device: "cuda"
+  deterministic: true
+  num_workers: 4
