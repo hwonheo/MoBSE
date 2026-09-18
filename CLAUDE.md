@@ -35,7 +35,7 @@ MoBSE (Mixture of Brain-State Experts): fMRI 시계열을 dFC 유래 전문가 �
 - **두 cohort의 rest가 서로 다른 TR을 씀** — target TR을 rest에서 유추하면 안 됨.
 
 ### ⚠️ 기존 파생 시계열은 주분석에 재사용 금지
-기존 추출이 **모든 run에 0.75초를 적용**해 두 primary target이 2.67배 잘못된 rate로 필터링됨 (gate evidence rev22 `existing extraction TR correctness` = fail). `data/aomic`, `data/current_canonical`, `data/legacy_*` 의 시계열은 이 사유로 주분석에서 제외됨. **잘못 필터링한 시계열을 resample하는 것은 복구가 아님.**
+기존 추출이 **모든 run에 0.75초를 적용**해 두 primary target이 2.67배 잘못된 rate로 필터링됨 (gate evidence rev24 `existing extraction TR correctness` = fail). `data/aomic`, `data/current_canonical`, `data/legacy_*` 의 시계열은 이 사유로 주분석에서 제외됨. **잘못 필터링한 시계열을 resample하는 것은 복구가 아님.**
 
 ## Cohort 확정 (WI-03)
 
@@ -46,16 +46,19 @@ MoBSE (Mixture of Brain-State Experts): fMRI 시계열을 dFC 유래 전문가 �
 
 적격 규칙은 프로토콜 §3.3, 세 task(emomatching·workingmemory·restingstate) 전부 보유 요구. 탈락은 대부분 평균 FD 초과와 구간별 spike 비율 초과.
 
-## Gate 현황 (gate_evidence.json revision 22, 2026-09-18T08:40Z)
+## Gate 현황 (gate_evidence.json revision 24)
 
 | Gate | 상태 |
 |---|---|
-| G0 Provenance | **conditionally_cleared** (검사 10건 중 2건 fail) |
-| G1 Measurement lock | planned (검사 2건 fail — group_id 구성, subject ID 네임스페이스) |
-| G2–G5 | planned |
+| G0 Provenance | **conditionally_cleared** (검사 10건 중 2건 fail — 기존 추출 TR 정확성, 주 target BOLD 존재) |
+| G1 Measurement lock | **in_progress** (검사 8건 중 4건 fail — group_id 구성, subject ID 네임스페이스, δ=0.02 정밀도, pilot 측정 기반 자원 계획) |
+| G2 Implementation lock · G5 Interpretation | planned (검사 0건) |
+| G3 Internal release · G4 External release | planned (검사 각 1건) |
 
 - 정본은 `results/redesign_v1/<release_id>/gate_evidence.json` 이며 **revision이 올라가면 이전 판정표를 인용하지 말 것.**
-- 미해결: `locks/measurement_lock.json`(00:45, G1 잠금)과 rev22(08:40, G1 planned)가 어긋남. 사람 판단 필요.
+- **이 파일의 `timestamp_utc` 로 순서를 판단하지 말 것** — rev23이 10:30Z, rev24가 03:05Z로 거꾸로 감. 순서는 revision 번호로만 봄.
+- 측정 잠금 현행은 `5a735929…`(locked_at 2026-09-18T02:57:01Z)이고 사슬은 `1c1fba` → `2eb2783e` → `5a735929`. 옛 판은 `locks/superseded/` 에 보존됨.
+- 미해결: rev24의 `actual N and split hashes fixed` 검사가 **옛 lock_hash `1c1fba957b35…` 를 인용**함. 보고서 부록 W.8의 마감 검사(잠금 24/24, rc=0)는 현행 잠금 기준으로 기록됨 — gate evidence 쪽 인용만 낡음.
 
 ## 실행 호스트와 경로
 
@@ -119,8 +122,8 @@ PYTHONPATH=. python -m pytest tests/v2 -q
 
 ## Next Steps (2026-09-18)
 
-1. **G1 불일치 해소** — measurement lock과 gate evidence rev22의 G1 판정 정리
-2. G1 fail 검사 2건 처리 — group_id 구성 근거, 두 cohort subject ID 네임스페이스
+1. **rev24의 낡은 lock_hash 인용 정정** — `actual N and split hashes fixed` 가 `1c1fba…` 를 가리킴 (현행 `5a735929…`)
+2. G1 fail 검사 4건 처리 — group_id 구성 근거, 두 cohort subject ID 네임스페이스, δ=0.02 정밀도(δ·N 불변, 불확실 보고 준비), pilot 측정 기반 자원 계획
 3. WI-04 이후 진행 (인터페이스 잠금 후 WI-04/05 병렬 가능, WI-07 전 통합 테스트 필수)
 4. **v2 구현물 커밋** — 현재 `mobse/v2/`·`tests/v2/`·`configs/redesign_v1/` 전부 untracked (HEAD `7787ae0`)
 5. 프로토콜/지침서에 추가 모듈 5종(cohort·config·extract·labels·locks) 반영
