@@ -53,3 +53,17 @@ nilearn_data/
 
 # archives
 archive/
+
+# backups
+.backup/
+
+# claude settings
+.claude/
+
+
+# tool state (local only)
+docs/.bkit-memory.json
+docs/.pdca-status.json
+
+# release outputs: brief only in repo, raw provenance stays local / on the storage server
+results/**/provenance/
