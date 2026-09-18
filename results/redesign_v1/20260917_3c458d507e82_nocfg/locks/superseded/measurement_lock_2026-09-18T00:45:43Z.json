@@ -1,7 +1,7 @@
 {
   "schema_version": "measurement_lock_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "locked_at_utc": "2026-09-18T02:57:01Z",
+  "locked_at_utc": "2026-09-18T00:45:43Z",
   "gate": "G1 Measurement lock",
   "work_instruction": "WI-03",
   "roots": {
@@ -242,16 +242,15 @@
       }
     },
     "code": {
-      "code_hash": "9a4bfb12f7e072732b3253e18e3bc4989130f18050dee34834e1eab8a7be725a",
+      "code_hash": "be04d7ecfd3f9e7041b4dcf4828169ec3e5c23d52d246fcd4dfa4478821e3ec3",
       "modules": {
         "__init__.py": "c884876e4717224c87d95b1fd4b3821863307e65f9146eac605bc9a96375c9ab",
-        "cli.py": "a94990f1b2cad245d71306dc833e439c1a5867a8743f215bef2db497e7e1111f",
+        "cli.py": "1d23265761b198e0720294553e98260260a804c6c1b4021be9a647211dbe460a",
         "cohort.py": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
         "config.py": "79375ca9a5b5ffe2b89bf754c60fc360149eacc737c650466231d700c26b23f2",
         "evaluate.py": "a11a324f851603edb0e93b21c2cafe8b098529a485f17fe0321876825120e9b7",
         "extract.py": "b725f6aebc82babd802a3b3d625a13f73ead3f9071018ca4cf27977c3ca3c601",
         "features.py": "f9c81ef8155776f3d1971304ef32baf99b94b5f7bf100c0067f82dd1600b8f10",
-        "fitting.py": "411d0fc72d801fb2c743784f5c3264a36114f4d842653905becf7792335bc4ce",
         "labels.py": "89610e87315f7e1e6a1ac85130c89d69f197f47824262389a4eae5571397b3dc",
         "locks.py": "4a3dae547c0744dbf58e24f2d53ec46c4c71577bc71a502f130bd70b1272a812",
         "manifests.py": "f6de0f6c6ad55545f1347344eecdf487a30d3280ba8540b9367907805eb5e7f6",
@@ -301,10 +300,5 @@
     "checkpoints": 60,
     "formula": "126 subjects x 2 tasks x 4 windows x 3 seeds x 4 cells"
   },
-  "supersedes": {
-    "lock_hash": "2eb2783e3dccd56323920d2bbb8106a11596b00592a459f14d71220450fb1913",
-    "locked_at_utc": "2026-09-18T02:56:21Z",
-    "reason": "rev24: mobse/v2 에 fitting.py 추가, cli.py 에 run_fit 본체 — 잠긴 code_hash 가 바뀌었다 (보고서 부록 W)"
-  },
-  "lock_hash": "5a735929b5251d655fb6124f19ae325caa8b800a1c6dc20bd28d6a9f00de9134"
+  "lock_hash": "1c1fba957b355f08229cd4ed3517fbf58914e38ffe0c8adf9cc988b9a77e0ba4"
 }

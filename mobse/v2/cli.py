@@ -31,7 +31,7 @@ REQUIRED_PATHS: Dict[str, Sequence[str]] = {
     "validate": ("config", "source_runs"),
     "prepare": ("config", "source_runs", "output_dir"),
     "split": ("config", "subjects", "output_dir"),
-    "fit": ("config", "splits", "windows", "output_dir"),
+    "fit": ("config", "splits", "subjects", "windows", "rest_manifest", "output_dir"),
     "evaluate": ("config", "splits", "predictions", "fit_manifest", "output_dir"),
     "report": ("config", "predictions", "output_dir"),
 }
@@ -56,6 +56,7 @@ def build_parser() -> argparse.ArgumentParser:
         "windows": "windows.jsonl 경로",
         "predictions": "window_predictions.jsonl 경로",
         "fit_manifest": "fit_manifest.json 경로",
+        "rest_manifest": "WI-02 restingstate 추출 manifest 경로 (bank 적합용)",
         "output_dir": "산출 디렉터리",
     }
     for name in SUBCOMMANDS:
@@ -66,9 +67,18 @@ def build_parser() -> argparse.ArgumentParser:
         if name == "fit":
             p.add_argument("--cell", required=True, choices=list("ABCD"))
             p.add_argument("--outer-fold", type=int, required=True)
-            p.add_argument("--inner-fold", type=int, required=True)
+            p.add_argument("--inner-fold", type=int, required=True,
+                           help="inner fold 번호. 9 는 outer 최종 적합이다")
             p.add_argument("--model-seed", type=int, required=True)
-            p.add_argument("--epochs", type=int, required=True)
+            p.add_argument("--config-id", type=int, required=True,
+                           help="공통 grid 의 config 번호 0–7 (계획서 §7)")
+            p.add_argument("--epochs", type=int, required=True,
+                           help="inner 은 최대 epoch, outer 은 공통 E 로 정확히 이만큼")
+            p.add_argument("--task-manifests", type=Path, nargs="+", required=True,
+                           help="WI-02 target task 추출 manifest. 창 경로의 유일한 출처다")
+            p.add_argument("--device", default="cpu")
+            p.add_argument("--skip-hash-verify", action="store_true",
+                           help="창 sha256 대조를 건너뛴다. 기본은 대조한다")
         if name == "evaluate":
             p.add_argument("--tasks", nargs="+", required=True,
                            help="평가할 분류 task. 학습하지 않은 task 는 거부된다")
@@ -369,6 +379,192 @@ def run_split(paths: Dict[str, str]) -> Dict[str, Any]:
     }
 
 
+def _env_hash() -> str:
+    """실행 환경의 해시. 버전이 바뀌면 fit_manifest 가 달라진다."""
+    import platform
+
+    import numpy as np
+
+    payload = {"python": platform.python_version(), "numpy": np.__version__}
+    try:
+        import torch
+
+        payload["torch"] = torch.__version__
+    except Exception:                                          # pragma: no cover
+        payload["torch"] = "absent"
+    try:
+        import sklearn
+
+        payload["sklearn"] = sklearn.__version__
+    except Exception:                                          # pragma: no cover
+        payload["sklearn"] = "absent"
+    from mobse.v2.manifests import sha256_obj
+
+    return sha256_obj(payload)
+
+
+def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
+    """fold·cell·config·seed 하나를 학습한다 (계획서 §4–§7, 지침서 WI-04~WI-06).
+
+    한 번의 호출이 **하나의 fit** 이다. 계획서 §7 의 비용표가 그 단위로 세어져
+    있고, 이 함수는 그 한 칸을 채운다.
+
+    출력은 넷이다 — `fit_manifest.json`, `checkpoint.pt`,
+    `window_predictions.jsonl`, `fit_report.json`.
+    **run 단위 예측은 여기서 쓰지 않는다.** 계획서 §8 은 세 seed 의 창 확률을
+    먼저 평균하라고 정하므로, run 집계는 `evaluate` 의 몫이다. 여기서 n_seeds=1
+    짜리 run 예측을 내면 최종 산출물과 혼동된다.
+
+    Raises:
+        CLIError: 입력이 어긋나거나 산출물을 덮어쓰게 될 때.
+    """
+    from mobse.v2 import fitting as FIT
+    from mobse.v2 import templates as TPL
+    from mobse.v2.manifests import code_hash, fit_id, sha256_file, write_jsonl
+    from mobse.v2.models import save_checkpoint
+
+    try:
+        cfg = load_config(Path(paths["config"]))
+    except ConfigError as exc:
+        raise CLIError(f"config 검증 실패: {exc}") from exc
+
+    task_manifests = [Path(p) for p in args.task_manifests]
+    missing = [str(p) for p in task_manifests if not p.exists()]
+    if missing:
+        raise CLIError(f"task manifest 가 없다: {missing}. 대체 탐색하지 않는다 (U20)")
+
+    out_dir = Path(paths["output_dir"])
+    for name in ("fit_manifest.json", "checkpoint.pt", "window_predictions.jsonl"):
+        if (out_dir / name).exists():
+            raise CLIError(f"이미 존재한다: {out_dir / name}. 같은 release 결과를 "
+                           "덮어쓰지 않는다 (지침서 §2)")
+
+    folds = json.loads(Path(paths["splits"]).read_text(encoding="utf-8"))
+    fold = FIT.resolve_fold_subjects(folds, int(args.outer_fold), int(args.inner_fold))
+
+    group_of = {}
+    for line in Path(paths["subjects"]).read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            rec = json.loads(line)
+            group_of[rec["canonical_subject"]] = rec["group_id"]
+    unknown = sorted((set(fold.train) | set(fold.evaluate)) - set(group_of))
+    if unknown:
+        raise CLIError(f"subjects.jsonl 에 없는 subject: {unknown[:5]}")
+
+    verify = not bool(getattr(args, "skip_hash_verify", False))
+    task_refs: List[Any] = []
+    for mp in task_manifests:
+        task_refs += FIT.refs_from_extract_manifest(mp, labelled=True)
+    FIT.crosscheck_with_windows_manifest(task_refs, Path(paths["windows"]))
+    rest_refs = FIT.refs_from_extract_manifest(Path(paths["rest_manifest"]),
+                                               labelled=False)
+
+    bank_seed = TPL.bank_seed(int(args.outer_fold), int(args.inner_fold))
+    transform = FIT.fit_fold_transform(
+        rest_refs, fold.train, bank_seed=bank_seed,
+        null_seed=int(cfg["bank.null_seed"]),
+        n_components=int(cfg["bank.pca_components"]),
+        k=int(cfg["bank.k"]), density=float(cfg["bank.edge_density"]),
+        verify=verify)
+
+    train_set = FIT.encode_windows(FIT.select_refs(task_refs, fold.train),
+                                   transform, verify=verify)
+    eval_set = FIT.encode_windows(FIT.select_refs(task_refs, fold.evaluate),
+                                  transform, verify=verify)
+
+    is_inner = fold.role == FIT.ROLE_INNER
+    result, model = FIT.train_fold(
+        train_set, eval_set, transform, cell=args.cell,
+        config_id=int(args.config_id), model_seed=int(args.model_seed), fold=fold,
+        device=str(getattr(args, "device", "cpu")),
+        max_epochs=int(args.epochs) if is_inner else int(cfg["train.max_epochs"]),
+        batch_size=int(cfg["train.batch_size"]),
+        patience=int(cfg["train.patience"]),
+        min_delta=float(cfg["train.min_delta"]),
+        grad_clip=float(cfg["train.grad_clip"]),
+        epochs_exact=None if is_inner else int(args.epochs))
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    ckpt_path = out_dir / "checkpoint.pt"
+    save_checkpoint(model, ckpt_path)
+    ckpt_sha = sha256_file(ckpt_path)
+
+    cfg_hash = config_hash(cfg)
+    module_dir = Path(__file__).resolve().parent
+    fid = fit_id(role=fold.role, cell=args.cell, outer_fold=int(args.outer_fold),
+                 inner_fold=int(args.inner_fold), model_seed=int(args.model_seed),
+                 split_hash=folds["split_hash"], config_hash=cfg_hash)
+
+    rows = []
+    for ref in eval_set.refs:
+        rows.append({
+            "schema_version": "wi05-window-predictions-0.1",
+            "canonical_subject": ref.canonical_subject,
+            "group_id": group_of[ref.canonical_subject],
+            "run_key": ref.run_key, "window_key": ref.window_key,
+            "truth": int(ref.label),
+            "p_class1": float(result.eval_window_probs[ref.window_key]),
+            "cell": args.cell, "model_seed": int(args.model_seed),
+            "scope": fold.eval_role, "checkpoint_sha256": ckpt_sha, "fit_id": fid,
+        })
+    written = write_jsonl(out_dir / "window_predictions.jsonl",
+                          "window_predictions", rows)
+
+    manifest = {
+        "schema_version": "wi05-fit-manifest-0.1", "fit_id": fid,
+        "parent_release": str(Path(paths["config"]).parent),
+        "role": fold.role, "cell": args.cell,
+        "folds": {"outer_fold": int(args.outer_fold),
+                  "inner_fold": int(args.inner_fold),
+                  "n_train_subjects": len(fold.train),
+                  "n_eval_subjects": len(fold.evaluate),
+                  "eval_role": fold.eval_role},
+        "model_seed": int(args.model_seed), "bank_seed": bank_seed,
+        "null_seed": int(cfg["bank.null_seed"]),
+        "fit_subjects": list(fold.train),
+        "scaler_id": transform.frozen.artifact_id,
+        "pca_id": transform.frozen.artifact_id,
+        "bank_id": transform.brain.bank_id,
+        "code_hash": code_hash(sorted(module_dir.glob("*.py"))),
+        "env_hash": _env_hash(), "config_hash": cfg_hash,
+        "source_hash": sha256_file(Path(paths["windows"])),
+        "split_hash": folds["split_hash"],
+    }
+    validate_record("fit_manifest", manifest)
+    (out_dir / "fit_manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    from mobse.v2.train import build_grid as _grid
+    gc = {g.config_id: g for g in _grid()}[int(args.config_id)]
+    report = {
+        "fit_id": fid, "config_id": int(args.config_id),
+        "config": gc.as_dict(),
+        "epochs_run": result.epochs_run, "best_epoch": result.best_epoch,
+        "val_losses": result.val_losses, "eval_loss": result.eval_loss,
+        "eval_balanced_accuracy": result.eval_balanced_accuracy,
+        "eval_role": fold.eval_role, "transform": result.transform,
+        "timing": result.timing, "memory": result.memory,
+        "encoder_init_hash": result.encoder_init_hash, "rng_note": result.rng_note,
+        "n_train_windows": len(train_set), "n_eval_windows": len(eval_set),
+        "checkpoint_sha256": ckpt_sha,
+    }
+    (out_dir / "fit_report.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    return {
+        "verdict": "pass", "fit_id": fid, "role": fold.role, "cell": args.cell,
+        "outer_fold": int(args.outer_fold), "inner_fold": int(args.inner_fold),
+        "config_id": int(args.config_id), "model_seed": int(args.model_seed),
+        "best_epoch": result.best_epoch, "epochs_run": result.epochs_run,
+        "eval_role": fold.eval_role, "eval_loss": result.eval_loss,
+        "eval_balanced_accuracy": result.eval_balanced_accuracy,
+        "n_train_windows": len(train_set), "n_eval_windows": len(eval_set),
+        "window_predictions": written, "bank_seed": bank_seed,
+        "timing": result.timing, "memory": result.memory,
+        "output_dir": str(out_dir),
+    }
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     ap = build_parser()
     args = ap.parse_args(argv)
@@ -387,6 +583,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     if args.command == "split":
         result = run_split(paths)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result["verdict"] == "pass" else 1
+
+    if args.command == "fit":
+        result = run_fit(paths, args)
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0 if result["verdict"] == "pass" else 1
 

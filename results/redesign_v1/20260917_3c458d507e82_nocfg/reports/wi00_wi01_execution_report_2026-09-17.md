@@ -2755,3 +2755,267 @@ assert {"rest_features", "fit_subjects", "n_components", "allowed_subjects"} <= 
 (표의 모든 칸을 파싱하지는 않는다). 이번에는 핵심 주장 — δ=0.02 에서의
 P(하한>0) 8개, MDE 16개, epoch 범위, peak GPU, fit 합계, 잠금의 N 과 해시 인용 —
 을 대조했고 그중 둘이 틀렸다. **비율로 보면 적지 않다.**
+
+---
+
+# 부록 W — `fit` 본체와, pilot 이 잡아낸 학습 예산 문제 (16회차)
+
+계획서 §4-2 는 "pilot 에서만 구현·학습 가능성, 장비 비용, **기준선의 기술적
+동작**을 확인한다"고 정한다. 그 확인을 했고, 통과하지 못했다.
+
+## W.1 `fit` 본체
+
+`mobse/v2/fitting.py` (536줄) 와 `cli.run_fit()` 을 붙였다. 한 번의 호출이
+**(role, cell, outer, inner, config, seed) 하나**이며, 계획서 §7 의 비용표
+768 칸 중 한 칸이다.
+
+### W.1.1 경계를 자료로 강제한다
+
+```
+fit_fold_transform(rest_refs, train_subjects, ...)
+    → fit_transform_on_training_rest(z, fit_subjects, allowed_subjects=train_subjects)
+```
+
+`allowed_subjects` 를 넘기므로 허용 밖 subject 가 하나라도 섞이면
+`FeatureError` 로 **실패**한다 (T03). 시험
+`test_allowed_subjects_is_actually_passed_through` 가 그 인자가 실제로
+넘어가는지를 확인한다 — 경계의 방어선은 인자이고, 넘기지 않으면 경계가 사라진다.
+
+`resolve_fold_subjects()` 는 fold 를 꺼내면서 pilot 이 섞였는지, train 과 평가
+집합이 겹치는지를 매번 확인한다. `inner_fold = 9`(= `templates.OUTER_FIT_INNER_FOLD`)
+는 outer 최종 적합이고, 그 경우 **early stopping 을 켤 수 없다** — 평가 집합이
+outer test 이므로 그것으로 멈추면 leakage 다. 코드가 거부한다.
+
+### W.1.2 경로를 추측하지 않는다
+
+창 `.npy` 경로는 WI-02 추출 manifest 가 기록한 값만 쓰고, 읽은 뒤 sha256 을
+대조한다. label 은 창 manifest 에서 오고, 두 파일이 **같은 창 집합·같은 해시·
+같은 label** 을 가리키는지 `crosscheck_with_windows_manifest()` 가 대조한다.
+한 파일만 믿으면 label 과 자료가 어긋나도 알 수 없다.
+
+### W.1.3 run 예측은 여기서 쓰지 않는다
+
+계획서 §8 은 **세 seed 의 창 확률을 먼저 평균**하라고 정한다. fit 하나는 seed
+하나이므로 여기서 run 예측을 내면 `n_seeds=1` 짜리가 최종 산출물과 혼동된다.
+`fit` 은 `window_predictions.jsonl` 만 쓰고 run 집계는 `evaluate` 의 몫이다.
+
+산출물은 넷이다 — `fit_manifest.json`, `checkpoint.pt`,
+`window_predictions.jsonl`, `fit_report.json`.
+
+## W.2 pilot 기술 검증: 실행은 됐다
+
+pilot 31명 안에서 계획서의 알고리즘 그대로 기술용 분할을 만들고(pilot-of-pilot
+6 / pool 25 / outer test 5×5), 그 안에서 실제 fit 을 돌렸다. **main pool 은
+건드리지 않았다.**
+
+```
+cell A, outer 0, inner 0, config 0, seed 42, 최대 50 epoch, cuda
+학습 창 104 (13명)   평가 창 56 (7명)
+best epoch 21 / 26 epoch 에서 early stopping
+end-to-end 12.66 s,  순수 학습 1.63 s,  peak GPU 89.6 MiB,  peak RSS 1.65 GiB
+```
+
+cell A 와 B 의 `encoder_init_hash` 가 `ace71bf9320887a3` 로 **동일**하다 —
+계획서 §7 의 "같은 seed 의 공통 encoder 초기화를 맞춘다"가 실자료에서 성립한다.
+
+## W.3 그런데 balanced accuracy 가 정확히 0.5 였다
+
+```
+eval_balanced_accuracy 0.5   eval_loss 0.6975 (≈ ln 2)
+p_class1 범위 [0.368, 0.501], 평균 0.426, sd 0.025
+56 창 중 55 창을 class 0 으로 예측
+truth 0 평균 p1 = 0.4225,  truth 1 평균 p1 = 0.4293
+```
+
+정확히 0.5 가 나오는 이유는 단순하다. 모형이 거의 전부를 class 0 으로 찍으면
+subject 마다 emomatching 은 맞고 workingmemory 는 틀리므로 `b_i = 0.5` 가 되고,
+평균도 0.5 가 된다. **표본이 적어서가 아니라 모형이 상수를 내고 있었다.**
+
+## W.4 표본 부족인가 배선 결함인가 — 가른다
+
+두 가지를 구분하지 않으면 아무것도 결론낼 수 없다. 세 가지를 쟀다.
+
+### W.4.1 같은 자질의 선형 기준선 (계획서 §6 의 S 후보 3)
+
+같은 창의 FC Fisher-z 4,950 차원으로 logistic regression:
+
+```
+train window accuracy 1.000,  BA 1.000
+val   window accuracy 0.929,  BA 1.000
+```
+
+**신호는 자료에 분명히 있다.** 그것도 아주 쉽게 갈린다.
+
+### W.4.2 신경망은 학습 집합조차 못 맞혔다
+
+```
+train window accuracy 0.500,  train BA 0.500
+```
+
+표본 부족은 이것을 설명하지 못한다. **자기 학습 자료를 못 맞히는 모형은 표본이
+적은 것이 아니다.**
+
+### W.4.3 표현은 멀쩡했다
+
+ROI mean pooling 직후 32차원에 선형 probe 를 걸었다.
+
+| 자질 | train BA | val BA |
+|---|---:|---:|
+| graph 이후 pooled 32차원 | 0.885 | 0.857 |
+| graph 이전 encoder 출력 32차원 | 0.808 | 0.786 |
+| raw ROI mean/variance 200차원 (S 후보 1) | 1.000 | 0.714 |
+
+**표현은 신호를 담고 있다.** 그런데 그 위의 `Linear(32→2)` 가 쓰지 못했다.
+
+pooled feature 의 통계가 이유를 말해 준다 — **표본 간 표준편차 평균 0.054,
+최대 0.108 인데 절댓값 평균은 0.802** 다. 큰 공통 offset 위에 작은 변동이
+얹혀 있다. 선형 probe 는 StandardScaler 로 offset 을 없애고 변동을 키우니 바로
+갈리지만, 모형의 head 는 그 작은 변동을 그대로 받는다. graph layer 의
+LayerNorm 은 ROI 마다 32차원 **안에서** 정규화하므로 표본 간 offset 을 없애
+주지 않는다.
+
+## W.5 진짜 원인: 학습 예산이 평탄면 안에서 끝난다
+
+배선이 아니라면 최적화다. epoch 을 늘려 봤다 (batch 32, config 0, seed 42).
+
+| epoch | update 수 | train BA | val BA | val loss |
+|---:|---:|---:|---:|---:|
+| 50 | 200 | 0.500 | 0.500 | 0.686 |
+| 200 | 800 | **1.000** | 0.714 | 0.499 |
+| 600 | 2,400 | 1.000 | 0.643 | 0.768 |
+
+**모형은 배울 수 있다. 50 epoch 에서 멈췄을 뿐이다.** 600 epoch 에서 val 이
+다시 나빠지는 것은 정상적인 과적합이다.
+
+### W.5.1 epoch 이 아니라 update 수다
+
+batch 크기만 바꿔 50 epoch 을 고정했다 (같은 자료, 같은 seed).
+
+| batch | 50 epoch 의 update | train BA | val BA | val loss |
+|---:|---:|---:|---:|---:|
+| 32 | 200 | 0.500 | 0.500 | 0.686 |
+| 16 | 350 | 0.808 | 0.714 | 0.650 |
+| 8 | 650 | 0.769 | 0.643 | 0.601 |
+| 4 | 1,300 | **1.000** | 0.929 | 0.416 |
+
+단조롭다. **평탄면 탈출을 정하는 것은 epoch 이 아니라 optimizer update 수다.**
+
+### W.5.2 학습 집합이 커지면 나아지는가 — 아니다
+
+"main 은 창이 더 많으니 epoch 당 update 도 많아서 괜찮을 것"이라는 낙관적
+읽기를 그대로 두지 않고 쟀다. pilot outer train 에서 subject 수를 바꿔가며
+(batch 32 고정) 학습 집합 window accuracy 를 봤다.
+
+| 학습 subject | 창 | batch/epoch | 50 ep = update | train win acc @50ep | @800–1,000 update |
+|---:|---:|---:|---:|---:|---:|
+| 8 | 64 | 2 | 100 | 0.656 | 0.922 (800) |
+| 13 | 104 | 4 | 200 | 0.625 | 0.933 (800) |
+| 20 | 160 | 5 | 250 | 0.569 | 0.719 (1,000) |
+
+**학습 집합이 커질수록 같은 update 수에서 더 나쁘다.** 낙관적 읽기는 지지되지
+않는다. 탈출에는 대략 **800 update 이상**이 필요하고, 자료가 많아지면 더 든다.
+
+### W.5.3 main 규모에서는 어떻게 되나 — 계산은 되지만 측정은 안 됐다
+
+| 규모 | 창 | batch/epoch | 50 epoch 의 update |
+|---|---:|---:|---:|
+| pilot inner (13명) | 104 | 4 | 200 |
+| **main inner (67명)** | **536** | **17** | **850** |
+| **main outer (101명)** | **808** | **26** | **1,300** |
+
+main 은 pilot 의 4–6.5배이고 탈출 구간(≈800)에 **겨우 닿거나 살짝 넘는다.**
+그런데 W.5.2 가 "자료가 많으면 더 든다"고 말하므로, 850 update 가 536창에서
+충분한지는 **알 수 없다.**
+
+여기에 early stopping 이 겹친다. patience 5, min_delta 0.0005 인데 평탄면에서는
+epoch 당 loss 변동이 1e-3 규모로 요동친다. pilot 에서는 그 요동 덕에 우연히
+26 epoch 까지 살아남았다. **평탄면을 수렴으로 오인하고 멈출 수 있다.**
+
+> 최악의 경우: 768개 fit 전부가 평탄면 안에서 끝나 balanced accuracy 0.5 를
+> 내고, 주 대조가 "불확실"로 결론난다. **가설과 아무 상관 없는 이유로.**
+
+## W.6 그래서 무엇을 했나 — 아무것도 바꾸지 않았다
+
+계획서 §7 은 "max 50 epochs", "patience=5", "batch 32" 를 **명시적으로** 정한다.
+개정 P7 때와 다르다 — P7 은 계획서 문장을 정확히 읽으면 답이 하나뿐이었지만,
+여기에는 해석의 여지가 없다. 숫자가 그냥 그렇게 적혀 있다.
+
+**그러므로 이것은 정정이 아니라 변경이고, 내가 단독으로 하지 않는다.**
+부록 H 의 band-pass 순서와 같은 취급으로 **열린 항목**에 올린다.
+
+### W.6.1 결정이 필요한 사항 (제안 P8, **미적용**)
+
+선택지는 셋이다.
+
+1. **그대로 둔다.** 근거: main 규모의 update 수가 pilot 의 4–6.5배이고 탈출
+   구간에 닿는다. 위험: W.5.2 가 그 낙관을 지지하지 않는다.
+2. **epoch 상한을 올린다** (예: 50 → 200). 자원 비용은 학습 1.87 h → 7.5 h 로,
+   고정비를 더해도 하루 안이다(`resource_budget.md` §8.1). early stopping 은
+   그대로 두되 patience 를 키운다.
+3. **예산을 update 수로 다시 쓴다** (예: 최소 1,500 update 보장). 규모에
+   무관하게 같은 최적화 예산을 준다는 점에서 가장 정합적이지만, 계획서 문구를
+   더 크게 바꾼다.
+
+**어느 쪽이든 main OOF 전에 정해야 한다.** 지금이 그 시점이다.
+
+### W.6.2 결정을 줄일 측정 하나
+
+main 규모에서 평탄면을 실제로 벗어나는지는 **한 번의 측정으로 확인된다.**
+
+> main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch
+> 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도
+> 보지 않는다. 선택에 쓰지 않으므로 leakage 가 아니다.
+
+이 측정은 아직 하지 않았다. **잠금이 걸린 분할을 소비하는 첫 행위**이므로
+결정 전에 단독으로 시작하지 않는다.
+
+## W.7 pilot 결과를 결과로 읽지 않는다
+
+W.3–W.5 의 어떤 숫자도 가설에 대한 증거가 아니다. 계획서 §4-2 가 pilot 을
+기술 검증용으로 한정했고, pilot 은 주 분석에서 **전부 제외**된다. 특히
+
+- 선형 기준선이 val BA 1.00 을 냈다고 해서 "FC 기준선이 이긴다"고 쓰지 않는다.
+  7명의 validation 이고, 계획서 §6 의 S 후보 선택 절차를 따른 것도 아니다.
+- 신경망이 0.5 를 냈다고 해서 "제안 구조가 작동하지 않는다"고 쓰지 않는다.
+  학습 예산 안에서 평탄면을 못 벗어난 것이고, 예산을 늘리면 학습 집합을
+  완전히 맞힌다.
+
+## W.8 회귀·검증
+
+```
+시험          563 passed, 11 skipped     (종전 521)
+              +26 test_fitting, +8 test_cli_fit, 그 외 parametrize 증가
+해시          검사 136건 전부 일치
+인용 수치     대조 실패 0건
+잠금          검사 24건 전부 일치, rc=0
+```
+
+`mobse/v2` 가 바뀌었으므로 rev23 잠금은 **무효**다. 변경 정책대로 새 잠금을
+만들었다.
+
+```
+현재  5a735929b525…  2026-09-18T02:57:01Z
+       ← 2eb2783e3dcc…  (재생성, 사유 미기재)
+       ← 1c1fba957b35…  (rev23)
+```
+
+가운데 항목은 `--reason` 없이 재생성한 것이다. 그것을 보고 builder 에
+**`--overwrite` 에 `--reason` 필수** 검사를 넣고 다시 만들었다 — 변경 정책이
+"새 잠금에 supersedes 와 사유를 남긴다"고 정하는데 도구가 그것을 강제하지
+않고 있었다. 사슬은 지우지 않고 `locks/superseded/` 에 그대로 남긴다.
+
+### W.8.1 마감 절차가 또 한 건 잡았다
+
+인용 수치 대조기(`22_crosscheck_reported_numbers.py`)가 **보고서의 lock_hash
+인용 불일치**를 잡았다. 잠금을 새로 만들었는데 보고서는 옛 해시만 인용하고
+있었다. 해시 검증은 파일이 바뀌지 않았는지만 보므로 이런 것을 잡지 못한다.
+rev23 에서 3단계를 넣어 두지 않았다면 그대로 나갔을 것이다.
+
+## W.9 이번 회차에 확인하지 못한 것
+
+- **main 규모의 평탄면 탈출** — W.6.2. 결정 전 단독 실행하지 않는다.
+- **`prepare`·`evaluate`·`report` CLI** — 여전히 미구현.
+- **band-pass 순서·사양** — 부록 H 이후 그대로 열려 있다.
+- **pilot 에서의 S 후보 전체 비교** — 계획서 §6 의 S 후보 4종과 구조 비교
+  2종은 이번에 돌리지 않았다. W.4 의 선형 probe 는 진단용이지 S 선택 절차가
+  아니다.

@@ -1,7 +1,7 @@
 {
   "schema_version": "measurement_lock_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "locked_at_utc": "2026-09-18T02:57:01Z",
+  "locked_at_utc": "2026-09-18T02:56:21Z",
   "gate": "G1 Measurement lock",
   "work_instruction": "WI-03",
   "roots": {
@@ -302,9 +302,9 @@
     "formula": "126 subjects x 2 tasks x 4 windows x 3 seeds x 4 cells"
   },
   "supersedes": {
-    "lock_hash": "2eb2783e3dccd56323920d2bbb8106a11596b00592a459f14d71220450fb1913",
-    "locked_at_utc": "2026-09-18T02:56:21Z",
-    "reason": "rev24: mobse/v2 에 fitting.py 추가, cli.py 에 run_fit 본체 — 잠긴 code_hash 가 바뀌었다 (보고서 부록 W)"
+    "lock_hash": "1c1fba957b355f08229cd4ed3517fbf58914e38ffe0c8adf9cc988b9a77e0ba4",
+    "locked_at_utc": "2026-09-18T00:45:43Z",
+    "reason": "재생성 (--overwrite)"
   },
-  "lock_hash": "5a735929b5251d655fb6124f19ae325caa8b800a1c6dc20bd28d6a9f00de9134"
+  "lock_hash": "2eb2783e3dccd56323920d2bbb8106a11596b00592a459f14d71220450fb1913"
 }

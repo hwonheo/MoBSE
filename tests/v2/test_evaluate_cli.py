@@ -200,21 +200,41 @@ def test_unknown_subcommand_rejected():
 
 
 def test_fit_requires_cell_fold_seed_and_epochs(tmp_path):
-    for p in ("c.yaml", "f.json", "w.jsonl"):
+    """fit 의 인자 계약. WI-05 본체가 붙으며 필수 인자가 늘었다 (부록 W.1)."""
+    for p in ("c.yaml", "f.json", "w.jsonl", "s.jsonl", "r.jsonl", "t.jsonl"):
         (tmp_path / p).write_text("{}")
     ap = build_parser()
+
+    base = ["fit", "--config", str(tmp_path / "c.yaml"),
+            "--splits", str(tmp_path / "f.json"),
+            "--subjects", str(tmp_path / "s.jsonl"),
+            "--windows", str(tmp_path / "w.jsonl"),
+            "--rest-manifest", str(tmp_path / "r.jsonl"),
+            "--output-dir", str(tmp_path)]
+    fit_args = ["--cell", "A", "--outer-fold", "0", "--inner-fold", "1",
+                "--model-seed", "42", "--config-id", "3", "--epochs", "12",
+                "--task-manifests", str(tmp_path / "t.jsonl")]
+
     with pytest.raises(SystemExit):
-        ap.parse_args(["fit", "--config", str(tmp_path / "c.yaml"),
-                       "--splits", str(tmp_path / "f.json"),
-                       "--windows", str(tmp_path / "w.jsonl"),
-                       "--output-dir", str(tmp_path)])
-    ns = ap.parse_args(["fit", "--config", str(tmp_path / "c.yaml"),
-                        "--splits", str(tmp_path / "f.json"),
-                        "--windows", str(tmp_path / "w.jsonl"),
-                        "--output-dir", str(tmp_path),
-                        "--cell", "A", "--outer-fold", "0", "--inner-fold", "1",
-                        "--model-seed", "42", "--epochs", "12"])
+        ap.parse_args(base)                      # fit 전용 인자 없음
+
+    ns = ap.parse_args(base + fit_args)
     assert ns.cell == "A" and ns.model_seed == 42
+    assert ns.config_id == 3 and ns.epochs == 12
+    assert [str(x) for x in ns.task_manifests] == [str(tmp_path / "t.jsonl")]
+    assert ns.device == "cpu" and ns.skip_hash_verify is False
+
+    # 새 필수 인자를 하나씩 빼면 전부 거부되어야 한다.
+    for drop in ("--subjects", "--rest-manifest"):
+        pruned = [a for i, a in enumerate(base)
+                  if a != drop and (i == 0 or base[i - 1] != drop)]
+        with pytest.raises(SystemExit):
+            ap.parse_args(pruned + fit_args)
+    for drop in ("--config-id", "--task-manifests"):
+        pruned = [a for i, a in enumerate(fit_args)
+                  if a != drop and (i == 0 or fit_args[i - 1] != drop)]
+        with pytest.raises(SystemExit):
+            ap.parse_args(base + pruned)
 
 
 def test_evaluate_requires_explicit_task_list(tmp_path):

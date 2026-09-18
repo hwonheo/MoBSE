@@ -188,6 +188,8 @@ def main(argv: List[str]) -> int:
     ap.add_argument("--release", required=True, type=Path,
                     help="repo-root 기준 release 디렉터리")
     ap.add_argument("--overwrite", action="store_true")
+    ap.add_argument("--reason", default=None,
+                    help="구 잠금을 무효화한 사유. --overwrite 시 필수다")
     args = ap.parse_args(argv[1:])
 
     data_root = args.data_root.resolve()
@@ -199,6 +201,10 @@ def main(argv: List[str]) -> int:
     if out_path.exists():
         if not args.overwrite:
             raise SystemExit(f"이미 존재한다: {out_path}. --overwrite 를 명시하라")
+        if not args.reason:
+            raise SystemExit(
+                "--overwrite 에는 --reason 이 필요하다. 변경 정책이 '새 잠금에 "
+                "supersedes 와 사유를 남긴다'고 정한다 — 사유 없는 무효화는 없다")
         prior = json.loads(out_path.read_text(encoding="utf-8"))
 
     body: Dict[str, Any] = {
@@ -239,7 +245,7 @@ def main(argv: List[str]) -> int:
         body["supersedes"] = {
             "lock_hash": prior.get("lock_hash"),
             "locked_at_utc": prior.get("locked_at_utc"),
-            "reason": "재생성 (--overwrite)",
+            "reason": args.reason,
         }
         sup = out_path.parent / "superseded"
         sup.mkdir(parents=True, exist_ok=True)
