@@ -1,0 +1,38 @@
+{
+  "schema_version": "redesign_fig_manifest_v1",
+  "figure_key": "rd2",
+  "role": "manuscript",
+  "script": "scripts/make_redesign_protocol_figures.py",
+  "script_sha256": "0c22cf5c3401d54785dd2e2c83457ef48c074a6b5a34bfc03566a85e2ed7d627",
+  "figure_png": "docs/experiments/figures_redesign_2026-09-17/fig_rd2_analysis_pipeline.png",
+  "figure_pdf": "docs/experiments/figures_redesign_2026-09-17/fig_rd2_analysis_pipeline.pdf",
+  "figure_png_sha256": "b62edcd73c7a6e66222a02f782ce205ab11a0a8442e56b00b2af33ec38b781b7",
+  "figure_pdf_sha256": "f18e830a88a54d39111effe9056ac9b20531daa4a7f2f58bcd71183d6967504f",
+  "sources": [
+    {
+      "path": "docs/experiments/mobse_redesign_protocol_2026-09-17.md",
+      "kind": "file",
+      "sha256": "590fbacc2d77cfe2582be8eb01308b6131eddda6cc72ab3abf0dcc6b0974dbd3"
+    },
+    {
+      "path": "docs/experiments/mobse_redesign_work_instructions_2026-09-17.md",
+      "kind": "file",
+      "sha256": "6bb012595421e64c8c089a9d20d379f72a81fb8b48439b3f181511b44f5abc9b"
+    }
+  ],
+  "git_head": "7787ae0c9741c22c207032c8bd78fd462ce02b9f",
+  "created_at_utc": "2026-09-17T09:01:31Z",
+  "style": {
+    "base": "mobse.viz.set_nature_style",
+    "extensions": [
+      "pdf.fonttype=42",
+      "ps.fonttype=42"
+    ],
+    "categorical_palette": [
+      "#10B981",
+      "#4F46E5",
+      "#F59E0B"
+    ]
+  },
+  "notes": "성능 결과를 포함하지 않는 설계·감사 figure. 수치는 계획서 본문과 WI-01 실측값에서만 가져왔다."
+}

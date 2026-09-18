@@ -1,0 +1,65 @@
+{
+  "schema_version": "redesign_fig_manifest_v1",
+  "figure_key": "rd3",
+  "role": "manuscript",
+  "script": "scripts/make_redesign_protocol_figures.py",
+  "script_sha256": "0c22cf5c3401d54785dd2e2c83457ef48c074a6b5a34bfc03566a85e2ed7d627",
+  "figure_png": "docs/experiments/figures_redesign_2026-09-17/fig_rd3_timing_model.png",
+  "figure_pdf": "docs/experiments/figures_redesign_2026-09-17/fig_rd3_timing_model.pdf",
+  "figure_png_sha256": "6e50a183d689536b7c9e59fed0f855cd49f1e87e6f44351eb804e60b2a158f60",
+  "figure_pdf_sha256": "d27242f70389db6e668a01c9da284eaaee5694160f95f329a0a1128ec4e882b5",
+  "sources": [
+    {
+      "path": "docs/experiments/mobse_redesign_protocol_2026-09-17.md",
+      "kind": "file",
+      "sha256": "590fbacc2d77cfe2582be8eb01308b6131eddda6cc72ab3abf0dcc6b0974dbd3"
+    },
+    {
+      "path": "scripts/stream_aomic_extract.py",
+      "kind": "file",
+      "sha256": "35ba368013eeb15d71335632376fa44f276099fdcdd063f2c7384a933ff1cc83"
+    },
+    {
+      "path": "data/aomic/piop1/timeseries/100",
+      "kind": "directory",
+      "n_files": 1226,
+      "listing_sha256": "e496054169e77904c2ad038e8b7289ccc5931ea1ecdc646d2a73ab49f9906686"
+    },
+    {
+      "path": "data/aomic/piop2/timeseries/100",
+      "kind": "directory",
+      "n_files": 2,
+      "listing_sha256": "cf523f5392ff7e3b65d28c565940f50009ccecb217641155eb9e241e253888d0"
+    },
+    {
+      "path": "data/legacy_phase2/os_phase2_openneuro/openneuro/ds002785/2.0.0/uncompressed/sub-0001/func/sub-0001_task-restingstate_acq-mb3_bold.nii.gz",
+      "kind": "file",
+      "sha256": "761bd5b8f427ffd14b5f3cab6009151b31bb9aaa2502ede1999429218a930f99"
+    },
+    {
+      "path": "data/legacy_phase2/os_phase2_openneuro/openneuro/ds002790/2.0.0/uncompressed/sub-0001/func/sub-0001_task-restingstate_acq-seq_bold.nii.gz",
+      "kind": "file",
+      "sha256": "9e50b76c0b1926115dea4f268c6f588a38cf312840a21639a922252d8fd55070"
+    },
+    {
+      "path": "results/redesign_v1/20260917_3c458d507e82_nocfg/reports/wi00_wi01_execution_report_2026-09-17.md",
+      "kind": "file",
+      "sha256": "98e10f6019f588e8f549848663a2d46a5e1d14c313f1e7d2bbbea1e29b986286"
+    }
+  ],
+  "git_head": "7787ae0c9741c22c207032c8bd78fd462ce02b9f",
+  "created_at_utc": "2026-09-17T09:01:31Z",
+  "style": {
+    "base": "mobse.viz.set_nature_style",
+    "extensions": [
+      "pdf.fonttype=42",
+      "ps.fonttype=42"
+    ],
+    "categorical_palette": [
+      "#10B981",
+      "#4F46E5",
+      "#F59E0B"
+    ]
+  },
+  "notes": "성능 결과를 포함하지 않는 설계·감사 figure. 수치는 계획서 본문과 WI-01 실측값에서만 가져왔다."
+}

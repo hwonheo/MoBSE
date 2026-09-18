@@ -1,0 +1,66 @@
+[
+  {
+    "run": "phase2_etth1_story_moe_n100_etth1only10_20260331_rerun",
+    "metric": "mae",
+    "n": 10,
+    "reported": 2.2620922327041626,
+    "recomputed": 2.2620922327041626,
+    "abs_diff": 0.0
+  },
+  {
+    "run": "phase2_etth1_story_moe_n100_etth1only10_20260331_rerun",
+    "metric": "mse",
+    "n": 10,
+    "reported": 8.65778923034668,
+    "recomputed": 8.65778923034668,
+    "abs_diff": 0.0
+  },
+  {
+    "run": "phase2_etth1_story_moe_n100_dualtask10_20260331_rerun",
+    "metric": "mae",
+    "n": 10,
+    "reported": 2.2058488607406614,
+    "recomputed": 2.2058488607406614,
+    "abs_diff": 0.0
+  },
+  {
+    "run": "phase2_etth1_story_moe_n100_dualtask10_20260331_rerun",
+    "metric": "mse",
+    "n": 10,
+    "reported": 7.859587478637695,
+    "recomputed": 7.859587478637695,
+    "abs_diff": 0.0
+  },
+  {
+    "run": "phase2_etth1_story_moe_n100_etth1only10_temporalgru_20260331_rerun",
+    "metric": "mae",
+    "n": 10,
+    "reported": 1.4585711121559144,
+    "recomputed": 1.4585711121559144,
+    "abs_diff": 0.0
+  },
+  {
+    "run": "phase2_etth1_story_moe_n100_etth1only10_temporalgru_20260331_rerun",
+    "metric": "mse",
+    "n": 10,
+    "reported": 3.7111393213272095,
+    "recomputed": 3.7111393213272095,
+    "abs_diff": 0.0
+  },
+  {
+    "run": "phase2_etth1_story_moe_n100_dualtask10_temporalgru_20260331_rerun",
+    "metric": "mae",
+    "n": 10,
+    "reported": 1.4168992042541504,
+    "recomputed": 1.4168992042541504,
+    "abs_diff": 0.0
+  },
+  {
+    "run": "phase2_etth1_story_moe_n100_dualtask10_temporalgru_20260331_rerun",
+    "metric": "mse",
+    "n": 10,
+    "reported": 3.5791346549987795,
+    "recomputed": 3.5791346549987795,
+    "abs_diff": 0.0
+  }
+]

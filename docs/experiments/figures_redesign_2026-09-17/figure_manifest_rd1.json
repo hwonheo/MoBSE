@@ -1,0 +1,33 @@
+{
+  "schema_version": "redesign_fig_manifest_v1",
+  "figure_key": "rd1",
+  "role": "manuscript",
+  "script": "scripts/make_redesign_protocol_figures.py",
+  "script_sha256": "0c22cf5c3401d54785dd2e2c83457ef48c074a6b5a34bfc03566a85e2ed7d627",
+  "figure_png": "docs/experiments/figures_redesign_2026-09-17/fig_rd1_factorial_design.png",
+  "figure_pdf": "docs/experiments/figures_redesign_2026-09-17/fig_rd1_factorial_design.pdf",
+  "figure_png_sha256": "398da138212d09a7f976bbeaaea72d84832729c0acbe701bdad96c45a640e27b",
+  "figure_pdf_sha256": "29ded7b2cd76b5de8104fedf5351c36fc51aaec5478e37d4e8bb069473f34276",
+  "sources": [
+    {
+      "path": "docs/experiments/mobse_redesign_protocol_2026-09-17.md",
+      "kind": "file",
+      "sha256": "590fbacc2d77cfe2582be8eb01308b6131eddda6cc72ab3abf0dcc6b0974dbd3"
+    }
+  ],
+  "git_head": "7787ae0c9741c22c207032c8bd78fd462ce02b9f",
+  "created_at_utc": "2026-09-17T09:01:31Z",
+  "style": {
+    "base": "mobse.viz.set_nature_style",
+    "extensions": [
+      "pdf.fonttype=42",
+      "ps.fonttype=42"
+    ],
+    "categorical_palette": [
+      "#10B981",
+      "#4F46E5",
+      "#F59E0B"
+    ]
+  },
+  "notes": "성능 결과를 포함하지 않는 설계·감사 figure. 수치는 계획서 본문과 WI-01 실측값에서만 가져왔다."
+}
