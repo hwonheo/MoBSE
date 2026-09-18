@@ -1,0 +1,2069 @@
+{
+  "schema_version": "gate_evidence_v1",
+  "release_id": "20260917_3c458d507e82_nocfg",
+  "git_head": "7787ae0c9741c22c207032c8bd78fd462ce02b9f",
+  "timestamp_utc": "2026-09-18T10:30:00Z",
+  "revision": 23,
+  "supersedes_sha256": "9f2b68f161bdebeb5821fc1be9e092675253c056abbfc56e3e2f896157588727",
+  "revision_reason": "rev23: WI-03 미결 산출물 3종 완료 — locks/measurement_lock.json (코호트·분할·코드·설정 잠금, 불변식 재계산 검증기 포함), reports/resource_budget.md, reports/precision_scenarios.md. 정밀도 결론: 현재 설계는 δ=0.02 를 검출할 정밀도가 없다 (N=126 에서 P(하한>0) 0.04–0.19, δ80 은 δ 의 2–6배). 계획서 §8 의 'inconclusive 가능성을 명시한다'에 해당한다. 그 과정에서 E12 다섯 번째 — 기존 가드가 라이브러리 계약만 고정하고 호출부는 보지 않아 fit_transform_on_training_rest(feats) 가 suite 를 통과했다. 호출부 AST 검사로 막았다.",
+  "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
+  "gates": [
+    {
+      "gate": "G0 Provenance",
+      "status": "conditionally_cleared",
+      "checks": [
+        {
+          "check": "native TR of both primary targets",
+          "result": "pass",
+          "observed": {
+            "ds002785/emomatching": 2.0,
+            "ds002785/workingmemory": 2.0,
+            "ds002790/emomatching": 2.0,
+            "ds002790/workingmemory": 2.0
+          },
+          "evidence": "raw sidecar RepetitionTime, Wave 1; task 내 분산 0",
+          "note": "계획서 §2 의 '두 target TR 은 2초' 주장이 원자료로 확인됨"
+        },
+        {
+          "check": "native TR of restingstate",
+          "result": "pass",
+          "observed": {
+            "ds002785/restingstate": 0.75,
+            "ds002790/restingstate": 2.0
+          },
+          "note": "두 cohort 의 rest 가 서로 다른 TR 을 쓴다. 로컬 원본 NIfTI 헤더 측정과 일치"
+        },
+        {
+          "check": "existing extraction TR correctness",
+          "result": "fail",
+          "note": "모든 run 에 0.75 적용. PIOP1 restingstate 만 우연히 정답이고 두 primary target 은 2.67배 잘못된 rate 로 필터링됨 → 기존 파생물 주분석 재사용 불가 확정"
+        },
+        {
+          "check": "[12,252) s supported",
+          "result": "pass",
+          "observed": "6/6 dataset×task 조합에서 True",
+          "note": "emomatching 270 s, workingmemory 324/320 s, rest 360/480 s"
+        },
+        {
+          "check": "discarded/flagged volumes recorded",
+          "result": "pass",
+          "note": "non_steady_state_outlier* 열로 run 단위 확정. 제거가 아니라 표시임"
+        },
+        {
+          "check": "24 motion + aCompCor 5 + FD constructible",
+          "result": "pass",
+          "observed": {
+            "runs_failing_acompcor_ge5": 4,
+            "runs_failing_motion24": 0,
+            "runs_failing_fd": 0
+          },
+          "note": "4 건은 exclusions.jsonl 로 넘길 run 단위 제외 사유"
+        },
+        {
+          "check": "events onset origin",
+          "result": "pass",
+          "observed": {
+            "task_runs_with_events": 861,
+            "rest_runs_without_events": 434
+          },
+          "note": "events 는 restingstate 를 제외한 모든 run 에 존재"
+        },
+        {
+          "check": "BOLD present for the primary targets",
+          "result": "fail",
+          "observed": 0,
+          "note": "Wave 2 대상. Wave 1 은 메타데이터만 받았다"
+        },
+        {
+          "check": "dummy volumes removed before archiving",
+          "result": "undetermined",
+          "note": "confounds 길이는 보관본 전체 길이다. 보관 전 제거 여부는 이 파일들로 판정 불가(U3)"
+        },
+        {
+          "check": "Wave 2 download volume",
+          "result": "pass",
+          "observed": {
+            "grand_total_gib": 209.7,
+            "disk_free": "3.0 TiB"
+          },
+          "note": "U26 해소. streaming 불필요"
+        }
+      ],
+      "unresolved": [
+        "U3",
+        "U6(targets, Wave 2)",
+        "U10"
+      ],
+      "artifact_hashes": {
+        "provenance/workspace_snapshot.json": "43dac7b5195059f941e0e4b7c52645c2713b1609eaf632e50e6a6eaf547a6c0a",
+        "provenance/source_runs.jsonl": "81645ac323376afc6c3289271fc69401eb35288b6f142402aea8a2ba1a65749c",
+        "provenance/missing_sources.json": "9c6199d65661d43f59a199a0bc4236fb9e3a5823a1498730fd1636f8a4a0663f",
+        "provenance/atlas_spec.json": "ec0034be9462f014804838ac128efb2ee0f9fb0a5762b07043081baabe77358f",
+        "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
+        "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
+        "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "0a9b85d16d230425ccb26ccb8138830499766c65446d0e87dcf581894bb256a4"
+      },
+      "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
+    },
+    {
+      "gate": "G1 Measurement lock",
+      "status": "in_progress",
+      "checks": [
+        {
+          "check": "group_id constructible from local metadata",
+          "result": "fail",
+          "note": "participants.tsv(piop1 13열/216행, piop2 12열/226행, id1000 31열/928행)에 가족·쌍둥이·중복 식별 열 없음"
+        },
+        {
+          "check": "PIOP1/PIOP2 subject ID namespace",
+          "result": "fail",
+          "note": "두 cohort 가 같은 sub-0001… 네임스페이스를 쓴다. 문자적 교집합 216, demographic 전체 일치 0/216 -> canonical_subject 에 dataset prefix 필수"
+        },
+        {
+          "check": "execution host and environment lock",
+          "result": "pass",
+          "observed": {
+            "host": "bmcws",
+            "torch": "2.10.0+cu128",
+            "cuda": "12.8",
+            "gpu_count": 1
+          },
+          "note": "venv-mobse-v2 + environment_lock_h197.txt. torch_geometric 부재 guard 통과"
+        },
+        {
+          "check": "complete-case cohort upper bound (run-level mean FD only)",
+          "result": "pass",
+          "observed": {
+            "ds002785_emo_wm_rest": 164,
+            "ds002790_emo_wm_rest": 196
+          },
+          "note": "window 별 FD 비율·nonfinite·design rank 미적용. 최종 N 은 이보다 작거나 같다"
+        },
+        {
+          "check": "actual N and split hashes fixed",
+          "result": "pass",
+          "observed": {
+            "piop1_eligible": 157,
+            "pilot": 31,
+            "main_pool": 126,
+            "outer_test_sizes": [
+              26,
+              25,
+              25,
+              25,
+              25
+            ],
+            "split_hash": "ace5f4a41446a585…",
+            "piop2_eligible": 189,
+            "piop2_folds": null
+          },
+          "note": "locks/measurement_lock.json (lock_hash 1c1fba957b35…) 로 잠갔고 검증 24/24 일치"
+        },
+        {
+          "check": "pilot excluded from every main/final fit",
+          "result": "pass",
+          "note": "verify_lock() 이 folds.json 을 다시 읽어 재계산한다. 기록된 값을 믿지 않는다. 실물 변조 시험에서 pilot 1명 주입이 해시·불변식 양쪽으로 잡혔다"
+        },
+        {
+          "check": "precision for delta=0.02",
+          "result": "fail",
+          "observed": {
+            "p_lower_gt_0_at_delta_0.02_N126": [
+              0.048,
+              0.191
+            ],
+            "delta80_N126": [
+              0.041,
+              0.125
+            ]
+          },
+          "note": "계획서 §8 의 'inconclusive 가능성을 명시한다'에 해당. 실행 gate 가 아니므로 계획대로 진행하되 불확실 결과를 보고할 준비를 하고 시작한다. δ·N 을 바꾸지 않는다"
+        },
+        {
+          "check": "resource plan from pilot measurement",
+          "result": "fail",
+          "note": "pilot fit 미구현으로 합성 측정으로 대체했다. reports/resource_budget.md 가 [측정]/[추정]/[미측정] 을 구분하고 이 한계를 명시한다. §7 요구는 미충족"
+        }
+      ],
+      "unresolved": [
+        "U10",
+        "U17(완화: dataset prefix 적용)",
+        "band-pass 순서·사양 미동결 (§3.2, 부록 H)",
+        "pilot fit 미실행 — §7 의 peak memory·시간 실측 없음",
+        "δ=0.02 정밀도 부족 — 차단이 아니라 명시 항목 (§8)"
+      ],
+      "artifact_hashes": {
+        "locks/measurement_lock.json": "abe6a9fc5e978274c8061ff90df7664140a24e55be85030abb3da4a97a8294f5",
+        "reports/precision_scenarios.md": "a5d576edeb89a1223d79f97067490b85ac16fe56d516b92b56b9b4e33724aa69",
+        "reports/resource_budget.md": "3ad659edc74a7ff778ab3660718eefc6abc98cbab5c54c8c1422c9d762719690",
+        "provenance/wi03_precision/precision_scenarios.json": "67284e5991af25775ee569c32e2b51e75f8833ea9f0874d477b9d68d8ae7817e",
+        "provenance/wi03_resource/resource_benchmark.json": "3a6bc49aae468d8d8d3cd8c519007b0963bd19c27c7077e72c001b423780511a"
+      },
+      "status_note": "WI-03 의 세 산출물(subjects/folds 잠금, 정밀도, 자원)이 나왔고 실제 N 과 pilot 경계가 고정됐다. 그러나 G1 은 아직 열려 있다 — 계획서 §3.2 의 band-pass 순서·사양이 pilot 기술 검증 전이라 동결되지 않았고, pilot fit 자체가 미실행이라 §7 이 요구한 peak memory·시간 실측이 없다."
+    },
+    {
+      "gate": "G2 Implementation lock",
+      "status": "planned",
+      "checks": [],
+      "unresolved": [
+        "blocked by G0"
+      ],
+      "artifact_hashes": {}
+    },
+    {
+      "gate": "G3 Internal release",
+      "status": "planned",
+      "checks": [
+        {
+          "check": "section 7 fit budget arithmetic",
+          "result": "pass",
+          "observed": {
+            "inner": 480,
+            "outer": 60,
+            "null_sensitivity": 120,
+            "external_selection": 96,
+            "external_final": 12,
+            "total": 768
+          }
+        }
+      ],
+      "unresolved": [
+        "blocked by G0"
+      ],
+      "artifact_hashes": {}
+    },
+    {
+      "gate": "G4 External release",
+      "status": "planned",
+      "checks": [
+        {
+          "check": "PIOP2 paired emomatching+workingmemory cohort",
+          "result": "pass",
+          "observed": {
+            "emomatching_runs": 222,
+            "workingmemory_runs": 224,
+            "restingstate_runs": 224
+          },
+          "note": "U11 해소. 로컬 0건은 데이터셋 부재가 아니라 미확보였다"
+        }
+      ],
+      "unresolved": [
+        "U17(실제 overlap 은 공식 문서로만 판정)",
+        "blocked by G0/G1"
+      ],
+      "artifact_hashes": {}
+    },
+    {
+      "gate": "G5 Interpretation",
+      "status": "planned",
+      "checks": [],
+      "unresolved": [
+        "blocked by G0"
+      ],
+      "artifact_hashes": {}
+    }
+  ],
+  "protocol_figures": {
+    "fig_rd1_factorial_design.png": "398da138212d09a7f976bbeaaea72d84832729c0acbe701bdad96c45a640e27b",
+    "fig_rd2_analysis_pipeline.png": "b62edcd73c7a6e66222a02f782ce205ab11a0a8442e56b00b2af33ec38b781b7",
+    "fig_rd3_timing_model.png": "6e50a183d689536b7c9e59fed0f855cd49f1e87e6f44351eb804e60b2a158f60",
+    "fig_rd4_g0_audit_status.png": "8048dd0b81bf214e6e5318d3f98bc4617f225fe776e6fa0c50ab1d3f9190f90c"
+  },
+  "execution_environment_constraints": {
+    "scope": "이 세션의 원격 실행 셸(격리 Linux VM). 사용자 macOS 호스트에는 적용되지 않을 수 있으며 여기서 확인 불가.",
+    "python": "system python3 3.10.12; numpy 2.2.6 / pandas 2.3.3 / matplotlib 3.10.9 / seaborn 0.13.2 만 존재",
+    "missing_modules": [
+      "torch",
+      "scipy",
+      "scikit-learn",
+      "nilearn",
+      "nibabel",
+      "pytest"
+    ],
+    "venv": ".venv/bin/python3.11 -> /opt/homebrew/... 는 이 VM 에서 broken symlink",
+    "egress": {
+      "openneuro.org": "unreachable",
+      "s3.amazonaws.com/openneuro.org": "unreachable",
+      "pypi.org": 200,
+      "github.com": 200
+    },
+    "resources": {
+      "nproc": 4,
+      "mem_total_gb": 3,
+      "gpu": false,
+      "disk_avail": "1022G of 1.9T"
+    }
+  },
+  "notes": [
+    "WI-00 과 WI-01 은 완료. WI-02 이후는 두 target 의 원본 확보 없이 시작할 수 없다.",
+    "기존 tracked 수정 파일 7개는 이 세션에서 건드리지 않았다.",
+    "revision 1 에서 workspace_snapshot.json 의 README 레코드가 손상되어 있었고(경로 절단, 빈 해시) 정정했다. 정정 이력은 해당 파일의 corrections 필드에 있다.",
+    "rev4: 02_wave1_audit.py 의 U5 판정 로직 오류를 수정했다. events 를 restingstate 를 포함한 모든 run 에 요구해 434건이 결함으로 잡혔으나, rest 에 events 가 없는 것은 정상이다. U4 도 전체 차단이 아니라 run 단위 제외로 분리했다.",
+    "rev6: pkill -f 로 원격 프로세스를 죽일 때 패턴이 자기 명령줄과 매칭되어 쉘까지 종료되는 사고가 있었다. 이후 PID 파일 + setsid 방식으로 전환했다.",
+    "rev7: repo scope 스캔이 legacy figure 스크립트 2건의 invalid escape sequence DeprecationWarning 을 드러냈다(make_etth1_story_figures.py:574, make_unified_empirical_figure2.py:143). tracked 파일이고 release 경로 밖이라 수정하지 않고 기록만 한다.",
+    "rev9 / E12: 드라이버 첫 판이 qc_decision 의 인자 이름(task=)과 반환 키(keep/reasons)를 기억으로 적어 두 번 깨졌다. 실자료 smoke 로만 잡히는 오류였으므로 합성 fixture 로 드라이버를 통째로 도는 tests/v2/test_wi02_driver.py 를 붙여 suite 가 계약을 강제하게 했다.",
+    "rev10 / E13: band-pass 순서를 사전 확정하려던 시도가 실패했다. 초판 probe 는 검사 대상인 순서 X 를 누락했고 edge transient 를 run 전체에서 채점했다. 둘을 고친 뒤에도 합성의 구조상 판정이 불가능함을 확인했다. 해소된 항목으로 올리지 않고 열린 항목으로 기록한다.",
+    "rev11 / E12 재발: build_folds() 반환 구조를 또 기억으로 적었다(folds['pilot']['n_subjects'] → 실제 키는 'n', 상위에 'n_subjects_total'). G.4 의 가드는 qc_decision 하나만 덮어 부류 전체가 재발했다. 이번에는 test_build_folds_return_shape_is_what_callers_expect 로 접합부 반환 구조를 고정했다. 근본 대책은 호출 전에 시그니처를 읽는 것이고 가드는 사후 안전망이다.",
+    "rev12: features.py 의 sklearn import 를 지연 import 로 내렸다. 상수 하나 때문에 무거운 의존성이 전파되던 문제로, templates.py 에서 이미 같은 처리를 했다(U24 회피).",
+    "rev13 / E12 부류 4회째: bank.k() 로 호출했으나 k 는 @property 다. 이번 실수는 시연 스크립트에서만 났고 모듈·시험에는 없다 — 시험이 있는 코드는 이 부류가 통과하지 못한다. 시연·드라이버 스크립트에도 접합 시험이 필요하다(test_wi02_driver.py 가 선례).",
+    "rev22 / E16: manifests 의 키 정책 매핑에 exclusions·window_predictions·run_predictions 가 빠져 있었다. 매핑에 없으면 중복 검사가 조용히 꺼지는 구조였고, 증거 파일은 unique_keys=0 이라는 거짓을 말하고 있었다. 가드 시험을 쓰자마자 예측 artifact 2건을 추가로 잡았다. 부록 L 에 '가드는 사후 안전망'이라고 적었는데 이번 것은 탐지기로 작동했다.",
+    "rev22: h197 의 MoBSE_dataset/v2check 가 9-17 중간 시점 패키지 사본이고 P7 이 없다. scripts_h197/ 과 legacycheck/ 어디서도 참조하지 않음을 grep 으로 확인했고, 삭제하지 않고 v2check/STALE_DO_NOT_USE.md 로 표시했다. 같은 이름의 사본이 두 벌 있으면 어느 쪽이 돌았는지가 산출물에 남지 않는다.",
+    "rev22 / E17: 증거 파일이 기록한 해시 8건이 트리와 어긋나 있었다. 전부 P7·E15 수정이 닿은 파일이고, rev21 은 그 수정을 서술하면서 해시는 갱신하지 않았다. 원인은 순서 — 검증을 증거를 쓰기 전에 돌렸다. 17_verify_gate_hashes.py 로 고정했고, 해시 대조만으로는 '기록되지 않은 파일'(h197_scripts 10개 누락)을 잡지 못하므로 디렉터리 전수 대조를 함께 넣었다.",
+    "rev23 / E12 5회차: 가드가 라이브러리 계약만 고정하고 호출부는 보지 않아 fit_transform_on_training_rest(feats) 가 suite 를 통과하고 실행 중 TypeError 로 터졌다. AST 로 호출부를 실제 시그니처에 bind 하는 검사를 넣고, 그 검사기가 이번 실수를 잡는지 확인하는 자기시험도 붙였다. 부록 L 의 '시험 밖 스크립트' 진단을 부록 V.4.1 에서 정정했다.",
+    "rev23 / 정밀도: 계획서 §8 이 요구한 simulation 결과, 현재 설계는 δ=0.02 를 검출할 정밀도가 없다. 결과가 '불확실'로 끝날 가능성이 가장 높다는 것을 main OOF 전에 문서로 확정했다. δ 도 N 도 바꾸지 않는다 — 사후 변명으로 꺼내지 않기 위해 사전에 적어 둔다.",
+    "rev23 / 재검수: 인용 수치를 원자료 JSON 과 기계적으로 대조해 서술 오류 2건을 잡았다. 둘 다 해시 검증으로는 잡히지 않는 부류다 — 파일은 멀쩡하고 틀린 것은 그 파일을 요약한 문장이었다. 마감 절차에 '인용 수치 원자료 대조'를 3단계로 추가했다."
+  ],
+  "wave1": {
+    "executed_on": "h197 (bmcws)",
+    "date": "2026-09-17",
+    "fetched": {
+      "files": 6055,
+      "bytes_human": "1.1 GiB",
+      "failed": 0,
+      "scope": "raw sidecar + events + fMRIPrep confounds(+json) + derivative sidecar, 3 tasks"
+    },
+    "runs_total": 1295,
+    "runs_by_dataset_task": {
+      "ds002785/emomatching": 208,
+      "ds002785/workingmemory": 207,
+      "ds002785/restingstate": 210,
+      "ds002790/emomatching": 222,
+      "ds002790/workingmemory": 224,
+      "ds002790/restingstate": 224
+    },
+    "native_tr_sec": {
+      "ds002785/emomatching": 2.0,
+      "ds002785/workingmemory": 2.0,
+      "ds002785/restingstate": 0.75,
+      "ds002790/emomatching": 2.0,
+      "ds002790/workingmemory": 2.0,
+      "ds002790/restingstate": 2.0
+    },
+    "n_volumes": {
+      "ds002785/emomatching": 135,
+      "ds002785/workingmemory": 162,
+      "ds002785/restingstate": 480,
+      "ds002790/emomatching": 135,
+      "ds002790/workingmemory": 160,
+      "ds002790/restingstate": 240
+    },
+    "tr_and_volume_variance_within_task": 0,
+    "non_steady_state_flag_distribution": {
+      "ds002785/emomatching": {
+        "0": 193,
+        "1": 9,
+        "2": 3,
+        "3": 1,
+        "4": 1,
+        "6": 1
+      },
+      "ds002785/workingmemory": {
+        "0": 188,
+        "1": 10,
+        "2": 5,
+        "3": 2,
+        "5": 2
+      },
+      "ds002785/restingstate": {
+        "0": 47,
+        "1": 51,
+        "2": 50,
+        "3": 32,
+        "4": 15,
+        "5": 9,
+        "6": 2,
+        "7": 2,
+        "8": 1,
+        "9": 1
+      },
+      "ds002790/emomatching": {
+        "0": 213,
+        "1": 9
+      },
+      "ds002790/workingmemory": {
+        "0": 219,
+        "1": 3,
+        "2": 2
+      },
+      "ds002790/restingstate": {
+        "0": 218,
+        "1": 3,
+        "2": 2,
+        "4": 1
+      }
+    },
+    "non_steady_state_semantics": "fMRIPrep 은 해당 volume 을 outlier regressor 로 표시할 뿐 시계열에서 제거하지 않는다. 따라서 confounds 행 수 = 보관된 acquisition 전체 길이이며 derivative 시작점 offset 문제는 발생하지 않는다. 보관 전에 dummy 가 제거되었는지는 이 파일들로 판정 불가(U3).",
+    "analysis_window_supported": {
+      "all_six_dataset_task_combinations": true
+    },
+    "unresolved_reason_counts": {
+      "acompcor_lt5": 4
+    },
+    "unresolved_interpretation": "events_absent 434 = restingstate run 총수(210+224)와 정확히 일치하므로 결함이 아니라 rest 에 events 가 없는 정상 구조다. acompcor_lt5 4 건은 해당 run 제외 사유이지 gate 차단이 아니다(계획서 3.2: 정의에 맞는 5개가 없으면 다른 열로 대체하지 않는다).",
+    "clean_runs": 1291,
+    "execution_host": {
+      "host": "bmcws",
+      "venv": "venv-mobse-v2",
+      "python": "3.11",
+      "torch": "2.10.0+cu128",
+      "cuda_available": true,
+      "cuda": "12.8",
+      "gpu_count": 1,
+      "lock": "environment_lock_h197.txt (56 packages)",
+      "guard": "torch_geometric 미설치 확인(U21)"
+    },
+    "artifacts_pending_import": [
+      "wave1_audit/wave1_runs.jsonl",
+      "wave1_audit/wave1_summary.json",
+      "wave1_audit/wave1_files.sha256",
+      "h197_environment.json",
+      "environment_lock_h197.txt"
+    ],
+    "audit_rerun_after_fix": {
+      "blocker_verdicts": {
+        "U1_native_tr_targets": "resolved",
+        "U2_discarded_volumes": "resolved",
+        "U4_nuisance_constructible": "resolved",
+        "U5_events_origin": "resolved",
+        "window_12_252_supported_for_targets": "resolved"
+      },
+      "clean_runs": 1291,
+      "unresolved_reason_counts": {
+        "acompcor_lt5": 4
+      },
+      "run_level_exclusion_candidates": {
+        "acompcor_lt5": [
+          "ds002785/sub-0029/na/workingmemory/na/seq",
+          "ds002785/sub-0134/na/workingmemory/na/seq",
+          "ds002790/sub-0101/na/workingmemory/na/seq",
+          "ds002790/sub-0226/na/emomatching/na/seq"
+        ],
+        "motion24_incomplete": [],
+        "fd_column_absent": []
+      }
+    },
+    "run_level_mean_fd": {
+      "source": "fMRIPrep confounds framewise_displacement, 전 1,295 run, 오류 0",
+      "criterion": "run 전체 mean FD <= 0.2 mm + aCompCor >= 5",
+      "not_applied": "고정 window 별 FD>0.5 비율 <= 10% (window 매핑 필요, WI-02), nonfinite/constant ROI, design rank 실측",
+      "by_dataset_task": {
+        "ds002785/emomatching": {
+          "n_runs": 208,
+          "median_mean_fd": 0.1079,
+          "pass_mean_fd_le_0.2": 192,
+          "median_spike_ratio": 0.0,
+          "structural_missing_all_equal_1": true
+        },
+        "ds002785/restingstate": {
+          "n_runs": 210,
+          "median_mean_fd": 0.1009,
+          "pass_mean_fd_le_0.2": 206,
+          "median_spike_ratio": 0.0,
+          "structural_missing_all_equal_1": true
+        },
+        "ds002785/workingmemory": {
+          "n_runs": 207,
+          "median_mean_fd": 0.109,
+          "pass_mean_fd_le_0.2": 180,
+          "median_spike_ratio": 0.0062,
+          "structural_missing_all_equal_1": true
+        },
+        "ds002790/emomatching": {
+          "n_runs": 222,
+          "median_mean_fd": 0.1145,
+          "pass_mean_fd_le_0.2": 207,
+          "median_spike_ratio": 0.0,
+          "structural_missing_all_equal_1": true
+        },
+        "ds002790/restingstate": {
+          "n_runs": 224,
+          "median_mean_fd": 0.1188,
+          "pass_mean_fd_le_0.2": 209,
+          "median_spike_ratio": 0.0,
+          "structural_missing_all_equal_1": true
+        },
+        "ds002790/workingmemory": {
+          "n_runs": 224,
+          "median_mean_fd": 0.1004,
+          "pass_mean_fd_le_0.2": 218,
+          "median_spike_ratio": 0.0,
+          "structural_missing_all_equal_1": true
+        }
+      },
+      "cohort_upper_bound": {
+        "ds002785": {
+          "emomatching": 192,
+          "workingmemory": 178,
+          "restingstate": 206,
+          "emo_and_wm": 171,
+          "emo_and_wm_and_rest": 164
+        },
+        "ds002790": {
+          "emomatching": 206,
+          "workingmemory": 217,
+          "restingstate": 209,
+          "emo_and_wm": 202,
+          "emo_and_wm_and_rest": 196
+        }
+      },
+      "note": "FD 는 frame 간 변위라 TR 에 의존하지 않는다. 따라서 잘못된 TR 로 추출된 기존 manifest 의 mean_fd 도 값 자체는 유효했다(PIOP1 emo 중앙값 0.1076 vs 재계산 0.1079). 이 N 은 상한이며 QC 통과 N 이 아니다."
+    }
+  },
+  "h197_scripts": {
+    "00_record_environment.sh": "9f59274ea410653f948afd114f3a96ac3658fd030a9e5e92320595957f9204e2",
+    "01_wave1_fetch_metadata.sh": "b1097a7cd63d2a4b1ae180bd1f898f228f34e4caad786554151f881d6fdabf94",
+    "01b_wave1_fetch_metadata.py": "b5fd6a266f3b75fa4417032421ac4edec713c2e4034639dd732c8f1682595331",
+    "02_wave1_audit.py": "415ed24102b8aa69af2d312df07cf28656f03b73fdd4dd2d54b0e6785d857020",
+    "03_wave2_size_probe.sh": "26540674f695202047fe9f1b9a9156096d4ce3ce8f5eb3d94d04e9772ecc759b",
+    "03b_wave2_size_probe.py": "ea7352b40af6f1044734f09e0c3e3736891505ff59afa0ddcd4d831c2ad87455",
+    "04_setup_venv.sh": "c35baffa006235df7da2b3429a8686a2d66adf0a1dccd215090465b1f4e84ff2",
+    "05_run_level_fd.py": "686e464d3e206e341e84cece399c31c9412bd5b017c50796bef653fc55abdcc3",
+    "06_wave2_fetch_bold.py": "3e179757ba335626f5c0464dc8df9e4e4aa9d183d600504f5f043356e0b1f4b7",
+    "07_verify_import_closure.py": "4f4bbc8ef66b125924615c599f284a33087a9b36b3b36188a5c5613c75fb4d23",
+    "09_survey_discarded_volumes.py": "42ad0b49e38a6cff15ba673295f82d9d5de7017729ebdd2ec2304bff8c143cc7",
+    "10_wi02_extract.py": "caa898f8b8bd3b0682c45b8071dc824560d759e56f9943960dcb591dc51985db",
+    "11_filter_order_probe.py": "3f5090d3efa2636e937db7297145904c2308ddd405810bd6ef5a8432735afd33",
+    "12_build_windows_manifest.py": "67fce46e2f837f2996922bb620a0d2ff38e95f9a509b6e0716336d97c4d733ad",
+    "13_bank_demo.py": "c039a1784ebcb90eaa10d7d5e0ce6c0776d310a6838f2019d7b2b6240f9c4494",
+    "14_watch_and_extract_piop1.sh": "e891c7b30dfc1afc1fd6fadfba2cfa40fa3a5915a8c5b83711f94fc3a2e8dacc",
+    "15_build_subjects.py": "e0179d3c6fff569c64c8e96d033bead85073993fb692eeb020086a35790a2d19",
+    "16_watch_and_process_piop2.sh": "2ee68fa3fee2801ec9b4c75b9af3320839f37cad859ed686005d1a6ae710bcea",
+    "17_verify_gate_hashes.py": "c61ac719ab78d061a16eb8b86860dafb2f4869497013394de765cbff6f7a44c0",
+    "18_build_measurement_lock.py": "5a1afb15f7423c8717f585184eeb904d7fbd1bb2ba15a291c005c524e1c9c2e9",
+    "19_verify_measurement_lock.py": "31629435b7a39dc820c334a864f0873c8fb5edc60075f9886ffe5cd2404b891f",
+    "20_precision_simulation.py": "583cdc13463999aff4f56c68bf85e5b82bc5e86cc14a36b4c479eb32650c92a1",
+    "21_resource_benchmark.py": "6dbb3eeb6b21e760179b512687eae266e2e0ba6dcad9383ae46464caa059427a",
+    "22_crosscheck_reported_numbers.py": "d7b5ba050b0fddbffb15c9910391dbf0653984214de54c7a4b9304d74b516797",
+    "README.md": "f6c57f6701854c45d2654d3a336da6a3be344816a8bd6cc1ab92da74488b0127",
+    "requirements-legacy-extra.txt": "c63f8787641608e926c0cc2260e0de1583d53a049d0be793c944669ef9972824",
+    "requirements-v2.txt": "8b60c83238593f7430085093b83effbe321956be0cb3f8b0d6372e47c0ceec01"
+  },
+  "wave2_size_probe": {
+    "measured_without_download": true,
+    "per_dataset": {
+      "ds002785": {
+        "total_bytes": 129952925820,
+        "total_gib": 121.0,
+        "per_task_files": {
+          "restingstate": 210,
+          "emomatching": 208,
+          "workingmemory": 207
+        }
+      },
+      "ds002790": {
+        "total_bytes": 95192231258,
+        "total_gib": 88.7,
+        "per_task_files": {
+          "restingstate": 224,
+          "emomatching": 222,
+          "workingmemory": 224
+        }
+      }
+    },
+    "grand_total_gib": 209.7,
+    "disk_available": "3.0 TiB free of 5.5 TiB on /mnt/data (h197)",
+    "verdict": "streaming 추출 불필요 — 전량 다운로드가 여유 있게 들어간다 (U26 해소)"
+  },
+  "h197_imported_artifacts": {
+    "environment_lock_h197.txt": "65b54e5c7ae7c94a802f139143395cfeb32df556f1a6518be6aede31ecdff0d2",
+    "h197_environment.json": "8277cfb93baaffe3bef0afd755d1058444175fed1942759fe5e1068ad119d144",
+    "run_level_fd.json": "13e0a79a5f52a7e9d67ae798b1eb007ee634c8bd968d6c168c81b7fe0f2edad2",
+    "wave1_fetch_report.json": "56b63d2f7f26e0b20aad3d714175831b161eea431b478410e8432fa2c003c2eb",
+    "wave1_files.sha256": "03942e5bced75737835acd58d6757572e3c86d6e24777f89d5d9e9973b8752d0",
+    "wave1_runs.jsonl": "85f745865cb5ba62ce9860adbffaeac9973a6c6b0d45afbdbfc50467dbbcc871",
+    "wave1_summary.json": "39c5bbc872dcb5e1715cd4cc8bff214ac81c1f3b4bf78ea29de4ea9c95347be7",
+    "wave2_size_probe.json": "2be7bbdd854b56c6bff37fd3a4e0ece34603bfc90db617f3f6f2fe268ddeeee5"
+  },
+  "wave2_fetch": {
+    "status": "running",
+    "host": "h197",
+    "dest": "/mnt/data/mp2026/MoBSE_dataset/aomic_wave2",
+    "selected": {
+      "ds002785": {
+        "files": 1250,
+        "gib": 121.0
+      },
+      "ds002790": {
+        "files": 1340,
+        "gib": 88.7
+      }
+    },
+    "total_files": 2590,
+    "total_gib": 209.7,
+    "content": "space-MNI152NLin2009cAsym desc-preproc_bold.nii.gz + desc-brain_mask.nii.gz",
+    "note": "2,590 = 1,295 run × 2 (BOLD + mask). Wave 1 run 수와 정확히 일치",
+    "resume": "크기 일치 파일만 skip, .part 원자적 저장, 시작 시 stale .part 정리"
+  },
+  "v2_modules": {
+    "module_count": 16,
+    "module_total_lines": 4130,
+    "test_file_count": 22,
+    "test_function_count": 408,
+    "tests_collected_h197": 521,
+    "tests_failed_h197": 0,
+    "acceptance_coverage": {
+      "T01": [
+        "test_preprocess.py"
+      ],
+      "T02": [
+        "test_config.py",
+        "test_evaluate_cli.py",
+        "test_manifests.py"
+      ],
+      "T03": [
+        "test_cli_split.py",
+        "test_splits.py"
+      ],
+      "T04": [
+        "test_features.py"
+      ],
+      "T05": [
+        "test_h197_scripts.py",
+        "test_templates.py"
+      ],
+      "T06": [
+        "test_models.py"
+      ],
+      "T07": [
+        "test_features.py"
+      ],
+      "T08": [
+        "test_models.py"
+      ],
+      "T09": [
+        "test_models.py"
+      ],
+      "T10": [
+        "test_models.py"
+      ],
+      "T11": [
+        "test_labels.py",
+        "test_manifests.py"
+      ],
+      "T12": [
+        "test_train.py"
+      ],
+      "T13": [
+        "test_statistics.py"
+      ],
+      "T14": [
+        "test_statistics.py"
+      ],
+      "T15": [
+        "test_evaluate_cli.py",
+        "test_manifests.py"
+      ],
+      "T16": [
+        "test_evaluate_cli.py",
+        "test_models.py"
+      ]
+    },
+    "acceptance_uncovered": [],
+    "inventory_artifact": "provenance/v2_inventory.json",
+    "inventory_sha256": "269940be1ec9579b80f47087fdeb815c8431e9f4c3b576ea7f3d6e5a8576034d",
+    "generator": "provenance/_gen_v2_inventory.py",
+    "generator_sha256": "322f0779f5a7960575727d13f1c17dba33d2d10b3227f063714501d7863b1555",
+    "verified_on_real_bold": false,
+    "verification_basis": "합성 fixture 전용. 실제 BOLD 검증은 Wave 2 완료 후 WI-02 에서 처음 일어난다.",
+    "tests_skipped_h197": 11,
+    "skipped_note": "호출부 검사가 mobse.v2 를 임포트하지 않는 스크립트에서 건너뛴 것이다 — 검사 대상이 없다는 뜻이지 실패가 아니다"
+  },
+  "v2_module_hashes": {
+    "__init__.py": "c884876e4717224c87d95b1fd4b3821863307e65f9146eac605bc9a96375c9ab",
+    "cli.py": "1d23265761b198e0720294553e98260260a804c6c1b4021be9a647211dbe460a",
+    "cohort.py": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
+    "config.py": "79375ca9a5b5ffe2b89bf754c60fc360149eacc737c650466231d700c26b23f2",
+    "evaluate.py": "a11a324f851603edb0e93b21c2cafe8b098529a485f17fe0321876825120e9b7",
+    "extract.py": "b725f6aebc82babd802a3b3d625a13f73ead3f9071018ca4cf27977c3ca3c601",
+    "features.py": "f9c81ef8155776f3d1971304ef32baf99b94b5f7bf100c0067f82dd1600b8f10",
+    "labels.py": "89610e87315f7e1e6a1ac85130c89d69f197f47824262389a4eae5571397b3dc",
+    "locks.py": "4a3dae547c0744dbf58e24f2d53ec46c4c71577bc71a502f130bd70b1272a812",
+    "manifests.py": "f6de0f6c6ad55545f1347344eecdf487a30d3280ba8540b9367907805eb5e7f6",
+    "models.py": "8220f8c762a263b246345fb10aaf72da95477c3d6118006c18a705f6fe2e652e",
+    "preprocess.py": "689ed2d8dbf186b12fd3ae4e58ab153693b31f8d59f047efee32d067f9bea7de",
+    "splits.py": "8291021bcad5929f4d4e8900efe6178233a8c0728274b04d32f38231b1f92046",
+    "statistics.py": "99028ff3042b396a6bb6ac9516af3d700a3939bb0cd5d5aa908e61573ad207b1",
+    "templates.py": "bd4e65df4fdf1152237cc58739d517eeeb62ec586353e8c42e711c7ec5a9197a",
+    "train.py": "2eb6f801b0ab5b9020f83fe09881475596469a2bc6874e9c1e19102834053b26"
+  },
+  "v2_test_hashes": {
+    "README.md": "7cf307b7dec3d36ca1e594e4f14457fb3c5799cc8129ccfc8e2d4d4477a41b71",
+    "test_acceptance_coverage.py": "5068bef17cc4532e45bae1a3662afcd675d18562505bbc9684e7f4ffa04b5e21",
+    "test_acquisition_facts.py": "9eb91544281de70607675d7f91971fe74e50225e0be0957672dc50cf96693ac3",
+    "test_cli_split.py": "0ab0f9aefbc7ad03c96f42a489142d95919410c204c5626c35d39b709f02a3a5",
+    "test_cohort.py": "f5de19686bbd17b438ade14992977c341f15dc38887f7f68047d0c9a0fefe9c3",
+    "test_config.py": "3cf187b4815647741d9eb7ff5d640b1e9cc21cae642c0246afbdd8453977e19f",
+    "test_evaluate_cli.py": "e2f759846b61cf6f3a7f826f2d3653b3dfdbddc4dfbef37aa5f6e6deda64358e",
+    "test_extract.py": "68a9b00cc6d90889a429be88f76cbd21ccd3755cd76c698af65f9b057c338bbf",
+    "test_features.py": "64f2c436fae1ec2be9430be94cac399819e398d09320d3aba32ddd09f90751a2",
+    "test_h197_scripts.py": "e217ba29e812603333681954dcbac9f04a3480645b4eb219a3ae67d9ce0c9ffa",
+    "test_import_closure.py": "a6c9ff480644409af7d48cbc1b8446c5d1ea6e59a57e99269ad2409510123fba",
+    "test_labels.py": "648ff806bf259fd4f05d704f3fc38afc0a267ea8407c67c6b8252f472ee80e91",
+    "test_locks.py": "d99783122cb4f7bb52ede5104bbeee9b69ac89db2a32751244968df3262ce4a2",
+    "test_manifests.py": "3060314348490a9510744299e29e943a14c7a02ff4857cf31a014c4b9b42aa13",
+    "test_models.py": "7b3456a4a8a9c8f0fa2ef834d5d6543024dc1d02bcd4458d75dd34ffaf74b011",
+    "test_precision_simulation.py": "b9ac5e32080266d0c992bbd8f1c582e49ec176549191a39beaa73911e03b8cb0",
+    "test_preprocess.py": "648887cea08d75db3640e644f69f3c6de0a5f6d0b7726ee3ea9b58487dd5e255",
+    "test_protocol_documents.py": "a51c36198e97eca02268c20adfdbaff231c898c697c51a8718a57b6d4ace5bc8",
+    "test_splits.py": "4c6e87633a2bf7b3740d0bb342b208337554b1061807be72dfcde3693e3b7cfb",
+    "test_statistics.py": "ce543dce60636f0dc9423bbdb0e2371183278967a1dd8071126c9f605d126967",
+    "test_templates.py": "0a77612932c70e490afdeb4c8431e55c5020056dbbccb0241245230f06dbef64",
+    "test_train.py": "bef85a980fa8a9cee427047351ab7ba7e179a2df860306442a844b0c52efac72",
+    "test_wi02_driver.py": "2be1db94879e2b88adb2f2261a77bfcce865cb87d3caac7e003ecf5a328e5ed9"
+  },
+  "legacy_suite_status": {
+    "command": "PYTHONPATH=. python -m pytest tests -q --ignore=tests/v2 --continue-on-collection-errors",
+    "host": "h197 venv-mobse-v2",
+    "passed": 22,
+    "failed": 0,
+    "collection_errors": 2,
+    "collection_error_files": [
+      "tests/test_hcp_templates.py",
+      "tests/test_subject_split.py"
+    ],
+    "root_cause": "commit 52c0f7e (2026-04-01) deleted mobse/data/hcp.py and touched no test file",
+    "root_cause_verification": [
+      "git log --oneline --diff-filter=D -- mobse/data/hcp.py",
+      "git show --stat 52c0f7e -- tests/  (empty)"
+    ],
+    "classification": "pre-existing defect, latent since 2026-04-01; not caused by this work",
+    "fixed_this_session": [
+      "tests/test_pipeline_integration.py::test_full_pipeline_synthetic (seaborn 핀 추가로 해소)"
+    ],
+    "new_failures_introduced": 0
+  },
+  "dependency_pin_guard": {
+    "incident_id": "E11",
+    "missed_pins": [
+      "PyYAML",
+      "seaborn"
+    ],
+    "root_cause": "핀 목록을 계획서 서술에서 역산했고, 기준이 release 의 실제 import 그래프가 아니었다",
+    "guard_script": "scripts/h197/07_verify_import_closure.py",
+    "guard_script_sha256": "4f4bbc8ef66b125924615c599f284a33087a9b36b3b36188a5c5613c75fb4d23",
+    "guard_tests": "tests/v2/test_import_closure.py (5건)",
+    "requirements_release": "scripts/h197/requirements-v2.txt",
+    "requirements_release_sha256": "8b60c83238593f7430085093b83effbe321956be0cb3f8b0d6372e47c0ceec01",
+    "requirements_legacy_extra": "scripts/h197/requirements-legacy-extra.txt",
+    "requirements_legacy_extra_sha256": "c63f8787641608e926c0cc2260e0de1583d53a049d0be793c944669ef9972824",
+    "release_scope_verdict": "pass",
+    "repo_scope_additional_pins": [
+      "networkx==3.6.1",
+      "requests==2.34.2",
+      "thop==0.1.1.post2209072238",
+      "tqdm==4.70.1"
+    ],
+    "versions_verified_by": "pip index versions on h197 (3 of 4 initial guesses were wrong and were corrected)",
+    "environment_lock_packages": 58,
+    "torch_geometric_installed": false,
+    "artifacts": {
+      "provenance/import_closure_release.json": "6f1c5eb9f76cc2c4e72332c47dc99e7fce7f4da13f019f0957a8b630723b50a5",
+      "provenance/import_closure_repo.json": "681a248abe328d314cbd4e0d507c1858e8505871ed4079fe31420a34fc0cc83d"
+    }
+  },
+  "runtime_config": {
+    "schema_module": "mobse/v2/config.py",
+    "schema_module_sha256": "79375ca9a5b5ffe2b89bf754c60fc360149eacc737c650466231d700c26b23f2",
+    "schema_field_count": 53,
+    "configs": {
+      "external.yaml": {
+        "config_hash": "7daa536b",
+        "release_id_example": "20260917_3c458d507e82_7daa536b",
+        "fields": 53,
+        "sha256": "51c3a04e43936b05380f72f423b5f091f1dcdfac343268c89bed850dbbfb3348"
+      },
+      "main.yaml": {
+        "config_hash": "85556f56",
+        "release_id_example": "20260917_3c458d507e82_85556f56",
+        "fields": 53,
+        "sha256": "24e092eeaf3ae0f938d8bc423f08354a8d775fc8955c3218a513add2cd910b4d"
+      },
+      "pilot.yaml": {
+        "config_hash": "fd6c8a27",
+        "release_id_example": "20260917_3c458d507e82_fd6c8a27",
+        "fields": 53,
+        "sha256": "fa86260b43a34e7f2cba1ff4624f539e8b26ea2393b0764c78c5da6b20865fbf"
+      }
+    },
+    "distinct_hashes": 3,
+    "principles": [
+      "미지 키 거부 (조용한 default 금지, T02)",
+      "config 는 코드 상수를 덮어쓸 수 없다 — 불일치 시 실패",
+      "canonical_json 으로 결정적 해시 → release_id 마지막 성분"
+    ],
+    "tests": "tests/v2/test_config.py (36건)"
+  },
+  "cli_validate": {
+    "implemented_subcommands": [
+      "validate",
+      "split"
+    ],
+    "unimplemented_subcommands": [
+      "prepare",
+      "fit",
+      "evaluate",
+      "report"
+    ],
+    "unimplemented_blocked_by": "WI-02 재추출 산출물 (Wave 2 선행)",
+    "cli_module_sha256": "1d23265761b198e0720294553e98260260a804c6c1b4021be9a647211dbe460a",
+    "run_on": "provenance/source_runs.jsonl (wi01-source-runs-0.1, 감사본)",
+    "records": 1228,
+    "unique_run_keys": 1228,
+    "record_errors": 0,
+    "verdict": "pass",
+    "checks": [
+      "모든 null 필드에 unresolved 사유가 있는지 (이유 없는 null = 조용한 default 자리)",
+      "run_key 중복",
+      "task 내 native TR 충돌 (조용한 평균 금지)",
+      "usable=false 인데 사유 누락"
+    ],
+    "artifact": "provenance/validate_report.json",
+    "artifact_sha256": "75405baf474f6c6abe24a8f280fadf8f7f9b1543441bc5102d370267aab8e172",
+    "note": "감사본과 release 산출본은 이름이 같고 스키마가 다르다. header 의 schema_version 으로 분기한다."
+  },
+  "protocol_amendments": {
+    "section": "계획서 §11 개정 기록 (신설)",
+    "protocol_sha256": "fedc6512f443be2f1954c6a59e815d8bda459a631c59c7b24d50cf0530e580d4",
+    "instructions_sha256": "6007cfb8d9b186aeb03deece7cecb17042da95e3aba476851e635973567dde90",
+    "applied": [
+      "P1",
+      "P2",
+      "P4",
+      "P5",
+      "P6-a",
+      "P6-b",
+      "P7"
+    ],
+    "withdrawn": [
+      "P3"
+    ],
+    "made_before_seeing_main_results": true,
+    "relaxes_any_qc_criterion": false,
+    "p6b_filter_dof": {
+      "piop1/emomatching": 49,
+      "piop1/workingmemory": 59,
+      "piop1/restingstate": 66,
+      "piop2/emomatching": 49,
+      "piop2/workingmemory": 58,
+      "piop2/restingstate": 88
+    },
+    "doc_code_mismatch_found": "P5 초안이 canonical_subject 예시를 'piop1/sub-0001' 로 적었으나 manifests.validate_canonical_subject() 는 'ds002785:sub-0001' 만 통과한다. 코드가 옳아 문서를 정정했고 tests/v2/test_protocol_documents.py 가 재발을 막는다.",
+    "p5_not_applied_to": "provenance/source_runs.jsonl (WI-01 감사본) — 소급 수정하지 않고 WI-02 release 산출본부터 적용한다.",
+    "tests": "tests/v2/test_protocol_documents.py (9건)",
+    "p7_relaxation_note": "P7 은 rest 판정을 실질적으로 완화하지만 기준을 낮춘 것이 아니라 계획서가 정한 10% 비율 기준을 정확히 적용한 것이다. 종전 구현이 그 기준보다 2.7배 엄격했다. relaxes_any_qc_criterion=false 는 이 의미로 읽는다."
+  },
+  "u3_discarded_volumes": {
+    "status": "resolved",
+    "method": "OpenNeuro raw sidecar 전수 조사",
+    "script": "scripts/h197/09_survey_discarded_volumes.py",
+    "script_sha256": "42ad0b49e38a6cff15ba673295f82d9d5de7017729ebdd2ec2304bff8c143cc7",
+    "sidecars_read": 1295,
+    "conflicts": 0,
+    "finding": "6개 dataset×task 조합 전부 NumberOfVolumesDiscardedByScanner=2, ByUser=없음",
+    "consequence": "derivative_start_sec = 2 × native_TR (TR 2.0→4.0s, TR 0.75→1.5s)",
+    "target_tasks_need_no_interpolation": true,
+    "interpolation_note": "TR 2초 target task 는 목표 격자 120/120 이 실제 획득 시점과 일치. 보간이 필요한 것은 bank source 인 PIOP1 rest(TR 0.75) 뿐 (40/120).",
+    "artifact": "provenance/h197_wave1/discarded_volumes_survey.json",
+    "artifact_sha256": "fb75dfa6ef5fdb57578f0474c9685482f14e8161037e2051b2fba650752ea19c",
+    "tests": "tests/v2/test_acquisition_facts.py"
+  },
+  "u28_atlas_space_mismatch": {
+    "status": "resolved",
+    "found_during": "Wave 2 BOLD 헤더 확인",
+    "bold_space": "MNI152NLin2009cAsym",
+    "bold_grid_mm": [
+      3.0,
+      3.0,
+      3.3
+    ],
+    "bold_shape": [
+      65,
+      77,
+      60
+    ],
+    "previous_atlas": "FSLMNI152 (= MNI152NLin6Asym) 2mm — 템플릿이 다르다",
+    "resolution": "TemplateFlow tpl-MNI152NLin2009cAsym res-02 Schaefer2018 100Parcels7Networks",
+    "atlas_sha256": "7221cee56943599833dc2b98aac56626584e9c0067f28c768b46f7b7ff7408ac",
+    "lookup_table_sha256": "a81a63f67fdaffd7b2b4b6c7df05f75b16899cba70100f464bbccba0a257cc6c",
+    "roi_order_hash": "f7684b0e05e11a42c7abdfeccc54a835e034233cfad0aedaf9c7298a4d650efb",
+    "resample_check": {
+      "interpolation": "nearest",
+      "parcels_present_after_resample": 100,
+      "parcels_present_after_brain_mask": 100,
+      "min_voxels_per_parcel": 102,
+      "median_voxels_per_parcel": 335
+    },
+    "spec_artifact": "provenance/atlas_spec_2009c.json",
+    "spec_sha256": "b99057575f14296e4aa22fe3e14e6de740baf353ec24aec3028851e88ae40751",
+    "legacy_atlas_spec_retained": "provenance/atlas_spec.json (WI-01 감사 기록용, 재추출에 쓰지 않음)",
+    "implication": "기존 .npy 는 TR 오적용에 더해 템플릿 불일치까지 안고 있다"
+  },
+  "wi02_pipeline": {
+    "status": "구현 완료, 실자료 8 run 통과 (전량은 Wave 2 완료 후)",
+    "pure_module": "mobse/v2/extract.py",
+    "pure_module_sha256": "c5384e2f60a9cf5e0d08b65371355d6cc91e0bb7c3378f9a7c05bac8f2d3a2a8",
+    "driver": "scripts/h197/10_wi02_extract.py",
+    "driver_sha256": "034bb57a8effdad864b1d0d58b632328bad7b7e4df8d67ce354b9635d95e55ec",
+    "smoke_manifest": "provenance/wi02_smoke/wi02_ds002785_emomatching.jsonl",
+    "smoke_manifest_sha256": "d4e3fa4e99aaaf73fe4bb7ae710fd682639ccf9ee5a5c588e967ae58657c9033",
+    "smoke_counts": {
+      "ok": 7,
+      "excluded": 1,
+      "error": 0
+    },
+    "design_rank_full": true,
+    "residual_dof_observed": [
+      49
+    ],
+    "residual_dof_bound_by": "filter 항 (개정 P6-b) — n-rank 가 아니다",
+    "throughput_sec_per_run": 1.6,
+    "projected_full_run_minutes": 35,
+    "not_yet_implemented": [
+      "band-pass 0.008-0.1 Hz 실제 적용 (계획서 §3.2 가 pilot 기술 검증 후 동결하라고 정함)",
+      "events 기반 observed_label 부착 (WI-03 이후)"
+    ],
+    "known_inconsistency": "residual DOF 는 filter 를 전제로 계산하는데 실제 filter 는 아직 붙지 않았다. WI-03 에서 닫는다.",
+    "tests": [
+      "tests/v2/test_extract.py",
+      "tests/v2/test_wi02_driver.py"
+    ]
+  },
+  "open_item_bandpass_order": {
+    "status": "open — 이 단계에서 결정 불가",
+    "protocol_basis": "계획서 §3.2 — filter 명세는 pilot 기술 검증에서 기록하고 main 전에 동결",
+    "candidates": {
+      "A": "nuisance 회귀 후 잔차를 필터링",
+      "B": "신호와 nuisance 를 같은 필터로 거른 뒤 회귀",
+      "X": "신호만 필터링하고 거르지 않은 nuisance 로 회귀 — 문헌이 경고하는 순서 (Hallquist et al., 2013, NeuroImage)"
+    },
+    "current_wi02_implementation": "A 의 앞부분만 (nuisance 회귀까지, 필터 없음)",
+    "probe_script": "scripts/h197/11_filter_order_probe.py",
+    "probe_script_sha256": "3f5090d3efa2636e937db7297145904c2308ddd405810bd6ef5a8432735afd33",
+    "probe_artifact": "provenance/filter_probe/filter_order_probe.json",
+    "probe_artifact_sha256": "322dbd3bbd0eee1f12e38e34559325cffc3fc652358e51ddc06a2d151066278c",
+    "probe_verdict": "inconclusive_by_construction",
+    "why_inconclusive": "합성에서 nuisance 를 설계행렬과 정확히 같게 만들었으므로 '먼저 회귀'(A)가 구성상 최적이 된다. A 잔차 1-5% vs B/X 6-22% 는 우열이 아니라 합성 구조의 반영이다. 실제 쟁점은 nuisance 모형이 불완전할 때이며, 그 국면은 실자료가 있어야 만들어진다.",
+    "what_it_did_establish": "세 처리의 결과가 단위 진폭 신호에서 최대 0.65 만큼 갈린다 — 순서 선택은 장식이 아니며 임의로 두고 넘어갈 수 없다.",
+    "first_draft_defects_corrected": [
+      "문헌이 경고하는 순서(X)를 아예 넣지 않았다",
+      "filtfilt edge transient 를 run 전체에서 채점해 어차피 버릴 구간의 왜곡이 점수를 지배했다 → 원 시각 [12,252) 안에서만 채점하도록 수정"
+    ],
+    "known_inconsistency_restated": "residual DOF 는 필터를 전제로 계산하는데(개정 P6-b) 실제 필터는 아직 없다. WI-03 에서 닫는다.",
+    "resolves_to": "WI-03 pilot 기술 검증"
+  },
+  "wi02_preflight": {
+    "method": "이미 내려온 subject 로 6개 조합 --dry-run --limit 4",
+    "piop1_executed": {
+      "ds002785/emomatching": "ok 3 / excluded 1 / error 0",
+      "ds002785/workingmemory": "ok 3 / excluded 1 / error 0",
+      "ds002785/restingstate": "ok 3 / excluded 1 / error 0"
+    },
+    "piop2_executed": true,
+    "piop2_verification": "내려받기 미완료로 실행 검증 불가. acquisition entity 를 Wave 1 confounds 파일명 전수(1,295건)로 코드 대조: ds002785 rest 만 acq-mb3, 나머지 전부 acq-seq. 드라이버 ACQ 표와 일치.",
+    "acq_entity_counts": {
+      "ds002785": {
+        "emomatching": 208,
+        "workingmemory": 207,
+        "restingstate": 210
+      },
+      "ds002790": {
+        "emomatching": 222,
+        "workingmemory": 224,
+        "restingstate": 224
+      }
+    },
+    "throughput_sec_per_run": {
+      "target_tasks": 1.6,
+      "restingstate_tr075": 5.0
+    },
+    "projected_all_six_combos_minutes": 100,
+    "piop2_results": {
+      "ds002790/emomatching": {
+        "ok": 2,
+        "excluded": 2,
+        "skipped": 1,
+        "error": 0
+      },
+      "ds002790/workingmemory": {
+        "ok": 5,
+        "excluded": 0,
+        "skipped": 0,
+        "error": 0
+      },
+      "ds002790/restingstate": {
+        "ok": 3,
+        "excluded": 2,
+        "skipped": 0,
+        "error": 0
+      }
+    },
+    "piop2_acq_seq_confirmed_by_execution": "PIOP2 restingstate 가 acq-seq(PIOP1 은 acq-mb3)인 점이 파일명 대조가 아니라 실제 실행으로 확인됐다",
+    "all_six_combos_execution_verified": true,
+    "preflight2_log_sha256": "29fa3bfcf0de37704e2eaf395ef54326429abed2d87f3e5fb618ab2705546ab3"
+  },
+  "wi03_cohort": {
+    "module": "mobse/v2/cohort.py",
+    "module_sha256": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
+    "rule": "계획서 §3.3 — 두 target task 와 rest 의 4개 window 가 모두 유효한 subject 만 적격",
+    "required_tasks": [
+      "emomatching",
+      "workingmemory",
+      "restingstate"
+    ],
+    "group_id_policy": "group_id = canonical_subject (관계 metadata 부재, 개정 P4 / U10)",
+    "preserves_all_exclusion_reasons": true,
+    "rejects_subject_without_dataset_prefix": true,
+    "rejects_duplicate_subject_task": true,
+    "does_not_split": "seed·알고리즘은 splits.py 가 단일 출처",
+    "tests": "tests/v2/test_cohort.py (25건)",
+    "not_yet_run_on_real_data": "WI-02 전량 재추출 이후",
+    "builder_script": "scripts/h197/15_build_subjects.py",
+    "builder_script_sha256": "e0179d3c6fff569c64c8e96d033bead85073993fb692eeb020086a35790a2d19",
+    "builder_guards": [
+      "세 task manifest 를 모두 요구 — rest 누락 시 전원 부적격을 조용히 내지 않고 실패",
+      "dataset 혼합 거부",
+      "기존 subjects.jsonl 덮어쓰기 거부 (지침서 §2)",
+      "부적격 subject 는 exclusions.jsonl 에 모든 사유 + 우선 사유"
+    ],
+    "builder_tests": "tests/v2/test_h197_scripts.py 내 5건"
+  },
+  "labeling": {
+    "module": "mobse/v2/labels.py",
+    "module_sha256": "89610e87315f7e1e6a1ac85130c89d69f197f47824262389a4eae5571397b3dc",
+    "protocol_basis": "계획서 §1 — emomatching=0, workingmemory=1 run identity",
+    "class_labels": [
+      "emomatching",
+      "workingmemory"
+    ],
+    "label_source": "task_metadata",
+    "restingstate_gets_no_label": true,
+    "restingstate_rationale": "bank source 이며 분류 대상이 아니다. label 을 붙이면 3-class 로 번진다",
+    "unknown_task_rejected_not_defaulted": true,
+    "window_key_format": "<run_key>#win-<n> — 구분자가 '/' 가 아니어야 키 분해가 모호하지 않다",
+    "excluded_runs_produce_no_window_records": true,
+    "events_tsv_never_used_for_label_or_feature": "계획서 §3.2",
+    "builder_script": "scripts/h197/12_build_windows_manifest.py",
+    "builder_script_sha256": "67fce46e2f837f2996922bb620a0d2ff38e95f9a509b6e0716336d97c4d733ad",
+    "separated_from_extraction_rationale": "스키마·label 규칙이 바뀌어도 209 GiB 를 다시 읽지 않기 위해",
+    "tests": "tests/v2/test_labels.py (24건)"
+  },
+  "wi02_end_to_end_real_data": {
+    "scope": "PIOP1 12 run (emo 6 + WM 6), 실제 추출 (dry-run 아님)",
+    "extract_counts": {
+      "emomatching": {
+        "ok": 5,
+        "excluded": 1,
+        "error": 0
+      },
+      "workingmemory": {
+        "ok": 4,
+        "excluded": 2,
+        "error": 0
+      }
+    },
+    "window_records": 36,
+    "window_records_expected": 36,
+    "label_distribution": {
+      "emomatching": 20,
+      "workingmemory": 16
+    },
+    "label_sources_observed": [
+      "task_metadata"
+    ],
+    "window_start_distribution": {
+      "12.0": 9,
+      "72.0": 9,
+      "132.0": 9,
+      "192.0": 9
+    },
+    "window_keys_unique": true,
+    "npy_shape": [
+      30,
+      100
+    ],
+    "npy_dtype": "float32",
+    "npy_all_finite": true,
+    "cohort_reasons_preserved": true,
+    "artifacts": {
+      "provenance/wi02_e2e/windows.jsonl": "dcb26930ba6092959ecc4aadfe6420529d6d8a2551bb6dcec58922f05617a098",
+      "provenance/wi02_e2e/windows.summary.json": "72863a2916e95d00ca56e96c9e0ed7576e21cb6ae05a44f5a1a4e7769cd982df",
+      "provenance/wi02_e2e/wi02_ds002785_emomatching.jsonl": "e273a3d04793f202893aa2515fbde51e4d145d20d11dd7fc501d66117f478a4c",
+      "provenance/wi02_e2e/wi02_ds002785_workingmemory.jsonl": "746608a35fa5e546f9f33fd6bfd2998d70bc6c981884bc2306aea53eba770b26"
+    },
+    "note": "창 평균이 0 이 아닌 것은 정상 — z-score 는 run 전체에서 하고 창은 그 뒤에 자른다"
+  },
+  "wi04_bank_demo": {
+    "status": "실자료 통과 — 시연이며 주분석 아님",
+    "not_used_in_any_result": true,
+    "rationale": "pilot 분리 전이고 fold 가 없다. 파이프라인 동작과 bank 성질만 확인",
+    "script": "scripts/h197/13_bank_demo.py",
+    "script_sha256": "c039a1784ebcb90eaa10d7d5e0ce6c0776d310a6838f2019d7b2b6240f9c4494",
+    "input": "PIOP1 restingstate 30명 재추출 → ok 27 / 제외 2 / skip 1 / 오류 0 (170초)",
+    "n_windows": 108,
+    "n_subjects": 27,
+    "correlations_shape": [
+      108,
+      100,
+      100
+    ],
+    "features_shape": [
+      108,
+      4950
+    ],
+    "pca_shape": [
+      108,
+      10
+    ],
+    "bank_seed": 30009,
+    "bank_seed_formula_check": "30009 = 30000 + 100*0 + 9 (outer fit 은 inner_fold=9)",
+    "transform_fingerprint": "58da1ba0dc9df5634911de907e86c1581a076cd21157421dcc3f0d173bf4a838",
+    "bank_fingerprint": "a31fa7cd75e33a7ae32b5ee44022616599eb6f309015a476d87e528ec7ce5bca",
+    "null_seed": 1729,
+    "properties_verified": {
+      "symmetric_max_asymmetry": 0.0,
+      "nonnegative": true,
+      "min_value": 0.0,
+      "offdiag_density": [
+        0.2,
+        0.2,
+        0.2
+      ],
+      "spectral_radius": [
+        1.0000000000000009,
+        1.0,
+        1.0000000000000004
+      ],
+      "row_sum_range": [
+        0.5338198753413935,
+        1.4355778100902596
+      ],
+      "diagonal_min": 0.024852964235069358
+    },
+    "t05_spectrum_preserved": {
+      "null_spectral_radius": [
+        0.9999999999999999,
+        1.0000000000000016,
+        1.0000000000000013
+      ],
+      "max_abs_diff": 1.5543122344752192e-15,
+      "interpretation": "matched null 은 '약한 그래프'가 아니라 같은 스펙트럼 구조를 갖되 ROI 대응만 뒤섞인 그래프여야 한다. 그래야 A-C 차이를 해부학적 정렬로 귀속할 수 있다. 실자료에서 기계 오차 수준(1.55e-15)으로 성립."
+    },
+    "observation_cluster_imbalance": {
+      "cluster_sizes": [
+        59,
+        6,
+        43
+      ],
+      "note": "K=3 에서 [59, 6, 43]. N=27 인 시연이므로 주분석 예측은 아니지만, 한 군집이 지나치게 작으면 routing 이 2-way 로 퇴화할 수 있어 본 적합에서 fold 별 군집 크기를 기록해 감시한다. 계획서가 K=3 을 고정했고 K 민감도는 WI-09 이므로 여기서 K 를 바꾸지 않는다."
+    },
+    "fold_scoped_fit_not_yet_done": "fit scope 별 적합(T03·T04 경계)은 WI-03 분할 확정 후",
+    "artifacts": {
+      "provenance/wi04_demo/bank_demo.json": "957b34235582c52b6e50335d911c57c973b7cb3aada7ef691f25c3f44c96e5f5",
+      "provenance/wi04_demo/wi02_ds002785_restingstate.jsonl": "e481e5ba1e39fc92212885f406055a278402dc9fc53bbdf393840656f12943fe"
+    }
+  },
+  "script_contract_guard": {
+    "incident_id": "E12",
+    "recurrences": 5,
+    "cases": [
+      "10_wi02_extract.py: qc_decision(..., task=...) — 그 인자는 없다",
+      "10_wi02_extract.py: decision['keep']/['reasons'] — 실제는 passed/all_reasons/primary_reason",
+      "tests/v2/test_cohort.py: folds['pilot']['n_subjects'] — 실제는 'n'",
+      "13_bank_demo.py: bank.k() — k 는 @property",
+      "21_resource_benchmark.py: fit_transform_on_training_rest(feats) — fit_subjects 누락"
+    ],
+    "structural_cause": "네 건 모두 시험 밖의 스크립트에서 났다. 시험이 붙은 모듈 코드에서는 0건",
+    "guard": "tests/v2/test_h197_scripts.py",
+    "guard_sha256": "e217ba29e812603333681954dcbac9f04a3480645b4eb219a3ae67d9ce0c9ffa",
+    "guard_test_count": 101,
+    "covers": [
+      "scripts/h197/*.py 전수: 적재 가능·docstring·__main__ 가드",
+      "GraphBank.k 가 property 인지 (inspect.getattr_static)",
+      "qc_decision 인자에 residual_dof 있고 task 없음, 반환 키 집합 정확 일치",
+      "build_folds 에 n_subjects_total, pilot 에 n 있고 n_subjects 없음",
+      "build_bank/fit_transform_on_training_rest/make_null_bank/write_jsonl 인자명",
+      "bank_seed(0,9) == 30009",
+      "13_bank_demo.py main() 을 합성 48창으로 end-to-end 실행"
+    ],
+    "synthetic_e2e_assertions": {
+      "correlations_shape": [
+        48,
+        100,
+        100
+      ],
+      "features_shape": [
+        48,
+        4950
+      ],
+      "pca_shape": [
+        48,
+        10
+      ],
+      "bank_seed": 30009,
+      "symmetry_tol": 1e-12,
+      "density_tol": 0.01,
+      "spectral_radius_tol": 1e-09,
+      "spectrum_preservation_tol": 1e-09
+    },
+    "note": "실자료 없이 suite 에서 잡힌다. bank.k() 를 되돌리면 시험 두 건이 즉시 깨진다",
+    "guard_test_count_note": "scripts/h197/*.py 에 대해 parametrize 되므로 스크립트를 추가하면 자동으로 늘어난다. rev21 기록값 44 는 그 이후 추가된 스크립트를 반영하지 않은 값이었다."
+  },
+  "wave2_dataset_order_verified": {
+    "question": "PIOP2(ds002790) subject 가 5시간 넘게 0인데 정상인가",
+    "method": "로그 첫 줄과 프로세스 명령줄, 스크립트 소스를 직접 읽음",
+    "finding": "--datasets 미지정 → 기본값 w1.DATASETS = ['ds002785','ds002790'], for ds in args.datasets 로 순차 처리 (06_wave2_fetch_bold.py:96, 111). ds002785 가 끝나면 ds002790 이 자동으로 이어진다",
+    "ds002785_selected": {
+      "files": 1250,
+      "size": "121.0 GiB"
+    },
+    "intervention_needed": false
+  },
+  "cli_split": {
+    "status": "구현 완료, 합성 164명으로 검증",
+    "eligibility_not_recomputed": "cohort.py 의 eligible 을 그대로 사용 — 두 곳에서 판정하면 어긋난다",
+    "algorithm_single_source": "splits.py. CLI 는 config 값을 넘길 뿐이고 config 는 코드 상수와 대조됨",
+    "group_id_from_cohort": "관계 metadata 부재로 subject 와 같다 (개정 P4 / U10)",
+    "disjoint_verified_not_documented": [
+      "pilot ↔ main_pool",
+      "outer test ↔ outer train",
+      "inner val ↔ inner train ↔ outer test"
+    ],
+    "refuses_overwrite": "기존 folds.json 은 덮어쓰지 않는다 (지침서 §2)",
+    "refuses_zero_eligible": "임의 증원 대신 제한을 보고한다 (지침서 WI-03)",
+    "synthetic_164_result": {
+      "pilot_n": 32,
+      "pilot_target": 32,
+      "main_pool_n": 132,
+      "outer_test_sizes": [
+        27,
+        27,
+        26,
+        26,
+        26
+      ],
+      "config_hash": "85556f56"
+    },
+    "cross_check": "이 수치는 부록 B.2 의 코호트 상한 산정에서 독립적으로 계산한 값과 일치한다",
+    "tests": "tests/v2/test_cli_split.py (18건)",
+    "not_yet_run_on_real_cohort": "WI-02 전량 재추출 이후"
+  },
+  "piop1_auto_start_watcher": {
+    "script": "scripts/h197/14_watch_and_extract_piop1.sh",
+    "script_sha256": "e891c7b30dfc1afc1fd6fadfba2cfa40fa3a5915a8c5b83711f94fc3a2e8dacc",
+    "purpose": "ds002785 내려받기 완료 즉시 WI-02 추출 착수 — ds002790 다운로드와 병렬",
+    "completion_signal": "로그에 '=== ds002790 ===' 출현 + 남은 .part 0",
+    "rationale": "파일 수를 세는 것보다 모호하지 않다 (fetcher 가 다음 dataset 으로 넘어갔다는 뜻)",
+    "actions": [
+      "ds002785 emo 2.0",
+      "ds002785 WM 2.0",
+      "ds002785 rest 0.75",
+      "창 manifest (target 2종만)"
+    ],
+    "timeout_behavior": "2시간 내 미성립 시 추출을 시작하지 않고 실패 기록",
+    "pid_file": "watch_piop1.pid",
+    "log": "watch_piop1.log",
+    "expected_saving": "약 50분 (PIOP1 추출을 ds002790 4.5시간 다운로드와 겹침)",
+    "outcome": "설계대로 동작",
+    "safety_check_earned_its_keep": "'=== ds002790 ===' 는 16:21:34 에 나타났으나 ds002785 의 .part 24개가 아직 전송 중이었다. 두 번째 조건(.part == 0)이 없었으면 미완성 상태에서 추출을 시작했을 것이다. 27분 더 기다려 16:48:36 에 1250 파일 확정 후 착수.",
+    "started_utc": "2026-09-17T16:48:36Z"
+  },
+  "wi02_full_extraction": {
+    "status": "PIOP1 3개 조합 완료 (ds002790 은 Wave 2 완료 후)",
+    "ds002785_emomatching": {
+      "ok": 183,
+      "excluded": 25,
+      "skipped": 8,
+      "error": 0,
+      "wall_sec": 354,
+      "subject_dirs_scanned": 216
+    },
+    "arithmetic_check": "183 + 25 + 8 = 216 = subject 디렉터리 수",
+    "skipped_explanation": "emomatching run 자체가 없는 subject 8명 (보유 208 = 216-8, Wave 1 감사와 일치)",
+    "exclusion_rate_note": "25/208 ≈ 12.0% 는 단일 task 기준이며, 부록 B.2 의 복합 상한(세 run 모두 통과, 164/216)과 다른 기준이므로 모순이 아니다",
+    "artifacts": {
+      "provenance/wi02_full/extract_ds002785_emomatching.log": "88543e7e3c5d9d62e146968fe95a8cf6715358f9bac9e7d17df038a5d71c30c0",
+      "provenance/wi02_full/watch_piop1.log": "2b2bcb095e96952e01b7a63ddce52209fb28df25419ac77e70edb4028d078e6d"
+    },
+    "ds002785_workingmemory_first": {
+      "ok": 175,
+      "excluded": 29,
+      "skipped": 9,
+      "error": 3
+    },
+    "ds002785_workingmemory_final": {
+      "ok": 176,
+      "excluded": 31,
+      "skipped": 9,
+      "error": 0
+    },
+    "ds002785_restingstate": {
+      "ok": 187,
+      "excluded": 23,
+      "skipped": 6,
+      "error": 0
+    },
+    "wm_delta_explained": "ok +1 = sub-0171 복구(S3 재다운로드, sha256 일치). 제외 +2 = sub-0029·sub-0134 가 error→excluded(data_condition) 재분류. 176+31+9 = 216",
+    "windows_manifest_records": 1436,
+    "windows_manifest_sha256": "3c8bb84321965c12ddbb6e58fe02f233aa73156354479185ebb6928ac229fcf2",
+    "emo_rest_built_with_older_code": "emomatching·restingstate 정본은 ExtractDataError 분리 전 코드로 생성됐으나 둘 다 error 0 이라 영향 없음(해당 변경은 error→excluded 재분류일 뿐 ok 판정 불변). 최종 release 는 Wave 2 완료 후 6개 조합을 같은 코드로 전량 재실행한다."
+  },
+  "disk_failure_h197": {
+    "severity": "심각 — 하드웨어 교체 필요",
+    "array": "md0 raid1 [2/1] [U_] — 2개 중 1개만 생존, 이중화 없음",
+    "surviving_disk": "sda WDC WD60EZRZ-00RWYB1 (WD Blue, 데스크톱용)",
+    "second_disk": "sdb 동일 모델 WD60EZRZ — /proc/scsi/scsi 에는 있으나 블록 장치로 안 잡힘(사망)",
+    "smart": {
+      "Current_Pending_Sector": 1942,
+      "Offline_Uncorrectable": 1932,
+      "Reallocated_Sector_Ct": 12,
+      "Power_On_Hours": 60758,
+      "Load_Cycle_Count": 690921,
+      "Load_Cycle_normalized_value": 1,
+      "Multi_Zone_Error_Rate": 12454,
+      "UDMA_CRC_Error_Count": 0,
+      "overall_health": "PASSED (오해 소지 — pending/uncorrectable 은 Old_age 라 판정에 반영되지 않음)"
+    },
+    "interpretation": "복구 불가 확정 섹터 1,932개. 재할당은 12개만 성공 — 드라이브가 스스로 재할당에 실패하고 있다(dmesg 의 auto reallocate failed). 6.93년 연속 가동, load cycle 정규화값 001(바닥). UDMA CRC 0 이므로 케이블이 아니라 매체 손상.",
+    "impact_on_project": {
+      "observed_failures": 1,
+      "failed_file": "aomic_wave1/.../sub-0171_task-workingmemory_acq-seq_desc-confounds_regressors.json",
+      "recovery": "OpenNeuro S3 재다운로드, sha256 631956ed… 기록과 일치 확인",
+      "wave1_full_verification": "6,058 파일 sha256 대조 — 불일치 0건",
+      "piop1_full_read": "216 subject × 3 task = 648 run 전수 읽기 통과 (재추출 후)",
+      "risk_assessment": "MoBSE 자료는 전부 OpenNeuro 재취득 가능. Wave 1 은 해시 전량 기록"
+    },
+    "unverified": "badblocks 전면 스캔 미실시 (약한 디스크에 부하를 주지 않기 위해)",
+    "backup_target_available": "192.168.44.199:/NAS → /mnt/NAS, 여유 2.7 TB, 쓰기 가능",
+    "recommendation": "md rebuild 금지(pending 1,942 위에서 반드시 불량 섹터를 만난다). 빈 SATA 포트 3개를 이용해 신규 2개로 새 배열 구성 후 복사",
+    "saturation_10th_check": {
+      "load_average": [
+        57.1,
+        49.87,
+        44.08
+      ],
+      "iowait_pct": 62,
+      "blocked_processes": 11,
+      "kernel_threads_in_D": [
+        "md0_raid1",
+        "jbd2/md0-8"
+      ],
+      "interpretation": "배열 스레드와 ext4 저널이 함께 D 상태 — 병목이 디스크 자체",
+      "wave2_throughput_decay": "6.3 MiB/s (초기) → 4.7 MiB/s"
+    },
+    "dmesg_counter_unreliable": "I/O 오류 누적이 236 → 230 으로 줄었으나 개선이 아니라 링 버퍼 회전이다. 절대 누적치를 지표로 쓸 수 없다. Current_Pending_Sector 가 옳은 지표이나 sudo 가 필요해 자동 점검에 넣지 못한다 — 확인 불가 항목으로 명시.",
+    "shared_host_note": "부하 상위는 sglang LLM 서버(97.3% CPU)로 이 프로젝트와 무관. 관측 부하 전부를 이 프로젝트에 귀속시키지 않는다."
+  },
+  "wi03_real_cohort_piop1": {
+    "status": "폐기 — 개정 P7 적용 전 값. 이 분할로 적합된 모델은 없다. 감사 목적으로 보존하며 derivatives_v2/splits_piop1/SUPERSEDED.md 에도 남겼다.",
+    "n_subjects": 216,
+    "n_eligible": 153,
+    "task_ok": {
+      "emomatching": 183,
+      "workingmemory": 176,
+      "restingstate": 187
+    },
+    "exclusion_rules": {
+      "window_spikes>3": 118,
+      "window_spike_ratio>0.1": 91,
+      "mean_fd>0.2": 47,
+      "run_spike_ratio>0.1": 26,
+      "file_absent": 23,
+      "data_condition": 2
+    },
+    "prediction_vs_actual": {
+      "appendix_B2_upper_bound": 164,
+      "actual": 153,
+      "consistent": true,
+      "reason": "B.2 상한은 run 단위 mean FD + aCompCor 두 기준만 사용했다. 당시 TR 미확정으로 고정 창 경계를 정할 수 없어 창 단위 FD 기준을 넣지 못했다. 실측에서 창 단위 기준이 209건으로 run 단위 73건의 약 2.9배다. 153 <= 164 로 상한과 일관."
+    },
+    "independence_observation": {
+      "independent_estimate": 129.1,
+      "actual": 153,
+      "note": "세 task 의 QC 실패가 독립이 아니라 양의 상관(머리 움직임이 큰 subject 가 함께 실패). 관찰이며 가정으로 쓰지 않는다."
+    },
+    "split": {
+      "pilot_n": 30,
+      "pilot_target": 30,
+      "pilot_formula_check": "min(32, floor(0.2*153)) = min(32, 30) = 30",
+      "main_pool_n": 123,
+      "outer_test_sizes": [
+        25,
+        25,
+        25,
+        24,
+        24
+      ],
+      "split_hash": "586f1c50895a98e159f558d9210980345bd1064b8ad8066b3a032b9d52552f04",
+      "config_hash": "85556f56",
+      "disjoint_verified": true
+    },
+    "wi07_completion_targets": {
+      "window_prediction_rows": 11808,
+      "run_prediction_rows": 984,
+      "checkpoints": 60,
+      "formula": "123 subjects x 2 tasks x 4 windows x 3 seeds x 4 cells"
+    },
+    "artifacts": {
+      "provenance/wi03_piop1/folds.json": "27970b151b7a1f35cfed3de17ec89b46d8c0bfce5b48b9ce212d11226bb407b8",
+      "provenance/wi03_piop1/cohort/subjects.jsonl": "bd972d456251b017052dae91fdd13fd445cf74a1ec7eec7804fd5a6ee269ff4b",
+      "provenance/wi03_piop1/cohort/exclusions.jsonl": "7d52960db82faa569835c43dedbe76b38b89697b8b4d67206c1ecd1380a985c9",
+      "provenance/wi03_piop1/cohort/cohort_summary.json": "02607335cac45c5603de39942590b89b2432c990dbd192d76300ce2a6e8b6437"
+    },
+    "superseded_by": "wi03_p7_cohorts (개정 P7 적용)"
+  },
+  "load_reduction_decision": {
+    "trigger": "load 57 / iowait 62% / pending 1942 섹터",
+    "principle": "필수 경로만 실행. 편의·일관성 목적의 재실행은 하드웨어 조치 이후로",
+    "continue": [
+      "Wave 2 다운로드 (60% 진행, 재개 가능, 중단해도 디스크가 나아지지 않음)",
+      "Wave 2 완료 후 PIOP2 추출 (필수 경로)"
+    ],
+    "deferred": {
+      "PIOP1 emo·rest 재추출": "24분 무거운 읽기. 결과 동일함이 논리적으로 보장됨(둘 다 error 0)",
+      "Wave 2 전량 해시 검증": "209 GiB 재독, 해시 기록 없어 가치 제한적"
+    },
+    "stopped": {
+      "du/find 전 트리 순회": "9회차의 du -sh ds002790 이 72분간 D 상태로 묶여 결과도 못 내고 디스크만 두드렸다. 종료시켰다. 상태 점검은 df + 로그 tail 로 충분하다."
+    },
+    "accuracy_impact": "없음 — 보류한 항목 중 수치를 바꾸는 것은 없다",
+    "correction_rev19": {
+      "what_was_wrong": "부록 Q.1 의 '병목이 디스크 자체' 일반화",
+      "evidence": {
+        "load": [
+          57.1,
+          1.89
+        ],
+        "iowait_pct": [
+          62,
+          0
+        ],
+        "d_state_processes": [
+          11,
+          0
+        ],
+        "wave2_throughput_mibps": [
+          4.7,
+          4.5
+        ],
+        "sglang_running": [
+          true,
+          true
+        ]
+      },
+      "correct_reading": "iowait 이 62%→0% 로 바뀌는 동안 처리율이 불변 → 병목은 상류(네트워크·S3). D 상태 무리는 72분 묶여 있던 du 와 동시 실행 dumpe2fs 가 만든 대기열이었고 du 종료로 풀렸다. '디스크가 느리다'가 참인 범위는 전 트리 메타데이터 순회이며 순차 대용량 I/O 에는 해당하지 않았다.",
+      "decisions_kept_reasons_changed": {
+        "PIOP1 emo·rest 재추출 보류": "부하가 아니라, pending 1,942 섹터 위에서 약 100 GiB 를 추가로 읽을 이유가 없다 (결과 동일 보장)",
+        "Wave 2 해시 검증 보류": "부하가 아니라, 비교할 기준 해시가 없어 손상 탐지가 불가능하다",
+        "du/find 순회 중단": "원래 근거가 옳았다 — 72분 블로킹을 실측"
+      },
+      "methodological_lesson": "한 시점의 iowait·load 스냅샷으로 원인을 단정했다. 공용 호스트에서 두 수치는 누가 무엇을 하는지에 따라 크게 흔들린다. 부록 Q.4 에서 '관측 부하를 이 프로젝트에 귀속시키지 않는다'고 쓰고도 Q.1 에서 디스크로 단정해 같은 문서 안에서 앞뒤가 맞지 않았다. 부하 판단은 절대값이 아니라 변화량 대조로 해야 한다."
+    }
+  },
+  "piop2_watcher": {
+    "script": "scripts/h197/16_watch_and_process_piop2.sh",
+    "script_sha256": "2ee68fa3fee2801ec9b4c75b9af3320839f37cad859ed686005d1a6ae710bcea",
+    "steps": [
+      "추출 3종 (TR 2.0)",
+      "창 manifest (target 2종)",
+      "코호트"
+    ],
+    "does_not_split": true,
+    "protocol_basis": "계획서 §9 — PIOP1 main pool 에서 config/E 를 정하고 PIOP2 rest·labels·성능으로 fit/선택/calibration 하지 않는다. PIOP2 는 같은 QC·window 규칙을 적용하고 cohort 차이·제외 수를 보고하는 held-out 코호트다.",
+    "averted_error": {
+      "what": "12회차 계획에 cli split --config external.yaml --output-dir splits_piop2 가 있었다",
+      "why_wrong": "PIOP2 에 5-fold outer CV 를 만들면 프로토콜에 없는 산출물이 release 에 남아 나중에 의미 있는 분할로 오인될 수 있다",
+      "root_cause": "external.yaml 이라는 파일명이 'external 용 분할을 만들라'처럼 읽혔다. 그 config 의 용도는 외부 평가 실행 설정이지 분할 생성이 아니고, splits.EXTERNAL_SEED 도 외부 최종 선택 seed 이지 PIOP2 를 쪼개는 seed 가 아니다",
+      "caught_by": "실행 직전 계획서 §9 재확인"
+    },
+    "completion_criteria": "fetch 프로세스 종료 AND 남은 .part 0 (두 조건 모두)",
+    "completion_note": "ds002790 은 마지막 dataset 이라 '다음 구간 진입' 신호가 없다. PIOP1 때와 달리 프로세스 생존 여부를 함께 본다.",
+    "guard_tests": [
+      "test_piop2_watcher_does_not_split",
+      "test_watchers_require_zero_part_files",
+      "test_watchers_build_windows_from_target_tasks_only"
+    ],
+    "guard_philosophy": "시험이 '무엇을 하는가'가 아니라 '무엇을 하면 안 되는가'를 고정한다. 프로토콜 위반은 대개 기능 추가로 나타나므로 이 방향이 맞다."
+  },
+  "wave2_complete": {
+    "ds002785": {
+      "files": 1250,
+      "bytes": 129964371099
+    },
+    "ds002790": {
+      "files": 1340
+    },
+    "fail_count": 0,
+    "report": "aomic_wave2/wave2_fetch_report.json"
+  },
+  "wi02_piop2": {
+    "status": "완료 — P7·E15 반영본이 정본",
+    "extract": {
+      "emomatching": {
+        "ok": 204,
+        "excluded": 18,
+        "skipped": 4,
+        "error": 0
+      },
+      "workingmemory": {
+        "ok": 214,
+        "excluded": 10,
+        "skipped": 2,
+        "error": 0
+      },
+      "restingstate": {
+        "ok": 203,
+        "excluded": 21,
+        "skipped": 2,
+        "error": 0
+      }
+    },
+    "windows_records": 1672,
+    "cohort_first_pass": {
+      "n_subjects": 226,
+      "n_eligible": 189
+    },
+    "watcher_script_sha256": "2ee68fa3fee2801ec9b4c75b9af3320839f37cad859ed686005d1a6ae710bcea",
+    "no_split_performed": "계획서 §9 — held-out 외부 코호트"
+  },
+  "e15_roi_mismatch_classification": {
+    "symptom": "ds002790 sub-0141(parcel 27), sub-0180(parcel 10) 이 status=error 로 기록",
+    "reality": "계획서 §3.3 이 '100 ROI 불일치'를 제외 사유로 **명시**한다 — 자료 조건이지 결함이 아니다",
+    "fix": "roi_timeseries 의 빈 parcel → ExtractDataError → status=excluded",
+    "distinction_kept": "atlas 재표본화 단계의 parcel 결손은 여전히 ExtractError. 그쪽은 특정 subject 가 아니라 atlas·격자 자체의 구조적 문제다",
+    "note": "부록 O.2 에서 같은 부류를 고쳐 놓고 이 경로를 빠뜨렸다"
+  },
+  "amendment_p7_spike_allowance": {
+    "discovered_by": "PIOP2 적격률 83.6% vs PIOP1 70.8% 차이의 원인 추적",
+    "protocol_text": "§3.3 — 각 고정 window 에서 FD>0.5mm 비율<=10% 를 주 기준으로 한다. task의 30 원본 frames 구간에서는 최대 3개까지 허용한다. rest는 native frame 수로 계산한다.",
+    "key_arithmetic": "3/30 = 0.10 = 비율 상한 → '최대 3개'는 30 frame 창에서의 비율 규칙 표현",
+    "bug": "qc_decision 이 창 길이와 무관하게 절대 3개를 적용",
+    "impact": {
+      "task_windows_all_cohorts": {
+        "frames": 30,
+        "ratio_allows": 3.0,
+        "applied": 3,
+        "effective_pct": 10.0
+      },
+      "piop2_rest": {
+        "tr": 2.0,
+        "frames": 30,
+        "ratio_allows": 3.0,
+        "applied": 3,
+        "effective_pct": 10.0
+      },
+      "piop1_rest": {
+        "tr": 0.75,
+        "frames": 80,
+        "ratio_allows": 8.0,
+        "applied": 3,
+        "effective_pct": 3.75,
+        "strictness_factor": 2.7
+      }
+    },
+    "fix": "허용 = WINDOW_SPIKE_ALLOWANCE * (n_observed / SPIKE_ALLOWANCE_REFERENCE_FRAMES=30)",
+    "not_a_relaxation": "계획서가 정한 10% 비율 기준을 정확히 적용하는 것이다. 종전 구현이 그 기준보다 엄격했다. TR 2초 창 판정은 불변.",
+    "root_cause": "WINDOW_SPIKE_ALLOWANCE = 3 을 상수로 박으면서 그 3이 전제한 창 길이('30 원본 frames 구간에서')를 옮기지 않았다",
+    "guard": "SPIKE_ALLOWANCE_REFERENCE_FRAMES 상수 + test_scaled_allowance_matches_ratio_rule_at_any_length (20/30/40/80/120 frame)",
+    "detection_note": "두 코호트를 비교하지 않았다면 발견하지 못했을 것이다. 계획서 §9 의 'cohort 차이·제외 수를 보고한다' 요구가 이 검출력을 준다.",
+    "recorded_in_protocol": "§3.3 본문 + §11 개정 표",
+    "made_before_seeing_main_results": true,
+    "supersedes": "부록 P 의 153/30/123 은 갱신되었다 — 부록 U 참조",
+    "realized": {
+      "piop1_eligible": "153 -> 157",
+      "piop1_rest_ok": "187 -> 202 (excluded->ok 15건, 그 외 전이 없음)",
+      "piop2_eligible": "189 불변",
+      "piop2_rest_ok": "203 불변 (TR 2초 창 30 frame — 판정 불변 예측과 일치)",
+      "predictions_all_held": true
+    },
+    "redundancy_finding": {
+      "arithmetic": "n_spikes > 3*(n_observed/30) == n_spikes/n_observed > 0.1",
+      "caveat": "같은 조건이 사유 문자열 2개로 기록되므로 사유 집계에서 과대계상될 수 있다",
+      "exhaustive_check": "창 길이 1..1000 × 가능한 모든 spike 개수 0..n 전수 비교 → 두 조건의 참거짓이 갈리는 경우 0건. 3*(80/30) 은 IEEE754 에서 정확히 8.0",
+      "interpretation": "중복은 P7 이 틀렸다는 증거가 아니라 맞다는 증거다. §3.3 은 비율 기준을 먼저 세우고 '최대 3개'를 그 재진술로 적는다. 절대 3개로 읽으면 'rest는 native frame 수로 계산한다'가 가리킬 대상이 없어진다",
+      "not_removed_from_code": "계획서가 두 기준을 모두 적고 있으므로 한쪽을 지우지 않았다",
+      "observation": "P7 하에서 §3.3 의 두 창 기준(비율 10%, 개수)이 수학적으로 동일해진다"
+    }
+  },
+  "e16_manifest_key_policy": {
+    "cause": "manifests._primary_key_field() 의 매핑에 exclusions 가 없어 None 이 돌아왔고, None 이면 unique_keys 가 0 으로 보고되는 동시에 중복 검사 자체가 꺼진다",
+    "fix_keys": {
+      "exclusions": [
+        "stage",
+        "key_level",
+        "key"
+      ],
+      "run_predictions": [
+        "cell",
+        "run_key"
+      ],
+      "window_predictions": [
+        "cell",
+        "model_seed",
+        "window_key"
+      ]
+    },
+    "guard": "test_every_schema_artifact_has_an_explicit_key_policy — SCHEMAS 의 모든 artifact 는 키 정책이 있거나 keyless_by_design 집합에 명시되어야 한다. 현재 그 집합은 fit_manifest 하나(fit_id 가 내용 해시)",
+    "guard_caught_immediately": [
+      "window_predictions",
+      "run_predictions"
+    ],
+    "impact_on_results": "없음. subjects.jsonl 과 exclusions.jsonl 의 해시가 불변이고 folds.json 도 불변이다. 바뀐 것은 cohort_summary.json 의 unique_keys (0->59, 0->37) 와 아직 돌지 않은 코드의 안전성",
+    "key_derivation": "예측 두 종의 키는 expected_prediction_rows 공식에서 역산했다 — window = N×task×창×seed×cell 이므로 window_key 당 seed×cell 행, run = N×task×cell 이므로 run_key 당 cell 행. scope 는 파일 단위로 고정이라 키에 넣지 않았다(넣으면 키가 넓어져 중복을 놓친다)",
+    "root_cause": "'매핑에 없으면 검사를 건너뛴다'는 기본값. 빠뜨려도 아무 소리가 나지 않는다",
+    "suite": "453 -> 461 passed",
+    "symptom": "cohort_summary.json 이 exclusions 에 대해 n_records=59, unique_keys=0 을 보고",
+    "tests_added": 5,
+    "wider_impact": "같은 매핑에 window_predictions 와 run_predictions 도 빠져 있었다. WI-07 주 산출물 12,096행·1,008행이 중복 검사 없이 쓰일 예정이었다"
+  },
+  "wi03_p7_cohorts": {
+    "artifacts": {
+      "provenance/wi03_p7/cohort_piop1/cohort_summary.json": "993ffb55abdadc31a7ebc17121f1762ac5bf718434664998ba5010b31cd9e93b",
+      "provenance/wi03_p7/cohort_piop1/exclusions.jsonl": "74a04e31e14f7511608eac55f7da12c043a4a3c83285a76ee5569feadd0fdeba",
+      "provenance/wi03_p7/cohort_piop1/subjects.jsonl": "5ab1933922027dee41ddd4b9aabd0b4e70e8255399e2b06086d1434bb6f7278a",
+      "provenance/wi03_p7/cohort_piop2/cohort_summary.json": "11d6e2bb16718d89d74cb218e45a776567e7235215a231c4c050da368982e77b",
+      "provenance/wi03_p7/cohort_piop2/exclusions.jsonl": "8642ba8492312e66bf2300834298eccbc3671343265eb71123fc4bab0605cd86",
+      "provenance/wi03_p7/cohort_piop2/subjects.jsonl": "a19570288677369a0be41ba2ff29096df077476d0cbea2407bfa94c64604ea07",
+      "provenance/wi03_p7/folds_piop1.json": "a73875f2a98164f4c8d9dd5406cd0ff98d92e5533728469e71cf466755c1ef59",
+      "provenance/wi03_p7/wi02_ds002785_restingstate.jsonl": "26c702fdcca56d140ca87271f9b8c1cbad558163a9dc8fe9b3d8147de8ba8cdf",
+      "provenance/wi03_p7/wi02_ds002790_restingstate.jsonl": "9a1f246561d94fed487864abe4afb196dfd9cf1af8128ce20b7238f241159cf4"
+    },
+    "piop1": {
+      "lost_eligible_vs_rev21": [],
+      "monotone_check": "완화 방향 개정이므로 이탈 0 이어야 하고 실제로 0 이다",
+      "n_eligible": 157,
+      "n_subjects": 216,
+      "newly_eligible_vs_rev21": [
+        "ds002785:sub-0058",
+        "ds002785:sub-0071",
+        "ds002785:sub-0111",
+        "ds002785:sub-0215"
+      ],
+      "split": {
+        "config_hash": "85556f56",
+        "disjoint_verified_independently": "라이브러리 verify_disjoint() 와 별개의 스크립트로 pilot∩main_pool=0, pilot∪main_pool=적격집합, outer test∩train=0, test∪train=main_pool, outer test 쌍별 교집합=0, outer test 합집합=main_pool, inner train∩val=0, inner 합집합=outer train, inner val∩outer test=0 전부 확인",
+        "folds_sha256": "a73875f2a98164f4c8d9dd5406cd0ff98d92e5533728469e71cf466755c1ef59",
+        "main_pool_n": 126,
+        "outer_test_sizes": [
+          26,
+          25,
+          25,
+          25,
+          25
+        ],
+        "pilot_formula_check": "min(32, floor(0.2*157)) = min(32, 31) = 31",
+        "pilot_n": 31,
+        "pilot_target": 31,
+        "reproducible": "같은 명령을 다른 출력 경로로 재실행해 folds.json 바이트 동일 확인",
+        "split_hash": "ace5f4a41446a5857848290c21cc404196960429fb2b8f483511c49dcb9342d7"
+      },
+      "split_instability": {
+        "implication": "적격자 4명 증가만으로 배정이 거의 전부 바뀐다. 코호트 확정 전에는 분할을 소비하는 단계를 시작하면 안 된다. WI-03 미결 산출물 locks/measurement_lock.json 의 필요성을 실증한다",
+        "outer_fold_unchanged_among_common_main_pool": "35/100 (35.0%)",
+        "pilot_retained": 7,
+        "pilot_total": 31,
+        "safe_this_time": "폐기된 분할로 적합된 모델이 없다 (WI-05 이후 미착수)"
+      },
+      "task_ok": {
+        "emomatching": 183,
+        "restingstate": 202,
+        "workingmemory": 176
+      },
+      "wi07_completion_targets": {
+        "checkpoints": 60,
+        "coincidence_warning": "N=126 에서 main_pool 창 수(1,008)와 run prediction rows(1,008)가 우연히 같다. 서로 다른 양이다",
+        "formula": "126 subjects x 2 tasks x 4 windows x 3 seeds x 4 cells",
+        "run_prediction_rows": 1008,
+        "supersedes": {
+          "run_prediction_rows": 984,
+          "window_prediction_rows": 11808
+        },
+        "window_prediction_rows": 12096
+      },
+      "windows_manifest_unchanged": {
+        "n_records": 1436,
+        "path": "derivatives_v2/windows_piop1.jsonl",
+        "reason": "target task 만 사용하므로 rest 변경의 영향을 받지 않는다",
+        "verified": {
+          "eligible_subjects_without_8_windows": 0,
+          "expected": 1008,
+          "main_pool_windows": 1008,
+          "pilot_expected": 248,
+          "pilot_windows": 248
+        }
+      }
+    },
+    "piop2": {
+      "external_eval_targets": {
+        "formula": "189 x 2 tasks x 4 windows / x 4 cells",
+        "run_rows": 1512,
+        "window_rows": 1512
+      },
+      "extract_status_change": {
+        "error": "2 -> 0",
+        "excluded": "19 -> 21"
+      },
+      "n_eligible": 189,
+      "n_subjects": 226,
+      "no_split_performed": "계획서 §9 — held-out 외부 코호트",
+      "task_ok": {
+        "emomatching": 204,
+        "restingstate": 203,
+        "workingmemory": 214
+      },
+      "unchanged_vs_rev21": true,
+      "windows_manifest_unchanged": {
+        "n_records": 1672,
+        "path": "derivatives_v2_piop2/windows_piop2.jsonl",
+        "verified_eligible_windows": 1512
+      }
+    },
+    "promotion_procedure": {
+      "backups": "derivatives_v2*/.backup/ 에 manifest·cohort·splits 타임스탬프 보존",
+      "interpretation": "기존 1,560 창이 전부 바이트 동일 — P7·E15 는 판정만 바꿨고 이미 통과한 창의 수치는 한 비트도 바뀌지 않았다",
+      "post_verification": {
+        "piop1": "windows=808 missing=0 hash_mismatch=0",
+        "piop2": "windows=812 missing=0 hash_mismatch=0"
+      },
+      "result": {
+        "piop1": {
+          "conflict": 0,
+          "identical": 748,
+          "new": 60
+        },
+        "piop2": {
+          "conflict": 0,
+          "identical": 812,
+          "new": 0
+        }
+      },
+      "steps": [
+        "정본 경로의 기존 파일 sha256 을 읽어 manifest 값과 비교",
+        "불일치가 하나라도 있으면 즉시 중단 (덮어쓰기 금지)",
+        "정본에 없는 파일만 복사하고 복사 직후 해시 재확인",
+        "manifest 의 path 를 정본 경로로 재작성"
+      ],
+      "why_needed": "재추출을 /tmp 로 냈으므로 manifest 의 path 가 /tmp 를 가리켰다"
+    },
+    "status": "P7·E15 반영 정본. PIOP1 분할은 갱신본, PIOP2 는 분할하지 않음(§9 held-out)"
+  },
+  "e17_stale_evidence_hashes": {
+    "symptom": "rev22 마감 검증에서 gate_evidence 가 기록한 해시 8건이 실제 파일과 불일치",
+    "stale": [
+      "v2_module_hashes/extract.py",
+      "v2_module_hashes/preprocess.py",
+      "v2_test_hashes/test_extract.py",
+      "v2_test_hashes/test_h197_scripts.py",
+      "v2_test_hashes/test_preprocess.py",
+      "h197_scripts/requirements-v2.txt",
+      "script_contract_guard.guard_sha256",
+      "gates/G0/artifact_hashes/reports/wi00_wi01_execution_report_2026-09-17.md"
+    ],
+    "cause": "전부 P7·E15 수정이 닿은 파일이다. rev21 은 '둘 다 고치고 재추출 중'이라고 서술하면서 그 수정이 닿은 파일의 해시는 갱신하지 않았다 — 증거 블록이 자기가 서술한 코드가 아닌 이전 코드를 가리키고 있었다",
+    "process_cause": "해시 재검증을 증거를 쓴 직후가 아니라 쓰기 전에 돌렸다. 검증은 마지막이어야 한다",
+    "second_gap": {
+      "what": "h197_scripts 블록에 21개 중 11개만 등록되어 있었다",
+      "unrecorded_were": [
+        "07_verify_import_closure.py",
+        "09_survey_discarded_volumes.py",
+        "10_wi02_extract.py",
+        "11_filter_order_probe.py",
+        "12_build_windows_manifest.py",
+        "13_bank_demo.py",
+        "14_watch_and_extract_piop1.sh",
+        "15_build_subjects.py",
+        "16_watch_and_process_piop2.sh",
+        "requirements-legacy-extra.txt"
+      ],
+      "severity": "10_wi02_extract.py 와 15_build_subjects.py 는 이번 코호트를 만든 스크립트다",
+      "why_hash_check_missed_it": "해시 대조는 '기록된 경로'만 본다. 아예 기록되지 않은 파일은 못 잡는다"
+    },
+    "guard": {
+      "script": "scripts/h197/17_verify_gate_hashes.py",
+      "sha256": "c61ac719ab78d061a16eb8b86860dafb2f4869497013394de765cbff6f7a44c0",
+      "checks": [
+        "기록된 해시 vs 실제 파일",
+        "해시를 모으는 디렉터리에 미기록 파일이 있는지 (디렉터리 전수 대조)"
+      ],
+      "usage": "증거 파일을 갱신한 직후 마지막 단계로 돌린다"
+    }
+  },
+  "wi03_measurement_lock": {
+    "gate": "G1 Measurement lock",
+    "artifact": "locks/measurement_lock.json",
+    "lock_hash": "1c1fba957b355f08229cd4ed3517fbf58914e38ffe0c8adf9cc988b9a77e0ba4",
+    "locked_at_utc": "2026-09-18T00:45:43Z",
+    "module": "mobse/v2/locks.py",
+    "module_sha256": "4a3dae547c0744dbf58e24f2d53ec46c4c71577bc71a502f130bd70b1272a812",
+    "builder": "scripts/h197/18_build_measurement_lock.py",
+    "verifier": "scripts/h197/19_verify_measurement_lock.py",
+    "locks": {
+      "piop1": {
+        "n_eligible": 157,
+        "split_hash": "ace5f4a41446a5857848290c21cc404196960429fb2b8f483511c49dcb9342d7",
+        "folds_sha256": "a73875f2a98164f4c8d9dd5406cd0ff98d92e5533728469e71cf466755c1ef59"
+      },
+      "piop2": {
+        "n_eligible": 189,
+        "folds": null,
+        "reason": "계획서 §9 — PIOP2 는 held-out 외부 코호트다. fold 를 만들지 않는다."
+      },
+      "code_hash": "be04d7ecfd3f9e7041b4dcf4828169ec3e5c23d52d246fcd4dfa4478821e3ec3",
+      "configs": {
+        "external": "7daa536b",
+        "main": "85556f56",
+        "pilot": "fd6c8a27"
+      }
+    },
+    "invariants_recomputed_not_trusted": "verify_lock() 이 folds.json 을 다시 읽어 불변식을 다시 계산한다. 잠금에 기록된 값과 다르면 그것도 mismatch 로 보고한다",
+    "invariants": {
+      "pilot_and_main_pool_disjoint": true,
+      "pilot_union_main_pool_is_eligible": true,
+      "n_pilot": 31,
+      "n_main_pool": 126,
+      "n_eligible": 157,
+      "outer_test_train_disjoint": true,
+      "outer_test_union_train_is_main_pool": true,
+      "outer_tests_mutually_disjoint": true,
+      "outer_tests_partition_main_pool": true,
+      "inner_structure_valid": true,
+      "pilot_absent_from_every_fit": true,
+      "outer_test_sizes": [
+        26,
+        25,
+        25,
+        25,
+        25
+      ]
+    },
+    "verification": {
+      "command": "python scripts/h197/19_verify_measurement_lock.py --data-root <h197 자료> --repo-root . --release <release>",
+      "result": "검사 24건: 일치 24, 불일치 0, 파일없음 0, 불변식실패 0, 미검사 0 (rc=0)"
+    },
+    "tamper_test": {
+      "method": "잠긴 파일 17개를 사본 트리에 복사하고 folds 의 outer fold 0 train 에 pilot 1명 주입",
+      "detected_by_hash": true,
+      "detected_by_invariant": [
+        "pilot_absent_from_every_fit",
+        "outer_test_union_train_is_main_pool",
+        "inner_structure_valid"
+      ],
+      "rc": 1
+    },
+    "skipped_is_not_pass": "data_root 없이 돌리면 미검사 2건을 skipped 로 남기고 rc=1 을 준다. 검사하지 못한 것을 통과로 세지 않는다",
+    "change_policy": [
+      "잠긴 항목이 하나라도 바뀌면 이 잠금은 무효다. 새 잠금 파일을 만들고 supersedes 에 구 lock_hash 와 변경 사유를 남긴다. 구 파일은 지우지 않는다.",
+      "잠금이 무효가 되면 그 잠금에 의존해 적합된 산출물은 **다시 만든다.** 부분 갱신하지 않는다.",
+      "main OOF 평가를 한 번이라도 수행한 뒤에는 δ 와 분석 N 을 바꾸지 않는다 (계획서 §8).",
+      "pilot 은 모든 main/final fit 에서 제외된다. verify 가 매번 재확인한다.",
+      "PIOP2 는 fold 를 만들지 않는다. 외부 평가 전에 fit·선택·calibration 에 쓰지 않는다 (§9)."
+    ],
+    "tests": "tests/v2/test_locks.py (18건)",
+    "artifacts": {
+      "locks/measurement_lock.json": "abe6a9fc5e978274c8061ff90df7664140a24e55be85030abb3da4a97a8294f5"
+    }
+  },
+  "wi03_resource_budget": {
+    "artifact": "reports/resource_budget.md",
+    "benchmark_script": "scripts/h197/21_resource_benchmark.py",
+    "synthetic": true,
+    "does_not_replace": "계획서 §7 — pilot 에서 peak memory·시간을 측정한다",
+    "machine": {
+      "host": "bmcws",
+      "python": "3.11.5",
+      "torch": "2.10.0+cu128",
+      "device": "cuda",
+      "gpu": "NVIDIA GeForce RTX 3090 Ti",
+      "precision": "float32 (AMP 미사용)"
+    },
+    "sizes": {
+      "main_pool_subjects": 126,
+      "outer_train_subjects": 101,
+      "inner_train_subjects": 67,
+      "inner_train_windows": 536,
+      "outer_train_windows": 808,
+      "outer_train_rest_windows": 404,
+      "batch_size": 32,
+      "max_epochs": 50
+    },
+    "fit_budget": {
+      "main_inner": 480,
+      "main_outer": 60,
+      "null_sensitivity": 120,
+      "external_selection": 96,
+      "external_final": 12,
+      "total": 768
+    },
+    "measured": {
+      "epoch_inner_s_range": [
+        0.085,
+        0.144
+      ],
+      "epoch_outer_s_range": [
+        0.155,
+        0.245
+      ],
+      "peak_gpu_mib_range": [
+        92.8,
+        96.5
+      ],
+      "transform_per_fit_s": 1.4341474829707295,
+      "trainable_parameters": {
+        "A": 6469,
+        "B": 6021,
+        "C": 6469,
+        "D": 6021
+      },
+      "bank_is_frozen_all_cells": true,
+      "flops": "NA — 계획서 §9"
+    },
+    "cell_differences_not_resolved": "네 cell 의 최솟–최댓값 구간이 크게 겹친다. outer 가 inner 보다 느린 것만 신호로 읽고 cell 간 비교는 하지 않는다",
+    "estimated": {
+      "total_training_hours_upper": 1.87,
+      "total_training_hours_with_early_stopping": 1.27,
+      "checkpoints_total_mib": 27,
+      "derivative_windows_mib": 54.7,
+      "source_bold_gib": 209.7
+    },
+    "binding_constraint": "계산·메모리·저장공간이 아니다. 209.7 GiB 원본이 이중화 없는 디스크 한 장 위에 있고 그 디스크가 1,932 섹터를 읽지 못한다. 파생물이 54.7 MiB 뿐이라 WI-02 재추출 외에는 원본 없이 다른 기계에서 돌릴 수 있다",
+    "artifacts": {
+      "reports/resource_budget.md": "3ad659edc74a7ff778ab3660718eefc6abc98cbab5c54c8c1422c9d762719690",
+      "provenance/wi03_resource/resource_benchmark.json": "3a6bc49aae468d8d8d3cd8c519007b0963bd19c27c7077e72c001b423780511a"
+    }
+  },
+  "wi03_precision_scenarios": {
+    "artifact": "reports/precision_scenarios.md",
+    "script": "scripts/h197/20_precision_simulation.py",
+    "generator": "McNemar trinomial per task, Gaussian copula across tasks",
+    "bootstrap": {
+      "n_boot": 10000,
+      "pct": [
+        1.25,
+        98.75
+      ],
+      "path": "multinomial over the five values of d (index 재표집과 동치)"
+    },
+    "n_replicates": 2000,
+    "conclusion": "현재 설계는 δ=0.02 를 검출할 정밀도가 없다",
+    "p_lower_gt_0_at_delta_0.02_rho_0": {
+      "N126": {
+        "0.05": 0.1905,
+        "0.1": 0.11,
+        "0.2": 0.061,
+        "0.3": 0.048
+      },
+      "N189": {
+        "0.05": 0.3035,
+        "0.1": 0.13,
+        "0.2": 0.075,
+        "0.3": 0.0625
+      }
+    },
+    "p_lower_gt_delta_max_over_all_48_cells": 0.335,
+    "minimum_detectable_effect_at_power_0.80": {
+      "N126_pi0.05_rho0.0": 0.04062500000000001,
+      "N126_pi0.05_rho0.5": 0.0421875,
+      "N126_pi0.1_rho0.0": 0.0609375,
+      "N126_pi0.1_rho0.5": 0.06718750000000001,
+      "N126_pi0.2_rho0.0": 0.08750000000000001,
+      "N126_pi0.2_rho0.5": 0.09843750000000001,
+      "N126_pi0.3_rho0.0": 0.10546875,
+      "N126_pi0.3_rho0.5": 0.12539062499999998,
+      "N189_pi0.05_rho0.0": 0.034375,
+      "N189_pi0.05_rho0.5": 0.037500000000000006,
+      "N189_pi0.1_rho0.0": 0.0484375,
+      "N189_pi0.1_rho0.5": 0.05625,
+      "N189_pi0.2_rho0.0": 0.07343750000000002,
+      "N189_pi0.2_rho0.5": 0.08281250000000001,
+      "N189_pi0.3_rho0.0": 0.0890625,
+      "N189_pi0.3_rho0.5": 0.10195312499999999
+    },
+    "mde_vs_protocol_delta": "가장 유리한 가정(π=0.05, ρ=0)에서도 δ80 = 0.041 — 사전 등록 δ 의 2배",
+    "calibration_check": {
+      "p_lower_gt_0_at_delta_0_range": [
+        0.0065,
+        0.017
+      ],
+      "theoretical": 0.0125,
+      "reading": "절차가 보정되어 있다. 낮은 검출력은 절차 결함이 아니라 설계의 정밀도 문제다"
+    },
+    "pilot_cannot_pin_it_down": {
+      "n_pilot": 31,
+      "wilson_95_at_pi_0.10": {
+        "n_pilot": 31,
+        "pi_true": 0.1,
+        "wilson_lo": 0.03516187202730234,
+        "wilson_hi": 0.2530424443410464,
+        "width": 0.21788057231374405
+      },
+      "reading": "pilot 이 π=0.10 을 보고해도 실제는 0.035–0.253 어디든 될 수 있고, 그 구간이 P(하한>0) 를 0.05–0.19 로 가른다"
+    },
+    "equivalence_of_fast_path": {
+      "why": "d 가 다섯 값만 취하므로 재표집 평균 분포가 다섯 칸 multinomial 과 같다",
+      "verified": [
+        "group=subject 에서 group bootstrap 이 subject bootstrap 과 재표집 배열까지 완전 동일",
+        "paired_bootstrap 의 CI 가 벡터화 index 경로와 완전 일치",
+        "multinomial 경로와 index 경로의 CI 차이가 격자 한 칸(0.5/N) 이내, 계통 편차 없음"
+      ],
+      "tests": "tests/v2/test_precision_simulation.py (12건)"
+    },
+    "reproducibility": "grid 48칸을 서로 다른 시각에 두 번 돌려 전칸 값이 완전히 동일",
+    "not_simulated": [
+      "두 주 contrast(A−B, A−C)의 결합 확률 — A 를 공유해 양의 상관이 있으나 구조를 모르므로 곱을 하한으로도 쓰지 않는다",
+      "training-set 변동 — 내부 OOF 는 고정 학습 결과에 조건부다 (§8)"
+    ],
+    "delta_unchanged": "정밀도 부족이 δ 를 키울 근거가 되지 않는다. δ=0.02 를 그대로 둔다 (§8)",
+    "no_arbitrary_augmentation": "지침서 WI-03 — 단지 작은 N 이면 임의 증원 대신 제한을 보고한다",
+    "artifacts": {
+      "reports/precision_scenarios.md": "a5d576edeb89a1223d79f97067490b85ac16fe56d516b92b56b9b4e33724aa69",
+      "provenance/wi03_precision/precision_scenarios.json": "67284e5991af25775ee569c32e2b51e75f8833ea9f0874d477b9d68d8ae7817e"
+    },
+    "p_lower_gt_delta_at_delta_true_0.02": [
+      0.008,
+      0.015
+    ],
+    "p_lower_gt_delta_max_over_all_48_cells_note": "0.335 (N=189, π=0.05, δ_true=0.04). 초안이 이 값을 δ_true=0.02 의 결론에 싸잡아 '48개 칸 어디서도 0.02 이하'라고 적었다가 재검수에서 정정했다 — 부록 V.7"
+  },
+  "e12_call_site_guard": {
+    "incident": "E12 5회차 — 가드가 있었는데 통과했다",
+    "what_the_old_guard_checked": "test_build_bank_and_transform_signatures 가 라이브러리 쪽 계약(fit_subjects 가 필수 인자)을 정확히 고정했고 통과했다",
+    "why_it_missed": "계약이 존재하는지는 봐도 새 스크립트가 그 계약대로 부르는지는 보지 않는다. 스크립트 검사는 '임포트가 되는가'뿐이었고 잘못된 호출은 함수 안에 있어 임포트 시 실행되지 않는다",
+    "correction_to_appendix_L": "'네 건 모두 시험 밖의 스크립트에서 났다'는 진단이 절반만 맞았다. 스크립트를 적재하는 것과 호출부를 검사하는 것은 다르다",
+    "new_guard": "tests/v2/test_script_call_sites_match_library_signatures",
+    "how": [
+      "scripts/h197/*.py 를 AST 로 파싱",
+      "from-import 와 module-alias 두 형태 모두에서 mobse.v2 callable 해석",
+      "각 ast.Call 의 인자 개수·키워드를 실제 inspect.Signature 에 bind",
+      "*args/**kwargs 가 섞인 호출은 판정 불가이므로 건너뛴다 — 추측하지 않는다"
+    ],
+    "self_test": "test_call_site_checker_catches_the_actual_mistake_that_happened — 이번에 저지른 그 호출을 검사기에 넣어 정확히 1건을 잡는지 확인한다",
+    "limits": [
+      "런타임에 결정되는 호출(변수에 담긴 함수, getattr)은 못 잡는다",
+      "인자 개수·이름만 보고 타입·의미는 보지 않는다"
+    ],
+    "guard_test_count_after": 101,
+    "guard_test_count_before": 57
+  },
+  "closing_procedure": {
+    "steps": [
+      "시험 전량 통과",
+      "해시 전건 일치 — scripts/h197/17_verify_gate_hashes.py",
+      "인용 수치 원자료 대조 — 문장이 파일을 옳게 읽었는가"
+    ],
+    "why_step_3": "해시 검증은 '파일이 바뀌지 않았다'를 보증하지 그 파일을 옳게 요약했는지는 보증하지 않는다. rev23 재검수에서 서술 오류 2건이 이 단계에서만 잡혔다",
+    "rev23_findings": [
+      "'하한>δ 는 48개 칸 어디서도 0.02 이하' — δ_true=0.02 인 16칸의 사실을 전체로 과잉 일반화. 전체 최댓값은 0.335. 정정 후 주장이 오히려 강해졌다",
+      "peak GPU '93–97 MiB' — 실측 최솟값 92.8 을 반올림한 93 을 범위 하한으로 써서 실제 값이 범위 밖으로 나갔다. 92.8–96.5 로 정정"
+    ],
+    "limits": "문서의 모든 표 칸을 파싱하지는 않는다. 핵심 주장 위주의 대조다",
+    "script": "scripts/h197/22_crosscheck_reported_numbers.py",
+    "script_sha256": "d7b5ba050b0fddbffb15c9910391dbf0653984214de54c7a4b9304d74b516797",
+    "self_tests": "tests/v2/test_h197_scripts.py — 대조기가 틀린 인용·누락된 MDE·§9 위반을 잡는지, 정정된 문구의 인용(blockquote)은 허용하고 인용 밖은 잡는지 확인한다 (5건)",
+    "result_rev23": {
+      "tests": "521 passed, 11 skipped",
+      "hashes": "119건 전부 일치",
+      "quoted_numbers": "실패 0건",
+      "measurement_lock": "24건 전부 일치, rc=0"
+    }
+  }
+}

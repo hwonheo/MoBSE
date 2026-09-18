@@ -1,0 +1,174 @@
+# 자원 예산 — WI-03 산출물 (2026-09-18)
+
+지침서 WI-03 의 출력 중 하나다. 계획서 §7 은 "표는 실행 횟수 계획이고 소요시간
+보장이 아니다. **pilot에서 peak memory·시간을 측정해 자원 계획을 만든다**"고
+정한다. pilot fit 은 아직 구현 전이므로 **이 문서는 pilot 측정을 대신하지 않는다.**
+규모를 잡기 위한 중간 문서이고, 무엇이 측정이고 무엇이 추정인지 줄마다 구분한다.
+
+표기: **[측정]** 이 기계에서 실제로 잰 값. **[추정]** 측정에서 계산한 값.
+**[미측정]** 아직 재지 않았고 이 문서로 확정하지 않는 값.
+
+## 1. 측정 환경
+
+**[측정]**
+
+```
+host        bmcws-h197
+GPU         NVIDIA GeForce RTX 3090 Ti, 24,564 MiB, driver 570.181
+CPU/RAM     12 core / 31 GiB
+torch       2.10.0+cu128, CUDA 사용 가능
+precision   float32, AMP 미사용
+저장소      /mnt/data (md0, RAID1 [2/1] [U_]), 5.5T 중 2.5T 사용 (47%)
+```
+
+계획서 §9 의 "동일 장비/batch/precision" 요구에 따라 모든 측정은 이 한 기계,
+batch 32, float32 에서 잰 값이다.
+
+## 2. 이미 지출된 것
+
+| 항목 | 값 | 구분 |
+|---|---:|---|
+| Wave 2 원본 BOLD | 2,590 파일 / **209.7 GiB** | [측정] fetch 계획 로그 |
+| 창 파생물 (.npy) | 4,728 파일 / **54.7 MiB** | [측정] 파일당 12,128 B × ok run 1,182 × 4 |
+| atlas | 76 KiB | [측정] |
+| manifest·코호트·분할 | < 3 MiB | [측정] |
+
+**파생물은 원본의 0.03% 다.** 디스크를 먹는 것은 오로지 원본 BOLD 다.
+
+## 3. 추출 실측 (WI-02, 완료분)
+
+**[측정]** 6개 조합의 실제 wall-clock:
+
+| dataset | task | run | 소요 | run 당 |
+|---|---|---:|---:|---:|
+| ds002785 | emomatching | 216 | 353 s | 1.63 s |
+| ds002785 | workingmemory | 216 | 500 s | 2.31 s |
+| ds002785 | restingstate | 216 | 1,097 s | 5.08 s |
+| ds002790 | emomatching | 226 | 322 s | 1.42 s |
+| ds002790 | workingmemory | 226 | 395 s | 1.75 s |
+| ds002790 | restingstate | 226 | 543 s | 2.40 s |
+
+PIOP1 rest 가 유독 느린 것은 TR 0.75 초라 run 당 원본 frame 이 480개로 가장
+많고 목표 격자로 보간까지 하기 때문이다. 전량 1회 재추출 = **약 53분**.
+
+> `derivatives_v2/extract_ds002785_workingmemory.log` 는 1차 실행분이고
+> (ok 175 / error 3), manifest 는 E14 수정 후 재실행분이다 (ok 176 / excluded 31).
+> 소요시간은 run 당 비용이라 재실행에도 그대로 쓴다. 로그와 manifest 의 계수가
+> 다른 이유를 여기 적어 둔다.
+
+## 4. Fold 내부 변환 실측
+
+**[측정]** outer train rest 창 404개(= 101 subject × 4) 기준, 반복 25회 중앙값:
+
+| 단계 | 시간 |
+|---|---:|
+| FC(Ledoit–Wolf) → Fisher-z | 0.27 s |
+| StandardScaler + PCA-10 | 0.54 s |
+| K-means(K=3) → centroid → sparsify → normalize | 0.05 s |
+| **한 fit 당 합계** | **0.86 s** |
+
+bank 는 (outer, inner) 조합마다 한 번 적합한다. main 15개 + outer 최종 5개 +
+external 관련 소수 → **[추정] 전체 변환 비용은 30초 미만**이다. 무시해도 된다.
+
+## 5. 모델 실측
+
+**[측정]** parameter 수와 bank 동결 여부:
+
+| cell | routing | trainable params | bank 가 buffer 인가 |
+|---|---|---:|---|
+| A | dynamic | 6,469 | 예 |
+| B | fixed | 6,021 | 예 |
+| C | dynamic | 6,469 | 예 |
+| D | fixed | 6,021 | 예 |
+
+A/C 와 B/D 의 448 차이는 dynamic gate(Linear32→GELU→Linear3)와 fixed gate
+(logits 3개)의 차이다. **bank 는 어느 cell 에서도 parameter 가 아니다.**
+
+**[측정]** 1 epoch 학습 시간, 반복 25회:
+
+| 규모 | 창 수 | epoch 중앙값 범위 | 최솟–최댓값 |
+|---|---:|---|---|
+| inner train (67 subject) | 536 | 0.085 – 0.144 s | 0.049 – 0.174 s |
+| outer train (101 subject) | 808 | 0.155 – 0.245 s | 0.075 – 0.267 s |
+
+**cell 사이의 차이는 이 측정으로 해소되지 않는다.** 네 cell 의 최솟–최댓값
+구간이 서로 크게 겹친다. outer 가 inner 보다 일관되게 느린 것(창 1.5배)만
+신호로 읽고, cell 간 비교는 하지 않는다.
+
+측정에서 읽히는 것은 **이 규모에서 계산은 커널 실행 오버헤드에 묶여 있다**는
+점이다. 창 808개 / batch 32 = 26 batch 이고 모델이 6천 parameter 다. GPU 를
+채우지 못한다.
+
+**[측정]** peak GPU 메모리는 네 cell 모두 **92.8–96.5 MiB**. 24 GiB 카드에서
+동시에 수십 개를 돌려도 메모리가 제약이 아니다.
+
+**[측정]** 전체 학습창 1회 추론 0.011–0.027 s.
+
+FLOPs 는 **NA** 다 — 계획서 §9 가 "지원되지 않는 FLOPs 는 NA" 라고 정했고,
+`thop` 이 dense graph layer 의 einsum 을 세지 못한다.
+
+## 6. 학습 예산 [추정]
+
+계획서 §7 의 fit 표는 코드 `train.fit_budget()` 과 일치한다 (`test_train.py`
+`test_fit_budget_matches_protocol_table`).
+
+epoch 비용은 위 측정의 **상단**을 쓴다 — inner 0.15 s, outer 0.25 s.
+모든 fit 이 max 50 epoch 을 다 쓴다고 본다(early stopping 을 무시한 상한).
+
+| 비용 묶음 | fits | epoch 당 | 상한 시간 |
+|---|---:|---:|---:|
+| A–D main inner | 480 | 0.15 s | 1.00 h |
+| A–D main outer | 60 | 0.25 s | 0.21 h |
+| 추가 null 민감도 | 120 | 0.25 s | 0.42 h |
+| External 최종 선택 | 96 | 0.15 s | 0.20 h |
+| External 최종 fit | 12 | 0.25 s | 0.04 h |
+| **합계** | **768** | | **1.87 h** |
+
+inner 가 early stopping 으로 평균 절반에서 멈추면 **1.27 h**.
+
+**[추정]** 이 숫자는 순수 학습 시간이다. 창 적재·checkpoint 저장·평가·로깅을
+넉넉히 3–5배로 잡아도 **하루 안에 끝난다.** baseline·pilot·mechanism·그 밖의
+민감도는 계획서 §7 이 "별도" 라고 했으므로 이 표에 없다.
+
+**[추정]** checkpoint: parameter 6,469 + bank buffer 30,000 을 float32 로
+약 142 KiB. primary 60 + null 120 + external 12 = 192개 → **약 27 MiB**.
+
+**[추정]** 예측 행: window 12,096 + run 1,008 (primary), external window 1,512 +
+run 1,512. JSONL 로 수 MiB.
+
+## 7. 그래서 무엇이 제약인가
+
+계산도 메모리도 저장공간도 제약이 아니다. **제약은 자료가 놓인 디스크다.**
+
+```
+md0 : active raid1 sda1[0]  [2/1] [U_]     ← 이중화 없음
+sda : Current_Pending_Sector 1,942 / Offline_Uncorrectable 1,932
+      Power_On_Hours 60,758 (6.9년), Load_Cycle_Count 690,921 (정규화 VALUE 001)
+```
+
+209.7 GiB 의 원본이 **이중화 없는 디스크 한 장** 위에 있고, 그 디스크는
+1,932 섹터를 이미 읽지 못한다. 학습 예산 1.9시간은 이 사실 앞에서 부차적이다.
+
+파생물이 54.7 MiB 밖에 안 된다는 점은 유리하게 쓸 수 있다 — **원본을 다시
+받지 않고도 파생물만 옮기면 WI-04 이후 전 단계를 다른 기계에서 돌릴 수 있다.**
+원본이 필요한 것은 WI-02 재추출뿐이다.
+
+## 8. 아직 재지 않은 것 [미측정]
+
+- **pilot 31명에서의 실제 peak memory·시간.** 계획서 §7 이 요구하는 측정이다.
+  `fit` CLI 구현 후에 한다. 이 문서의 5·6절은 **합성 자료** 측정이며 크기만
+  실제 분할에서 가져왔다.
+- **early stopping 이 실제로 몇 epoch 에서 멈추는지.** 6절은 상한만 계산했다.
+- **자료 적재·checkpoint I/O 비용.** 3–5배라는 배수는 근거 없는 여유이며
+  pilot 에서 실측으로 대체해야 한다.
+- **다중 fit 동시 실행 시의 처리량.** 메모리는 남지만 커널 실행 오버헤드가
+  지배적이라 동시 실행 이득이 클 수 있다. 재지 않았다.
+
+## 근거
+
+| 값 | 재현 명령 |
+|---|---|
+| 5·6절 측정 | `python scripts/h197/21_resource_benchmark.py --out <path> --repeats 25` |
+| 3절 추출 시간 | `derivatives_v2*/extract_*.log` 의 마지막 진행 줄 |
+| 2절 파생물 크기 | ok run 수 × 4 창 × 12,128 B (파일 크기는 `stat`) |
+| fit 수 | `mobse.v2.train.fit_budget()` — 계획서 §7 표와 시험으로 대조 |
