@@ -1,0 +1,28 @@
+# MoBSE 재설계 v2 — h197 실행 환경 핀 (Python 3.11)
+#
+# 기준: Mac 쪽 기존 .venv 의 dist-info 기록과 동일한 버전으로 맞춰 과거 산출물과의
+# 연속성을 유지한다. torch 는 CUDA 변형이 호스트에 따라 달라지므로 여기에 두지 않고
+# 04_setup_venv.sh 가 별도로 설치한다.
+#
+# torch_geometric 은 **의도적으로 제외한다.**
+#   근거: mobse/models/mobse.py:93-98 이 PyG 설치 여부로 DenseGCNConv / DenseGraphLayer 를
+#   갈라 쓴다. 계획서 §6 과 지침서 T10 은 "backend 에 따라 연산이 바뀌지 않을 것"을
+#   요구하므로, 설치하지 않는 것이 가장 확실한 guard 다 (차단 항목 U21).
+
+numpy==2.4.3
+scipy==1.17.1
+scikit-learn==1.8.0
+pandas==3.0.1
+nibabel==5.4.2
+nilearn==0.13.1
+matplotlib==3.10.9
+pytest==9.0.2
+
+# mobse/config.py 가 YAML config 를 읽고, v2 runtime config 도 YAML 이다.
+# 초판 핀에서 빠져 legacy suite 가 ModuleNotFoundError 로 죽었다.
+PyYAML==6.0.3
+
+# mobse/viz.py:8 이 seaborn 을 import 하고, scripts/make_redesign_protocol_figures.py 가
+# 그 set_nature_style()/save_multi() 를 상속한다. 즉 figure 산출 경로의 실제 의존성이다.
+# 07_verify_import_closure.py (release scope) 가 잡아냈다.
+seaborn==0.13.2
