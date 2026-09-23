@@ -27,9 +27,12 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
-from .manifests import ManifestError, sha256_file
+from .manifests import ManifestError, code_hash, sha256_file
 
 SCHEMA_VERSION = "measurement_lock_v1"
+
+#: 잠금의 `environment.code` 가 가리키는 모듈 디렉터리 (repo_root 기준).
+CODE_DIR = "mobse/v2"
 
 #: `lock_hash` 를 계산할 때 본문에서 제외하는 최상위 필드.
 _EXCLUDED_FROM_LOCK_HASH = ("lock_hash",)
@@ -212,6 +215,15 @@ def verify_lock(lock: Mapping[str, Any], *, roots: Mapping[str, Path],
             else:
                 out["ok"].append(f"{where}: {rel}")
 
+    code_rec = (lock.get("environment") or {}).get("code")
+    if code_rec is not None:
+        repo_root = roots.get("repo_root")
+        if repo_root is None:
+            out["skipped"].append("environment/code: repo_root 이 주어지지 않아 미검사")
+        else:
+            for kind, line in verify_code_record(code_rec, Path(repo_root)):
+                out[kind].append(line)
+
     data_root = roots.get("data_root")
     reader = folds_reader or (lambda p: json.loads(Path(p).read_text(encoding="utf-8")))
     for name, cohort in (lock.get("cohorts") or {}).items():
@@ -244,6 +256,49 @@ def verify_lock(lock: Mapping[str, Any], *, roots: Mapping[str, Path],
             out["mismatch"].append(f"cohorts/{name}: 기록된 불변식과 재계산이 다르다 {drift}")
 
     return out
+
+
+def verify_code_record(code_rec: Mapping[str, Any],
+                       repo_root: Path) -> List[tuple]:
+    """`environment.code` 를 저장소의 현재 모듈과 대조한다 (E20).
+
+    `code` 절은 `{"path", "sha256"}` 모양이 아니라서 `_walk_file_records` 가
+    보지 못한다. 그래서 잠금이 코드를 **기록만 하고 검사하지 않았다** — E19
+    수정으로 `mobse/v2` 가 바뀌어도 19번이 24/24 를 냈다 (2026-09-23).
+
+    Args:
+        code_rec: ``{"code_hash": str, "modules": {파일명: sha256}}``.
+        repo_root: 저장소 root.
+
+    Returns:
+        ``(kind, line)`` 목록. kind 는 ok / mismatch / missing.
+    """
+    found: List[tuple] = []
+    module_dir = Path(repo_root) / CODE_DIR
+    paths = sorted(module_dir.glob("*.py"))
+    actual = {p.name: sha256_file(p) for p in paths}
+    recorded = code_rec.get("modules")
+    if not isinstance(recorded, Mapping) or not recorded:
+        return [("mismatch", "environment/code/modules: 기록이 없거나 비었다")]
+    for name in sorted(set(recorded) | set(actual)):
+        where = f"environment/code/modules/{name}"
+        if name not in actual:
+            found.append(("missing", f"{where}: {CODE_DIR}/{name}"))
+        elif name not in recorded:
+            found.append(("mismatch", f"{where}: 잠금에 없는 모듈"))
+        elif actual[name] != recorded[name]:
+            found.append(("mismatch", f"{where}: 기대 {str(recorded[name])[:12]} "
+                                      f"실제 {actual[name][:12]}"))
+        else:
+            found.append(("ok", where))
+    expect = code_rec.get("code_hash")
+    got = code_hash(paths) if paths else None
+    if got is None or got != expect:
+        found.append(("mismatch", f"environment/code/code_hash: 기대 {str(expect)[:12]} "
+                                  f"실제 {str(got)[:12]}"))
+    else:
+        found.append(("ok", "environment/code/code_hash"))
+    return found
 
 
 def lock_is_clean(result: Mapping[str, Sequence[str]]) -> bool:

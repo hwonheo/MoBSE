@@ -226,3 +226,84 @@ def test_wrong_schema_version_is_caught(tmp_path, good):
     body["schema_version"] = "measurement_lock_v0"
     res = L.verify_lock(body, roots={"data_root": data, "repo_root": repo})
     assert any("schema_version" in m for m in res["mismatch"])
+
+
+# --------------------------------------------------------------------------- #
+# E20 — environment.code 는 기록만 되고 검사되지 않았다
+# --------------------------------------------------------------------------- #
+
+
+def _code_lock(tmp_path, good):
+    """`environment.code` 가 있는 잠금. 모듈 2개를 repo/mobse/v2 에 둔다."""
+    from mobse.v2.manifests import code_hash, sha256_file
+
+    def add_code(body):
+        mod = tmp_path / "repo" / L.CODE_DIR
+        mod.mkdir(parents=True, exist_ok=True)
+        (mod / "a.py").write_text("x = 1", encoding="utf-8")
+        (mod / "b.py").write_text("y = 2", encoding="utf-8")
+        paths = sorted(mod.glob("*.py"))
+        body["environment"]["code"] = {
+            "code_hash": code_hash(paths),
+            "modules": {p.name: sha256_file(p) for p in paths},
+        }
+
+    body, data, repo, *_ = _write_lock(tmp_path, good, tamper_body=add_code)
+    return body, data, repo, repo / L.CODE_DIR
+
+
+def test_verify_checks_code_on_an_untouched_lock(tmp_path, good):
+    body, data, repo, _ = _code_lock(tmp_path, good)
+    res = L.verify_lock(body, roots={"data_root": data, "repo_root": repo})
+    assert L.lock_is_clean(res), res
+    assert "environment/code/code_hash" in res["ok"]
+    assert sum(s.startswith("environment/code/modules/") for s in res["ok"]) == 2
+
+
+def test_verify_catches_an_edited_module(tmp_path, good):
+    body, data, repo, mod = _code_lock(tmp_path, good)
+    (mod / "a.py").write_text("x = 2", encoding="utf-8")
+    res = L.verify_lock(body, roots={"data_root": data, "repo_root": repo})
+    assert any("modules/a.py" in m for m in res["mismatch"])
+    assert any("code_hash" in m for m in res["mismatch"])
+    assert not L.lock_is_clean(res)
+
+
+def test_verify_catches_an_added_module(tmp_path, good):
+    body, data, repo, mod = _code_lock(tmp_path, good)
+    (mod / "c.py").write_text("z = 3", encoding="utf-8")
+    res = L.verify_lock(body, roots={"data_root": data, "repo_root": repo})
+    assert any("modules/c.py" in m and "잠금에 없는" in m for m in res["mismatch"])
+    assert not L.lock_is_clean(res)
+
+
+def test_verify_catches_a_removed_module(tmp_path, good):
+    body, data, repo, mod = _code_lock(tmp_path, good)
+    (mod / "b.py").unlink()
+    res = L.verify_lock(body, roots={"data_root": data, "repo_root": repo})
+    assert any("modules/b.py" in m for m in res["missing"])
+    assert not L.lock_is_clean(res)
+
+
+def test_code_check_is_location_independent(tmp_path, good):
+    """E19 와 함께: 같은 코드를 다른 위치에 복사해도 통과해야 한다."""
+    import shutil
+    body, data, repo, _ = _code_lock(tmp_path, good)
+    moved = tmp_path / "elsewhere" / "repo_copy"
+    shutil.copytree(repo, moved)
+    res = L.verify_lock(body, roots={"data_root": data, "repo_root": moved})
+    assert L.lock_is_clean(res), res
+
+
+def test_code_without_repo_root_is_skipped_not_passed(tmp_path, good):
+    body, data, repo, _ = _code_lock(tmp_path, good)
+    res = L.verify_lock(body, roots={"data_root": data})
+    assert any(s.startswith("environment/code") for s in res["skipped"])
+    assert not L.lock_is_clean(res)
+
+
+def test_empty_module_record_is_a_mismatch(tmp_path, good):
+    body, data, repo, _ = _code_lock(tmp_path, good)
+    body["environment"]["code"]["modules"] = {}
+    res = L.verify_lock(body, roots={"data_root": data, "repo_root": repo})
+    assert any("기록이 없거나 비었다" in m for m in res["mismatch"])

@@ -185,6 +185,35 @@ def test_code_hash_changes_with_content(tmp_path):
     assert code_hash([f]) != h1
 
 
+
+def test_code_hash_is_location_independent(tmp_path):
+    """E19: 같은 내용이면 저장소 위치가 달라도 같은 값이어야 한다."""
+    a = tmp_path / "repo_a" / "mobse" / "v2"
+    b = tmp_path / "somewhere" / "else" / "v2"
+    for d in (a, b):
+        d.mkdir(parents=True)
+        (d / "m1.py").write_text("x = 1")
+        (d / "m2.py").write_text("y = 2")
+    assert code_hash(sorted(a.glob("*.py"))) == code_hash(sorted(b.glob("*.py")))
+
+
+def test_code_hash_detects_rename(tmp_path):
+    f = tmp_path / "a.py"
+    f.write_text("x = 1")
+    h1 = code_hash([f])
+    g = tmp_path / "b.py"
+    f.rename(g)
+    assert code_hash([g]) != h1
+
+
+def test_code_hash_rejects_duplicate_names(tmp_path):
+    (tmp_path / "p").mkdir()
+    (tmp_path / "q").mkdir()
+    (tmp_path / "p" / "m.py").write_text("x = 1")
+    (tmp_path / "q" / "m.py").write_text("x = 2")
+    with pytest.raises(ManifestError, match="파일명이 겹친다"):
+        code_hash([tmp_path / "p" / "m.py", tmp_path / "q" / "m.py"])
+
 def test_assert_no_glob_fallback():
     assert_no_glob_fallback({"config": "c.yaml", "split": "folds.json"})
     with pytest.raises(ManifestError, match="U20"):

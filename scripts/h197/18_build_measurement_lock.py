@@ -144,7 +144,7 @@ def build_environment(repo_root: Path) -> Dict[str, Any]:
     """계획서·지침서·config·코드 절."""
     docs = repo_root / "docs/experiments"
     cfg_dir = repo_root / "configs/redesign_v1"
-    module_paths = sorted((repo_root / "mobse/v2").glob("*.py"))
+    module_paths = sorted((repo_root / L.CODE_DIR).glob("*.py"))
 
     configs: Dict[str, Any] = {}
     for p in sorted(cfg_dir.glob("*.yaml")):

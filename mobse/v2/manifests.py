@@ -318,8 +318,21 @@ def sha256_obj(obj: Any) -> str:
 
 
 def code_hash(paths: Sequence[Path]) -> str:
-    """경로 목록의 내용 해시. 파일명 정렬 후 각 파일 해시를 다시 해시한다."""
-    digests = [f"{Path(p).as_posix()}:{sha256_file(p)}" for p in sorted(map(Path, paths))]
+    """경로 목록의 내용 해시. 파일명 정렬 후 각 파일 해시를 다시 해시한다.
+
+    해시에는 **파일명만** 넣는다. 저장소 위치(절대경로 prefix)를 넣으면 같은
+    코드를 다른 디렉터리에서 돌렸을 때 값이 달라진다 (E19, 2026-09-23: 모듈
+    17개 sha 가 전부 같은데 code_hash 만 바뀐 사고).
+
+    Raises:
+        ManifestError: 서로 다른 경로에 같은 파일명이 있어 구분할 수 없을 때.
+    """
+    items = sorted((Path(p).name, Path(p)) for p in paths)
+    names = [n for n, _ in items]
+    dup = sorted({n for n in names if names.count(n) > 1})
+    if dup:
+        raise ManifestError(f"code_hash: 파일명이 겹친다 {dup}")
+    digests = [f"{n}:{sha256_file(q)}" for n, q in items]
     return hashlib.sha256("\n".join(digests).encode("utf-8")).hexdigest()
 
 
