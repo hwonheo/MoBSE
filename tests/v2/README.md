@@ -18,3 +18,4 @@ PYTHONPATH=. pytest tests/v2 -q
 |---|---|
 | `test_splits.py` | T03 subject isolation, T14 통계 단위(분할 쪽) |
 | `test_statistics.py` | T13 endpoint 손계산, T14 bootstrap index |
+| `test_cli_evaluate.py` | T15 무결성·T16 scope — `evaluate` 본체를 합성 release(24 fit)로 끝까지 |

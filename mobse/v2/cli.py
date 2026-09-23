@@ -10,7 +10,8 @@
 * ``prepare``   — 시간축·window·QC 를 산출한다.
 * ``split``     — pilot 과 outer/inner fold 를 만든다.
 * ``fit``       — 지정한 fold·cell·seed 하나를 학습한다.
-* ``evaluate``  — 저장된 예측을 집계한다. **분류만.**
+* ``evaluate``  — 저장된 outer test 예측을 run·subject·cell 로 집계한다. **분류만.**
+  부트스트랩·gate 판정은 하지 않는다 (``report`` 의 몫).
 * ``report``    — 통계와 gate evidence 를 낸다.
 """
 
@@ -35,6 +36,11 @@ REQUIRED_PATHS: Dict[str, Sequence[str]] = {
     "evaluate": ("config", "splits", "predictions", "fit_manifest", "output_dir"),
     "report": ("config", "predictions", "output_dir"),
 }
+
+
+#: 여러 경로를 받는 (하위 명령, 인자). release 하나는 cell × outer fold × seed
+#: 개의 fit 으로 이루어지므로 evaluate 는 그 산출물을 전부 명시적으로 받는다.
+MULTI_PATHS = frozenset({("evaluate", "predictions"), ("evaluate", "fit_manifest")})
 
 
 class CLIError(RuntimeError):
@@ -62,8 +68,10 @@ def build_parser() -> argparse.ArgumentParser:
     for name in SUBCOMMANDS:
         p = subs.add_parser(name, help=f"{name} 단계")
         for arg in REQUIRED_PATHS[name]:
+            many = (name, arg) in MULTI_PATHS
             p.add_argument(f"--{arg.replace('_', '-')}", type=Path, required=True,
-                           help=common[arg])
+                           nargs="+" if many else None,
+                           help=common[arg] + (" (fit 마다 하나, 여러 개)" if many else ""))
         if name == "fit":
             p.add_argument("--cell", required=True, choices=list("ABCD"))
             p.add_argument("--outer-fold", type=int, required=True)
@@ -87,7 +95,7 @@ def build_parser() -> argparse.ArgumentParser:
     return ap
 
 
-def resolve_paths(command: str, namespace: argparse.Namespace) -> Dict[str, str]:
+def resolve_paths(command: str, namespace: argparse.Namespace) -> Dict[str, Any]:
     """필수 경로가 모두 주어졌는지 확인한다.
 
     Raises:
@@ -96,16 +104,23 @@ def resolve_paths(command: str, namespace: argparse.Namespace) -> Dict[str, str]
     """
     if command not in REQUIRED_PATHS:
         raise CLIError(f"알 수 없는 하위 명령: {command!r}. 허용: {list(SUBCOMMANDS)}")
-    resolved = {k: (str(getattr(namespace, k)) if getattr(namespace, k, None) else None)
-                for k in REQUIRED_PATHS[command]}
+    def _norm(value: Any) -> Any:
+        if not value:
+            return None
+        if isinstance(value, (list, tuple)):
+            return [str(v) for v in value]
+        return str(value)
+
+    resolved = {k: _norm(getattr(namespace, k, None)) for k in REQUIRED_PATHS[command]}
     assert_no_glob_fallback(resolved)
     return {k: v for k, v in resolved.items() if v is not None}
 
 
-def check_inputs_exist(paths: Dict[str, str], *, skip: Sequence[str] = ("output_dir",)
+def check_inputs_exist(paths: Dict[str, Any], *, skip: Sequence[str] = ("output_dir",)
                        ) -> None:
     """입력 경로가 실제로 존재하는지 확인한다. 없으면 대체 탐색하지 않고 실패한다."""
-    missing = [k for k, v in paths.items() if k not in skip and not Path(v).exists()]
+    missing = [k for k, v in paths.items() if k not in skip and
+               not all(Path(x).exists() for x in (v if isinstance(v, list) else [v]))]
     if missing:
         raise CLIError(
             f"입력 경로가 없다: {missing}. 다른 파일로 대체 탐색하지 않는다 (U20)")
@@ -565,6 +580,254 @@ def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
     }
 
 
+#: evaluate 산출물. 둘 중 하나라도 있으면 실행하지 않는다 (지침서 §2).
+EVALUATE_OUTPUTS = ("run_predictions.jsonl", "evaluation.json")
+
+#: run_predictions 의 schema_version. WI-06 CLI 가 쓰는 artifact 다.
+RUN_PREDICTIONS_SCHEMA = "wi06-run-predictions-0.1"
+
+
+def _window_index(run_key: str, window_key: str) -> int:
+    """``<run_key>#win-<n>`` 에서 n 을 꺼낸다. 접두가 run_key 와 다르면 실패한다."""
+    prefix, sep, tail = window_key.rpartition("#win-")
+    if not sep or prefix != run_key or not tail.isdigit():
+        raise CLIError(f"window_key 가 run_key 와 맞지 않는다: {window_key!r} / {run_key!r}")
+    return int(tail)
+
+
+def _load_fit_manifests(manifest_paths: Sequence[str], *, split_hash: str,
+                        cfg_hash: str) -> Dict[str, Dict[str, Any]]:
+    """outer 최종 적합의 fit_manifest 를 읽고 경계를 검사한다.
+
+    checkpoint 는 manifest 옆의 고정 이름 ``checkpoint.pt`` 다 — 명시한 manifest
+    경로에서 결정되므로 glob·mtime 탐색이 아니다 (U20). 해시는 다시 계산한다.
+
+    Raises:
+        CLIError: 스키마·split·config 불일치, inner fit, 중복, checkpoint 누락.
+    """
+    from mobse.v2 import fitting as FIT
+    from mobse.v2.manifests import sha256_file
+
+    fits: Dict[str, Dict[str, Any]] = {}
+    slots: Dict[tuple, str] = {}
+    for mp in manifest_paths:
+        path = Path(mp)
+        man = json.loads(path.read_text(encoding="utf-8"))
+        try:
+            validate_record("fit_manifest", man)
+        except ManifestError as exc:
+            raise CLIError(f"{path}: fit_manifest 스키마 위반 — {exc}") from exc
+        fid = man["fit_id"]
+        if fid in fits:
+            raise CLIError(f"fit_id 중복: {fid} ({fits[fid]['path']} 와 {path})")
+        if man["role"] != FIT.ROLE_OUTER or \
+                man["folds"].get("eval_role") != FIT.EVAL_ROLE[FIT.ROLE_OUTER]:
+            raise CLIError(f"{fid}: outer 최종 적합이 아니다 (role={man['role']!r}). "
+                           "evaluate 는 outer test 예측만 집계한다 (계획서 §8)")
+        if man["split_hash"] != split_hash:
+            raise CLIError(f"{fid}: split_hash 가 --splits 와 다르다")
+        if man["config_hash"] != cfg_hash:
+            raise CLIError(f"{fid}: config_hash 가 --config 와 다르다")
+        slot = (man["cell"], int(man["folds"]["outer_fold"]), int(man["model_seed"]))
+        if slot in slots:
+            raise CLIError(f"같은 (cell, outer_fold, seed) {slot} 의 fit 이 둘이다: "
+                           f"{slots[slot]}, {fid}")
+        slots[slot] = fid
+        ckpt = path.parent / "checkpoint.pt"
+        if not ckpt.is_file():
+            raise CLIError(f"{fid}: checkpoint 가 없다 {ckpt}. 대체 탐색하지 않는다 (U20)")
+        fits[fid] = {"path": str(path), "manifest": man, "slot": slot,
+                     "manifest_sha256": sha256_file(path),
+                     "checkpoint_sha256": sha256_file(ckpt)}
+
+    for field in ("code_hash", "env_hash", "source_hash"):
+        values = sorted({f["manifest"][field] for f in fits.values()})
+        if len(values) != 1:
+            raise CLIError(f"fit 사이에 {field} 가 다르다 {[v[:12] for v in values]}. "
+                           "한 release 에 다른 코드·환경·입력을 섞지 않는다")
+    return fits
+
+
+def _check_fit_grid(fits: Mapping[str, Mapping[str, Any]], folds: Mapping[str, Any]
+                    ) -> Dict[str, Any]:
+    """cell × outer fold × seed 격자가 빠짐없이 채워졌는지 확인한다."""
+    from mobse.v2.evaluate import CELLS
+    from mobse.v2.statistics import N_SEEDS
+
+    outer_ids = sorted(int(o["outer_fold"]) for o in folds.get("outer_folds") or [])
+    if not outer_ids:
+        raise CLIError("folds.json 에 outer fold 가 없다")
+    by_cf: Dict[tuple, set] = {}
+    for f in fits.values():
+        cell, of, seed = f["slot"]
+        by_cf.setdefault((cell, of), set()).add(seed)
+    seed_sets = set()
+    missing = []
+    for cell in CELLS:
+        for of in outer_ids:
+            seeds = by_cf.get((cell, of), set())
+            if len(seeds) != N_SEEDS:
+                missing.append((cell, of, len(seeds)))
+            seed_sets.add(tuple(sorted(seeds)))
+    extra = sorted(set(by_cf) - {(c, o) for c in CELLS for o in outer_ids})
+    if missing or extra:
+        raise CLIError(f"fit 격자가 비었거나 넘친다 — 부족 (cell, fold, seed 수) "
+                       f"{missing[:5]}, 알 수 없는 칸 {extra[:5]}")
+    if len(seed_sets) != 1:
+        raise CLIError(f"칸마다 seed 집합이 다르다: {sorted(seed_sets)[:3]}")
+    return {"outer_folds": outer_ids, "seeds": list(seed_sets.pop()),
+            "n_fits": len(fits)}
+
+
+def run_evaluate(paths: Dict[str, Any], args: argparse.Namespace) -> Dict[str, Any]:
+    """outer test 창 예측을 run·subject·cell 로 집계한다 (계획서 §8, 지침서 WI-06).
+
+    **분류만** 다룬다(T16). 부트스트랩·gate 판정은 ``report`` 의 몫이다. 이
+    함수는 무결성(T15)을 확인한 뒤 run 예측과 cell 별 BA·subject 차이를 쓴다.
+
+    Raises:
+        CLIError: 입력 무결성이 어긋나거나 산출물을 덮어쓰게 될 때.
+    """
+    from mobse.v2 import evaluate as EV
+    from mobse.v2 import fitting as FIT
+    from mobse.v2.manifests import code_hash, read_jsonl, sha256_file, write_jsonl
+    from mobse.v2.statistics import THRESHOLD, balanced_accuracy
+
+    try:
+        tasks = EV.assert_classification_only(args.tasks)
+    except EV.EvaluationError as exc:
+        raise CLIError(str(exc)) from exc
+    if sorted(tasks) != sorted(EV.CLASSIFICATION_TASKS) or len(tasks) != 2:
+        raise CLIError(f"두 task 를 모두 지정해야 한다: {list(EV.CLASSIFICATION_TASKS)}. "
+                       f"b_i 는 complete-case 로만 정의된다 (계획서 §8). 받은 값 {list(tasks)}")
+    tasks = EV.CLASSIFICATION_TASKS
+
+    try:
+        cfg = load_config(Path(paths["config"]))
+    except ConfigError as exc:
+        raise CLIError(f"config 검증 실패: {exc}") from exc
+    cfg_hash = config_hash(cfg)
+
+    out_dir = Path(paths["output_dir"])
+    for name in EVALUATE_OUTPUTS:
+        if (out_dir / name).exists():
+            raise CLIError(f"이미 존재한다: {out_dir / name}. 같은 release 결과를 "
+                           "덮어쓰지 않는다 (지침서 §2)")
+
+    folds = json.loads(Path(paths["splits"]).read_text(encoding="utf-8"))
+    split_hash = folds["split_hash"]
+    fits = _load_fit_manifests(_as_list(paths["fit_manifest"]),
+                               split_hash=split_hash, cfg_hash=cfg_hash)
+    grid = _check_fit_grid(fits, folds)
+    test_of = {int(o["outer_fold"]): set(o["test_subjects"])
+               for o in folds["outer_folds"]}
+    expected_subjects = set().union(*test_of.values())
+
+    preds: List[Any] = []
+    used: Dict[str, str] = {}
+    run_key_of: Dict[tuple, set] = {}
+    inputs = []
+    for pp in _as_list(paths["predictions"]):
+        try:
+            rows = read_jsonl(Path(pp), "window_predictions")
+        except ManifestError as exc:
+            raise CLIError(f"{pp}: window_predictions 스키마 위반 — {exc}") from exc
+        inputs.append({"path": str(pp), "sha256": sha256_file(Path(pp)),
+                       "n_rows": len(rows)})
+        for i, r in enumerate(rows):
+            fid = r["fit_id"]
+            if fid not in fits:
+                raise CLIError(f"{pp}:{i + 1}: fit_manifest 가 주어지지 않은 fit_id {fid}")
+            fit = fits[fid]
+            cell, of, seed = fit["slot"]
+            if (r["cell"], int(r["model_seed"])) != (cell, seed):
+                raise CLIError(f"{pp}:{i + 1}: cell/seed 가 fit_manifest 와 다르다")
+            if r["scope"] != FIT.EVAL_ROLE[FIT.ROLE_OUTER]:
+                raise CLIError(f"{pp}:{i + 1}: scope {r['scope']!r} — outer test 만 집계한다")
+            if r["canonical_subject"] in fit["manifest"]["fit_subjects"]:
+                raise CLIError(f"{pp}:{i + 1}: {r['canonical_subject']} 가 {fid} 의 "
+                               "학습 subject 다 — test 누설")
+            if r["canonical_subject"] not in test_of[of]:
+                raise CLIError(f"{pp}:{i + 1}: {r['canonical_subject']} 는 outer fold {of} "
+                               "의 test subject 가 아니다")
+            prev = used.setdefault(fid, r["checkpoint_sha256"])
+            if prev != r["checkpoint_sha256"]:
+                raise CLIError(f"{fid}: 한 fit 의 예측에 checkpoint hash 가 둘이다")
+            task = FIT.task_of(r["run_key"])
+            run_key_of.setdefault((r["canonical_subject"], task), set()).add(r["run_key"])
+            try:
+                preds.append(EV.WindowPrediction(
+                    canonical_subject=r["canonical_subject"], group_id=r["group_id"],
+                    task=task, window_index=_window_index(r["run_key"], r["window_key"]),
+                    model_seed=int(r["model_seed"]), cell=r["cell"],
+                    truth=int(r["truth"]), p_class1=float(r["p_class1"])))
+            except EV.EvaluationError as exc:
+                raise CLIError(f"{pp}:{i + 1}: {exc}") from exc
+
+    multi = sorted(k for k, v in run_key_of.items() if len(v) != 1)
+    if multi:
+        raise CLIError(f"subject·task 하나에 run 이 여럿이다: {multi[:3]}. "
+                       "run 선택 규칙 없이 섞지 않는다")
+    try:
+        EV.verify_checkpoint_integrity(
+            used, {fid: f["checkpoint_sha256"] for fid, f in fits.items()})
+        counts = EV.verify_release_completeness(preds, expected_subjects)
+        runs = EV.aggregate_runs(preds)
+        scores = {c: EV.subject_scores(runs, c, tasks=tasks) for c in EV.CELLS}
+        contrasts = EV.primary_contrasts(runs)
+    except EV.EvaluationError as exc:
+        raise CLIError(f"무결성 검사 실패: {exc}") from exc
+
+    run_rows = []
+    for (cell, subject, task), rec in sorted(runs.items()):
+        run_rows.append({
+            "schema_version": RUN_PREDICTIONS_SCHEMA, "canonical_subject": subject,
+            "run_key": next(iter(run_key_of[(subject, task)])),
+            "truth": int(rec["truth"]), "ensemble_p": float(rec["p"]),
+            "n_windows": int(rec["n_windows"]), "n_seeds": int(rec["n_seeds"]),
+            "threshold": float(THRESHOLD), "prediction": int(rec["prediction"]),
+            "cell": cell,
+        })
+    out_dir.mkdir(parents=True, exist_ok=True)
+    written = write_jsonl(out_dir / "run_predictions.jsonl", "run_predictions", run_rows)
+
+    ba = {c: balanced_accuracy(list(scores[c].values())) for c in EV.CELLS}
+    summary = {
+        "schema_version": "wi06-evaluation-0.1",
+        "tasks": list(tasks), "threshold": float(THRESHOLD),
+        "split_hash": split_hash, "config_hash": cfg_hash,
+        "fit_code_hash": next(iter(fits.values()))["manifest"]["code_hash"],
+        "evaluator_code_hash": code_hash(sorted(Path(__file__).resolve().parent.glob("*.py"))),
+        "fit_grid": grid, "counts": counts,
+        "balanced_accuracy": ba,
+        "mean_differences": {k: float(sum(v.values()) / len(v))
+                             for k, v in contrasts.items()},
+        "subject_scores": {c: dict(sorted(scores[c].items())) for c in EV.CELLS},
+        "subject_differences": {k: dict(sorted(v.items())) for k, v in contrasts.items()},
+        "inputs": {"predictions": inputs,
+                   "fit_manifests": [{"fit_id": fid, "path": f["path"],
+                                      "sha256": f["manifest_sha256"],
+                                      "checkpoint_sha256": f["checkpoint_sha256"]}
+                                     for fid, f in sorted(fits.items())]},
+        "run_predictions": written,
+        "not_here": "paired bootstrap 구간과 gate 판정은 report 단계가 낸다",
+    }
+    (out_dir / "evaluation.json").write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"verdict": "pass", "n_fits": grid["n_fits"],
+            "window_rows": counts["window_rows"], "run_rows": written["n_records"],
+            "subjects": counts["subjects"], "balanced_accuracy": ba,
+            "mean_differences": summary["mean_differences"],
+            "output_dir": str(out_dir)}
+
+
+def _as_list(value: Any) -> List[str]:
+    """경로 인자를 목록으로. nargs='+' 인자와 단일 경로를 같게 다룬다."""
+    if isinstance(value, (list, tuple)):
+        return [str(v) for v in value]
+    return [str(value)]
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     ap = build_parser()
     args = ap.parse_args(argv)
@@ -591,10 +854,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0 if result["verdict"] == "pass" else 1
 
+    if args.command == "evaluate":
+        result = run_evaluate(paths, args)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result["verdict"] == "pass" else 1
+
     raise NotImplementedError(
         f"{args.command} 의 실행 본체는 아직 구현되지 않았다 — WI-02 재추출 "
         "산출물을 입력으로 받는다. 이 CLI 는 경로 계약과 하위 명령 경계를 "
-        "고정하며, validate 만 원자료 없이 완결된다 (지침서 WI-06)")
+        "고정한다. 본체가 있는 명령은 validate·split·fit·evaluate 다 (지침서 WI-06)")
 
 
 if __name__ == "__main__":
