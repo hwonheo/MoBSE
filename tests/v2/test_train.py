@@ -7,7 +7,8 @@ import math
 import pytest
 
 from mobse.v2.train import (
-    CELLS, MAX_EPOCHS, CellFoldResult, GridConfig, TrainError,
+    CELLS, MAX_EPOCHS, MIN_DELTA, MIN_UPDATES, PATIENCE, CellFoldResult,
+    GridConfig, TrainError, min_epochs_for, updates_per_epoch,
     assert_no_test_leakage, baseline_epochs, build_grid, clipped_log_loss,
     early_stop_epoch, fit_budget, select_config, subject_equal_loss,
 )
@@ -194,3 +195,48 @@ def test_fit_budget_matches_protocol_table():
     assert b["external_selection"] == 96
     assert b["external_final"] == 12
     assert b["total"] == 768
+
+
+# --------------------------------------------------------------------------- #
+# [개정 P8] 최소 1,500 update · 상한 200 epoch · 최소치 이후 early stopping
+# --------------------------------------------------------------------------- #
+
+def test_p8_constants_and_unchanged_stopping_parameters():
+    assert MIN_UPDATES == 1500 and MAX_EPOCHS == 200
+    # 결정은 patience·min_delta 를 바꾸지 않았다
+    assert PATIENCE == 5 and MIN_DELTA == 0.0005
+
+
+def test_p8_min_epochs_counts_the_last_partial_batch():
+    assert updates_per_epoch(544, 32) == 17          # main inner 규모 (부록 W)
+    assert updates_per_epoch(545, 32) == 18
+    assert min_epochs_for(544) == 89                  # ceil(1500 / 17)
+    assert min_epochs_for(544) * updates_per_epoch(544) >= MIN_UPDATES
+    assert min_epochs_for(10, min_updates=0) == 1
+    with pytest.raises(TrainError):
+        updates_per_epoch(0)
+    with pytest.raises(TrainError):
+        min_epochs_for(10, min_updates=-1)
+
+
+def test_p8_early_stopping_ignores_epochs_before_the_minimum():
+    # epoch 2 가 전역 최소지만 min_epoch=4 이전이라 후보가 아니다
+    losses = [1.0, 0.1, 0.9, 0.8, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7]
+    assert early_stop_epoch(losses) == 2
+    assert early_stop_epoch(losses, min_epoch=4) == 5
+    # 최소치 전에는 인내가 소진되지 않는다: 1–5 가 정체여도 best 는 min_epoch 이후
+    flat = [1.0] * 6 + [0.5]
+    assert early_stop_epoch(flat, min_epoch=6) == 7
+
+
+def test_p8_early_stopping_refuses_a_curve_shorter_than_the_minimum():
+    with pytest.raises(TrainError, match="최소 epoch"):
+        early_stop_epoch([1.0, 0.9], min_epoch=3)
+    with pytest.raises(TrainError):
+        early_stop_epoch([1.0], min_epoch=0)
+
+
+def test_p8_common_e_may_reach_the_new_cap():
+    CellFoldResult(0, "A", 0, 1.0, 0.5, 200)          # 상한 이내
+    with pytest.raises(TrainError, match="best_epoch"):
+        CellFoldResult(0, "A", 0, 1.0, 0.5, 201)

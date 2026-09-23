@@ -12,7 +12,11 @@
   subject 별 동일 가중으로 합산하고 A–D 네 cell 에 같은 가중을 주어 최소화한다.
 * 동률(차이 ≤ 1e−6)은 공동 BA 가 높은 것, 이후 ``config_id`` 가 작은 것으로 정한다.
 * 선택 config 의 4 cells × 3 inner folds best epochs **중앙값을 올림**해 공통
-  E(1–50)를 정한다.
+  E(1–200)를 정한다.
+* **[개정 P8]** 모든 fit 은 최소 1,500 optimizer update 를 보장한다. epoch 상한은
+  200 이다. early stopping 은 최소치(``min_epochs_for``)에 닿은 뒤에만 멈출 수 있고,
+  best epoch 도 최소치 이후 epoch 중에서 고른다 — 그래야 공통 E 가 최소치 아래로
+  내려가지 않는다 (구현 선택, 계획서 §11 P8).
 * **outer test 로 early stopping 하지 않는다.**
 * log loss 는 확률을 ``[1e−7, 1−1e−7]`` 로 clip 한다.
 """
@@ -27,7 +31,8 @@ LEARNING_RATES = (0.001, 0.0003)
 DROPOUTS = (0.1, 0.3)
 WEIGHT_DECAYS = (0.0001, 0.001)
 BATCH_SIZE = 32
-MAX_EPOCHS = 50
+MAX_EPOCHS = 200          # [개정 P8] 50 → 200
+MIN_UPDATES = 1500        # [개정 P8] 최소 optimizer update 수
 PATIENCE = 5
 MIN_DELTA = 0.0005
 GRAD_CLIP = 1.0
@@ -211,16 +216,48 @@ def assert_no_test_leakage(scores_used: Mapping[str, str]) -> None:
             "outer test 로 early stopping·선택하지 않는다")
 
 
+def updates_per_epoch(n_train: int, batch_size: int = BATCH_SIZE) -> int:
+    """한 epoch 의 optimizer update 수 = ``ceil(n_train / batch_size)`` (마지막 배치 포함)."""
+    if n_train <= 0 or batch_size <= 0:
+        raise TrainError(f"학습 창 수·배치 크기는 양수여야 한다: {n_train}, {batch_size}")
+    return math.ceil(n_train / batch_size)
+
+
+def min_epochs_for(n_train: int, *, batch_size: int = BATCH_SIZE,
+                   min_updates: int = MIN_UPDATES) -> int:
+    """최소 update 를 채우는 최소 epoch 수 (계획서 §11 P8).
+
+    ``min_updates`` 가 0 이면 1 을 돌려준다 — 합성 시험 전용이며 CLI 는 config 의
+    잠긴 값(1,500)을 넘긴다.
+    """
+    if min_updates < 0:
+        raise TrainError(f"min_updates 는 음수일 수 없다: {min_updates}")
+    upe = updates_per_epoch(n_train, batch_size)
+    return max(1, math.ceil(min_updates / upe))
+
+
 def early_stop_epoch(val_losses: Sequence[float], *, patience: int = PATIENCE,
-                     min_delta: float = MIN_DELTA) -> int:
+                     min_delta: float = MIN_DELTA, min_epoch: int = 1) -> int:
     """subject-equal validation log loss 로 best epoch 를 고른다 (1-indexed).
 
     ``min_delta`` 이상 개선되지 않는 epoch 가 ``patience`` 번 이어지면 멈춘다.
+    **[개정 P8]** ``min_epoch`` 이전 epoch 는 best 후보도, 인내 계산 대상도 아니다.
+    따라서 돌려주는 값은 언제나 ``min_epoch`` 이상이다.
+
+    Raises:
+        TrainError: loss 가 비었거나 ``min_epoch`` 에 못 미칠 때.
     """
     if not len(val_losses):
         raise TrainError("validation loss 가 비었다")
-    best, best_epoch, bad = float("inf"), 1, 0
+    if min_epoch < 1:
+        raise TrainError(f"min_epoch 는 1 이상이어야 한다: {min_epoch}")
+    if len(val_losses) < min_epoch:
+        raise TrainError(f"validation loss {len(val_losses)}개가 최소 epoch "
+                         f"{min_epoch} 에 못 미친다 — 최소치 전에는 멈출 수 없다")
+    best, best_epoch, bad = float("inf"), min_epoch, 0
     for i, v in enumerate(val_losses, start=1):
+        if i < min_epoch:
+            continue
         if v < best - min_delta:
             best, best_epoch, bad = v, i, 0
         else:

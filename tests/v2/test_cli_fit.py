@@ -16,6 +16,28 @@ TASKS = ("emomatching", "workingmemory")
 REPO = Path(__file__).resolve().parents[2]
 
 
+@pytest.fixture(autouse=True)
+def min_updates_spy(monkeypatch):
+    """CLI 는 config 의 잠긴 최소 update(1,500)를 넘겨야 한다 (P8).
+
+    합성 자료는 창이 적어 1,500 update 면 수백 epoch 이므로, 넘겨받은 값을 기록한
+    뒤 실제 학습은 0 으로 돌린다. 값 전달은 ``test_cli_passes_locked_min_updates``
+    가 확인한다.
+    """
+    from mobse.v2 import fitting as FIT
+
+    seen = []
+    real = FIT.train_fold
+
+    def spy(*a, **kw):
+        seen.append(kw.get("min_updates"))
+        kw["min_updates"] = 0
+        return real(*a, **kw)
+
+    monkeypatch.setattr(FIT, "train_fold", spy)
+    return seen
+
+
 @pytest.fixture
 def workspace(tmp_path):
     rng = np.random.default_rng(11)
@@ -188,3 +210,13 @@ def test_config_id_is_recorded_and_used(workspace):
     assert rep["config"]["learning_rate"] == 0.0003
     assert rep["config"]["dropout"] == 0.1
     assert rep["config"]["weight_decay"] == 0.001
+
+
+def test_cli_passes_locked_min_updates(workspace, min_updates_spy):
+    out = workspace["tmp"] / "fit7"
+    ns = _args(workspace, out)
+    run_fit(resolve_paths("fit", ns), ns)
+    assert min_updates_spy == [1500]
+    rep = json.loads((out / "fit_report.json").read_text())
+    assert rep["min_updates"] == 1500
+    assert rep["updates_run"] == rep["updates_per_epoch"] * rep["epochs_run"]

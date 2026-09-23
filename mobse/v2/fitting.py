@@ -31,9 +31,10 @@ import numpy as np
 from . import features as F
 from . import templates as T
 from .labels import CLASS_LABELS, class_index, window_key
-from .train import (BATCH_SIZE, GRAD_CLIP, MAX_EPOCHS, MIN_DELTA, PATIENCE,
+from .train import (BATCH_SIZE, GRAD_CLIP, MAX_EPOCHS, MIN_DELTA, MIN_UPDATES, PATIENCE,
                     TrainError, assert_no_test_leakage, build_grid,
-                    clipped_log_loss, early_stop_epoch, subject_equal_loss)
+                    clipped_log_loss, early_stop_epoch, min_epochs_for,
+                    subject_equal_loss, updates_per_epoch)
 
 ROLE_INNER = "inner"
 ROLE_OUTER = "outer"
@@ -378,6 +379,9 @@ class FitResult:
     model_seed: int
     epochs_run: int
     best_epoch: int
+    min_epoch: int
+    updates_per_epoch: int
+    updates_run: int
     val_losses: List[float]
     eval_run_probs: Dict[str, float]
     eval_window_probs: Dict[str, float]
@@ -422,7 +426,8 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
                patience: int = PATIENCE, min_delta: float = MIN_DELTA,
                grad_clip: float = GRAD_CLIP,
                early_stopping: Optional[bool] = None,
-               epochs_exact: Optional[int] = None) -> Tuple["FitResult", Any]:
+               epochs_exact: Optional[int] = None,
+               min_updates: int = MIN_UPDATES) -> Tuple["FitResult", Any]:
     """한 fit 을 학습하고 평가 집합의 예측을 낸다.
 
     Returns:
@@ -433,9 +438,13 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
         early_stopping: 기본값은 role 이 inner 일 때만 True. **outer fit 에서
             True 로 켤 수 없다** — outer test 로 멈추는 것이 되기 때문이다.
         epochs_exact: outer fit 에서 정확히 이 epoch 만큼 학습한다 (계획서 §7).
+        min_updates: 보장할 최소 optimizer update 수 (계획서 §11 P8, 기본 1,500).
+            inner fit 은 최소치 epoch 전에 멈추지 않고, outer fit 은 ``epochs_exact``
+            가 최소치를 채우지 못하면 거부한다. 0 은 합성 시험 전용이다.
 
     Raises:
-        FitError: outer fit 에 early stopping 을 요구하거나 epoch 수가 없을 때.
+        FitError: outer fit 에 early stopping 을 요구하거나 epoch 수가 없을 때,
+            또는 epoch 상한·공통 E 가 최소 update 를 채우지 못할 때 (P8).
         TrainError: 선택 점수의 출처가 inner validation 이 아닐 때 (T12).
     """
     import time
@@ -458,6 +467,18 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
             f"{fold.eval_role} 이고 그것으로 멈추면 leakage 다 (계획서 §7)")
     if not is_inner and not epochs_exact:
         raise FitError("outer/external fit 은 공통 E 를 정확히 받아야 한다 (계획서 §7)")
+    upe = updates_per_epoch(len(train_set), batch_size)
+    min_epoch = min_epochs_for(len(train_set), batch_size=batch_size,
+                               min_updates=min_updates)
+    n_epochs_planned = int(epochs_exact) if epochs_exact else int(max_epochs)
+    if n_epochs_planned > MAX_EPOCHS:
+        raise FitError(f"epoch {n_epochs_planned} 이 상한 {MAX_EPOCHS} 를 넘는다 (P8)")
+    if min_epoch > n_epochs_planned:
+        raise FitError(
+            f"최소 {min_updates} update 에 {min_epoch} epoch 이 필요한데 "
+            f"{'공통 E' if epochs_exact else 'epoch 상한'} 이 {n_epochs_planned} 이다 "
+            f"(학습 창 {len(train_set)}, update/epoch {upe}). 최소치·상한 조정은 "
+            "main OOF 전에 pilot 측정으로만 한다 (계획서 §11 P8)")
 
     dev = torch.device(device)
     torch.manual_seed(model_seed)
@@ -485,7 +506,7 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
     gen = torch.Generator(device="cpu")
     gen.manual_seed(model_seed)
 
-    n_epochs = int(epochs_exact) if epochs_exact else int(max_epochs)
+    n_epochs = n_epochs_planned
     val_losses: List[float] = []
     t0 = time.perf_counter()
     for _ in range(n_epochs):
@@ -503,8 +524,9 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
             probs = _forward_probs(model, xe, pe, batch_size=batch_size)
             rp = run_probabilities(eval_set.refs, probs)
             val_losses.append(subject_equal_loss(subject_run_true_probs(rp)))
-            if len(val_losses) - early_stop_epoch(
-                    val_losses, patience=patience, min_delta=min_delta) >= patience:
+            if len(val_losses) >= min_epoch and len(val_losses) - early_stop_epoch(
+                    val_losses, patience=patience, min_delta=min_delta,
+                    min_epoch=min_epoch) >= patience:
                 break
     elapsed = time.perf_counter() - t0
 
@@ -512,7 +534,7 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
         assert_no_test_leakage({f"epoch{i}": "inner_validation"
                                 for i in range(len(val_losses))})
         best_epoch = early_stop_epoch(val_losses, patience=patience,
-                                      min_delta=min_delta)
+                                      min_delta=min_delta, min_epoch=min_epoch)
     else:
         best_epoch = n_epochs
 
@@ -527,7 +549,9 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
         role=fold.role, cell=cell, outer_fold=fold.outer_fold,
         inner_fold=fold.inner_fold, config_id=config_id, model_seed=model_seed,
         epochs_run=len(val_losses) if early_stopping else n_epochs,
-        best_epoch=best_epoch, val_losses=val_losses,
+        best_epoch=best_epoch, min_epoch=min_epoch, updates_per_epoch=upe,
+        updates_run=upe * (len(val_losses) if early_stopping else n_epochs),
+        val_losses=val_losses,
         eval_run_probs=run_probs, eval_window_probs=window_probs,
         eval_loss=subject_equal_loss(subject_run_true_probs(run_probs)),
         eval_balanced_accuracy=_balanced_accuracy_from_runs(run_probs),

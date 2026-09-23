@@ -296,7 +296,7 @@ def test_subject_run_true_probs_uses_the_task_as_truth():
 def test_inner_fit_runs_and_reports_a_valid_best_epoch(synthetic):
     fold, tr, train_set, eval_set = _sets(synthetic)
     res, model = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
-                                model_seed=42, fold=fold, max_epochs=4)
+                                model_seed=42, fold=fold, min_updates=0, max_epochs=4)
     assert res.role == FIT.ROLE_INNER
     assert 1 <= res.best_epoch <= res.epochs_run <= 4
     assert len(res.val_losses) == res.epochs_run
@@ -324,7 +324,7 @@ def test_outer_fit_requires_an_exact_epoch_count(synthetic):
 def test_outer_fit_runs_exactly_e_epochs_without_validation(synthetic):
     fold, tr, train_set, eval_set = _sets(synthetic, inner=T.OUTER_FIT_INNER_FOLD)
     res, _ = FIT.train_fold(train_set, eval_set, tr, cell="B", config_id=3,
-                            model_seed=43, fold=fold, epochs_exact=3)
+                            model_seed=43, fold=fold, min_updates=0, epochs_exact=3)
     assert res.role == FIT.ROLE_OUTER
     assert res.epochs_run == 3 and res.best_epoch == 3
     assert res.val_losses == [], "outer fit 은 평가 집합으로 loss 를 재지 않는다"
@@ -334,7 +334,7 @@ def test_bad_config_id_is_rejected(synthetic):
     fold, tr, train_set, eval_set = _sets(synthetic)
     with pytest.raises(FIT.FitError, match="config_id"):
         FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=8,
-                       model_seed=42, fold=fold, max_epochs=1)
+                       model_seed=42, fold=fold, min_updates=0, max_epochs=1)
 
 
 def test_encoder_init_is_shared_across_cells_at_the_same_seed(synthetic):
@@ -343,7 +343,7 @@ def test_encoder_init_is_shared_across_cells_at_the_same_seed(synthetic):
     hashes = {}
     for cell in ("A", "B", "C", "D"):
         res, _ = FIT.train_fold(train_set, eval_set, tr, cell=cell, config_id=0,
-                                model_seed=42, fold=fold, max_epochs=1)
+                                model_seed=42, fold=fold, min_updates=0, max_epochs=1)
         hashes[cell] = res.encoder_init_hash
     assert len(set(hashes.values())) == 1, hashes
     assert "RNG" in res.rng_note
@@ -353,17 +353,67 @@ def test_a_and_c_differ_only_by_the_bank(synthetic):
     """A 는 brain bank, C 는 null bank 를 쓴다. 같은 seed·config 에서 예측이 달라야 한다."""
     fold, tr, train_set, eval_set = _sets(synthetic)
     a, _ = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
-                          model_seed=42, fold=fold, max_epochs=2)
+                          model_seed=42, fold=fold, min_updates=0, max_epochs=2)
     c, _ = FIT.train_fold(train_set, eval_set, tr, cell="C", config_id=0,
-                          model_seed=42, fold=fold, max_epochs=2)
+                          model_seed=42, fold=fold, min_updates=0, max_epochs=2)
     assert a.encoder_init_hash == c.encoder_init_hash
     assert a.eval_window_probs != c.eval_window_probs
 
 
 def test_fit_is_reproducible_at_the_same_seed(synthetic):
     fold, tr, train_set, eval_set = _sets(synthetic)
-    kw = dict(cell="A", config_id=1, model_seed=42, fold=fold, max_epochs=2)
+    kw = dict(cell="A", config_id=1, model_seed=42, fold=fold, min_updates=0, max_epochs=2)
     a, _ = FIT.train_fold(train_set, eval_set, tr, **kw)
     b, _ = FIT.train_fold(train_set, eval_set, tr, **kw)
     assert a.eval_window_probs == b.eval_window_probs
     assert a.val_losses == b.val_losses
+
+
+# --- [개정 P8] 최소 update 보장·상한 200·최소치 이후 early stopping ------------
+
+def test_p8_default_min_updates_is_the_locked_constant():
+    """기본값이 1,500 이어야 한다 — 빠뜨리면 조용히 최소치가 꺼지는 기본값 금지."""
+    import inspect
+
+    from mobse.v2.train import MIN_UPDATES
+    assert MIN_UPDATES == 1500
+    sig = inspect.signature(FIT.train_fold)
+    assert sig.parameters["min_updates"].default == MIN_UPDATES
+
+
+def test_p8_inner_fit_never_stops_or_selects_before_the_minimum(synthetic):
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    upe = -(-len(train_set) // 32)
+    res, _ = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                            model_seed=42, fold=fold, max_epochs=6,
+                            min_updates=3 * upe)
+    assert res.min_epoch == 3 and res.updates_per_epoch == upe
+    assert 3 <= res.best_epoch <= res.epochs_run <= 6
+    assert res.updates_run == upe * res.epochs_run >= 3 * upe
+
+
+def test_p8_minimum_above_the_epoch_cap_is_refused(synthetic):
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    upe = -(-len(train_set) // 32)
+    with pytest.raises(FIT.FitError, match="pilot 측정으로만"):
+        FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                       model_seed=42, fold=fold, max_epochs=2, min_updates=3 * upe)
+
+
+def test_p8_outer_common_e_below_the_minimum_is_refused(synthetic):
+    fold, tr, train_set, eval_set = _sets(synthetic, inner=T.OUTER_FIT_INNER_FOLD)
+    upe = -(-len(train_set) // 32)
+    with pytest.raises(FIT.FitError, match="공통 E"):
+        FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                       model_seed=42, fold=fold, epochs_exact=2,
+                       min_updates=2 * upe + 1)
+
+
+def test_p8_epoch_cap_is_200(synthetic):
+    from mobse.v2.train import MAX_EPOCHS
+    assert MAX_EPOCHS == 200
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    with pytest.raises(FIT.FitError, match="상한"):
+        FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                       model_seed=42, fold=fold, max_epochs=MAX_EPOCHS + 1,
+                       min_updates=0)

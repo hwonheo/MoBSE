@@ -93,6 +93,7 @@ def test_non_mapping_rejected():
         ("splits", "outer_seed", 1, splits.OUTER_SEED),
         ("bank", "null_seed", 42, templates.NULL_SEED_PRIMARY),
         ("train", "max_epochs", 999, train.MAX_EPOCHS),
+        ("train", "min_updates", 800, train.MIN_UPDATES),
         ("stats", "n_bootstrap", 100, statistics.N_BOOTSTRAP),
     ],
 )

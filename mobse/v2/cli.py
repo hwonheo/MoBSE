@@ -497,7 +497,8 @@ def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
         patience=int(cfg["train.patience"]),
         min_delta=float(cfg["train.min_delta"]),
         grad_clip=float(cfg["train.grad_clip"]),
-        epochs_exact=None if is_inner else int(args.epochs))
+        epochs_exact=None if is_inner else int(args.epochs),
+        min_updates=int(cfg["train.min_updates"]))
 
     out_dir.mkdir(parents=True, exist_ok=True)
     ckpt_path = out_dir / "checkpoint.pt"
@@ -555,6 +556,8 @@ def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
         "fit_id": fid, "config_id": int(args.config_id),
         "config": gc.as_dict(),
         "epochs_run": result.epochs_run, "best_epoch": result.best_epoch,
+        "min_epoch": result.min_epoch, "updates_per_epoch": result.updates_per_epoch,
+        "updates_run": result.updates_run, "min_updates": int(cfg["train.min_updates"]),
         "val_losses": result.val_losses, "eval_loss": result.eval_loss,
         "eval_balanced_accuracy": result.eval_balanced_accuracy,
         "eval_role": fold.eval_role, "transform": result.transform,
@@ -571,6 +574,7 @@ def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
         "outer_fold": int(args.outer_fold), "inner_fold": int(args.inner_fold),
         "config_id": int(args.config_id), "model_seed": int(args.model_seed),
         "best_epoch": result.best_epoch, "epochs_run": result.epochs_run,
+        "min_epoch": result.min_epoch, "updates_run": result.updates_run,
         "eval_role": fold.eval_role, "eval_loss": result.eval_loss,
         "eval_balanced_accuracy": result.eval_balanced_accuracy,
         "n_train_windows": len(train_set), "n_eval_windows": len(eval_set),

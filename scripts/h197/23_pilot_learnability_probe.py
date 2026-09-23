@@ -77,7 +77,8 @@ def main(argv: List[str]) -> int:
     ap.add_argument("--cell", default="A")
     ap.add_argument("--config-id", type=int, default=0)
     ap.add_argument("--model-seed", type=int, default=42)
-    ap.add_argument("--max-epochs", type=int, default=50)
+    ap.add_argument("--max-epochs", type=int, default=200)      # [개정 P8]
+    ap.add_argument("--min-updates", type=int, default=1500)    # [개정 P8]
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--out", required=True, type=Path)
     args = ap.parse_args(argv[1:])
@@ -100,7 +101,7 @@ def main(argv: List[str]) -> int:
     result, model = FIT.train_fold(
         train_set, eval_set, transform, cell=args.cell, config_id=args.config_id,
         model_seed=args.model_seed, fold=fold, device=args.device,
-        max_epochs=args.max_epochs)
+        max_epochs=args.max_epochs, min_updates=args.min_updates)
 
     import torch
 
@@ -121,6 +122,7 @@ def main(argv: List[str]) -> int:
         "network": {
             "cell": args.cell, "config_id": args.config_id,
             "best_epoch": result.best_epoch, "epochs_run": result.epochs_run,
+            "min_epoch": result.min_epoch, "updates_run": result.updates_run,
             "val_losses": result.val_losses,
             "train_window_accuracy": float(
                 ((train_probs >= 0.5).astype(int) == train_set.y).mean()),
