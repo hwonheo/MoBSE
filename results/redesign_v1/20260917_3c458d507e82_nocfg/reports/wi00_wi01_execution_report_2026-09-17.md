@@ -3290,3 +3290,39 @@ rev27 의 caveat("코드와 창이 같은 추출을 가리키지 않는다")는 
 - 재추출 창의 신호 수준 점검(통과대역 밖 잔여 전력)은 하지 않았다 — 합성 시험(Z.3)에만 근거.
 - P8 은 구현 전. main pool 을 소비하는 fit 은 하지 않았다.
 - `derivatives_v2*` 는 대체되었으나 삭제하지 않았다 (정리는 선생님 확인 뒤).
+
+
+# 부록 AB — P8 구현 (rev29, 2026-09-23 예약 슬롯)
+
+선생님 결정 원문(2026-09-23): "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)". 이번 회차는 값(1,500 / 200)을 그대로 구현했고 조정하지 않았다. patience 5·min_delta 0.0005 는 결정 범위 밖이라 그대로다.
+
+## AB.1 구현
+
+- `mobse/v2/train.py`: `MAX_EPOCHS` 50 → 200, `MIN_UPDATES = 1500`, `updates_per_epoch(n) = ceil(n/32)`, `min_epochs_for(n) = ceil(1500 / updates_per_epoch(n))`. `early_stop_epoch(..., min_epoch)` 는 최소 epoch 이전 epoch 를 best 후보·인내 계산에서 제외한다.
+- `mobse/v2/fitting.py::train_fold(min_updates=MIN_UPDATES)`: inner fit 은 최소 epoch 전에 멈추지 않는다. 최소 epoch 이 epoch 상한을 넘거나, outer 공통 E 가 최소 update 를 채우지 못하거나, epoch 이 200 을 넘으면 `FitError`. `FitResult` 에 `min_epoch`·`updates_per_epoch`·`updates_run` 기록.
+- config: `train.max_epochs: 200`, 새 잠긴 키 `train.min_updates: 1500` (main·pilot·external). CLI `fit` 은 config 값을 넘기고 `fit_report.json` 에 기록한다. `scripts/h197/23_pilot_learnability_probe.py` 기본값도 200 / 1,500.
+
+## AB.2 구현 선택 (결정이 아니라 결정을 지키기 위한 것)
+
+- **best epoch 도 최소 epoch 이후에서 고른다.** 멈춤만 늦추고 best 를 전 구간에서 고르면 공통 E(= inner best 12개 중앙값 올림)가 최소치 아래로 내려가 outer fit 이 1,500 update 를 못 채울 수 있다.
+- 기본값 `min_updates` 를 1,500 으로 두었다 — 인자를 빠뜨리면 조용히 최소치가 꺼지는 기본값을 피했다 (E21 과 같은 유형). 0 은 합성 시험만 쓴다.
+
+## AB.3 main 분할에서의 귀결 (subject 수만 센 것 — 창·라벨·예측을 읽지 않음)
+
+적격 subject 당 창 8개(2 task × 4)를 가정해 `folds.json`(split_hash `ace5f4a41446`)의 subject 수로 계산했다. inner 학습 창 528–544 → update/epoch 17 → **최소 epoch 89**. outer 학습 창 800–808 → update/epoch 25–26 → 최소 epoch 58–60. inner best ≥ 89 이므로 공통 E ≥ 89 이고 outer fit 은 최소 89 × 25 = 2,225 update 로 최소치를 넘는다.
+
+## AB.4 검증·재잠금
+
+- 시험 (h197): **631 passed / 12 skipped** (신규 12건: 상수, 최소 epoch 계산, 최소치 전 멈춤·선택 금지, 상한 초과·최소치 미달 거부, 기본값 고정, CLI 가 1,500 을 넘기는지 spy, config 덮어쓰기 거부).
+- `mobse/v2` 가 바뀌어 잠금 재생성: `e8b648a7c4dc` → **`9ae4e4ee1a91`** (2026-09-23T08:20:30Z), code_hash `87c119c14e21` → `4382c5bd78ae`. 19번 42/42, 25번 창 4,728. 창·코호트·분할 불변 (split_hash `ace5f4a41446`).
+
+```
+… → cf66f91e12fb (P9/P10 구현) → e8b648a7c4dc (P9 재추출 창) → 9ae4e4ee1a91 (P8 구현, 현행)
+```
+
+## AB.5 이번 회차에 확인하지 못한 것
+
+- pilot update probe 재측정(재추출 창, P8 규칙)은 하지 않았다. pilot 분할에서 최소 epoch 이 200 을 넘는지 아직 모른다 — 넘으면 fit 이 거부되고, 상한·최소치 조정은 결정문대로 pilot 측정 근거로만 한다.
+- 창 8개/subject 가정은 적격 정의(두 task run 모두 ok)에서 온 것이고 fold 별로 창 수를 직접 세지는 않았다.
+- 1,500 update·200 epoch 에서의 실측 학습 시간은 재지 않았다 (인수인계 문서의 약 10 h 는 추정).
+- main pool 을 소비하는 fit 은 하지 않았다.
