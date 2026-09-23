@@ -360,6 +360,69 @@ def test_a_and_c_differ_only_by_the_bank(synthetic):
     assert a.eval_window_probs != c.eval_window_probs
 
 
+def test_apply_determinism_turns_every_switch_on(monkeypatch):
+    """E22 — config 의 runtime.deterministic 이 기록만 되고 적용되지 않던 사고."""
+    import torch
+
+    monkeypatch.delenv("CUBLAS_WORKSPACE_CONFIG", raising=False)
+    torch.use_deterministic_algorithms(False)
+    torch.backends.cudnn.deterministic = False
+    torch.backends.cudnn.benchmark = True
+    state = FIT.apply_determinism()
+    assert torch.are_deterministic_algorithms_enabled()
+    assert torch.backends.cudnn.deterministic is True
+    assert torch.backends.cudnn.benchmark is False
+    import os
+    assert os.environ["CUBLAS_WORKSPACE_CONFIG"] == ":4096:8"
+    assert state["use_deterministic_algorithms"] and state["cudnn_deterministic"]
+    assert state["cudnn_benchmark"] is False
+
+
+def test_apply_determinism_keeps_an_equivalent_cublas_setting(monkeypatch):
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":16:8")
+    assert FIT.apply_determinism()["cublas_workspace_config"] == ":16:8"
+
+
+def test_apply_determinism_refuses_a_nondeterministic_cublas_setting(monkeypatch):
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":0:0")
+    with pytest.raises(FIT.FitError, match="CUBLAS_WORKSPACE_CONFIG"):
+        FIT.apply_determinism()
+
+
+def test_train_fold_applies_determinism_before_seeding(synthetic, monkeypatch):
+    """spy — train_fold 가 결정성 설정을 켜고 그 상태를 결과에 남긴다."""
+    import torch
+
+    calls = []
+    real = FIT.apply_determinism
+
+    def spy():
+        calls.append(torch.are_deterministic_algorithms_enabled())
+        return real()
+
+    monkeypatch.setattr(FIT, "apply_determinism", spy)
+    torch.use_deterministic_algorithms(False)
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    res, _ = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                            model_seed=42, fold=fold, min_updates=0, max_epochs=1)
+    assert len(calls) == 1
+    assert res.determinism["use_deterministic_algorithms"] is True
+    assert torch.are_deterministic_algorithms_enabled()
+
+
+@pytest.mark.skipif(not __import__("torch").cuda.is_available(), reason="CUDA 없음")
+def test_fit_is_reproducible_on_cuda(synthetic):
+    """E22 — pilot probe 에서 같은 인자 두 실행이 train BA 0.808 / 0.500 이었다."""
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    kw = dict(cell="B", config_id=1, model_seed=42, fold=fold, min_updates=0,
+              max_epochs=3, device="cuda")
+    a, _ = FIT.train_fold(train_set, eval_set, tr, **kw)
+    b, _ = FIT.train_fold(train_set, eval_set, tr, **kw)
+    assert a.eval_window_probs == b.eval_window_probs
+    assert a.val_losses == b.val_losses
+    assert a.determinism["cublas_workspace_config"] in FIT.CUBLAS_DETERMINISTIC_CONFIGS
+
+
 def test_fit_is_reproducible_at_the_same_seed(synthetic):
     fold, tr, train_set, eval_set = _sets(synthetic)
     kw = dict(cell="A", config_id=1, model_seed=42, fold=fold, min_updates=0, max_epochs=2)

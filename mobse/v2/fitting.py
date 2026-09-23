@@ -22,7 +22,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
+import os
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
@@ -392,6 +393,48 @@ class FitResult:
     memory: Dict[str, Any]
     encoder_init_hash: str
     rng_note: str
+    determinism: Dict[str, Any] = field(default_factory=dict)
+
+
+#: cuBLAS 가 결정적으로 도는 workspace 설정 (PyTorch reproducibility 문서).
+CUBLAS_DETERMINISTIC_CONFIGS = (":4096:8", ":16:8")
+
+
+def apply_determinism() -> Dict[str, Any]:
+    """config ``runtime.deterministic: True`` 를 torch 에 실제로 적용한다 (E22).
+
+    ``torch.use_deterministic_algorithms(True)`` (비결정 연산은 조용히 넘어가지 않고
+    RuntimeError), cuDNN deterministic on·benchmark off, ``CUBLAS_WORKSPACE_CONFIG``
+    를 켠다. 환경변수는 이미 결정적 값이면 그대로 두고, 다른 값이면 거부한다.
+
+    Returns:
+        적용 뒤 실제 상태 (fit_report 에 기록한다).
+
+    Raises:
+        FitError: ``CUBLAS_WORKSPACE_CONFIG`` 가 결정적이지 않은 값으로 이미 설정됐을 때.
+    """
+    import torch
+
+    cur = os.environ.get("CUBLAS_WORKSPACE_CONFIG")
+    if cur is None:
+        os.environ["CUBLAS_WORKSPACE_CONFIG"] = CUBLAS_DETERMINISTIC_CONFIGS[0]
+    elif cur not in CUBLAS_DETERMINISTIC_CONFIGS:
+        raise FitError(f"CUBLAS_WORKSPACE_CONFIG={cur!r} 는 결정적이지 않다 — "
+                       f"{CUBLAS_DETERMINISTIC_CONFIGS} 중 하나여야 한다 (E22)")
+    torch.use_deterministic_algorithms(True)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    state = {
+        "use_deterministic_algorithms": bool(torch.are_deterministic_algorithms_enabled()),
+        "cudnn_deterministic": bool(torch.backends.cudnn.deterministic),
+        "cudnn_benchmark": bool(torch.backends.cudnn.benchmark),
+        "cublas_workspace_config": os.environ["CUBLAS_WORKSPACE_CONFIG"],
+        "torch_version": str(torch.__version__),
+    }
+    if not (state["use_deterministic_algorithms"] and state["cudnn_deterministic"]
+            and not state["cudnn_benchmark"]):
+        raise FitError(f"결정성 설정이 켜지지 않았다: {state}")
+    return state
 
 
 def _balanced_accuracy_from_runs(run_probs: Mapping[str, float],
@@ -480,6 +523,7 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
             f"(학습 창 {len(train_set)}, update/epoch {upe}). 최소치·상한 조정은 "
             "main OOF 전에 pilot 측정으로만 한다 (계획서 §11 P8)")
 
+    determinism = apply_determinism()
     dev = torch.device(device)
     torch.manual_seed(model_seed)
     cfg = ModelConfig(n_roi=int(train_set.x.shape[1]),
@@ -561,4 +605,5 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
         memory=memory, encoder_init_hash=enc_hash,
         rng_note=("encoder 는 cell 간 같은 seed 에서 동일 초기화다. gate 가 소비하는 "
                   "RNG 양이 달라 graph layer·head 이후는 cell 마다 다르다 — 계획서 §7"),
+        determinism=determinism,
     ), model

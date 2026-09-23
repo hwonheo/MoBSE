@@ -220,3 +220,15 @@ def test_cli_passes_locked_min_updates(workspace, min_updates_spy):
     rep = json.loads((out / "fit_report.json").read_text())
     assert rep["min_updates"] == 1500
     assert rep["updates_run"] == rep["updates_per_epoch"] * rep["epochs_run"]
+
+
+def test_fit_report_records_applied_determinism(workspace):
+    """E22 — 결정성 설정이 적용된 상태를 fit_report 에 남긴다."""
+    out = workspace["tmp"] / "fit8"
+    ns = _args(workspace, out)
+    run_fit(resolve_paths("fit", ns), ns)
+    rep = json.loads((out / "fit_report.json").read_text())
+    det = rep["determinism"]
+    assert det["use_deterministic_algorithms"] is True
+    assert det["cudnn_deterministic"] is True and det["cudnn_benchmark"] is False
+    assert det["cublas_workspace_config"] in (":4096:8", ":16:8")

@@ -487,6 +487,8 @@ def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
     eval_set = FIT.encode_windows(FIT.select_refs(task_refs, fold.evaluate),
                                   transform, verify=verify)
 
+    if cfg["runtime.deterministic"] is not True:
+        raise CLIError("runtime.deterministic 은 True 여야 한다 (E22)")
     is_inner = fold.role == FIT.ROLE_INNER
     result, model = FIT.train_fold(
         train_set, eval_set, transform, cell=args.cell,
@@ -563,6 +565,7 @@ def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
         "eval_role": fold.eval_role, "transform": result.transform,
         "timing": result.timing, "memory": result.memory,
         "encoder_init_hash": result.encoder_init_hash, "rng_note": result.rng_note,
+        "determinism": result.determinism,
         "n_train_windows": len(train_set), "n_eval_windows": len(eval_set),
         "checkpoint_sha256": ckpt_sha,
     }
