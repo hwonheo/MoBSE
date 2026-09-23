@@ -15,13 +15,15 @@ S 후보 2·4 (32-hidden MLP) 는 같은 feature 함수와 선택 규칙을 쓰�
   solver 와 tolerance 는 고정.
 * S 는 각 outer fold 에서 inner subject-equal log loss 가 가장 낮은 후보/설정으로
   고른다. 외부 S 도 PIOP1 main pool 의 inner 결과로만 고른다.
+* **[개정 P11]** 미수렴 설정은 빼고 나머지 grid 에서 고르되, 뺀 설정 수를 보고한다
+  (``SSelection.excluded``·``n_excluded``).
 
 구현 선택 (프로토콜이 정하지 않은 값 — 결정이 아니다, 보고서에 명시):
 
 * variance 는 ``ddof=0``. feature 순서는 ROI 0..99 mean 뒤 ROI 0..99 variance.
 * solver ``lbfgs``, tol ``1e-4``, max_iter ``10000``, class_weight 없음.
-  수렴 여부(``converged``)와 반복 수를 fit 기록에 남긴다. **미수렴 fit 은 선택
-  단계가 거부한다** — 조용히 쓰지 않는다.
+  수렴 여부(``converged``)와 반복 수를 fit 기록에 남긴다.
+* 모든 설정이 미수렴일 때 선택을 멈추는 것 (P11 이 정하지 않은 경우의 처리).
 * 선택 동률(차이 ≤ ``train.TIE_TOLERANCE``)은 후보 순서(S1<S2<S3<S4), 그 다음
   설정 순서(C 오름차순)로 정한다. A–D 의 동률 규칙(공동 BA)과는 별개다.
 * inner loss 는 A–D 와 같은 방식: inner fold 셋의 OOF run 확률을 모아
@@ -238,14 +240,20 @@ class SSelection:
     setting_id: str
     loss: float
     table: Tuple[Dict[str, object], ...]
+    excluded: Tuple[str, ...] = ()
+    n_excluded: int = 0
 
 
 def select_s(entries: Sequence[SEntry]) -> SSelection:
     """inner subject-equal log loss 가 가장 낮은 후보/설정을 고른다.
 
+    미수렴 설정(``converged=False``)은 후보에서 빼고 나머지에서 고른다 (계획서 §11
+    P11). 뺀 설정은 ``excluded`` 에 ``"<candidate>/<setting_id>"`` 로, 그 수는
+    ``n_excluded`` 에 남는다. ``table`` 에는 뺀 설정도 ``converged`` 와 함께 남는다.
+
     Raises:
         BaselineError: 빈 입력, 알 수 없는 후보, 중복, OOF run 집합 불일치,
-            미수렴 fit 이 섞였을 때.
+            모든 설정이 미수렴일 때.
     """
     if not entries:
         raise BaselineError("선택할 후보가 없다")
@@ -261,17 +269,21 @@ def select_s(entries: Sequence[SEntry]) -> SSelection:
             raise BaselineError(
                 f"{e.candidate}/{e.setting_id} 의 OOF run 집합이 다르다 — 같은 inner "
                 "모집단에서 비교해야 한다")
-    bad = [f"{e.candidate}/{e.setting_id}" for e in entries if not e.converged]
-    if bad:
-        raise BaselineError(f"미수렴 fit 은 선택에 쓰지 않는다: {bad[:5]}")
+    excluded = tuple(f"{e.candidate}/{e.setting_id}" for e in entries if not e.converged)
+    usable = [e for e in entries if e.converged]
+    if not usable:
+        raise BaselineError(
+            f"모든 설정 {len(entries)}개가 미수렴이다 — 고를 설정이 없다: {list(excluded)[:5]}")
 
     scored = [(inner_loss(e.oof_run_probs), e) for e in entries]
-    best = min(s for s, _ in scored)
-    tied = [(s, e) for s, e in scored if s - best <= TIE_TOLERANCE]
+    best = min(s for s, e in scored if e.converged)
+    tied = [(s, e) for s, e in scored if e.converged and s - best <= TIE_TOLERANCE]
     s_sel, e_sel = min(tied, key=lambda t: (CANDIDATE_ORDER.index(t[1].candidate),
                                             t[1].setting_rank))
     table = tuple({"candidate": e.candidate, "setting_id": e.setting_id,
-                   "setting_rank": e.setting_rank, "inner_loss": s}
+                   "setting_rank": e.setting_rank, "inner_loss": s,
+                   "converged": e.converged}
                   for s, e in scored)
     return SSelection(candidate=e_sel.candidate, setting_id=e_sel.setting_id,
-                      loss=float(s_sel), table=table)
+                      loss=float(s_sel), table=table, excluded=excluded,
+                      n_excluded=len(excluded))

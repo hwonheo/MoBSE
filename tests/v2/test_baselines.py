@@ -235,9 +235,34 @@ def test_select_s_guards():
     with pytest.raises(B.BaselineError, match="OOF run 집합"):
         B.select_s([B.SEntry(B.S1, "C=1", 3, _oof(0.7)),
                     B.SEntry(B.S3, "C=1", 3, _oof(0.7, n=5))])
-    with pytest.raises(B.BaselineError, match="미수렴"):
-        B.select_s([B.SEntry(B.S1, "C=1", 3, _oof(0.7)),
+    with pytest.raises(B.BaselineError, match="모든 설정 2개가 미수렴"):
+        B.select_s([B.SEntry(B.S1, "C=1", 3, _oof(0.7), converged=False),
                     B.SEntry(B.S3, "C=1", 3, _oof(0.9), converged=False)])
+
+
+def test_select_s_excludes_unconverged_and_reports_count():
+    """[개정 P11] 미수렴 설정은 loss 가 가장 낮아도 빼고, 뺀 설정·수를 남긴다."""
+    e = [B.SEntry(B.S1, "C=1", 3, _oof(0.7)),
+         B.SEntry(B.S1, "C=10", 4, _oof(0.75)),
+         B.SEntry(B.S3, "C=1", 3, _oof(0.95), converged=False),
+         B.SEntry(B.S3, "C=100", 5, _oof(0.99), converged=False)]
+    sel = B.select_s(e)
+    assert (sel.candidate, sel.setting_id) == (B.S1, "C=10")
+    assert sel.loss == pytest.approx(-math.log(0.75))
+    assert sel.excluded == (f"{B.S3}/C=1", f"{B.S3}/C=100")
+    assert sel.n_excluded == 2
+    assert len(sel.table) == 4
+    assert [r["converged"] for r in sel.table] == [True, True, False, False]
+    # 동률 판정도 수렴 설정 안에서만: 미수렴 설정이 동률 기준(best)을 끌어내리지 않는다
+    same = _oof(0.8)
+    sel2 = B.select_s([B.SEntry(B.S1, "C=1", 3, same, converged=False),
+                       B.SEntry(B.S3, "C=1", 3, same)])
+    assert sel2.candidate == B.S3 and sel2.n_excluded == 1
+
+
+def test_select_s_all_converged_reports_zero_excluded():
+    sel = B.select_s([B.SEntry(B.S1, "C=1", 3, _oof(0.7))])
+    assert sel.excluded == () and sel.n_excluded == 0
 
 
 def test_end_to_end_inner_selection_synthetic():
