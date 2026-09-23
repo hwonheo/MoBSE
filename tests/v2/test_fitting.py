@@ -480,3 +480,80 @@ def test_p8_epoch_cap_is_200(synthetic):
         FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
                        model_seed=42, fold=fold, max_epochs=MAX_EPOCHS + 1,
                        min_updates=0)
+
+
+# ---------------------------------------------------------------------------
+# 결정 12 — inner fit 은 best checkpoint 로 평가한다 (계획서 §7 "selected best checkpoint")
+# ---------------------------------------------------------------------------
+
+def _record_eval_forwards(monkeypatch, eval_set):
+    """early stopping 평가 forward(평가 집합 크기) 의 확률을 epoch 순서대로 모은다."""
+    orig = FIT._forward_probs
+    seen = []
+
+    def spy(model, x, pca, *, batch_size):
+        p = orig(model, x, pca, batch_size=batch_size)
+        if len(p) == len(eval_set):
+            seen.append(np.asarray(p, dtype=float).copy())
+        return p
+
+    monkeypatch.setattr(FIT, "_forward_probs", spy)
+    return seen
+
+
+def _eval_vector(res, eval_set):
+    return np.array([res.eval_window_probs[r.window_key] for r in eval_set.refs])
+
+
+def test_inner_fit_evaluates_the_best_epoch_not_the_last(synthetic, monkeypatch):
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    seen = _record_eval_forwards(monkeypatch, eval_set)
+    # min_delta 가 커서 epoch 1 이후 개선이 없다 → best 1, patience 2 뒤 epoch 3 에서 멈춤
+    res, model = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                                model_seed=42, fold=fold, min_updates=0,
+                                max_epochs=6, patience=2, min_delta=10.0)
+    assert res.best_epoch == 1 and res.epochs_run == 3 and res.eval_epoch == 1
+    # seen: epoch 1..3 의 early stopping forward + 마지막 평가 forward
+    assert len(seen) == 4
+    final = _eval_vector(res, eval_set)
+    assert np.allclose(final, seen[0], atol=1e-6)
+    assert not np.allclose(seen[0], seen[2], atol=1e-6), "시험이 구별력이 없다"
+    assert not np.allclose(final, seen[2], atol=1e-6)
+    # 반환 모델도 best checkpoint 다
+    again = FIT._forward_probs(model, __import__("torch").as_tensor(eval_set.x),
+                               __import__("torch").as_tensor(eval_set.pca),
+                               batch_size=32)
+    assert np.allclose(np.asarray(again), seen[0], atol=1e-6)
+
+
+def test_inner_fit_with_best_at_the_last_epoch_is_unchanged(synthetic, monkeypatch):
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    seen = _record_eval_forwards(monkeypatch, eval_set)
+    # min_delta 가 매우 음수 → 매 epoch 이 개선 → best = 마지막
+    res, _ = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                            model_seed=42, fold=fold, min_updates=0,
+                            max_epochs=3, min_delta=-1e9)
+    assert res.best_epoch == res.epochs_run == res.eval_epoch == 3
+    assert np.allclose(_eval_vector(res, eval_set), seen[2], atol=1e-6)
+
+
+def test_outer_fit_path_is_unchanged_by_the_best_checkpoint_rule(synthetic, monkeypatch):
+    fold, tr, train_set, eval_set = _sets(synthetic, inner=T.OUTER_FIT_INNER_FOLD)
+    seen = _record_eval_forwards(monkeypatch, eval_set)
+    res, _ = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                            model_seed=43, fold=fold, min_updates=0, epochs_exact=3)
+    assert res.epochs_run == res.best_epoch == res.eval_epoch == 3
+    assert res.val_losses == []
+    assert len(seen) == 1, "outer fit 은 학습 중 평가 forward 가 없어야 한다"
+    assert np.allclose(_eval_vector(res, eval_set), seen[0], atol=1e-6)
+
+
+def test_best_checkpoint_fit_is_deterministic(synthetic):
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    kw = dict(cell="A", config_id=0, model_seed=42, fold=fold, min_updates=0,
+              max_epochs=6, patience=2, min_delta=10.0)
+    a, _ = FIT.train_fold(train_set, eval_set, tr, **kw)
+    b, _ = FIT.train_fold(train_set, eval_set, tr, **kw)
+    assert a.eval_epoch == b.eval_epoch == 1
+    assert a.eval_window_probs == b.eval_window_probs
+    assert a.val_losses == b.val_losses

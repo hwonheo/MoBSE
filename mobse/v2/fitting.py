@@ -394,6 +394,9 @@ class FitResult:
     encoder_init_hash: str
     rng_note: str
     determinism: Dict[str, Any] = field(default_factory=dict)
+    #: 평가 확률·반환 모델의 가중치가 나온 epoch (1-indexed). inner 는 best_epoch,
+    #: outer/external 은 마지막 epoch 이다 (계획서 §7 selected best checkpoint).
+    eval_epoch: int = 0
 
 
 #: cuBLAS 가 결정적으로 도는 workspace 설정 (PyTorch reproducibility 문서).
@@ -475,7 +478,10 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
 
     Returns:
         ``(FitResult, model)``. 모델은 호출자가 checkpoint 로 저장한다 — 저장
-        경로를 이 함수가 정하지 않는다 (U20).
+        경로를 이 함수가 정하지 않는다 (U20). inner fit(early stopping)은 best
+        epoch 의 가중치를 복원한 뒤 평가 확률을 내고 그 모델을 돌려준다 — 마지막
+        epoch 모델이 아니다 (계획서 §7 "selected best checkpoint", 결정 12 정정).
+        outer/external fit 은 정확히 E epoch 뒤의 모델이다.
 
     Args:
         early_stopping: 기본값은 role 이 inner 일 때만 True. **outer fit 에서
@@ -552,6 +558,8 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
 
     n_epochs = n_epochs_planned
     val_losses: List[float] = []
+    best_state: Optional[Dict[str, Any]] = None
+    best_state_epoch = 0
     t0 = time.perf_counter()
     for _ in range(n_epochs):
         model.train()
@@ -568,10 +576,16 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
             probs = _forward_probs(model, xe, pe, batch_size=batch_size)
             rp = run_probabilities(eval_set.refs, probs)
             val_losses.append(subject_equal_loss(subject_run_true_probs(rp)))
-            if len(val_losses) >= min_epoch and len(val_losses) - early_stop_epoch(
-                    val_losses, patience=patience, min_delta=min_delta,
-                    min_epoch=min_epoch) >= patience:
-                break
+            if len(val_losses) >= min_epoch:
+                cur_best = early_stop_epoch(val_losses, patience=patience,
+                                            min_delta=min_delta, min_epoch=min_epoch)
+                if cur_best == len(val_losses):
+                    # best 가 갱신된 epoch — 가중치를 깊은 복사로 보관 (RNG 소비 없음).
+                    best_state = {k: v.detach().clone()
+                                  for k, v in model.state_dict().items()}
+                    best_state_epoch = cur_best
+                if len(val_losses) - cur_best >= patience:
+                    break
     elapsed = time.perf_counter() - t0
 
     if early_stopping:
@@ -579,8 +593,15 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
                                 for i in range(len(val_losses))})
         best_epoch = early_stop_epoch(val_losses, patience=patience,
                                       min_delta=min_delta, min_epoch=min_epoch)
+        if best_state is None or best_state_epoch != best_epoch:
+            raise FitError(f"best checkpoint 불일치: 보관 epoch {best_state_epoch}, "
+                           f"best epoch {best_epoch} (결정 12)")
+        if best_epoch != len(val_losses):
+            model.load_state_dict(best_state)
+        eval_epoch = best_epoch
     else:
         best_epoch = n_epochs
+        eval_epoch = n_epochs
 
     probs = _forward_probs(model, xe, pe, batch_size=batch_size)
     run_probs = run_probabilities(eval_set.refs, probs)
@@ -605,5 +626,5 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
         memory=memory, encoder_init_hash=enc_hash,
         rng_note=("encoder 는 cell 간 같은 seed 에서 동일 초기화다. gate 가 소비하는 "
                   "RNG 양이 달라 graph layer·head 이후는 cell 마다 다르다 — 계획서 §7"),
-        determinism=determinism,
+        determinism=determinism, eval_epoch=eval_epoch,
     ), model

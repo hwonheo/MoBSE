@@ -569,6 +569,7 @@ def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
         "fit_id": fid, "config_id": int(args.config_id),
         "config": gc.as_dict(),
         "epochs_run": result.epochs_run, "best_epoch": result.best_epoch,
+        "eval_epoch": result.eval_epoch,
         "min_epoch": result.min_epoch, "updates_per_epoch": result.updates_per_epoch,
         "updates_run": result.updates_run, "min_updates": int(cfg["train.min_updates"]),
         "val_losses": result.val_losses, "eval_loss": result.eval_loss,
