@@ -12,7 +12,8 @@
 * ``fit``       — 지정한 fold·cell·seed 하나를 학습한다.
 * ``evaluate``  — 저장된 outer test 예측을 run·subject·cell 로 집계한다. **분류만.**
   부트스트랩·gate 판정은 하지 않는다 (``report`` 의 몫).
-* ``report``    — 통계와 gate evidence 를 낸다.
+* ``report``    — evaluate 산출물로 paired group bootstrap 구간과 G3 완전성·정합성
+  판정을 낸다. 유의성은 gate 가 아니다 (계획서 §8).
 """
 
 from __future__ import annotations
@@ -20,7 +21,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from mobse.v2.config import ConfigError, config_hash, load_config
 from mobse.v2.manifests import ManifestError, assert_no_glob_fallback, validate_record
@@ -34,7 +35,9 @@ REQUIRED_PATHS: Dict[str, Sequence[str]] = {
     "split": ("config", "subjects", "output_dir"),
     "fit": ("config", "splits", "subjects", "windows", "rest_manifest", "output_dir"),
     "evaluate": ("config", "splits", "predictions", "fit_manifest", "output_dir"),
-    "report": ("config", "predictions", "output_dir"),
+    # report 는 evaluate 산출물(evaluation.json·run_predictions.jsonl)과 group 매핑의
+    # 출처인 subjects.jsonl 을 받는다. run_predictions 에는 group_id 가 없다.
+    "report": ("config", "evaluation", "predictions", "subjects", "output_dir"),
 }
 
 
@@ -60,7 +63,8 @@ def build_parser() -> argparse.ArgumentParser:
         "subjects": "subjects.jsonl 경로",
         "splits": "folds.json 경로",
         "windows": "windows.jsonl 경로",
-        "predictions": "window_predictions.jsonl 경로",
+        "predictions": "예측 JSONL 경로 (evaluate: window_predictions, report: run_predictions)",
+        "evaluation": "evaluate 가 쓴 evaluation.json 경로",
         "fit_manifest": "fit_manifest.json 경로",
         "rest_manifest": "WI-02 restingstate 추출 manifest 경로 (bank 적합용)",
         "output_dir": "산출 디렉터리",
@@ -828,6 +832,198 @@ def run_evaluate(paths: Dict[str, Any], args: argparse.Namespace) -> Dict[str, A
             "output_dir": str(out_dir)}
 
 
+REPORT_OUTPUTS = ("statistics.json",)
+REPORT_SCHEMA = "wi06-statistics-0.1"
+#: 주 contrast (97.5% family-wise CI) 와 보조 지표 (95% 기술적 CI). 계획서 §8.
+PRIMARY_CONTRASTS = ("H1_A_minus_B", "H2_A_minus_C")
+AUXILIARY_CONTRASTS = ("interaction",)
+
+
+def _recompute_subject_scores(rows: Sequence[Mapping[str, Any]], *, threshold: float
+                              ) -> Dict[str, Dict[str, float]]:
+    """run_predictions 행에서 cell 별 subject ``b_i`` 를 다시 계산한다.
+
+    evaluate 의 값을 그대로 믿지 않고 run 행만으로 재계산해 evaluation.json 과
+    대조한다. 불완전한 subject 는 실패한다 (complete-case, 계획서 §8).
+
+    Raises:
+        CLIError: 임계 규칙 위반, 중복 run, 불완전 subject, cell 간 subject 불일치.
+    """
+    from mobse.v2 import evaluate as EV
+    from mobse.v2 import fitting as FIT
+    from mobse.v2.statistics import classify, subject_score
+
+    got: Dict[str, Dict[str, Dict[str, bool]]] = {c: {} for c in EV.CELLS}
+    for i, r in enumerate(rows):
+        if r["cell"] not in got:
+            raise CLIError(f"run_predictions:{i + 1}: 알 수 없는 cell {r['cell']!r}")
+        if float(r["threshold"]) != threshold:
+            raise CLIError(f"run_predictions:{i + 1}: threshold {r['threshold']} ≠ {threshold}")
+        if int(r["prediction"]) != classify(float(r["ensemble_p"]), threshold):
+            raise CLIError(f"run_predictions:{i + 1}: prediction 이 ensemble_p 의 "
+                           "임계 판정과 다르다 (동일값은 class 1)")
+        if (int(r["n_windows"]), int(r["n_seeds"])) != (EV.N_WINDOWS, EV.N_SEEDS):
+            raise CLIError(f"run_predictions:{i + 1}: window×seed "
+                           f"{r['n_windows']}×{r['n_seeds']} — 불완전 평균")
+        task = FIT.task_of(r["run_key"])
+        if task not in EV.CLASSIFICATION_TASKS:
+            raise CLIError(f"run_predictions:{i + 1}: 분류 task 가 아니다: {task}")
+        slot = got[r["cell"]].setdefault(r["canonical_subject"], {})
+        if task in slot:
+            raise CLIError(f"run_predictions:{i + 1}: {r['cell']}/"
+                           f"{r['canonical_subject']}/{task} 중복")
+        slot[task] = int(r["prediction"]) == int(r["truth"])
+
+    scores: Dict[str, Dict[str, float]] = {}
+    for cell, by_subject in got.items():
+        bad = sorted(s for s, t in by_subject.items()
+                     if set(t) != set(EV.CLASSIFICATION_TASKS))
+        if bad or not by_subject:
+            raise CLIError(f"cell {cell}: 두 task 를 모두 갖지 않은 subject {bad[:5]} "
+                           f"또는 행 없음 — complete-case 만 집계한다")
+        scores[cell] = {s: subject_score(t[EV.CLASSIFICATION_TASKS[0]],
+                                         t[EV.CLASSIFICATION_TASKS[1]])
+                        for s, t in sorted(by_subject.items())}
+    ref = set(scores[EV.CELLS[0]])
+    for cell in EV.CELLS[1:]:
+        if set(scores[cell]) != ref:
+            raise CLIError(f"cell {cell} 의 subject 집합이 {EV.CELLS[0]} 와 다르다 — paired 불가")
+    return scores
+
+
+def run_report(paths: Dict[str, Any]) -> Dict[str, Any]:
+    """evaluate 산출물로 paired bootstrap 구간과 G3 정합성 판정을 낸다 (계획서 §8·§10).
+
+    * run 행으로 subject ``b_i`` 를 재계산해 ``evaluation.json`` 과 정확히 대조한다.
+    * seed 9001·10,000회 group 재표집 index 를 **한 번** 만들어 모든 cell·contrast 에
+      공유한다. 주 contrast 2개는 97.5% CI, interaction·cell BA 는 95% 기술적 CI.
+    * 판정은 완전성·정합성뿐이다. **유의성은 실행 gate 가 아니다** — 구간 해석은
+      `statistics.interpret` 문자열로만 기록한다.
+
+    Raises:
+        CLIError: 입력 무결성·정합성 위반 또는 덮어쓰기 시도.
+    """
+    from mobse.v2 import evaluate as EV
+    from mobse.v2 import statistics as ST
+    from mobse.v2.manifests import code_hash, read_jsonl, sha256_file
+
+    try:
+        cfg = load_config(Path(paths["config"]))
+    except ConfigError as exc:
+        raise CLIError(f"config 검증 실패: {exc}") from exc
+    cfg_hash = config_hash(cfg)
+
+    out_dir = Path(paths["output_dir"])
+    for name in REPORT_OUTPUTS:
+        if (out_dir / name).exists():
+            raise CLIError(f"이미 존재한다: {out_dir / name}. 같은 release 결과를 "
+                           "덮어쓰지 않는다 (지침서 §2)")
+
+    ev_path = Path(paths["evaluation"])
+    evaluation = json.loads(ev_path.read_text(encoding="utf-8"))
+    if evaluation.get("config_hash") != cfg_hash:
+        raise CLIError("evaluation.json 의 config_hash 가 주어진 config 와 다르다")
+    pred_path = Path(paths["predictions"])
+    pred_sha = sha256_file(pred_path)
+    recorded = evaluation.get("run_predictions", {}).get("sha256")
+    if pred_sha != recorded:
+        raise CLIError(f"run_predictions sha256 {pred_sha[:12]} 가 evaluation.json 기록 "
+                       f"{str(recorded)[:12]} 와 다르다 — 같은 evaluate 산출물이 아니다")
+    try:
+        rows = read_jsonl(pred_path, "run_predictions")
+    except ManifestError as exc:
+        raise CLIError(f"{pred_path}: run_predictions 스키마 위반 — {exc}") from exc
+
+    threshold = float(cfg["stats.threshold"])
+    scores = _recompute_subject_scores(rows, threshold=threshold)
+    if {c: dict(v) for c, v in scores.items()} != evaluation.get("subject_scores"):
+        raise CLIError("run 행으로 재계산한 subject b_i 가 evaluation.json 과 다르다")
+
+    try:
+        subj_rows = read_jsonl(Path(paths["subjects"]), "subjects")
+    except ManifestError as exc:
+        raise CLIError(f"subjects 스키마 위반 — {exc}") from exc
+    group_of = {r["canonical_subject"]: r["group_id"] for r in subj_rows}
+    eligible = {r["canonical_subject"] for r in subj_rows if r["eligible"]}
+    subjects = sorted(scores[EV.CELLS[0]])
+    missing = [s for s in subjects if s not in group_of]
+    if missing:
+        raise CLIError(f"subjects.jsonl 에 group 이 없는 subject: {missing[:5]}")
+    ineligible = [s for s in subjects if s not in eligible]
+    if ineligible:
+        raise CLIError(f"부적격 subject 가 평가에 들어 있다: {ineligible[:5]}")
+    if len(subjects) != int(evaluation.get("counts", {}).get("subjects", -1)):
+        raise CLIError("subject 수가 evaluation.json counts 와 다르다")
+
+    seed, n_boot = int(cfg["stats.bootstrap_seed"]), int(cfg["stats.n_bootstrap"])
+    fw = tuple(float(x) for x in cfg["stats.familywise_pct"])
+    nom = tuple(float(x) for x in cfg["stats.nominal_pct"])
+    delta = float(cfg["stats.delta"])
+    idx = ST.bootstrap_indices(group_of, subjects, seed=seed, n_boot=n_boot)
+
+    def _ci(values: Mapping[str, float], pct: Tuple[float, float]) -> Dict[str, Any]:
+        res = ST.paired_bootstrap({s: values[s] for s in subjects}, group_of,
+                                  indices=idx, seed=seed, n_boot=n_boot, pct=pct)
+        return {**res.as_dict(), "interpretation": ST.interpret(res, delta=delta),
+                "lower_gt_0": res.lo > 0, "lower_gt_delta": res.lo > delta}
+
+    diffs = {
+        "H1_A_minus_B": {s: scores["A"][s] - scores["B"][s] for s in subjects},
+        "H2_A_minus_C": {s: scores["A"][s] - scores["C"][s] for s in subjects},
+        "interaction": {s: (scores["A"][s] - scores["B"][s]) -
+                           (scores["C"][s] - scores["D"][s]) for s in subjects},
+    }
+    if {k: dict(sorted(v.items())) for k, v in diffs.items()} != \
+            evaluation.get("subject_differences"):
+        raise CLIError("재계산한 subject 차이가 evaluation.json 과 다르다")
+
+    primary = {k: _ci(diffs[k], fw) for k in PRIMARY_CONTRASTS}
+    auxiliary = {k: _ci(diffs[k], nom) for k in AUXILIARY_CONTRASTS}
+    cell_ba = {c: _ci(scores[c], nom) for c in EV.CELLS}
+    for c in EV.CELLS:
+        if abs(cell_ba[c]["point_estimate"] -
+               float(evaluation["balanced_accuracy"][c])) > 1e-12:
+            raise CLIError(f"cell {c} BA 가 evaluation.json 과 다르다")
+
+    both = all(primary[k]["lower_gt_0"] for k in PRIMARY_CONTRASTS)
+    summary = {
+        "schema_version": REPORT_SCHEMA,
+        "config_hash": cfg_hash, "split_hash": evaluation.get("split_hash"),
+        "fit_code_hash": evaluation.get("fit_code_hash"),
+        "evaluator_code_hash": evaluation.get("evaluator_code_hash"),
+        "report_code_hash": code_hash(sorted(Path(__file__).resolve().parent.glob("*.py"))),
+        "bootstrap": {"seed": seed, "n_boot": n_boot, "shared_across_cells": True,
+                      "unit": "group", "n_subjects": len(subjects),
+                      "n_groups": len({group_of[s] for s in subjects})},
+        "delta": delta, "threshold": threshold,
+        "primary_contrasts": primary, "auxiliary_contrasts": auxiliary,
+        "cell_balanced_accuracy": cell_ba,
+        "both_primary_lower_gt_0": both,
+        "g3_verdict": {"completeness_and_consistency": "pass",
+                       "significance_is_gate": False,
+                       "checks": ["run_predictions sha256 = evaluation.json 기록",
+                                  "run 행 재계산 b_i = evaluation.json subject_scores",
+                                  "재계산 subject 차이 = evaluation.json",
+                                  "cell BA = evaluation.json",
+                                  "complete-case, cell 간 subject 동일, 부적격 0"]},
+        "inputs": {"config": str(paths["config"]),
+                   "evaluation": {"path": str(ev_path), "sha256": sha256_file(ev_path)},
+                   "run_predictions": {"path": str(pred_path), "sha256": pred_sha,
+                                       "n_rows": len(rows)},
+                   "subjects": {"path": str(paths["subjects"]),
+                                "sha256": sha256_file(Path(paths["subjects"]))}},
+        "caveat": "내부 OOF bootstrap 은 고정된 학습 결과에 조건부이며 training-set "
+                  "변동을 완전히 반영하지 않는다 (계획서 §8)",
+    }
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "statistics.json").write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"verdict": "pass", "n_subjects": len(subjects),
+            "primary": {k: [v["point_estimate"], v["ci_lo"], v["ci_hi"]]
+                        for k, v in primary.items()},
+            "both_primary_lower_gt_0": both, "output_dir": str(out_dir)}
+
+
 def _as_list(value: Any) -> List[str]:
     """경로 인자를 목록으로. nargs='+' 인자와 단일 경로를 같게 다룬다."""
     if isinstance(value, (list, tuple)):
@@ -866,10 +1062,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0 if result["verdict"] == "pass" else 1
 
+    if args.command == "report":
+        result = run_report(paths)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result["verdict"] == "pass" else 1
+
     raise NotImplementedError(
         f"{args.command} 의 실행 본체는 아직 구현되지 않았다 — WI-02 재추출 "
         "산출물을 입력으로 받는다. 이 CLI 는 경로 계약과 하위 명령 경계를 "
-        "고정한다. 본체가 있는 명령은 validate·split·fit·evaluate 다 (지침서 WI-06)")
+        "고정한다. 본체가 있는 명령은 validate·split·fit·evaluate·report 다 (지침서 WI-06)")
 
 
 if __name__ == "__main__":
