@@ -1,7 +1,7 @@
 {
   "schema_version": "measurement_lock_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "locked_at_utc": "2026-09-23T04:32:58Z",
+  "locked_at_utc": "2026-09-23T04:16:47Z",
   "gate": "G1 Measurement lock",
   "work_instruction": "WI-03",
   "roots": {
@@ -213,8 +213,8 @@
   "environment": {
     "protocol": {
       "path": "docs/experiments/mobse_redesign_protocol_2026-09-17.md",
-      "sha256": "e11c293eaa26d15234b8130ad68256d729041c6b5fb4b5f4a575609c9b0de3ce",
-      "bytes": 33630
+      "sha256": "fedc6512f443be2f1954c6a59e815d8bda459a631c59c7b24d50cf0530e580d4",
+      "bytes": 30926
     },
     "instructions": {
       "path": "docs/experiments/mobse_redesign_work_instructions_2026-09-17.md",
@@ -302,9 +302,9 @@
     "formula": "126 subjects x 2 tasks x 4 windows x 3 seeds x 4 cells"
   },
   "supersedes": {
-    "lock_hash": "6e68eb939bebebc1eac27927f1b21a68e89d994c24d7b3b2aa35366f046c2d09",
-    "locked_at_utc": "2026-09-23T04:16:47Z",
-    "reason": "P8·P9 개정 기록(2026-09-23 선생님 결정)을 계획서 §11 에 추가해 environment/protocol sha 가 바뀜. 코드·코호트·분할·창 manifest 는 불변."
+    "lock_hash": "44b07ea14fd56deedc3538290ab373b5e669e560ab18377479ff86af6cda10ff",
+    "locked_at_utc": "2026-09-23T03:22:50Z",
+    "reason": "E19: code_hash 가 저장소 경로 prefix 를 해시하던 것을 파일명만 쓰도록 수정 (mobse/v2/manifests.py). E20: verify_lock 이 environment.code 를 검사하지 않던 것을 검사하도록 추가 (mobse/v2/locks.py). 코호트·분할·창 manifest 는 불변."
   },
-  "lock_hash": "02e7434f228c2a575df77f53feb6b8ea6c673d5945e4e0ae5b56d286602ef1cb"
+  "lock_hash": "6e68eb939bebebc1eac27927f1b21a68e89d994c24d7b3b2aa35366f046c2d09"
 }

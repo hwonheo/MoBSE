@@ -3019,3 +3019,121 @@ rev23 에서 3단계를 넣어 두지 않았다면 그대로 나갔을 것이다
 - **pilot 에서의 S 후보 전체 비교** — 계획서 §6 의 S 후보 4종과 구조 비교
   2종은 이번에 돌리지 않았다. W.4 의 선형 probe 는 진단용이지 S 선택 절차가
   아니다.
+
+---
+
+# 부록 X — h197 디스크 교체 뒤 재개: E18·E19·E20, 선생님 결정, 통과대역 자유도 (2026-09-23)
+
+## X.1 복원 확인
+
+h197 은 새 배열 `md1`(RAID1, WD40EFPX ×2, `[2/2] [UU]`)로 옮겨졌고 `/etc/fstab` 은 UUID,
+`mdadm.conf` 는 md1 로 갱신됐다. `/mnt/data/mp2026/MoBSE_dataset` 는 같은 경로로 복원됐다.
+h197 의 손실 원장(`~/loss_ledger_20260923.md`)에 MoBSE 항목은 없다.
+
+- **Wave 1**: `provenance/h197_wave1/wave1_files.sha256` 6,058 파일을 `sha256sum -c` 로 대조 — **전부 일치** (rc=0).
+- **Wave 2**: 파일 수 nii.gz 2,590 + 로그 4 로 기록과 같다. 해시 기준선이 없어 내용 대조는 못 했다 (열린 항목 그대로).
+- 기존 4단계 마감(HEAD `5d6677a` 스냅샷)은 전부 기대값이었다.
+
+## X.2 E18 — 네 검사가 모두 통과했는데 창 파일이 빠져 있었다
+
+PIOP1 workingmemory 추출 manifest 의 704창 `windows[].path` 가 전부 `/tmp/wm_rerun2/` 를
+가리켰다. 재부팅이 `/tmp` 를 비워 원본이 사라졌다. `derivatives_v2/` 의 WM `.npy` 는 1차
+추출(sub-0171 I/O error)본이라 **sub-0171(main pool) 4창이 없었다.** fit 은 manifest 의
+path 를 그대로 읽으므로(`mobse/v2/fitting.py`) 이대로면 PIOP1 WM 전량을 불러올 수 없었다.
+
+근본 원인은 셋이다. (1) 2차 재추출을 `/tmp` 에 받고 manifest 만 정본 위치로 옮겼다 — 추출기는
+`--output-dir` 절대경로를 manifest 에 박는다. (2) 잠금은 manifest **파일**의 해시만 보고
+그 안의 창 경로를 열어 보지 않는다. (3) 직전 인수인계가 "`/tmp` 는 교체 후에도 남는다"고
+적었으나, 디스크와 무관하게 **재부팅이 `/tmp` 를 지운다.**
+
+복구: 현행 코드로 WM 전량을 재추출(`MoBSE_dataset/recovery_20260923/wm_rerun3/`)해 ok 176 /
+excluded 31 / skipped 9 (기록과 동일), 잠긴 manifest 의 **704창 sha256 전부 일치**를
+확인했다. sub-0171 4창을 `derivatives_v2/sub-0171/` 에 추가(덮어쓰기 없음)하고 manifest 의
+경로 문자열만 `derivatives_v2/` 로 바꿨다(704건, 경로 외 변화 없음을 문자열 대조로 확인).
+원본 manifest 는 `recovery_20260923/backup/` 에 있다 (D1, 선생님 사후 승인 "D1 - 추천대로").
+
+장치: `scripts/h197/25_verify_window_files.py` — 잠금이 가리키는 6개 manifest 의 ok 창 전부를
+역참조해 data-root 밖 경로·누락·해시 불일치·빈 ok run 이면 rc=1. 자기시험 7건. 수정 전 실자료에서
+704 `outside_root` 를 잡았고, 수정 후 4,728창 전부 일치.
+
+## X.3 E19 — `code_hash` 가 저장소 위치에 의존
+
+`manifests.code_hash` 가 절대경로 문자열을 해시에 넣어, 모듈 17개의 sha 가 전부 같은데도
+저장소 위치만 바뀌면 값이 바뀌었다. 잠금과 `fit_manifest.json` 둘 다 이 값을 쓴다. 파일명만
+해시하도록 고치고 위치 불변·이름 변경·중복 이름 시험 3건을 넣었다. 수정 후 값 `e96eff358ce3…` 는
+Mac 경로와 h197 `/mnt/data/code/MoBSE` 에서 같았다.
+
+## X.4 E20 — 잠금이 코드를 기록만 하고 검사하지 않았다
+
+E19 수정으로 `mobse/v2` 가 바뀌었는데 19번이 여전히 24/24 를 냈다. `verify_lock` 의 레코드
+탐색이 `{"path","sha256"}` 모양만 찾는데 `environment.code` 는 `{"code_hash","modules"}`
+모양이라 아무도 다시 계산하지 않았다. `locks.verify_code_record()` 를 추가해 모듈별 sha 와
+`code_hash` 를 재계산한다. 시험 7건, 검사를 끈 변이 사본에서 6건이 실패함을 확인했다.
+19번 검사 수는 24 → 42 로 늘었다.
+
+## X.5 잠금 사슬
+
+```
+1c1fba957b35 → 2eb2783e3dcc → 5a735929b525 → 44b07ea14fd5 (E18 경로 정정)
+             → 6e68eb939beb (E19/E20 코드) → 02e7434f228c (P8·P9 개정 기록, 현행)
+```
+
+모든 재생성에서 split_hash `ace5f4a4…`, N 126/189, 코호트·창 내용은 불변이다.
+
+## X.6 선생님 결정 (원문)
+
+| 항목 | 원문 | 적용 |
+|---|---|---|
+| D1 | "D1 - 추천대로" | X.2 대로 시행 완료 |
+| band-pass | "band-pass - 동시 회귀 ok" | 계획서 개정 P9 — 순서만 결정. 통과대역은 X.7 로 보류 |
+| P8 | "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)" | 계획서 개정 P8 기록. 구현 전 |
+| CLI | "CLI - 추천안 대로" | evaluate → report → prepare 순 |
+| §6 | "§6 S 후보 4 + 구조 비교 2 - 추천안 대로" | 구현·합성 시험은 지금, 실자료 실행은 통과대역 확정 후 main OOF 와 같은 release |
+| lock_hash 인용 | "rev24 낡은 lock_hash 인용 - 추천대로" | rev25 에서 현행화 + 22번이 gate evidence 인용도 대조 |
+| 커밋 | "커밋방식 - ok. 커밋 규약만 잘 지켜주면 ok" | 로컬 커밋, 푸시 없음 |
+| 저장소 사본 | "\"/Users/hwon/projects/Git/Manuscript/MoBSE\" 를 그대로 rsync 클론해서 h197의 /mnt/data/code/MoBSE에 만들자" | 코드·문서·결과·`.git` 먼저, `data/`·`artifacts/`·`nilearn_cache/` 는 백그라운드 전송 |
+
+## X.7 통과대역 상한 — 동시 회귀로 정확히 세면 0.1 Hz 에서 target run 이 전부 탈락한다
+
+동시 회귀의 residual DOF 는 `n − rank([nuisance, 차단대역 기저])` 다. P6-b 의
+`min(n − rank(nuisance), floor(2·Δf·T))` 는 nuisance 와 필터가 같은 자유도를 이중으로 쓰지
+않는다고 가정하므로 **과대 보고한다.** 2026-09-23 추천안의 "DOF = n − p_nuis − p_freq 로
+P6-b 회계와 정확히 일치" 는 틀린 서술이었다.
+
+confounds 만으로 전 ok run 을 실측했다 (DCT-II 기저, 하한 0.008 Hz, `MIN_RESIDUAL_DOF = 30`,
+판정은 `≤ 30` 이면 탈락):
+
+| 상한 | PIOP1 emo | PIOP1 WM | PIOP1 rest | PIOP2 emo | PIOP2 WM | PIOP2 rest |
+|---|---|---|---|---|---|---|
+| 0.10 Hz | 최대 20, **183/183 탈락** | 최대 29, **176/176 탈락** | 29/202 탈락 | 최대 20, **204/204 탈락** | 최대 29, **214/214 탈락** | 0/203 |
+| 0.15 Hz | 최소 39, 0 탈락 | 최소 50 | 최소 44 | 최소 40 | 최소 55 | 최소 97 |
+| 0.20 Hz | 최소 66, 0 탈락 | 최소 82 | 최소 80 | 최소 67 | 최소 87 | 최소 145 |
+| 0.25 Hz | 최소 92, 0 탈락 | 최소 114 | 최소 116 | 최소 93 | 최소 118 | 최소 192 |
+
+산출물: `MoBSE_dataset/recovery_20260923/checks/dof_simultaneous_probe.json`, `dof_probe_hi{0.15,0.2,0.25}.json`.
+기존 창에는 필터가 없으므로 이 표는 현재 코호트를 바꾸지 않는다. 통과대역 상한은 **선생님 결정 대기**이며,
+P6-b 는 P9 구현 때 정확식으로 대체한다.
+
+적격 판정 경로도 확인했다 — QC 는 FD·창별 FD·`residual_dof` 만 쓰고 신호 값은 쓰지 않는다
+(`scripts/h197/10_wi02_extract.py::process_run`). 따라서 필터가 적격에 영향을 주는 경로는
+`residual_dof` 하나이며, 위 표가 그 영향의 전부다.
+
+## X.8 회귀·검증 (rev25)
+
+h197 저장소 사본 `/mnt/data/code/MoBSE` 에서, 2026-09-23T04:35Z–04:37Z.
+
+```
+시험          586 passed, 12 skipped      (rev24 563/11; guard 7 + E19 3 + E20 7 + 22번 gate 인용 3 + 25번 파라미터)
+해시          검사 141건 전부 일치         (rev24 136)
+인용 수치     대조 실패 0건                 (gate evidence 의 lock_hash 인용 대조 추가)
+잠금          검사 42건 전부 일치, rc=0     (E20 으로 코드 18건 추가)
+창 파일       6개 manifest 4,728창 전부 일치, rc=0
+```
+
+## X.9 이번 회차에 확인하지 못한 것
+
+- **통과대역 상한** — 선생님 결정 대기 (X.7). 그 전에는 P9 구현·전 창 재추출을 하지 않는다.
+- **P8 구현** — 계획서에 기록만 했다. 코드·config 상수는 아직 50 epoch / patience 5 다.
+- **Wave 2 내용 무결성** — 해시 기준선이 없다. 파일 수만 대조했다.
+- **h197 사본의 `data/`** — 186 GB 중 일부만 전송됐다 (백그라운드 진행 중). `data/` 는 주분석에 쓰지 않는 legacy 자료다.
+- **G1 의 "resource plan from pilot measurement" fail 판정** — rev24 의 pilot 측정(부록 W) 이후 갱신됐는지 이번에 재검토하지 않았다.
