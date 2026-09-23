@@ -91,6 +91,21 @@ def test_p6b_formula_present(protocol):
     assert "rank(design)" in head
 
 
+def test_p10_exact_formula_replaces_p6b(protocol):
+    """개정 P10 — 정확식이 본문에 있고, P6-b 식은 기록으로 남아 있다."""
+    head, _ = _split(protocol)
+    assert "[개정 P10]" in head
+    assert "residual_dof = n_volumes - rank([design, dct_stopband_basis])" in head
+    assert "| P10 |" in protocol
+
+
+def test_p9_decision_quoted_verbatim(protocol):
+    """결정 9 원문을 넓히지 않고 인용한다."""
+    assert "\"통과대역 0.2 Hz로\"" in protocol
+    head, _ = _split(protocol)
+    assert "0.008–0.2 Hz" in head
+
+
 def test_fixed_window_definition_unchanged(protocol):
     """P3 철회의 의미 — [12,252) 는 수정 없이 남아야 한다."""
     head, _ = _split(protocol)
