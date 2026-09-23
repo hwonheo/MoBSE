@@ -3592,3 +3592,75 @@ evaluation.json 의 config_hash, run_predictions sha256 기록과 대조한다. 
 - 곡선 진동의 원인 (학습률·batch·gradient clip 등) — 측정 범위 밖.
 - 다른 cell(B–D)·config 1–7 에서 1,500 대 3,000 차이.
 - S 후보 2·4·구조 비교 2 — 미구현 (남은 작업 3).
+
+# 부록 AH — 결정 12 (가): `train_fold` best checkpoint 정정 · pilot config 4·0 6,000 update 곡선 (rev35, 2026-09-23 예약 슬롯)
+
+선생님 결정 원문 (2026-09-23 23:1x KST): 23:00 대화 권고 "(가) 먼저 할 것: pilot 추가 측정 1회 + `train_fold` 정정 — config 4(학습률 0.0003)를 같은 조건으로 약 6,000 update까지 곡선 측정 … `train_fold` 가 best checkpoint의 확률을 내도록 고칩니다. 두 결과를 보고 최소치를 정하고, 필요하면 상한도 함께 조정합니다." 에 **"ok (가)로.. 만약 더 update가 필요하면 권고해 주길.."**.
+
+승인 범위 밖 (바꾸지 않음): 최소 update·상한 값의 변경 자체(권고만), 학습률·patience·min_delta·batch·grid·gradient clip, 곡선 진동 원인 진단.
+
+## AH.1 `train_fold` 정정 — 계획서 §7 정합 (새 결정 아님)
+
+- rev34 까지 inner fit 은 best epoch 을 **기록만** 하고 평가 확률(`eval_run_probs`·`eval_window_probs`·`eval_loss`)과 반환 모델은 **마지막 epoch**(= best + patience 까지) 것이었다. 계획서 §7 은 config 를 inner OOF run loss 로 고르고 "selected best checkpoint의 epoch를 기록한다" — best checkpoint 기준이 맞는 해석이다. "기록만 하고 적용 안 하는" 구조의 또 한 사례 (E21·E22 와 같은 꼴).
+- 코드 `mobse/v2/fitting.train_fold`: 최소 epoch 이후 매 epoch `early_stop_epoch` 로 현재 best 를 구하고, best 가 그 epoch 으로 갱신되면 `state_dict` 를 깊은 복사로 보관한다 (RNG 소비 없음). 끝나면 보관 epoch 이 최종 best epoch 과 같은지 확인(다르면 `FitError`)하고, best 가 마지막 epoch 이 아니면 복원한 뒤 평가 확률을 계산한다. best epoch 정의(최소 epoch 이후, min_delta 0.0005, patience 5)는 그대로다.
+- outer/external fit(early stopping 없음, 정확히 E epoch)은 바뀌지 않는다.
+- 기록: `FitResult.eval_epoch` (평가 가중치의 epoch), `fit_report.json` 의 `eval_epoch`.
+- 시험 `tests/v2/test_fitting.py` +4 (36 → 40): (a) 반환 확률 = best epoch 시점 평가 forward 의 확률이고 마지막 epoch 확률과 다름, 반환 모델도 best checkpoint; (b) best 가 마지막 epoch 이면 결과 불변; (c) outer 경로 불변 (학습 중 평가 forward 없음, eval_epoch = E); (d) 같은 입력 두 번 → 확률·val loss 완전 동일. 돌연변이 (`.backup/slot_2315/mut_best_ckpt.sh`, Mac 사본): 복원 생략, 복원 안 함 조건, 매 epoch 보관, 복사 대신 참조 보관, eval_epoch 을 마지막으로, outer eval_epoch 오기 = **6/6 검출**.
+- 이미 끝난 pilot 측정(`grid1500_det`·`grid3000_det`·아래 `grid6000_det`)은 min_updates = 전체 epoch 이라 early stopping 이 발동하지 않고 곡선을 기록하는 방식이므로 이 정정의 영향이 없다 — 재측정하지 않았다.
+- 잠금: `3f3c751b35c7` → **`f93f1c504ba2`** (2026-09-23T14:21Z), code_hash `e259cb1048a8` → `39863e0e81fa`. 검사 43/43, 창 4,728, 창·코호트·분할 불변 (split_hash `ace5f4a41446`).
+
+```
+… → 4ea208ed77f7 (S 후보 1·3) → 3f3c751b35c7 (개정 P11) → f93f1c504ba2 (결정 12 best checkpoint 평가, 현행)
+```
+
+## AH.2 pilot config 4·config 0 6,000 update 곡선 (측정 전용, main pool 미소비 — 가설 검정 아님)
+
+- 조건: `grid3000_det` (부록 AG.3) 과 같다 — v3 창(0.2 Hz), cell A, outer 0, inner 0–2 × seed 42–44, 결정적 실행(E22), 100 update(25 epoch)마다 기록, 기록 forward 는 RNG 저장·복원. 6,000 update = pilot 1,500 epoch (update/epoch 4) — 이 프로세스 안에서만 `fitting.MAX_EPOCHS` 를 2000 으로 덮었다 (main 경로 가드·상수 불변). `min_updates 6000`, `max_epochs 1500` → 정확히 1,500 epoch.
+- config (코드 `train.build_grid` 순서로 확인): **config 4** = lr 0.0003·dropout 0.1·wd 0.0001, **config 0** = lr 0.001·dropout 0.1·wd 0.0001. 두 설정을 GPU 0 에서 나란히 돌렸다 (다른 사용자 sglang 약 19 GB 동거).
+- 측정은 시작 시점(HEAD 53211b8) 코드 사본(`grid6000_det/code/`)으로 돌렸다 — 같은 회차의 AH.1 편집이 도중에 섞이지 않게. 각 실행 JSON 에 `fit_module` 경로 기록.
+- 산출물: h197 `MoBSE_dataset/derivatives_v3/pilot_tech_p8/grid6000_det/` (18 실행 JSON, `summary.json`, 스크립트·코드 사본, `git_head.txt`, `git_status.txt`). 벽시계 14:16:48Z–14:33:35Z (16 분 47 초), 실행당 학습 46–93 s.
+
+**결정성 대조**: config 0 의 9 실행 모두 첫 3,000 update 곡선(30 기록)과 val loss 750개가 `grid3000_det` 과 **완전히 같다** (9/9).
+
+| config | 지점 (update) | train BA 중앙값 | train BA 1.0 수 / 9 | val BA 중앙값 [범위] |
+|---|---|---|---|---|
+| 4 (lr 0.0003) | 1,500 | 0.808 | 0 | 0.583 [0.500, 0.929] |
+| | 3,000 | 0.654 | 0 | 0.571 [0.500, 0.750] |
+| | 4,500 | 0.692 | 1 | 0.571 [0.500, 0.750] |
+| | 6,000 | 0.769 | 1 | 0.643 [0.500, 0.750] |
+| 0 (lr 0.001) | 1,500 | 0.962 | 1 | 0.571 [0.500, 0.750] |
+| | 3,000 | 1.000 | 6 | 0.714 [0.571, 0.786] |
+| | 4,500 | 1.000 | 5 | 0.667 [0.500, 0.786] |
+| | 6,000 | 1.000 | 7 | 0.750 [0.571, 0.786] |
+
+| config | 처음 train BA 1.0 도달 update 중앙값 [범위] | 6,000 까지 1.0 에 못 닿음 | 끝까지 1.0 유지 시작 update | 진동 횟수 (train loss > 직전 × 1.5) |
+|---|---|---|---|---|
+| 4 | 3,600 [2,400, 4,600] (6/9) | **3/9** | 1/9 만 (6,000 = 마지막 기록 한 점) | 8–18 |
+| 0 | 2,100 [1,100, 2,700] (9/9) | 0/9 | 7/9 가 5,400–6,000, 2/9 는 6,000 에서 1.0 아님 | 13–23 |
+
+읽는 법:
+
+- **두 설정 모두 6,000 update 안에서 train BA 1.0 이 안정되지 않는다.** config 0 의 "유지 시작" 5,400–6,000 은 끝점 직전에 걸린 것이라 안정 상태로 읽을 수 없다 (진동 13–23회).
+- **config 4 는 update 를 늘려도 train 적합이 단조롭게 좋아지지 않는다** — 중앙값 0.808(1,500) → 0.654(3,000) → 0.769(6,000). 1,500 에서 1.0 은 0/9, 6,000 에서 1/9. 3/9 는 6,000 까지 한 번도 1.0 에 닿지 않았다 (i0 s43 은 3,000 이후 0.500–0.538 에 머묾).
+- 해석 한계: pilot 규모(학습 창 104–112)·1 cell·2 config. val 은 7명 안팎. 이전 측정(부록 AC·AG)에서 같은 update 수에서 자료가 많을수록 덜 학습됐으므로 main(528–544)에서는 이 수치보다 update 가 더 필요할 수 있다 (미측정). 진동의 원인은 진단하지 않았다 (승인 범위 밖).
+
+## AH.3 권고 (결정 아님 — 최소치·상한은 바꾸지 않았다)
+
+선생님 원문 "만약 더 update가 필요하면 권고해 주길" 에 따른 권고다.
+
+1. **update 수만으로는 해결되지 않을 가능성이 크다.** config 4 는 6,000 에서도 9개 중 1개만 train BA 1.0 이고 3개는 한 번도 닿지 않았으며, config 0 도 6,000 까지 안정되지 않았다. 최소 update 를 올리는 것은 "학습 자료에 닿을 기회" 를 늘릴 뿐 안정적 적합을 보장하지 않는다. 학습률·안정성(예: gradient clip, 학습률 schedule) 쪽은 승인 범위 밖이라 측정·진단하지 않았고 **선생님 판단에 넘긴다**.
+2. update 를 올린다면, 두 학습률에 같은 기회를 주는 값으로 **U = 5,000** 을 권고한다 — config 4 의 처음 1.0 도달 최댓값 4,600 을 덮고 약간 여유를 둔 값이다 (pilot 기준, main 외삽 불확실성 때문에 하한으로 읽어야 한다). 이때 main 귀결:
+   - inner 최소 epoch = ceil(5,000 / 17) = **295** (학습 창 528–544 → 17 update/epoch) → **상한 200 으로는 불가**. 상한은 최소 epoch + early stopping 여유가 필요하므로 **400** 을 함께 권고 (여유 105 epoch ≫ patience 5).
+   - outer 공통 E ≥ ceil(5,000 / 25–26) = **193–200** epoch (학습 창 800–808).
+   - 시간: 합성 벤치마크(결정성 적용 전, bmcws, 부록 참조 `wi03_resource_budget`) 의 학습 상한 1.87 h(50 epoch)를 epoch 비례로 늘리면 상한 200 → 약 7.5 h, 상한 400 → 약 15 h. main 실측이 아니며 결정성 적용 후 main 의 epoch 당 시간은 재지 않았다.
+3. update 를 올리지 않는 선택(1,500 유지)이나 3,000 (상한 200 안, inner 여유 23 epoch) 도 가능하다. 3,000 은 config 0 에는 처음 1.0 도달을 9/9 덮지만(최댓값 2,700) config 4 에는 3,000 에서 1.0 이 0/9 다 — grid 가 lr 0.001 쪽으로 기운다.
+4. AH.1 정정으로 config 선택은 이제 best checkpoint 의 inner loss 로 이뤄진다 — 곡선 진동 때문에 끝점 운에 좌우되던 부분은 줄었다. 이 점은 어느 값을 고르든 적용된다.
+
+선생님 판단이 필요한 것: (i) 최소 update·상한 — 1,500/200 유지, 3,000/200, 5,000/400, 다른 값 중 하나. (ii) config 4(lr 0.0003)가 6,000 에서도 적합이 안정되지 않는 점을 update 밖의 수단(학습률·안정성)으로 다룰지 — 다룬다면 무엇을 pilot 에서 잴지. 값이 정해지면 계획서 P8 추가 행·`train.MIN_UPDATES`·`MAX_EPOCHS`·config 잠금 재생성·gate evidence 새 revision 을 한다.
+
+## AH.4 이번 회차에 확인하지 못한 것
+
+- main 규모(학습 창 528–544) 에서의 곡선·epoch 당 시간 (결정성 적용 후) — 미측정.
+- config 1–3·5–7, cell B–D 의 곡선.
+- 곡선 진동·config 4 적합 저하의 원인 — 승인 범위 밖, 진단하지 않음.
+- 정정된 `train_fold` 의 실자료 실행 — 합성 시험만 (측정 곡선은 early stopping 이 발동하지 않는 방식이라 영향 없음).
