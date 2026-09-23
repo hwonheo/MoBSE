@@ -3459,3 +3459,43 @@ evaluation.json 의 config_hash, run_predictions sha256 기록과 대조한다. 
 - 10번(추출)과 prepare 사이의 계약(manifest 헤더 필드)은 헤더 대조로만 묶였다. 10번 자체를 CLI 로 옮기지 않았다.
 - `cohort_summary.json` 은 입력 경로를 담아 잠긴 파일과 바이트 비교하지 않았다.
 - `prepare_report.json` 의 `code_hash`·`env_hash` 는 기록하지 않는다 (잠금이 code_hash 를 가진다).
+
+
+# 부록 AF — S 후보 1·3 (logistic) 과 S 선택 규칙 (rev33, 2026-09-23 예약 슬롯)
+
+인수인계 남은 작업 2번의 첫 단위. 선생님 결정 5 원문: "§6 S 후보 4 + 구조 비교 2 - 추천안 대로" — 구현·합성 시험은 지금, 실자료 실행은 main OOF 와 같은 release. 이번 단위는 **S 후보 1·3 과 네 후보 공통 선택 규칙**만 다룬다. S 후보 2·4 (32-hidden MLP) 와 구조 비교 2종은 아직이다. 실자료 실행 없음, main pool 미소비.
+
+## AF.1 계획서가 정한 것 (그대로 옮김)
+
+- S 후보 1: raw ROI mean/variance 200 + logistic regression. S 후보 3: signed Fisher-z FC 4,950 + logistic regression. FC 는 `features.window_features` 와 같은 함수 (시험이 배열 동일을 확인).
+- StandardScaler 는 해당 training task 창에만 fit. C ∈ {0.001, …, 10000} 8개 (계획서 문장을 시험이 직접 파싱해 대조), L2·intercept.
+- S 는 outer fold 마다 inner subject-equal log loss 최소 후보/설정. loss 는 A–D 와 같은 함수 (`train.subject_equal_loss`, inner 3 fold OOF run 확률).
+
+## AF.2 구현 선택 (계획서가 정하지 않은 값 — 결정 아님)
+
+- variance `ddof=0`, feature 순서 = ROI mean 100 뒤 variance 100.
+- solver `lbfgs`, tol `1e-4`, max_iter `10000`, class_weight 없음. sklearn 1.8 에서 `penalty` 인자가 폐기 예정이라 `l1_ratio=0.0` 으로 L2 를 명시한다.
+- 수렴 여부·반복 수를 fit 기록에 남기고 **미수렴 fit 이 섞이면 선택이 거부한다**.
+- 선택 동률(차이 ≤ 1e-6)은 후보 순서 S1<S2<S3<S4, 그 다음 설정 순서(C 오름차순). A–D 의 동률 규칙(공동 BA)과 별개. 선생님이 달리 정하면 바꾼다.
+- 비교하는 모든 후보/설정의 OOF run 집합이 같아야 한다 (같은 inner 모집단).
+
+## AF.3 시험
+
+`tests/v2/test_baselines.py` 17건 (합성 자료): 계획서 문장 대조 2, feature 순서·ddof·FC 동일·거부 3, sklearn Pipeline(StandardScaler + L2 logistic)과 예측 확률 일치·scaler 가 training 창 평균·C 크기 순서, 미수렴 기록, 합성 신호 복원 2 (mean 신호→S1, 상관 신호→S3), 설정 순서, loss 손계산, OOF 병합 중복 거부, 선택·동률·거부 5종, inner 3 fold × 16 설정 끝까지.
+
+- 돌연변이 (Mac 사본, `.backup/baselines_mutation.sh`): ddof, 미수렴 거부, 동률 허용오차, 수렴 판정, OOF 집합 대조, fold 중복, C grid, 동률 순서, scaler 적용 — **9/9 검출**.
+- 합성 상관 신호 시험은 초판(공통 성분 10 ROI, 45 edge)에서 4,950차원·80창으로 BA 0.625 에 그쳐 실패했다. 신호를 40 ROI 로 넓혀 통과시켰다 — 시험 자료 설계 문제이고 구현 변경은 없다.
+
+## AF.4 잠금
+
+`mobse/v2/baselines.py` 추가로 잠금을 재생성했다: `bcb08fc40f09` → **`4ea208ed77f7`** (2026-09-23T12:21:01Z), code_hash `117f7340f186` → `dc8ce8b741ae`. 검사 43건 (모듈 1개 증가), 창·코호트·분할 불변 (split_hash `ace5f4a41446`).
+
+```
+… → bdf27e45a1ad (WI-06 report CLI) → bcb08fc40f09 (WI-06 prepare CLI) → 4ea208ed77f7 (S 후보 1·3, 현행)
+```
+
+## AF.5 이번 회차에 확인하지 못한 것
+
+- S 후보 2·4 (MLP), 구조 비교 2종 — 미구현.
+- 실제 규모(inner 학습 창 528–544, FC 4,950차원)에서 C=10000 의 lbfgs 수렴 여부 — 합성 소규모에서만 수렴 확인. 실자료에서 미수렴이 나오면 선택이 거부하므로 조용히 지나가지는 않는다.
+- S 후보를 fit·evaluate CLI 에 배선하지 않았다 (라이브러리 함수만).
