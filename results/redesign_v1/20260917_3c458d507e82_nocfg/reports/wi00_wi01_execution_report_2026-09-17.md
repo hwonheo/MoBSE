@@ -3326,3 +3326,42 @@ rev27 의 caveat("코드와 창이 같은 추출을 가리키지 않는다")는 
 - 창 8개/subject 가정은 적격 정의(두 task run 모두 ok)에서 온 것이고 fold 별로 창 수를 직접 세지는 않았다.
 - 1,500 update·200 epoch 에서의 실측 학습 시간은 재지 않았다 (인수인계 문서의 약 10 h 는 추정).
 - main pool 을 소비하는 fit 은 하지 않았다.
+
+
+# 부록 AC — E22 결정성 적용 (rev30, 2026-09-23 예약 슬롯)
+
+잠긴 config 키 `runtime.deterministic: True`(choices=(True,))는 기록만 되고 torch 에 적용되지 않았다. rev29 뒤 pilot P8 probe 에서 같은 인자(v3 창, inner 0, seed 42, 1,500 update, cuda)를 두 번 돌려 train BA 0.808 / 0.500 이 나왔다 — E21(band-pass 기록만) 과 같은 유형이다. 이 조치는 프로토콜이 이미 True 로 잠근 것을 적용하는 것이라 결정을 요하지 않는다.
+
+## AC.1 구현
+
+- `mobse/v2/fitting.py::apply_determinism()`: `torch.use_deterministic_algorithms(True)` (비결정 연산은 RuntimeError), `cudnn.deterministic = True`, `cudnn.benchmark = False`, `CUBLAS_WORKSPACE_CONFIG` 미설정이면 `:4096:8`, 이미 `:4096:8`·`:16:8` 이면 유지, 다른 값이면 `FitError`. 적용 뒤 실제 상태를 되읽어 하나라도 꺼져 있으면 `FitError`.
+- `train_fold` 가 seed 설정 전에 호출한다. CLI `fit` 과 probe 23·24 가 모두 이 진입점을 쓴다. 상태는 `FitResult.determinism` 에 남는다.
+- CLI `fit`: `runtime.deterministic` 이 True 가 아니면 `CLIError`, `fit_report.json` 에 `determinism` 기록.
+
+## AC.2 검증
+
+- 시험 (h197): **637 passed / 12 skipped** (신규 6: 설정 적용, 동등 cuBLAS 값 유지, 비결정 값 거부, train_fold spy, CUDA 에서 같은 seed 두 번 예측 동일, CLI 기록). 전체 시간 168.9 s (rev29 판 약 119 s).
+- 실자료 반복 (pilot-of-pilot, 측정 전용): 위 인자 두 번 → 모든 스칼라 출력 동일 (train BA 0.808 / 0.808, val BA 0.571 / 0.571). 한 쌍만 확인했다.
+- `mobse/v2` 가 바뀌어 잠금 재생성: `9ae4e4ee1a91` → **`a8537ffba0bd`** (2026-09-23T09:20Z), code_hash `4382c5bd78ae` → `c2b943c04b93`. 19번 42/42, 25번 창 4,728. 창·코호트·분할 불변 (split_hash `ace5f4a41446`).
+
+```
+… → e8b648a7c4dc (P9 재추출 창) → 9ae4e4ee1a91 (P8 구현) → a8537ffba0bd (E22 결정성 적용, 현행)
+```
+
+## AC.3 pilot P8 probe 재측정 (결정적 실행, 측정 전용 — 가설 검정 아님)
+
+분할은 `derivatives_v2/pilot_tech/splits/folds.json`(pilot-of-pilot, subject 목록만). cell A, config 0, outer 0, inner 0–2 × seed 42–44, 1,500 update (학습 창 104–112, update/epoch 4 → 375 epoch; P8 상한 200 을 이 probe 프로세스에서만 풀었다 — 프로토콜 상수 불변). main pool 을 쓰지 않았다.
+
+| 창 | fit | train BA 중앙값 [범위] | train BA = 1.0 | val BA 중앙값 [범위] | 선형 기준선 val BA |
+|---|---|---|---|---|---|
+| v2 (대체된 창) | 9 | 1.000 [0.654, 1.000] | 7/9 | 0.714 [0.429, 0.833] | 1.000 / 0.917 |
+| v3 (0.008–0.2 Hz) | 9 | 0.962 [0.643, 1.000] | 1/9 | 0.571 [0.500, 0.750] | 1.000 / 0.917 |
+
+- rev29 인수인계에 적힌 비결정 실행 수치(v3 train BA 중앙값 0.750, 1.0 도달 0/9)는 이것으로 대체한다. 결정적 실행에서 v3 의 학습 적합 저하는 그보다 작다 (중앙값 0.962). val BA 중앙값은 v2 0.714, v3 0.571.
+- 1 cell·1 config·pilot 규모이고 fit 9개씩이다. 차이의 원인은 진단하지 않았다.
+
+## AC.4 이번 회차에 확인하지 못한 것
+
+- 결정성의 실자료 확인은 한 쌍(v3, inner 0, seed 42)뿐이다. 다른 cell·config 의 비결정 연산 여부는 CUDA 합성 시험(cell B)과 이 한 쌍으로만 확인했다 — 비결정 연산이 있으면 조용히 넘어가지 않고 RuntimeError 로 멈춘다.
+- 결정성 설정의 학습 시간 영향은 재지 않았다 (probe fit 한 개 약 35–45 s, 이전 약 30 s — 같은 조건 비교 아님).
+- main pool 을 소비하는 fit 은 하지 않았다.
