@@ -432,9 +432,10 @@ def test_validate_main_returns_one_on_fail(tmp_path, capsys):
     assert '"verdict": "fail"' in capsys.readouterr().out
 
 
-def test_other_subcommands_still_unimplemented(tmp_path):
-    """validate 외에는 본체가 없다는 사실을 흐리지 않는다."""
+def test_prepare_no_longer_takes_source_runs(tmp_path):
+    """prepare 본체가 생기며 경로 계약이 바뀌었다 — 감사본 source_runs 를 받지 않는다
+    (본체 시험은 test_cli_prepare.py)."""
     src = _write_audit(tmp_path, [_AUDIT_RECORD])
-    with _pytest.raises(NotImplementedError, match="WI-02"):
+    with _pytest.raises(SystemExit):
         _cli.main(["prepare", "--config", str(_CONFIG), "--source-runs", str(src),
                    "--output-dir", str(tmp_path)])

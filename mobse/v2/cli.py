@@ -7,7 +7,9 @@
 하위 명령은 역할이 겹치지 않는다:
 
 * ``validate``  — manifest 스키마와 split 경계만 검사한다. 학습·평가하지 않는다.
-* ``prepare``   — 시간축·window·QC 를 산출한다.
+* ``prepare``   — WI-02 추출 manifest(시간축·window·QC 가 이미 계산된 기록)를
+  ``windows.jsonl``·``subjects.jsonl``·``exclusions.jsonl`` 로 접는다. 원자료를
+  읽는 추출 자체는 ``scripts/h197/10_wi02_extract.py`` 의 몫이다.
 * ``split``     — pilot 과 outer/inner fold 를 만든다.
 * ``fit``       — 지정한 fold·cell·seed 하나를 학습한다.
 * ``evaluate``  — 저장된 outer test 예측을 run·subject·cell 로 집계한다. **분류만.**
@@ -31,7 +33,10 @@ SUBCOMMANDS = ("validate", "prepare", "split", "fit", "evaluate", "report")
 #: 하위 명령별 필수 경로 인자. 하나라도 비면 실행하지 않는다.
 REQUIRED_PATHS: Dict[str, Sequence[str]] = {
     "validate": ("config", "source_runs"),
-    "prepare": ("config", "source_runs", "output_dir"),
+    # prepare 는 WI-02 추출 manifest(한 dataset 의 세 task)를 받아 windows·subjects 를
+    # 만든다. 추출(fMRIPrep → ROI 창)은 scripts/h197/10 이 한다 — 원자료 경로·atlas 가
+    # 필요하고 209 GiB 를 읽으므로 CLI 에 넣지 않는다 (구현 선택, 보고서 부록 AE).
+    "prepare": ("config", "extract_manifests", "output_dir"),
     "split": ("config", "subjects", "output_dir"),
     "fit": ("config", "splits", "subjects", "windows", "rest_manifest", "output_dir"),
     "evaluate": ("config", "splits", "predictions", "fit_manifest", "output_dir"),
@@ -43,7 +48,8 @@ REQUIRED_PATHS: Dict[str, Sequence[str]] = {
 
 #: 여러 경로를 받는 (하위 명령, 인자). release 하나는 cell × outer fold × seed
 #: 개의 fit 으로 이루어지므로 evaluate 는 그 산출물을 전부 명시적으로 받는다.
-MULTI_PATHS = frozenset({("evaluate", "predictions"), ("evaluate", "fit_manifest")})
+MULTI_PATHS = frozenset({("evaluate", "predictions"), ("evaluate", "fit_manifest"),
+                         ("prepare", "extract_manifests")})
 
 
 class CLIError(RuntimeError):
@@ -65,6 +71,7 @@ def build_parser() -> argparse.ArgumentParser:
         "windows": "windows.jsonl 경로",
         "predictions": "예측 JSONL 경로 (evaluate: window_predictions, report: run_predictions)",
         "evaluation": "evaluate 가 쓴 evaluation.json 경로",
+        "extract_manifests": "WI-02 추출 manifest (한 dataset 의 emomatching·workingmemory·restingstate 셋)",
         "fit_manifest": "fit_manifest.json 경로",
         "rest_manifest": "WI-02 restingstate 추출 manifest 경로 (bank 적합용)",
         "output_dir": "산출 디렉터리",
@@ -1024,6 +1031,183 @@ def run_report(paths: Dict[str, Any]) -> Dict[str, Any]:
             "both_primary_lower_gt_0": both, "output_dir": str(out_dir)}
 
 
+PREPARE_OUTPUTS = ("windows.jsonl", "subjects.jsonl", "exclusions.jsonl",
+                   "cohort_summary.json", "prepare_report.json")
+
+#: 받는 WI-02 추출 manifest 판. 0.2 = P9 band-pass 동시 회귀·P10 DOF 적용판.
+EXTRACT_SCHEMA_VERSION = "wi02-extract-0.2"
+
+
+def _check_extract_header(header: Mapping[str, Any], path: str,
+                          cfg: Mapping[str, Any]) -> None:
+    """추출 manifest 헤더가 잠긴 config·코드 상수와 같은 조건에서 나왔는지 본다.
+
+    헤더에 기록만 되고 대조되지 않는 값이 없게 한다 (E21·E22 재발 방지).
+
+    Raises:
+        CLIError: 판·분석 구간·통과대역·dry-run·atlas 해시 중 하나라도 어긋나면.
+    """
+    from mobse.v2 import extract as EX
+
+    problems: List[str] = []
+    if header.get("schema_version") != EXTRACT_SCHEMA_VERSION:
+        problems.append(f"schema_version {header.get('schema_version')!r} != "
+                        f"{EXTRACT_SCHEMA_VERSION!r}")
+    interval = [float(x) for x in header.get("analysis_interval_sec") or []]
+    want = [float(cfg["timing.analysis_start_s"]), float(cfg["timing.analysis_end_s"])]
+    if interval != want:
+        problems.append(f"analysis_interval_sec {interval} != config {want}")
+    band = [float(x) for x in header.get("bandpass_hz") or []]
+    if band != [EX.BANDPASS_LOW_HZ, EX.BANDPASS_HIGH_HZ]:
+        problems.append(f"bandpass_hz {band} != 코드 "
+                        f"{[EX.BANDPASS_LOW_HZ, EX.BANDPASS_HIGH_HZ]}")
+    if header.get("dry_run") is not False:
+        problems.append(f"dry_run={header.get('dry_run')!r} — 실추출 manifest 가 아니다")
+    atlas = str(header.get("atlas_sha256") or "")
+    if len(atlas) != 64 or any(c not in "0123456789abcdef" for c in atlas):
+        problems.append("atlas_sha256 가 SHA256 hex 가 아니다")
+    if not header.get("dataset"):
+        problems.append("dataset 없음")
+    if problems:
+        raise CLIError(f"{path}: 추출 manifest 헤더가 잠긴 조건과 다르다 — "
+                       + "; ".join(problems))
+
+
+def run_prepare(paths: Dict[str, Any]) -> Dict[str, Any]:
+    """WI-02 추출 manifest 셋을 windows·subjects·exclusions 로 접는다 (WI-02·WI-03).
+
+    ``scripts/h197/12_build_windows_manifest.py`` 와 ``15_build_subjects.py`` 가
+    하던 일을 같은 라이브러리 함수로 한 번에 한다. 새 계산은 없다 — 같은 입력에서
+    두 스크립트와 바이트 단위로 같은 ``windows.jsonl``·``subjects.jsonl``·
+    ``exclusions.jsonl`` 을 내야 한다 (h197 대조, 보고서 부록 AE).
+
+    * 한 dataset 의 세 task(두 target + rest)를 정확히 하나씩 요구한다. rest 가
+      빠지면 전원이 부적격이 되므로 조용히 진행하지 않는다.
+    * 창은 target task 만, ``cohort.TARGET_TASKS`` 순서로 만든다 (인자 순서 무관).
+    * 적격 subject 마다 두 task × 4 창이 모두 있는지 대조한다.
+
+    Raises:
+        CLIError: 헤더·task 구성·dataset·atlas 불일치, 창 누락, 덮어쓰기 시도.
+    """
+    from mobse.v2 import cohort as CO
+    from mobse.v2.labels import LabelError, build_window_records
+    from mobse.v2.manifests import sha256_file, write_jsonl
+    from mobse.v2.preprocess import WINDOW_STARTS
+
+    try:
+        cfg = load_config(Path(paths["config"]))
+    except ConfigError as exc:
+        raise CLIError(f"config 검증 실패: {exc}") from exc
+    cfg_hash = config_hash(cfg)
+
+    out_dir = Path(paths["output_dir"])
+    for name in PREPARE_OUTPUTS:
+        if (out_dir / name).exists():
+            raise CLIError(f"이미 존재한다: {out_dir / name}. 같은 release 결과를 "
+                           "덮어쓰지 않는다 (지침서 §2)")
+
+    by_task: Dict[str, Tuple[Mapping[str, Any], List[Dict[str, Any]], str]] = {}
+    for p in _as_list(paths["extract_manifests"]):
+        try:
+            header, runs = CO.read_extract_manifest(Path(p))
+        except CO.CohortError as exc:
+            raise CLIError(str(exc)) from exc
+        task = str(header.get("task") or "")
+        if task not in CO.REQUIRED_TASKS:
+            raise CLIError(f"{p}: task {task!r} 는 허용되지 않는다. "
+                           f"허용: {list(CO.REQUIRED_TASKS)}")
+        if task in by_task:
+            raise CLIError(f"task {task!r} manifest 가 두 번 주어졌다: "
+                           f"{by_task[task][2]}, {p}")
+        _check_extract_header(header, p, cfg)
+        by_task[task] = (header, runs, p)
+
+    missing = [t for t in CO.REQUIRED_TASKS if t not in by_task]
+    if missing:
+        raise CLIError(f"task manifest 누락: {missing}. 적격 기준(계획서 §3.3)이 세 "
+                       "task 를 모두 요구하므로 빠진 채로 진행하지 않는다")
+    datasets = sorted({str(by_task[t][0]["dataset"]) for t in CO.REQUIRED_TASKS})
+    if len(datasets) != 1:
+        raise CLIError(f"dataset 이 섞였다: {datasets}. prepare 는 dataset 단위다")
+    atlases = sorted({str(by_task[t][0]["atlas_sha256"]) for t in CO.REQUIRED_TASKS})
+    if len(atlases) != 1:
+        raise CLIError(f"task 마다 atlas_sha256 가 다르다: {[a[:12] for a in atlases]}")
+
+    windows: List[Dict[str, Any]] = []
+    for task in CO.TARGET_TASKS:
+        header, runs, p = by_task[task]
+        try:
+            windows.extend(build_window_records(header, runs))
+        except LabelError as exc:
+            raise CLIError(f"{p}: {exc}") from exc
+
+    try:
+        subjects = CO.build_subjects([by_task[t][:2] for t in CO.REQUIRED_TASKS])
+    except CO.CohortError as exc:
+        raise CLIError(f"코호트 구성 실패: {exc}") from exc
+    records = CO.subjects_to_records(subjects)
+    exclusions = CO.exclusion_records(subjects)
+
+    subject_of = {str(r["run_key"]): str(r["canonical_subject"])
+                  for t in CO.TARGET_TASKS for r in by_task[t][1]}
+    per_subject: Dict[str, int] = {}
+    for w in windows:
+        s = subject_of.get(str(w["run_key"]))
+        if s is None:
+            raise CLIError(f"창 {w['window_key']} 의 run 이 manifest 에 없다")
+        per_subject[s] = per_subject.get(s, 0) + 1
+    need = len(CO.TARGET_TASKS) * len(WINDOW_STARTS)
+    short = sorted(r["canonical_subject"] for r in records
+                   if r["eligible"] and per_subject.get(r["canonical_subject"], 0) != need)
+    if short:
+        raise CLIError(f"적격 subject {len(short)}명의 창이 {need}개가 아니다: {short[:5]}")
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        w_art = write_jsonl(out_dir / "windows.jsonl", "windows", windows)
+        s_art = write_jsonl(out_dir / "subjects.jsonl", "subjects", records)
+        e_art = (write_jsonl(out_dir / "exclusions.jsonl", "exclusions", exclusions)
+                 if exclusions else None)
+    except ManifestError as exc:
+        raise CLIError(f"기록 실패: {exc}") from exc
+
+    summary: Dict[str, Any] = CO.summarize(subjects)
+    summary["subjects_artifact"] = s_art
+    if e_art:
+        summary["exclusions_artifact"] = e_art
+    summary["dataset"] = datasets[0]
+    summary["source_manifests"] = [by_task[t][2] for t in CO.REQUIRED_TASKS]
+    (out_dir / "cohort_summary.json").write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    n_eligible = sum(1 for r in records if r["eligible"])
+    report = {
+        "schema_version": "wi06-prepare-0.1",
+        "config_hash": cfg_hash,
+        "dataset": datasets[0],
+        "atlas_sha256": atlases[0],
+        "inputs": {t: {"path": by_task[t][2], "sha256": sha256_file(Path(by_task[t][2])),
+                       "n_runs": len(by_task[t][1]),
+                       "n_ok": sum(1 for r in by_task[t][1] if r.get("status") == "ok")}
+                   for t in CO.REQUIRED_TASKS},
+        "outputs": {"windows": w_art, "subjects": s_art, "exclusions": e_art},
+        "n_subjects": len(records), "n_eligible": n_eligible,
+        "n_windows": len(windows),
+        "checks": ["헤더 schema·분석 구간·통과대역·dry_run·atlas = 잠긴 조건",
+                   "세 task 각 하나, dataset·atlas 단일",
+                   f"적격 subject 마다 창 {need}개"],
+        "equivalent_scripts": ["scripts/h197/12_build_windows_manifest.py",
+                               "scripts/h197/15_build_subjects.py"],
+    }
+    (out_dir / "prepare_report.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"verdict": "pass", "dataset": datasets[0], "n_subjects": len(records),
+            "n_eligible": n_eligible, "n_windows": len(windows),
+            "windows_sha256": w_art["sha256"], "subjects_sha256": s_art["sha256"],
+            "exclusions_sha256": e_art["sha256"] if e_art else None,
+            "output_dir": str(out_dir)}
+
+
 def _as_list(value: Any) -> List[str]:
     """경로 인자를 목록으로. nargs='+' 인자와 단일 경로를 같게 다룬다."""
     if isinstance(value, (list, tuple)):
@@ -1067,10 +1251,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0 if result["verdict"] == "pass" else 1
 
-    raise NotImplementedError(
-        f"{args.command} 의 실행 본체는 아직 구현되지 않았다 — WI-02 재추출 "
-        "산출물을 입력으로 받는다. 이 CLI 는 경로 계약과 하위 명령 경계를 "
-        "고정한다. 본체가 있는 명령은 validate·split·fit·evaluate·report 다 (지침서 WI-06)")
+    if args.command == "prepare":
+        result = run_prepare(paths)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result["verdict"] == "pass" else 1
+
+    raise CLIError(f"본체 없는 하위 명령: {args.command!r}")
 
 
 if __name__ == "__main__":
