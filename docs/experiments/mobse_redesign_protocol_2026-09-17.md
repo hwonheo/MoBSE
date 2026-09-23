@@ -48,7 +48,7 @@ native TR에서 nuisance 및 주파수 처리를 수행한 후, anti-aliasing을
 - Schaefer-100: atlas release, 공간, 해상도, interpolation, 100 ROI 순서와 checksum을 고정한다. atlas 정보의 실제 값은 provenance 단계에서 채운다.
 - motion 6개, 그 시간 미분, 각 12개 항의 제곱으로 24 motion regressors를 구성한다. WM/CSF noise 영역에서 유래한 aCompCor 5개를 metadata의 설명분산 순서로 선택한다. 선택 정의에 맞는 5개가 없으면 임의 다른 열로 대체하지 않는다.
 - FD>0.5 mm 원본 frame에 spike regressor를 추가한다. frame 삭제 후 연결은 하지 않는다. 첫 frame의 구조적 FD 결측만 별도 표시하며 그 외 결측은 실패 처리한다. 미분 첫 행 처리도 구현 명세와 manifest에 남긴다.
-- 주 band-pass는 0.008–0.1 Hz, GSR off다. nuisance와 filter를 일관되게 처리하는 하나의 검증된 구현·버전을 고정하고 drift/intercept 중복으로 rank를 늘리지 않는다. filter 종류·차수·padding·regression 순서는 pilot 기술 검증에서 기록하고 main 전에 동결한다.
+- 주 band-pass는 0.008–0.1 Hz, GSR off다. nuisance와 filter를 일관되게 처리하는 하나의 검증된 구현·버전을 고정하고 drift/intercept 중복으로 rank를 늘리지 않는다. filter 종류·차수·padding·regression 순서는 pilot 기술 검증에서 기록하고 main 전에 동결한다. **[개정 P9]** regression 순서는 동시 회귀로 결정. 통과대역 상한은 보류 (§11).
 - **[개정 P6-a] filter 적용 단위를 명시한다.** band-pass 는 **전체 run 을 native grid 에서** 필터링한다. 60초 window 는 필터링 뒤에 잘라내는 분석 구간이지 필터 단위가 아니다. 따라서 0.008 Hz 성분의 분해 여부는 run 길이(270–480초)로 판단하며, 60초의 주파수 분해능 1/60 ≈ 0.0167 Hz 로 판단하지 않는다. 다만 0.008 Hz 는 60초 안에서 0.48 cycle 에 그치므로 **window 내부에서는 진동이 아니라 추세로 나타난다**. 이 성질을 제거하지 않고 그대로 둔다(추가 detrend 를 도입하지 않는다). 고역 차단을 0.01 Hz 또는 0.0167 Hz 로 올리는 대안은 WI-09 민감도 분석에서만 평가하며 주분석 명세를 바꾸지 않는다.
 - run 내 ROI별 z-score를 사용한다. 전체 run을 이용하는 offline endpoint임을 명시하며 실시간·미래 예측으로 주장하지 않는다. events의 task 정답을 회귀한 feature를 classifier에 넣지 않는다.
 - 2초 grid로 변환할 때 BOLD와 confound의 시간 대응을 보존한다. motion QC는 원본 시간축에서 구간에 포함된 frame들로 계산한다. 보간한 FD로 motion을 희석하지 않는다.
@@ -121,7 +121,7 @@ B/D가 FC feature를 계산하더라도 예측에 직접 사용하는 경로는 
 
 ## 7. 학습·선택·계산 예산
 
-공통 grid는 learning rate {0.001,0.0003} × dropout {0.1,0.3} × weight decay {0.0001,0.001}=8개다. 순서는 위 나열 순 Cartesian product의 config_id 0–7로 고정한다. AdamW, batch 32, cross-entropy, max 50 epochs, gradient norm clip 1.0을 사용한다. 학습 window는 균등 shuffle하며 각 subject는 task별 4개로 같은 기여를 한다.
+공통 grid는 learning rate {0.001,0.0003} × dropout {0.1,0.3} × weight decay {0.0001,0.001}=8개다. 순서는 위 나열 순 Cartesian product의 config_id 0–7로 고정한다. AdamW, batch 32, cross-entropy, max 50 epochs, gradient norm clip 1.0을 사용한다. **[개정 P8]** 최소 1,500 update 보장·상한 200 epoch·최소치 이후 early stopping 으로 대체 (§11). 학습 window는 균등 shuffle하며 각 subject는 task별 4개로 같은 기여를 한다.
 
 Inner seed=42, early stopping은 run 확률로 계산한 subject-equal validation log loss, patience=5, min_delta=0.0005다. log loss는 확률을 [1e−7,1−1e−7]로 clip한다. selected best checkpoint의 epoch를 기록한다.
 
@@ -197,8 +197,12 @@ PIOP1 main pool(pilot 제외)에서 같은 3-fold selection 규칙으로 config/
 | P6-a | §3.2 | band-pass 0.008–0.1 Hz (적용 단위 미기재) | **전체 run 을 native grid 에서 필터링**함을 명시. 60초 window 는 필터 뒤 잘라내는 분석 구간. 0.008 Hz 가 window 내에서 0.48 cycle 로 추세처럼 나타나는 성질을 기록하고 detrend 를 추가하지 않음. 고역 차단 대안은 WI-09 민감도로 이관 | 60초 분해능 1/60 ≈ 0.0167 Hz 와 run 길이 270–480초의 구분 | 2026-09-17 |
 | P6-b | §3.3 | `residual_dof = n_volumes − rank(design)` | `min(n_volumes − rank(design), floor(2·(f_high−f_low)·T_run))` 로 동결. 6개 조합의 filter 항 = 49/59/66/49/58/88 | filter 로 잃는 자유도를 세지 않으면 residual DOF 를 과대 보고함 | 2026-09-17 |
 | P7 | §3.3 | "task의 30 원본 frames 구간에서는 최대 3개까지 허용한다" 를 창 길이와 무관한 절대 개수로 구현 | **관측 frame 수에 비례 조정**: `허용 = 3 × (n_observed / 30)`. 80 frame 창(PIOP1 rest, TR 0.75)에서 허용 8 | 3/30 = 0.10 으로 비율 상한과 동일 — 절대 3개는 30 frame 창에서의 비율 규칙 표현이다. 절대 적용 시 rest 에 2.7배 엄격 | 2026-09-17 |
+| P8 | §7 | "max 50 epochs", "early stopping … patience=5, min_delta=0.0005" | **최소 1,500 optimizer update 보장, 상한 200 epoch, early stopping 은 최소치 이후에만.** 선생님 결정 원문(2026-09-23): "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)". patience·min_delta 값 자체는 이 결정이 바꾸지 않았다. 상한·최소치의 조정은 **main OOF 전에 pilot 측정으로만** 하고 그 값과 근거를 이 표에 추가 행으로 남긴다 | pilot 기술 검증(보고서 부록 W): 원인은 epoch 이 아니라 update 수. batch 32 에서 200 update 는 train BA 0.5, 800 update 는 1.0. main inner 50 epoch = 850 update 로 탈출 경계 | 2026-09-23 (구현 전) |
+| P9 | §3.2 | "filter 종류·차수·padding·regression 순서는 pilot 기술 검증에서 기록하고 main 전에 동결한다" | **regression 순서 = 동시 회귀**: nuisance 설계행렬과 통과대역 밖 주파수 기저를 하나의 설계행렬로 한 번에 회귀한다. 선생님 결정 원문(2026-09-23): "band-pass - 동시 회귀 ok". 기저 종류(DCT-II 후보)·**통과대역 상한**은 이 결정의 범위 밖이며 아래 "보류" 참조 | Hallquist et al. 2013 (NeuroImage, PMID 23747457), Lindquist et al. 2019 (Hum Brain Mapp, PMID 30666750): 순차 처리가 제거한 잡음을 되돌려 넣음 | 2026-09-23 (구현 전) |
 
 ### 철회·보류
+
+* **P9 의 통과대역 상한은 보류다 (선생님 결정 대기, 2026-09-23).** 동시 회귀로 정확히 센 residual DOF `n − rank([nuisance, 차단대역 기저])` 는 P6-b 의 `min(…)` 식보다 작다 — P6-b 는 nuisance 와 필터가 같은 자유도를 이중으로 쓰지 않는다고 가정해 **과대 보고한다**. confounds 만으로 전 ok run 을 실측한 결과(DCT-II, 하한 0.008 Hz, `MIN_RESIDUAL_DOF = 30`), 상한 0.1 Hz 에서는 **emomatching·workingmemory ok run 783건 전부**가 30 이하(emo 최대 20, WM 최대 29), PIOP1 rest 29/202 건이 30 이하다. 상한 0.15 / 0.2 / 0.25 Hz 에서는 탈락 0건, 최소 DOF 39 / 66 / 92. 산출물: `MoBSE_dataset/recovery_20260923/checks/dof_*.json`. **P6-b 는 P9 구현 시 정확식으로 대체된다** (별도 행으로 기록 예정). 2026-09-23 추천안 표의 "DOF = n − p_nuis − p_freq 로 P6-b 회계와 정확히 일치" 는 틀린 서술이었다 — 정확식은 P6-b 와 다르다.
 
 * **P3 철회.** 계획서 §3.1 의 `[12,252)` 는 수정 없이 유지한다.
 * P6-b 는 기준을 더 엄격하게 만든다. **P7 은 rest 에 한해 완화 방향이지만, 이는 기준 완화가 아니라 계획서가 정한 10% 비율 기준을 정확히 적용하는 것이다** — 종전 구현이 그 기준보다 엄격했다. TR 2초 창의 판정은 변하지 않는다.
