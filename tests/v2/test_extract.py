@@ -15,9 +15,12 @@ from mobse.v2.extract import (
     ExtractError,
     N_ACOMPCOR,
     build_design,
+    STOPBAND_PREFIX,
+    add_stopband,
+    dct_stopband_basis,
     design_rank,
-    filter_degrees_of_freedom,
     motion_column_names,
+    passband_component_count,
     read_confounds_metadata,
     read_confounds_tsv,
     regress_out,
@@ -192,49 +195,142 @@ def test_only_one_drift_column():
     assert sum(1 for n in names if "drift" in n) == 1
 
 
-# --- 자유도 (개정 P6-b) -------------------------------------------------------
+# --- band-pass 동시 회귀·자유도 (개정 P9, P10) ---------------------------------
 
-@pytest.mark.parametrize(
-    "t_run,expected",
-    [(270.0, 49), (324.0, 59), (360.0, 66), (320.0, 58), (480.0, 88)],
-)
-def test_filter_dof_matches_frozen_table(t_run, expected):
-    assert filter_degrees_of_freedom(t_run) == expected
-
-
-def test_residual_dof_takes_the_minimum():
-    # n-rank = 102, filter = 49 -> 49
-    assert residual_degrees_of_freedom(135, 33, 270.0) == 49
-    # n-rank = 20, filter = 49 -> 20
-    assert residual_degrees_of_freedom(135, 115, 270.0) == 20
-
-
-def test_residual_dof_is_stricter_than_old_definition():
-    """개정 P6-b 가 기준을 완화하지 않았음을 명시적으로 확인한다."""
-    old = 135 - 33
-    new = residual_degrees_of_freedom(135, 33, 270.0)
-    assert new <= old
+# 6개 조합 (n_frames, TR) — 통과대역 DCT 성분 수와, spike 없는 일반 run 의 정확 DOF.
+# 기대값은 h197 recovery_20260923/checks/dof_probe_hi0.2.json 의 n_pass_dct 와
+# new_dof 중앙값 (spike 가 없는 run 이 중앙값을 이룬다).
+SIX_COMBOS = [
+    # (label,            n,   tr,   n_pass, typical_dof)
+    ("PIOP1 emo",       135, 2.0,  104,  74),
+    ("PIOP1 WM",        162, 2.0,  124,  94),
+    ("PIOP1 rest",      480, 0.75, 139, 109),
+    ("PIOP2 emo",       135, 2.0,  104,  74),
+    ("PIOP2 WM",        160, 2.0,  123,  93),
+    ("PIOP2 rest",      240, 2.0,  185, 155),
+]
 
 
-def test_filter_dof_rejects_bad_band():
+def test_band_constants_follow_decision_9():
+    """결정 9 원문 "통과대역 0.2 Hz로" — 상한만 바뀌고 하한은 그대로."""
+    assert (BANDPASS_LOW_HZ, BANDPASS_HIGH_HZ) == (0.008, 0.200)
+    assert MIN_RESIDUAL_DOF == 30  # 결정 범위 밖 — 불변
+
+
+@pytest.mark.parametrize("label,n,tr,n_pass,_dof", SIX_COMBOS, ids=[c[0] for c in SIX_COMBOS])
+def test_passband_count_matches_probe(label, n, tr, n_pass, _dof):
+    assert passband_component_count(n, tr) == n_pass
+    basis, names = dct_stopband_basis(n, tr)
+    # k=0 (상수) 는 intercept 와 같아 뺀다 → 차단대역 열 = n − 통과 − 1
+    assert basis.shape == (n, n - n_pass - 1)
+    assert len(names) == basis.shape[1] and all(s.startswith(STOPBAND_PREFIX) for s in names)
+    assert f"{STOPBAND_PREFIX}0000" not in names
+
+
+@pytest.mark.parametrize("label,n,tr,_np,dof", SIX_COMBOS, ids=[c[0] for c in SIX_COMBOS])
+def test_exact_dof_reproduces_probe(label, n, tr, _np, dof):
+    acomp = [f"a_comp_cor_{i:02d}" for i in range(5)]
+    nuis, names = build_design(_confounds(n=n), acompcor_names=acomp, n_frames=n)
+    design, all_names = add_stopband(nuis, names, native_tr=tr)
+    rep = summarize_design(design, all_names, native_tr=tr)
+    assert rep.nuisance_rank == 31
+    assert rep.residual_dof == n - rep.rank == dof
+    assert rep.passes_dof is True
+
+
+def test_stopband_basis_is_orthonormal_dct():
+    basis, _ = dct_stopband_basis(135, 2.0)
+    gram = basis.T @ basis
+    assert np.allclose(gram, np.diag(np.diag(gram)))  # 서로 직교
+    assert np.allclose(np.diag(gram), 135 / 2)
+
+
+def _dct(n, k):
+    t = np.arange(n)
+    return np.cos(np.pi * k * (t + 0.5) / n)
+
+
+def test_simultaneous_regression_keeps_passband_and_removes_stopband():
+    n, tr = 135, 2.0
+    freqs = np.arange(n) / (2 * n * tr)
+    k_pass = int(np.flatnonzero((freqs > 0.05) & (freqs < 0.1))[0])
+    k_low = 1                                   # 0.0019 Hz < 0.008
+    k_high = int(np.flatnonzero(freqs > 0.22)[0])
+    passband = 2.0 * _dct(n, k_pass)
+    data = (passband + 3.0 * _dct(n, k_low) + 1.5 * _dct(n, k_high) + 7.0)[:, None]
+    intercept = np.ones((n, 1))
+    design, _ = add_stopband(intercept, ["intercept"], native_tr=tr)
+    resid = regress_out(data, design)
+    assert np.allclose(resid[:, 0], passband, atol=1e-8)
+
+
+def test_stopband_removes_high_frequency_sinusoid():
+    """DCT 격자 밖 주파수에서도 차단대역 에너지가 거의 전부 제거된다."""
+    n, tr = 480, 0.75
+    t = np.arange(n) * tr
+    hi = np.sin(2 * np.pi * 0.35 * t)
+    mid = np.sin(2 * np.pi * 0.07 * t)
+    design, _ = add_stopband(np.ones((n, 1)), ["intercept"], native_tr=tr)
+    r_hi = regress_out(hi[:, None], design)[:, 0]
+    r_mid = regress_out(mid[:, None], design)[:, 0]
+    assert np.sum(r_hi ** 2) / np.sum(hi ** 2) < 0.01
+    assert np.sum(r_mid ** 2) / np.sum(mid ** 2) > 0.99
+
+
+def test_residual_dof_is_exact_rank_deficit():
+    assert residual_degrees_of_freedom(135, 61) == 74
     with pytest.raises(ExtractError):
-        filter_degrees_of_freedom(270.0, low_hz=0.2, high_hz=0.1)
+        residual_degrees_of_freedom(135, 136)
+
+
+def test_exact_dof_counts_shared_freedom_once():
+    """nuisance 가 차단대역 안에 있으면 rank 를 올리지 않는다 — P6-b 가 틀린 이유의 반대면."""
+    n, tr = 135, 2.0
+    acomp = [f"a_comp_cor_{i:02d}" for i in range(5)]
+    nuis, names = build_design(_confounds(n=n), acompcor_names=acomp, n_frames=n)
+    nuis = nuis.copy()
+    nuis[:, 0] = _dct(n, n - 1)  # 첫 motion 열을 순수 차단대역 성분으로 바꾼다
+    design, all_names = add_stopband(nuis, names, native_tr=tr)
+    rep = summarize_design(design, all_names, native_tr=tr)
+    assert rep.residual_dof == 75  # 74 + 1: 겹친 자유도를 두 번 세지 않는다
+
+
+def test_summarize_design_requires_stopband():
+    """filter 없이 DOF 를 세면 조용히 과대 보고된다 — 거부해야 한다."""
+    acomp = [f"a_comp_cor_{i:02d}" for i in range(5)]
+    nuis, names = build_design(_confounds(), acompcor_names=acomp, n_frames=135)
     with pytest.raises(ExtractError):
-        filter_degrees_of_freedom(0.0)
+        summarize_design(nuis, names, native_tr=2.0)
+    design, all_names = add_stopband(nuis, names, native_tr=2.0)
+    with pytest.raises(ExtractError):
+        add_stopband(design, all_names, native_tr=2.0)
+    with pytest.raises(ExtractError):  # 다른 TR 의 기저 — 기대와 다르다
+        summarize_design(design, all_names, native_tr=0.75)
+
+
+def test_band_rejects_bad_inputs():
+    with pytest.raises(ExtractError):
+        dct_stopband_basis(135, 2.0, low_hz=0.2, high_hz=0.1)
+    with pytest.raises(ExtractError):
+        passband_component_count(1, 2.0)
 
 
 def test_summarize_design_reports_all_fields():
     acomp = [f"a_comp_cor_{i:02d}" for i in range(5)]
-    design, names = build_design(_confounds(fd_spikes=(5,)),
-                                 acompcor_names=acomp, n_frames=135)
-    rep = summarize_design(design, names, native_tr=2.0)
+    nuis, names = build_design(_confounds(fd_spikes=(5,)),
+                               acompcor_names=acomp, n_frames=135)
+    design, all_names = add_stopband(nuis, names, native_tr=2.0)
+    rep = summarize_design(design, all_names, native_tr=2.0)
     assert rep.n_motion == 24 and rep.n_acompcor == 5 and rep.n_spike == 1
-    assert rep.t_run_sec == 270.0 and rep.filter_dof == 49
-    assert rep.residual_dof == min(135 - rep.rank, 49)
+    assert rep.t_run_sec == 270.0
+    assert rep.n_stopband == 30 and rep.n_passband == 104
+    assert rep.residual_dof == 135 - rep.rank == 73
     assert rep.passes_dof is (rep.residual_dof > MIN_RESIDUAL_DOF)
     rec = rep.to_record()
     assert rec["bandpass_hz"] == [BANDPASS_LOW_HZ, BANDPASS_HIGH_HZ]
-    assert len(rec["nuisance_columns"]) == design.shape[1]
+    assert rec["filter_spec"]["method"] == "simultaneous_regression"
+    assert len(rec["nuisance_columns"]) == nuis.shape[1]
+    assert "filter_dof" not in rec
 
 
 # --- 잔차·z-score ------------------------------------------------------------
@@ -357,5 +453,5 @@ def test_structural_failures_stay_plain_extract_error():
     assert not isinstance(info.value, ExtractDataError)
 
     with pytest.raises(ExtractError) as info:
-        filter_degrees_of_freedom(0.0)
+        dct_stopband_basis(135, 0.0)
     assert not isinstance(info.value, ExtractDataError)

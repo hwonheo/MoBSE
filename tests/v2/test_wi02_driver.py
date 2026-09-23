@@ -125,9 +125,37 @@ def test_process_run_happy_path(driver, tmp_path):
     assert result["n_frames"] == N_FRAMES
     design = result["design"]
     assert design["n_motion"] == 24 and design["n_acompcor"] == 5
-    assert design["residual_dof"] == 49
+    # 개정 P10 정확식: 135 − (nuisance 31 + 차단대역 DCT 30) = 74 (spike 없음).
+    # dof_probe_hi0.2.json 의 PIOP1/PIOP2 emomatching 중앙값과 같다.
+    assert design["residual_dof"] == 74
+    assert design["design_rank"] == 61 and design["nuisance_rank"] == 31
+    assert design["filter_spec"]["method"] == "simultaneous_regression"
+    assert design["filter_spec"]["n_passband"] == 104
+    assert design["bandpass_hz"] == [0.008, 0.2]
     assert result["qc_decision"]["passed"] is True
     assert result["windows"] == []  # out_dir=None 이면 쓰지 않는다
+
+
+def test_process_run_regresses_the_combined_design(driver, tmp_path, monkeypatch):
+    """개정 P9 — 잔차 계산이 DOF 판정과 같은 결합 설계(nuisance + 차단대역)를 쓴다.
+
+    nuisance 만으로 회귀해도 DOF 수치는 맞게 나오므로, 회귀에 들어간 설계를
+    직접 붙잡아 확인한다.
+    """
+    seen = []
+    original = E.regress_out
+
+    def spy(data, design):
+        seen.append(design.shape)
+        return original(data, design)
+
+    monkeypatch.setattr(driver.E, "regress_out", spy)
+    paths = _write_run(tmp_path)
+    result = driver.process_run(paths, NATIVE_TR, tmp_path / "atlas.nii.gz", {}, None)
+    assert result["status"] == "ok"
+    n_stop = result["design"]["filter_spec"]["n_stopband"]
+    assert seen == [(N_FRAMES, len(result["design"]["nuisance_columns"]) + n_stop)]
+    assert n_stop == 30
 
 
 def test_process_run_writes_four_windows(driver, tmp_path):

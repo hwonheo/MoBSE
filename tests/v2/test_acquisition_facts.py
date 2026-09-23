@@ -92,17 +92,23 @@ def test_windows_are_contiguous_and_non_overlapping():
 
 
 @pytest.mark.parametrize("ds,task,tr,nv", COMBOS, ids=lambda v: str(v))
-def test_filter_dof_exceeds_threshold(ds, task, tr, nv):
-    """개정 P6-b — band-pass 가 남기는 자유도가 30을 넘는지."""
-    import math
+def test_passband_leaves_room_above_threshold(ds, task, tr, nv):
+    """개정 P9/P10 — spike 없는 run 의 정확 DOF (통과 성분 − nuisance 31 + 1) 가 30을 넘는지.
 
-    t_run = tr * nv
-    filter_dof = math.floor(2 * (0.100 - 0.008) * t_run)
-    assert filter_dof > P.MIN_RESIDUAL_DOF, f"{ds}/{task}: filter DOF {filter_dof}"
+    결합 설계 rank = nuisance 31 + 차단대역 (n − 통과 − 1) 이므로
+    DOF = 통과 + 1 − 31. spike 하나마다 최대 1 줄어든다.
+    """
+    from mobse.v2.extract import passband_component_count
+
+    typical = passband_component_count(nv, tr) + 1 - 31
+    assert typical > P.MIN_RESIDUAL_DOF, f"{ds}/{task}: typical DOF {typical}"
 
 
 def test_antialias_required_for_downsampling_rest():
     """0.75초 → 2초 downsample 에는 anti-aliasing 이 필요하다."""
-    P.assert_antialiased(0.75, lowpass_hz=0.1)  # 0.1 Hz < 새 Nyquist 0.25 Hz
+    from mobse.v2.extract import BANDPASS_HIGH_HZ
+
+    P.assert_antialiased(0.75, lowpass_hz=BANDPASS_HIGH_HZ)  # 0.2 Hz < 새 Nyquist 0.25 Hz
+    P.assert_antialiased(0.75, lowpass_hz=0.1)
     with pytest.raises(P.PreprocessError):
         P.assert_antialiased(0.75, lowpass_hz=0.4)

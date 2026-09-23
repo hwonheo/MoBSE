@@ -11,6 +11,14 @@
     상수/추세  = intercept + linear drift (중복 drift 를 넣어 rank 를 올리지 않는다)
 
 frame 을 삭제해 이어 붙이지 않는다. spike 는 regressor 로만 처리한다.
+
+band-pass (개정 P9, 선생님 결정 2026-09-23 "band-pass - 동시 회귀 ok",
+"통과대역 0.2 Hz로"):
+    통과대역 [0.008, 0.2] Hz 밖의 DCT-II 성분을 nuisance 설계행렬에 붙여
+    **한 번에** 회귀한다 (순차 filter→regress 가 제거한 잡음을 되돌려 넣는
+    문제를 피한다). k=0 성분은 intercept 와 같으므로 넣지 않는다 — 중복 열로
+    rank 를 올리지 않는다. residual DOF 는 정확식 `n − rank(결합 설계)` 다
+    (개정 P10, P6-b 의 `min(…)` 식 대체).
 """
 
 from __future__ import annotations
@@ -43,7 +51,10 @@ __all__ = [
     "spike_regressors",
     "build_design",
     "design_rank",
-    "filter_degrees_of_freedom",
+    "dct_frequencies",
+    "dct_stopband_basis",
+    "passband_component_count",
+    "add_stopband",
     "residual_degrees_of_freedom",
     "regress_out",
     "zscore_rois",
@@ -76,9 +87,13 @@ class ExtractDataError(ExtractError):
 MOTION_BASE: Tuple[str, ...] = ("trans_x", "trans_y", "trans_z",
                                 "rot_x", "rot_y", "rot_z")
 
-#: 계획서 §3.2 의 주 band-pass.
+#: 계획서 §3.2 의 주 band-pass. 상한은 개정 P9 (결정 원문 "통과대역 0.2 Hz로",
+#: 2026-09-23). 하한은 바뀌지 않았다.
 BANDPASS_LOW_HZ = 0.008
-BANDPASS_HIGH_HZ = 0.100
+BANDPASS_HIGH_HZ = 0.200
+
+#: 차단대역 기저 열 이름 접두사. manifest 의 nuisance_columns 와 구분하는 데 쓴다.
+STOPBAND_PREFIX = "dct_stop_k"
 
 #: aCompCor 를 고를 mask. 계획서의 "WM/CSF noise 영역에서 유래한" 에 해당한다.
 #: fMRIPrep 은 combined(WM+CSF), WM, CSF 세 가지를 낸다.
@@ -251,28 +266,81 @@ def design_rank(design: np.ndarray) -> int:
     return int(np.linalg.matrix_rank(design))
 
 
-def filter_degrees_of_freedom(t_run_sec: float,
-                              *, low_hz: float = BANDPASS_LOW_HZ,
-                              high_hz: float = BANDPASS_HIGH_HZ) -> int:
-    """band-pass 가 남기는 실수 자유도 (개정 P6-b 의 둘째 항).
-
-    통과대역에 남는 주파수마다 sin/cos 2개의 자유도가 있다.
-    """
-    if t_run_sec <= 0:
-        raise ExtractError(f"run 길이가 0 이하다: {t_run_sec}")
+def _check_band(n_frames: int, native_tr: float, low_hz: float, high_hz: float) -> None:
+    if n_frames < 2:
+        raise ExtractError(f"frame 수가 너무 적다: {n_frames}")
+    if not (native_tr > 0 and math.isfinite(native_tr)):
+        raise ExtractError(f"TR 이 잘못됐다: {native_tr}")
     if not 0 <= low_hz < high_hz:
         raise ExtractError(f"통과대역이 잘못됐다: [{low_hz}, {high_hz}]")
-    return int(math.floor(2 * (high_hz - low_hz) * t_run_sec))
 
 
-def residual_degrees_of_freedom(n_frames: int, rank: int, t_run_sec: float) -> int:
-    """개정 P6-b 로 동결한 residual DOF.
+def dct_frequencies(n_frames: int, native_tr: float) -> np.ndarray:
+    """DCT-II 성분 k=0..n-1 의 주파수 `k / (2·n·TR)` (Hz)."""
+    _check_band(n_frames, native_tr, BANDPASS_LOW_HZ, BANDPASS_HIGH_HZ)
+    return np.arange(n_frames) / (2.0 * n_frames * native_tr)
 
-        min( n_frames - rank, floor(2*(f_high-f_low)*T_run) )
 
-    filter 로 잃는 자유도를 세지 않으면 residual DOF 를 과대 보고한다.
+def _in_band(freqs: np.ndarray, low_hz: float, high_hz: float) -> np.ndarray:
+    # 경계 성분은 통과대역에 넣는다 (DOF 실측 스크립트와 같은 규칙: low <= f <= high).
+    return (freqs >= low_hz) & (freqs <= high_hz)
+
+
+def dct_stopband_basis(n_frames: int, native_tr: float,
+                       *, low_hz: float = BANDPASS_LOW_HZ,
+                       high_hz: float = BANDPASS_HIGH_HZ
+                       ) -> Tuple[np.ndarray, List[str]]:
+    """통과대역 밖 DCT-II 성분을 열로 모은 기저 (개정 P9).
+
+    성분 k 는 `cos(π·k·(t+0.5)/n)`, 주파수 `k/(2·n·TR)`. **k=0 은 제외한다** —
+    상수열이라 설계행렬의 intercept 와 같고, 넣어도 rank 가 변하지 않는
+    중복 열이다 (계획서 §3.2 "drift/intercept 중복으로 rank 를 늘리지 않는다").
+
+    Returns:
+        (basis, names). basis 형상 (n_frames, n_stop). 이름은 `dct_stop_kNNNN`.
     """
-    return min(n_frames - rank, filter_degrees_of_freedom(t_run_sec))
+    _check_band(n_frames, native_tr, low_hz, high_hz)
+    freqs = np.arange(n_frames) / (2.0 * n_frames * native_tr)
+    keep = ~_in_band(freqs, low_hz, high_hz)
+    keep[0] = False
+    ks = np.flatnonzero(keep)
+    t = np.arange(n_frames, dtype=float)
+    if ks.size == 0:
+        return np.zeros((n_frames, 0)), []
+    basis = np.cos(np.pi * np.outer(t + 0.5, ks) / n_frames)
+    return basis, [f"{STOPBAND_PREFIX}{int(k):04d}" for k in ks]
+
+
+def passband_component_count(n_frames: int, native_tr: float,
+                             *, low_hz: float = BANDPASS_LOW_HZ,
+                             high_hz: float = BANDPASS_HIGH_HZ) -> int:
+    """통과대역 안의 DCT-II 성분 수 (manifest 기록용 — 판정에는 쓰지 않는다)."""
+    _check_band(n_frames, native_tr, low_hz, high_hz)
+    freqs = np.arange(n_frames) / (2.0 * n_frames * native_tr)
+    return int(np.sum(_in_band(freqs, low_hz, high_hz)))
+
+
+def add_stopband(design: np.ndarray, names: Sequence[str], *, native_tr: float
+                 ) -> Tuple[np.ndarray, List[str]]:
+    """nuisance 설계행렬 뒤에 차단대역 기저를 붙인다 — 동시 회귀용 결합 설계."""
+    if design.ndim != 2 or design.shape[1] != len(names):
+        raise ExtractError(f"design/names 불일치: {design.shape} vs {len(names)}")
+    if any(str(n).startswith(STOPBAND_PREFIX) for n in names):
+        raise ExtractError("차단대역 기저가 이미 들어 있다 — 두 번 붙이지 않는다")
+    basis, stop_names = dct_stopband_basis(design.shape[0], native_tr)
+    return np.column_stack([design, basis]), list(names) + stop_names
+
+
+def residual_degrees_of_freedom(n_frames: int, rank: int) -> int:
+    """개정 P10 의 정확식 residual DOF: `n_frames − rank(결합 설계)`.
+
+    `rank` 는 nuisance 와 차단대역 기저를 **합친** 설계행렬의 rank 여야 한다.
+    P6-b 의 `min(n − rank(nuisance), floor(2·Δf·T))` 는 nuisance 와 filter 가
+    같은 자유도를 이중으로 쓰지 않는다고 가정해 과대 보고했다.
+    """
+    if not (0 <= rank <= n_frames):
+        raise ExtractError(f"rank {rank} 가 [0, {n_frames}] 밖이다")
+    return int(n_frames - rank)
 
 
 def regress_out(data: np.ndarray, design: np.ndarray) -> np.ndarray:
@@ -324,50 +392,80 @@ class DesignReport:
     n_motion: int
     n_acompcor: int
     n_spike: int
+    nuisance_rank: int
+    n_stopband: int
+    n_passband: int
     rank: int
     t_run_sec: float
-    filter_dof: int
     residual_dof: int
     passes_dof: bool
 
     def to_record(self) -> Dict[str, Any]:
-        """manifest 레코드용 dict."""
+        """manifest 레코드용 dict.
+
+        `nuisance_columns` 에는 nuisance 열만 적는다 (차단대역 기저 수백 개를
+        열거하지 않는다 — 기저는 `filter_spec` 으로 완전히 재구성된다).
+        `design_rank` 는 **결합 설계** 의 rank 다.
+        """
         return {
             "n_frames": self.n_frames,
             "nuisance_columns": list(self.columns),
             "n_motion": self.n_motion,
             "n_acompcor": self.n_acompcor,
             "n_spike": self.n_spike,
+            "nuisance_rank": self.nuisance_rank,
             "design_rank": self.rank,
             "t_run_sec": self.t_run_sec,
-            "filter_dof": self.filter_dof,
             "residual_dof": self.residual_dof,
+            "residual_dof_definition": "n_frames - rank([nuisance, dct_stopband])",
             "min_residual_dof": MIN_RESIDUAL_DOF,
             "passes_dof": self.passes_dof,
             "bandpass_hz": [BANDPASS_LOW_HZ, BANDPASS_HIGH_HZ],
+            "filter_spec": {
+                "method": "simultaneous_regression",
+                "basis": "DCT-II cos(pi*k*(t+0.5)/n), f_k = k/(2*n*TR)",
+                "stopband": "f_k < low or f_k > high (k=0 omitted: equals intercept)",
+                "bandpass_hz": [BANDPASS_LOW_HZ, BANDPASS_HIGH_HZ],
+                "n_stopband": self.n_stopband,
+                "n_passband": self.n_passband,
+                "amendment": "P9",
+            },
             "analysis_interval_sec": [ANALYSIS_START, ANALYSIS_END],
         }
 
 
 def summarize_design(design: np.ndarray, names: Sequence[str],
                      *, native_tr: float) -> DesignReport:
-    """설계행렬에서 manifest 에 넣을 수치를 계산한다."""
+    """**결합 설계**(`add_stopband` 결과)에서 manifest 에 넣을 수치를 계산한다.
+
+    차단대역 기저가 없는 설계를 받으면 실패한다 — filter 없이 DOF 를 세면
+    조용히 과대 보고되기 때문이다 (P6-b 에서 실제로 일어난 일).
+    """
+    names = list(names)
+    if design.ndim != 2 or design.shape[1] != len(names):
+        raise ExtractError(f"design/names 불일치: {design.shape} vs {len(names)}")
+    stop_idx = [i for i, n in enumerate(names) if n.startswith(STOPBAND_PREFIX)]
     n_frames = design.shape[0]
+    expected_stop = dct_stopband_basis(n_frames, native_tr)[1]
+    if [names[i] for i in stop_idx] != expected_stop:
+        raise ExtractError(
+            "결합 설계의 차단대역 기저가 기대와 다르다 — add_stopband 로 만든 설계만 받는다 "
+            f"(열 {len(stop_idx)}개, 기대 {len(expected_stop)}개)")
+    nuis_idx = [i for i in range(len(names)) if i not in set(stop_idx)]
+    nuis_names = [names[i] for i in nuis_idx]
     rank = design_rank(design)
-    t_run = native_tr * n_frames
-    filter_dof = filter_degrees_of_freedom(t_run)
-    residual = residual_degrees_of_freedom(n_frames, rank, t_run)
-    n_spike = sum(1 for n in names if n.startswith("spike_frame_"))
-    n_acompcor = sum(1 for n in names if n.startswith("a_comp_cor"))
+    residual = residual_degrees_of_freedom(n_frames, rank)
     return DesignReport(
         n_frames=n_frames,
-        columns=tuple(names),
-        n_motion=sum(1 for n in names if n.split("_")[0] in ("trans", "rot")),
-        n_acompcor=n_acompcor,
-        n_spike=n_spike,
+        columns=tuple(nuis_names),
+        n_motion=sum(1 for n in nuis_names if n.split("_")[0] in ("trans", "rot")),
+        n_acompcor=sum(1 for n in nuis_names if n.startswith("a_comp_cor")),
+        n_spike=sum(1 for n in nuis_names if n.startswith("spike_frame_")),
+        nuisance_rank=design_rank(design[:, nuis_idx]),
+        n_stopband=len(stop_idx),
+        n_passband=passband_component_count(n_frames, native_tr),
         rank=rank,
-        t_run_sec=t_run,
-        filter_dof=filter_dof,
+        t_run_sec=native_tr * n_frames,
         residual_dof=residual,
         passes_dof=residual > MIN_RESIDUAL_DOF,
     )

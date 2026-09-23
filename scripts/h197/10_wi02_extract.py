@@ -125,8 +125,11 @@ def process_run(paths: Dict[str, Path], native_tr: float, atlas_path: Path,
 
     img = nib.load(str(paths["bold"]))
     n_frames = img.shape[3]
-    design, names = E.build_design(confounds, acompcor_names=acompcor,
-                                   n_frames=n_frames)
+    nuisance, nuisance_names = E.build_design(confounds, acompcor_names=acompcor,
+                                              n_frames=n_frames)
+    # 개정 P9: nuisance 와 차단대역 DCT 기저를 한 설계행렬로 동시 회귀한다.
+    # DOF 판정과 잔차 계산이 **같은 결합 설계**를 쓰게 여기서 한 번만 만든다.
+    design, names = E.add_stopband(nuisance, nuisance_names, native_tr=native_tr)
     report = E.summarize_design(design, names, native_tr=native_tr)
 
     start_sec = DISCARDED_BY_SCANNER * native_tr
@@ -226,7 +229,7 @@ def main() -> int:
     with manifest.open("w", encoding="utf-8") as handle:
         handle.write(json.dumps({
             "record_type": "header",
-            "schema_version": "wi02-extract-0.1",
+            "schema_version": "wi02-extract-0.2",  # 0.2: P9 band-pass 적용, P10 DOF
             "dataset": args.dataset, "task": args.task,
             "native_tr": args.native_tr,
             "discarded_by_scanner": DISCARDED_BY_SCANNER,
@@ -234,6 +237,7 @@ def main() -> int:
             "atlas": str(args.atlas), "atlas_sha256": sha256_file(args.atlas),
             "analysis_interval_sec": [P.ANALYSIS_START, P.ANALYSIS_END],
             "bandpass_hz": [E.BANDPASS_LOW_HZ, E.BANDPASS_HIGH_HZ],
+            "filter_method": "simultaneous_regression_dct_stopband (P9)",
             "dry_run": bool(args.dry_run),
         }, ensure_ascii=False) + "\n")
 
