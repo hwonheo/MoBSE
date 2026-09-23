@@ -3365,3 +3365,45 @@ rev27 의 caveat("코드와 창이 같은 추출을 가리키지 않는다")는 
 - 결정성의 실자료 확인은 한 쌍(v3, inner 0, seed 42)뿐이다. 다른 cell·config 의 비결정 연산 여부는 CUDA 합성 시험(cell B)과 이 한 쌍으로만 확인했다 — 비결정 연산이 있으면 조용히 넘어가지 않고 RuntimeError 로 멈춘다.
 - 결정성 설정의 학습 시간 영향은 재지 않았다 (probe fit 한 개 약 35–45 s, 이전 약 30 s — 같은 조건 비교 아님).
 - main pool 을 소비하는 fit 은 하지 않았다.
+
+
+# 부록 AD — WI-06 report CLI 배선 (rev31, 2026-09-23 예약 슬롯)
+
+인수인계 남은 작업 2번. 선생님 결정 "CLI - 추천안 대로"(evaluate → report → prepare)의 둘째 단계다. 결정을 요하는 값은 새로 정하지 않았다 — seed·반복 수·percentile·δ·임계는 모두 잠긴 config 에서 읽는다.
+
+## AD.1 계약
+
+- 입력: `--config --evaluation(evaluation.json) --predictions(run_predictions.jsonl) --subjects(subjects.jsonl) --output-dir`. 출력 `statistics.json` (schema `wi06-statistics-0.1`), 덮어쓰기 거부.
+- 경로 계약 변경(구현 선택, 결정 아님): report 필수 경로에 `evaluation`·`subjects` 를 추가했다. `run_predictions` 에 `group_id` 가 없어 group 재표집의 출처가 필요하다.
+
+## AD.2 통계
+
+- config 값: seed 9001, 10,000회, 주 contrast [1.25, 98.75], 보조 [2.5, 97.5], δ 0.02, 임계 0.5.
+- group 재표집 index 를 **한 번** 만들어 H1(A−B)·H2(A−C)·interaction·cell BA 에 공유한다 (계획서 §8 "모든 cell 에 같은 재표집").
+- H1·H2 는 97.5% family-wise CI, interaction·cell BA 는 95% 기술적 CI. `statistics.interpret` 문자열과 `lower_gt_0`·`lower_gt_delta`, `both_primary_lower_gt_0` 를 기록한다. **유의성은 gate 가 아니다** — G3 판정은 완전성·정합성뿐이다.
+
+## AD.3 무결성
+
+evaluation.json 의 config_hash, run_predictions sha256 기록과 대조한다. run 행마다 threshold, `prediction = classify(ensemble_p)`(동일값 class 1), window×seed 4×3, 분류 task, 중복을 검사한다. run 행만으로 subject `b_i` 를 재계산해 evaluation.json 의 subject_scores·subject_differences·cell BA 와 대조한다. complete-case, cell 간 subject 동일, subjects.jsonl 의 group 존재·eligible, subject 수를 확인한다.
+
+## AD.4 시험
+
+`tests/v2/test_cli_report.py` 11건 — evaluate 시험의 합성 release(outer fold 2 × cell 4 × seed 3, main pool 10명)를 evaluate → report 로 끝까지 돌린다. H1 점추정 0.25 와 97.5%·95% 구간을 `statistics.py` 없이 PCG64 로 독립 재계산해 대조하고, H2 는 0 구간, 가족 group 을 넣으면 n_groups 9 로 통째 재표집됨을 확인한다.
+
+- 돌연변이 (Mac 사본): sha 대조·group 매핑·부적격 검사를 하나씩 끄면 해당 시험이 실패한다. subject_scores 대조와 subject_differences 대조는 하나만 끄면 다른 하나(와 cell BA 대조)가 잡는다 — 중복 장치다.
+- 첫 판은 시험이 `test_cli_evaluate` 를 import 문으로 불러 import closure 가드(`test_import_closure` 2건)가 핀 없는 third-party 로 잡았다. 파일 경로 로드로 바꿨다.
+- h197 전체: **648 passed / 12 skipped** (137 s).
+
+## AD.5 잠금
+
+`mobse/v2/cli.py` 변경으로 잠금을 재생성했다: `a8537ffba0bd` → **`bdf27e45a1ad`** (2026-09-23T10:23:35Z), code_hash `c2b943c04b93` → `2f0c2d426a97`. 19번 42/42, 25번 창 4,728. 창·코호트·분할 불변 (split_hash `ace5f4a41446`).
+
+```
+… → 9ae4e4ee1a91 (P8 구현) → a8537ffba0bd (E22 결정성 적용) → bdf27e45a1ad (WI-06 report CLI, 현행)
+```
+
+## AD.6 이번 회차에 확인하지 못한 것
+
+- report 를 **실자료**로 돌리지 않았다 — outer fit 이 없다 (main pool 미소비).
+- 합성 release 는 subject 하나 = group 하나이고 가족 group 은 시험 1건뿐이다. 실제 코호트는 관계 metadata 부재로 group = subject 다 (P4).
+- `prepare` 본체는 아직 없다.
