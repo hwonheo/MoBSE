@@ -1,7 +1,7 @@
 {
   "schema_version": "measurement_lock_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "locked_at_utc": "2026-09-23T13:26:24Z",
+  "locked_at_utc": "2026-09-23T12:21:01Z",
   "gate": "G1 Measurement lock",
   "work_instruction": "WI-03",
   "roots": {
@@ -213,8 +213,8 @@
   "environment": {
     "protocol": {
       "path": "docs/experiments/mobse_redesign_protocol_2026-09-17.md",
-      "sha256": "69c29fe2d48b39c7077a3dcd5a3d11b48bc3b0e5dfdfe3cb0cd26bb6de9b21d6",
-      "bytes": 36973
+      "sha256": "e303a472b34b9b76e3dd4520cc70c5597b20593b4192a84fc032aeb2868adedf",
+      "bytes": 35722
     },
     "instructions": {
       "path": "docs/experiments/mobse_redesign_work_instructions_2026-09-17.md",
@@ -242,10 +242,10 @@
       }
     },
     "code": {
-      "code_hash": "e259cb1048a8290c14618db5a718e0979579e6e6e9736778654548ff58bc9f54",
+      "code_hash": "dc8ce8b741aed421f18f743b84d46b6470d8d8e29e10b4c3d05b0905cf1ef0cf",
       "modules": {
         "__init__.py": "c884876e4717224c87d95b1fd4b3821863307e65f9146eac605bc9a96375c9ab",
-        "baselines.py": "b19fcafffcd688b1274957f8be3050a4fc437d325386639051d846db5544e65b",
+        "baselines.py": "6e84d6a398efea03188f2f819587cdd7e405ae311a503684d6ea0bb36c560b2a",
         "cli.py": "e1faef9ff1978f910dfa171f2348db37943fed1dcf56ed26153885b9446d7b60",
         "cohort.py": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
         "config.py": "5086ba86e3edc069cd12eb57a85b8b038c3411c75ef9b0b9bdb96ac62bcedc44",
@@ -303,9 +303,9 @@
     "formula": "126 subjects x 2 tasks x 4 windows x 3 seeds x 4 cells"
   },
   "supersedes": {
-    "lock_hash": "4ea208ed77f783844282b315c1a240c662d374baf88a08579c277868b547c09b",
-    "locked_at_utc": "2026-09-23T12:21:01Z",
-    "reason": "Protocol revision P11 (decision 10): unconverged logistic settings are excluded from S selection and the excluded settings and their count are recorded; selection stops only when every setting is unconverged. Pre-registered from a pilot convergence measurement (240 fits, 0 unconverged). mobse/v2 baselines changed; windows, cohorts and splits unchanged; main pool not consumed"
+    "lock_hash": "bcb08fc40f0930beea0210148f0ec4dd1e9013ee5b4c0b1dc2d4dcc692aa8da7",
+    "locked_at_utc": "2026-09-23T11:23:37Z",
+    "reason": "S candidates 1 and 3 (protocol section 6): ROI mean/variance and signed Fisher-z FC features with StandardScaler plus L2 logistic regression over the locked C grid, and the shared S selection rule by inner subject-equal log loss; synthetic tests only. mobse/v2 baselines added; windows, cohorts and splits unchanged; main pool not consumed"
   },
-  "lock_hash": "3f3c751b35c7750825225a500dc8f442324cc13e8e4cfc9cd469f1dd948e619d"
+  "lock_hash": "4ea208ed77f783844282b315c1a240c662d374baf88a08579c277868b547c09b"
 }

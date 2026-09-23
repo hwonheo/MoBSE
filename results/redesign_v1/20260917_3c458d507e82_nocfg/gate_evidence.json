@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "ad0665a2f925fdb74c9a52dbd3c1eaf3072d5b72",
-  "timestamp_utc": "2026-09-23T12:22:42Z",
-  "revision": 33,
-  "supersedes_sha256": "6de6d54cb3a01682e5760dcb03449fb09225ec5c280569b926957b3f9a20928d",
-  "revision_reason": "rev33 (2026-09-23): 계획서 §6 S 후보 1·3 (ROI mean/variance 200·signed Fisher-z FC 4,950 + StandardScaler(training 창만) + L2 logistic, C grid 8개) 과 S 후보 공통 선택 규칙(inner subject-equal log loss, 미수렴 거부, OOF 집합 대조) 구현. 합성 시험 17건, 돌연변이 9/9. S 후보 2·4·구조 비교는 미구현. mobse/v2 모듈 추가로 재잠금 bcb08fc40f09 → 4ea208ed77f7 (code_hash 117f7340f186 → dc8ce8b741ae), 창·코호트·분할 불변. 보고서 부록 AF. 실자료 실행 없음, main pool 미소비",
+  "git_head": "87d98041747e0c37370885328f06029711f43f59",
+  "timestamp_utc": "2026-09-23T13:37:57Z",
+  "revision": 34,
+  "supersedes_sha256": "95975f8e958f60457da1939f823c76d1ea12b291d37ab83690b77b64098fcb84",
+  "revision_reason": "rev34 (2026-09-23): 계획서 개정 P11 사전 등록 (선생님 결정 10). pilot 기술 분할에서 S1·S3 logistic 수렴 측정 240 fit, 미수렴 0 → 멈춤 조건 해당 없음. select_s 가 미수렴 설정을 빼고 고르며 뺀 설정·수를 기록, 모든 설정이 미수렴이면 멈춘다. 시험 19건, 돌연변이 14/14. mobse/v2 변경으로 재잠금 4ea208ed77f7 → 3f3c751b35c7 (code_hash dc8ce8b741ae → e259cb1048a8), 창·코호트·분할 불변. 결정 11 항목 2 (pilot 1,500 대 3,000 update) 측정 결과도 부록 AG 에 기록 — 최소치는 바꾸지 않음. main pool 미소비",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -102,7 +102,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "ad2b36846c2b146eb6352e56a95d507d697ece560d4b0821c5ccc242dd49a075"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "2b55be3ff7aed139af4f8232ee42a4afb6fe7c456b4af2ba6191cc816d5a56c6"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -158,7 +158,7 @@
             "piop2_eligible": 189,
             "piop2_folds": null
           },
-          "note": "locks/measurement_lock.json (lock_hash 4ea208ed77f7…) 로 잠갔고 검증 42/42 일치. 재생성 이력은 wi03_measurement_lock.chain"
+          "note": "locks/measurement_lock.json (lock_hash 3f3c751b35c7…) 로 잠갔고 검증 42/42 일치. 재생성 이력은 wi03_measurement_lock.chain"
         },
         {
           "check": "pilot excluded from every main/final fit",
@@ -195,7 +195,7 @@
         "개정 P8 학습 예산 — 결정됐으나 구현 전"
       ],
       "artifact_hashes": {
-        "locks/measurement_lock.json": "d728d338be9e611d1bfc62dcd2e02a05541cf0ae676d07bee1a8040d18da7391",
+        "locks/measurement_lock.json": "b6cff1c2c8b3322a998f32030f319f86910b41b5ee48ed08bb8e74dceef445d9",
         "reports/precision_scenarios.md": "a5d576edeb89a1223d79f97067490b85ac16fe56d516b92b56b9b4e33724aa69",
         "reports/resource_budget.md": "155ee3e7379f53e034c457f481bb159b99b70f33ff4d78be0893acfc27862019",
         "provenance/wi03_precision/precision_scenarios.json": "67284e5991af25775ee569c32e2b51e75f8833ea9f0874d477b9d68d8ae7817e",
@@ -677,7 +677,7 @@
   },
   "v2_module_hashes": {
     "__init__.py": "c884876e4717224c87d95b1fd4b3821863307e65f9146eac605bc9a96375c9ab",
-    "baselines.py": "6e84d6a398efea03188f2f819587cdd7e405ae311a503684d6ea0bb36c560b2a",
+    "baselines.py": "b19fcafffcd688b1274957f8be3050a4fc437d325386639051d846db5544e65b",
     "cli.py": "e1faef9ff1978f910dfa171f2348db37943fed1dcf56ed26153885b9446d7b60",
     "cohort.py": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
     "config.py": "5086ba86e3edc069cd12eb57a85b8b038c3411c75ef9b0b9bdb96ac62bcedc44",
@@ -699,7 +699,7 @@
     "README.md": "792e5f30a1036be0c28fa1481f7afb55546a4453c1ae0d03bb93ff256907ae2d",
     "test_acceptance_coverage.py": "5068bef17cc4532e45bae1a3662afcd675d18562505bbc9684e7f4ffa04b5e21",
     "test_acquisition_facts.py": "ebb3d5b0687793c3c731ae56f13278b8a1a11a1011a609c171fc542b17b434f9",
-    "test_baselines.py": "ee82d41de88e2c86d167e5446e31529535919b5e7ccaa3c962f16f445d48f8bb",
+    "test_baselines.py": "4e7b744d22f11b19c2803ba78f13958d2af2766287e5aa84bd7e2494659ce064",
     "test_cli_evaluate.py": "8efcfc90c8a2ee1006315bfda27f3e6920a2d1d346dfee6dd9e46c9bd5c901a4",
     "test_cli_fit.py": "987f40e2e44a9e97dae30894c64da7243f1ea9b1234cd29a5b429ecab0e274f0",
     "test_cli_prepare.py": "40a9ce4ae81b07c51745ea8ed999ec7d39efded416159eb14f5bde9a155582c5",
@@ -839,7 +839,7 @@
   },
   "protocol_amendments": {
     "section": "계획서 §11 개정 기록 (신설)",
-    "protocol_sha256": "e303a472b34b9b76e3dd4520cc70c5597b20593b4192a84fc032aeb2868adedf",
+    "protocol_sha256": "69c29fe2d48b39c7077a3dcd5a3d11b48bc3b0e5dfdfe3cb0cd26bb6de9b21d6",
     "instructions_sha256": "6007cfb8d9b186aeb03deece7cecb17042da95e3aba476851e635973567dde90",
     "applied": [
       "P1",
@@ -1822,8 +1822,8 @@
   "wi03_measurement_lock": {
     "gate": "G1 Measurement lock",
     "artifact": "locks/measurement_lock.json",
-    "lock_hash": "4ea208ed77f783844282b315c1a240c662d374baf88a08579c277868b547c09b",
-    "locked_at_utc": "2026-09-23T12:21:01Z",
+    "lock_hash": "3f3c751b35c7750825225a500dc8f442324cc13e8e4cfc9cd469f1dd948e619d",
+    "locked_at_utc": "2026-09-23T13:26:24Z",
     "module": "mobse/v2/locks.py",
     "module_sha256": "4a3dae547c0744dbf58e24f2d53ec46c4c71577bc71a502f130bd70b1272a812",
     "builder": "scripts/h197/18_build_measurement_lock.py",
@@ -1839,7 +1839,7 @@
         "folds": null,
         "reason": "계획서 §9 — PIOP2 는 held-out 외부 코호트다. fold 를 만들지 않는다."
       },
-      "code_hash": "dc8ce8b741aed421f18f743b84d46b6470d8d8e29e10b4c3d05b0905cf1ef0cf",
+      "code_hash": "e259cb1048a8290c14618db5a718e0979579e6e6e9736778654548ff58bc9f54",
       "configs": {
         "external": "7daa536b",
         "main": "85556f56",
@@ -1891,7 +1891,7 @@
     ],
     "tests": "tests/v2/test_locks.py (18건)",
     "artifacts": {
-      "locks/measurement_lock.json": "d728d338be9e611d1bfc62dcd2e02a05541cf0ae676d07bee1a8040d18da7391",
+      "locks/measurement_lock.json": "b6cff1c2c8b3322a998f32030f319f86910b41b5ee48ed08bb8e74dceef445d9",
       "locks/superseded/measurement_lock_2026-09-18T00:45:43Z.json": "abe6a9fc5e978274c8061ff90df7664140a24e55be85030abb3da4a97a8294f5",
       "locks/superseded/measurement_lock_2026-09-18T02:56:21Z.json": "b8a45c28e2fbece236f662fa993828733e5be4e2cb9980f4044514516243179e",
       "locks/superseded/measurement_lock_2026-09-18T02:57:01Z.json": "95d43ef2db9c8431c279aacfd4c6ffaf48792a3079bfadeea9a452789b2aef44",
@@ -1904,7 +1904,8 @@
       "locks/superseded/measurement_lock_2026-09-23T08:20:30Z.json": "3f703eafdd4ec1dd1d5bab062cbf01203ccfb8803419d137bdea3fe82c9da800",
       "locks/superseded/measurement_lock_2026-09-23T09:20:55Z.json": "0bff49842f7f445d743581b6f48bcb20b08a71d61a034126d5be50a9ecb7a53f",
       "locks/superseded/measurement_lock_2026-09-23T10:23:35Z.json": "60adb57c8bbc78ad42d99cd8533755758c4b2496f785bf539a23cb85b53ff6fd",
-      "locks/superseded/measurement_lock_2026-09-23T11:23:37Z.json": "e8569659214f04b16ad22219d08b893422f9470ebaf7a8370864a0fc7d660009"
+      "locks/superseded/measurement_lock_2026-09-23T11:23:37Z.json": "e8569659214f04b16ad22219d08b893422f9470ebaf7a8370864a0fc7d660009",
+      "locks/superseded/measurement_lock_2026-09-23T12:21:01Z.json": "d728d338be9e611d1bfc62dcd2e02a05541cf0ae676d07bee1a8040d18da7391"
     },
     "supersedes": {
       "lock_hash": "6e68eb939bebebc1eac27927f1b21a68e89d994c24d7b3b2aa35366f046c2d09",
@@ -1925,7 +1926,8 @@
       "a8537ffba0bd (E22 결정성 적용)",
       "bdf27e45a1ad (WI-06 report CLI)",
       "bcb08fc40f09 (WI-06 prepare CLI)",
-      "4ea208ed77f7 (S 후보 1·3, 현행)"
+      "4ea208ed77f7 (S 후보 1·3)",
+      "3f3c751b35c7 (개정 P11 미수렴 제외, 현행)"
     ],
     "chain_note": "가운데 항목은 --reason 없이 재생성한 것이다. 그 직후 builder 에 --reason 필수 검사를 넣고 다시 만들었다. 지우지 않고 사슬에 남긴다",
     "builder_now_requires_reason": "--overwrite 에 --reason 이 없으면 거부한다. 변경 정책이 '새 잠금에 supersedes 와 사유를 남긴다'고 정한다"
@@ -2505,7 +2507,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev33 은 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev34 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -2971,15 +2973,30 @@
       "max_iter": 10000,
       "class_weight": null,
       "l2_spec": "l1_ratio=0.0 (sklearn 1.8 penalty 폐기 예정)",
-      "unconverged": "fit 기록에 남기고 선택이 거부",
+      "unconverged": "[개정 P11] 미수렴 설정은 빼고 나머지에서 선택, 뺀 설정·수 기록; 전부 미수렴이면 멈춤(구현 선택)",
       "tie": "≤1e-6 → 후보 순서 S1<S2<S3<S4 → 설정 순서"
     },
     "tests": {
       "file": "tests/v2/test_baselines.py",
-      "n": 17,
+      "n": 19,
       "note": "합성 자료만. 계획서 문장 대조 포함"
     },
-    "mutation_check": "Mac 사본 9/9 검출 (.backup/baselines_mutation.sh)",
-    "unverified": "실제 규모(inner 학습 창 528–544, 4,950차원)에서 C=10000 lbfgs 수렴 — 미측정"
+    "mutation_check": "Mac 사본 14/14 검출 (.backup/baselines_mutation_p11.sh)",
+    "unverified": "main 규모(inner 학습 창 528–544) 수렴 — 미측정. pilot(104–112) 240 fit 미수렴 0 은 외삽하지 않는다. 수렴 판정은 sklearn lbfgs tol 기준이며 분리 가능 자료의 유한 최적해를 뜻하지 않는다",
+    "p11_pilot_convergence": {
+      "decision": "결정 10 — 권고 '…pilot 창으로 수렴 여부부터 재고, 그 결과를 보고 (a)를 사전 등록…' 에 'ok'",
+      "path": "MoBSE_dataset/derivatives_v3/pilot_tech_p8/logistic_convergence/",
+      "n_fits": 240,
+      "n_unconverged": 0,
+      "n_iter_max": {
+        "S1": 73,
+        "S3": 35
+      },
+      "n_train_windows": [
+        104,
+        112
+      ],
+      "stop_condition": "C ≤ 100 미수렴 또는 한 후보 8개 중 4개 이상 미수렴 — 해당 없음"
+    }
   }
 }
