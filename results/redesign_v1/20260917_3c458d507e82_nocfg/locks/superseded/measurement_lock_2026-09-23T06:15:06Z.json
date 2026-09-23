@@ -1,7 +1,7 @@
 {
   "schema_version": "measurement_lock_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "locked_at_utc": "2026-09-23T07:18:44Z",
+  "locked_at_utc": "2026-09-23T06:15:06Z",
   "gate": "G1 Measurement lock",
   "work_instruction": "WI-03",
   "roots": {
@@ -23,9 +23,9 @@
       "group_id_policy": "1 subject = 1 group (관계 metadata 부재, 개정 P4 / U10)",
       "manifests": {
         "emomatching": {
-          "path": "derivatives_v3/wi02_ds002785_emomatching.jsonl",
-          "sha256": "e448f4ab9f04808ab3823be3a52d9a4ee8d674924c9e3f3ae270e6bec7caacc2",
-          "bytes": 692487,
+          "path": "derivatives_v2/wi02_ds002785_emomatching.jsonl",
+          "sha256": "cc1275279754e3e2a9e18fac3c509bac56bbd5ce5ae3c2de3bd8a3e35637c978",
+          "bytes": 621289,
           "status_counts": {
             "excluded": 25,
             "ok": 183,
@@ -35,9 +35,9 @@
           "n_ok": 183
         },
         "workingmemory": {
-          "path": "derivatives_v3/wi02_ds002785_workingmemory.jsonl",
-          "sha256": "4f166a551cfaccdf72c8aa720125156e1ddfac74fc61656d3aa8b40c344f457f",
-          "bytes": 689842,
+          "path": "derivatives_v2/wi02_ds002785_workingmemory.jsonl",
+          "sha256": "70a523a9819697fac3c9d70b5a3d9d0cd816049835b7a0fbeb946a8db4fb1764",
+          "bytes": 619636,
           "status_counts": {
             "excluded": 31,
             "ok": 176,
@@ -47,9 +47,9 @@
           "n_ok": 176
         },
         "restingstate": {
-          "path": "derivatives_v3/wi02_ds002785_restingstate.jsonl",
-          "sha256": "1d3b55fc21516cf1938021191d41635c5a4d968bf6e8ac4750eb59a2714fbf84",
-          "bytes": 742018,
+          "path": "derivatives_v2/wi02_ds002785_restingstate.jsonl",
+          "sha256": "26c702fdcca56d140ca87271f9b8c1cbad558163a9dc8fe9b3d8147de8ba8cdf",
+          "bytes": 669580,
           "status_counts": {
             "excluded": 8,
             "ok": 202,
@@ -67,33 +67,33 @@
         "space": "MNI152NLin2009cAsym"
       },
       "subjects": {
-        "path": "derivatives_v3/cohort_piop1/subjects.jsonl",
+        "path": "derivatives_v2/cohort_piop1/subjects.jsonl",
         "sha256": "5ab1933922027dee41ddd4b9aabd0b4e70e8255399e2b06086d1434bb6f7278a",
         "bytes": 50260,
         "n_records": 216,
         "n_eligible": 157
       },
       "exclusions": {
-        "path": "derivatives_v3/cohort_piop1/exclusions.jsonl",
-        "sha256": "2e51f25bf1dfb3bda80139ec5de9876bacd8d313c18afcfcfa6ba5cd9cb48888",
-        "bytes": 25757,
+        "path": "derivatives_v2/cohort_piop1/exclusions.jsonl",
+        "sha256": "74a04e31e14f7511608eac55f7da12c043a4a3c83285a76ee5569feadd0fdeba",
+        "bytes": 25724,
         "n_records": 59
       },
       "cohort_summary": {
-        "path": "derivatives_v3/cohort_piop1/cohort_summary.json",
-        "sha256": "d4289346b473bdf1f7ea6329347e3f3e1a34714ab1c3dfa262e499ae4fe2ede3",
-        "bytes": 3186
+        "path": "derivatives_v2/cohort_piop1/cohort_summary.json",
+        "sha256": "993ffb55abdadc31a7ebc17121f1762ac5bf718434664998ba5010b31cd9e93b",
+        "bytes": 3006
       },
       "windows": {
-        "path": "derivatives_v3/windows_piop1.jsonl",
-        "sha256": "0750c81c0670df1f4a3e644923949ce1796d8be085afc9464cb9b988fd29a05a",
+        "path": "derivatives_v2/windows_piop1.jsonl",
+        "sha256": "3c8bb84321965c12ddbb6e58fe02f233aa73156354479185ebb6928ac229fcf2",
         "bytes": 637859,
         "n_records": 1436
       },
       "folds": {
-        "path": "derivatives_v3/splits_piop1_p7/folds.json",
-        "sha256": "242ba87d6101f70438cc8a1d5fa9b3dcb6679ea307918f18a11f649cd3600b5b",
-        "bytes": 98490,
+        "path": "derivatives_v2/splits_piop1_p7/folds.json",
+        "sha256": "a73875f2a98164f4c8d9dd5406cd0ff98d92e5533728469e71cf466755c1ef59",
+        "bytes": 98462,
         "split_hash": "ace5f4a41446a5857848290c21cc404196960429fb2b8f483511c49dcb9342d7",
         "config_hash": "85556f56",
         "seeds": {
@@ -139,9 +139,9 @@
       "group_id_policy": "1 subject = 1 group (관계 metadata 부재, 개정 P4 / U10)",
       "manifests": {
         "emomatching": {
-          "path": "derivatives_v3_piop2/wi02_ds002790_emomatching.jsonl",
-          "sha256": "30070ebbea989e900a7beab19627a155a1ba380cefe0bc7a0b526952df42dd68",
-          "bytes": 757393,
+          "path": "derivatives_v2_piop2/wi02_ds002790_emomatching.jsonl",
+          "sha256": "d29e6dec41c65784987f8f1961fe2fe1a5680eae3e273fc9f64cf235fec39eca",
+          "bytes": 681727,
           "status_counts": {
             "excluded": 18,
             "ok": 204,
@@ -151,9 +151,9 @@
           "n_ok": 204
         },
         "workingmemory": {
-          "path": "derivatives_v3_piop2/wi02_ds002790_workingmemory.jsonl",
-          "sha256": "2851a90af3af757ad59d4c36369fffeb81092e6be6086c5bd766555027c3dacd",
-          "bytes": 776138,
+          "path": "derivatives_v2_piop2/wi02_ds002790_workingmemory.jsonl",
+          "sha256": "08c6e78b972d9131d34696ff966c67325d8ee84d62c0c7dfe48169981077f160",
+          "bytes": 699810,
           "status_counts": {
             "excluded": 10,
             "ok": 214,
@@ -163,9 +163,9 @@
           "n_ok": 214
         },
         "restingstate": {
-          "path": "derivatives_v3_piop2/wi02_ds002790_restingstate.jsonl",
-          "sha256": "05f9c7906e58a0ece28b55c98c6df0cd3462f48c9e405ca30442550ac190a403",
-          "bytes": 759654,
+          "path": "derivatives_v2_piop2/wi02_ds002790_restingstate.jsonl",
+          "sha256": "9a1f246561d94fed487864abe4afb196dfd9cf1af8128ce20b7238f241159cf4",
+          "bytes": 683534,
           "status_counts": {
             "excluded": 21,
             "ok": 203,
@@ -183,26 +183,26 @@
         "space": "MNI152NLin2009cAsym"
       },
       "subjects": {
-        "path": "derivatives_v3_piop2/cohort_piop2/subjects.jsonl",
+        "path": "derivatives_v2_piop2/cohort_piop2/subjects.jsonl",
         "sha256": "a19570288677369a0be41ba2ff29096df077476d0cbea2407bfa94c64604ea07",
         "bytes": 51841,
         "n_records": 226,
         "n_eligible": 189
       },
       "exclusions": {
-        "path": "derivatives_v3_piop2/cohort_piop2/exclusions.jsonl",
-        "sha256": "a8546588bf2e742f9d448973f9cd8e43457d2312f1d3644630bc51eee1906910",
-        "bytes": 14930,
+        "path": "derivatives_v2_piop2/cohort_piop2/exclusions.jsonl",
+        "sha256": "8642ba8492312e66bf2300834298eccbc3671343265eb71123fc4bab0605cd86",
+        "bytes": 14898,
         "n_records": 37
       },
       "cohort_summary": {
-        "path": "derivatives_v3_piop2/cohort_piop2/cohort_summary.json",
-        "sha256": "6107e7b5504f470a955e187e6d62417e373a2567457a659b6fde3bfa614fd522",
-        "bytes": 3449
+        "path": "derivatives_v2_piop2/cohort_piop2/cohort_summary.json",
+        "sha256": "11d6e2bb16718d89d74cb218e45a776567e7235215a231c4c050da368982e77b",
+        "bytes": 3270
       },
       "windows": {
-        "path": "derivatives_v3_piop2/windows_piop2.jsonl",
-        "sha256": "640d36b58c52eb5fd631feac4ed878282b15277a929256b2a954775f3c1af4c2",
+        "path": "derivatives_v2_piop2/windows_piop2.jsonl",
+        "sha256": "54499c5b08341a2018acea010471839dd31ee3ec58599b37a79685a0ac5e3c08",
         "bytes": 742906,
         "n_records": 1672
       },
@@ -302,9 +302,9 @@
     "formula": "126 subjects x 2 tasks x 4 windows x 3 seeds x 4 cells"
   },
   "supersedes": {
-    "lock_hash": "cf66f91e12fb1b75fc59706f767bd4b694330e9358b32e96c5363786a42d2c89",
-    "locked_at_utc": "2026-09-23T06:15:06Z",
-    "reason": "P9 re-extraction: windows, run manifests, cohorts and splits now point at derivatives_v3 / derivatives_v3_piop2 (0.008-0.2 Hz simultaneous regression, schema wi02-extract-0.2). Run status and eligibility identical to derivatives_v2 (157/189), split_hash ace5f4a4 reproduced; main pool not consumed"
+    "lock_hash": "c34ae1f6094810acc99def1f9a4e0a067417ea00af8d2a714adc733b69e61ddf",
+    "locked_at_utc": "2026-09-23T04:54:54Z",
+    "reason": "P9 band-pass 0.008-0.2 Hz by simultaneous DCT stopband regression and P10 exact residual DOF (mobse/v2/extract.py, decisions 2 and 9); code_hash changes. Windows are still the pre-P9 derivatives_v2 extraction - full re-extraction into derivatives_v3 pending, main pool not consumed"
   },
-  "lock_hash": "e8b648a7c4dca27436deb5ce6657ee68ad369d3fa33fc7300797698d08e3ade0"
+  "lock_hash": "cf66f91e12fb1b75fc59706f767bd4b694330e9358b32e96c5363786a42d2c89"
 }

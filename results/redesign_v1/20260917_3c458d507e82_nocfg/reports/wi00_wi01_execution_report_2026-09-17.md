@@ -3240,3 +3240,53 @@ rev27 마감 5단계 결과는 순환을 피해 커밋 메시지와 인수인계
 - 전 창 재추출을 하지 않았다 — 적격 157/189·split_hash 불변은 dry-run 18 run 에서만 확인.
 - 1,295 run 전체에서 동시 회귀의 수치 안정성(결합 설계 조건수)을 재지 않았다. PIOP1 rest 는 결합 설계 열이 약 370개(n=480)다.
 - P8 은 구현 전.
+
+---
+
+# 부록 AA — P9 전 창 재추출 · 대조 · 재잠금 (rev28, 2026-09-23 예약 슬롯)
+
+## AA.1 재추출
+
+h197, HEAD `4316ef1`, 2026-09-23T06:20:51Z–06:56:25Z. 출력은 새 디렉터리 `derivatives_v3/`(PIOP1)·`derivatives_v3_piop2/`(PIOP2) — `derivatives_v2*` 는 건드리지 않았다.
+6개 조합 모두 rc=0, error 0. 여섯 manifest header 가 전부 schema `wi02-extract-0.2`, `bandpass_hz [0.008, 0.2]`, `dry_run false` 이고, ok run 의 `filter_spec.method` 는 전부 `simultaneous_regression` 이다.
+ok run 의 residual DOF 최솟값은 조합별 66 / 82 / 80 (PIOP1 emo·wm·rest), 67 / 87 / 145 (PIOP2) — 모두 `MIN_RESIDUAL_DOF = 30` 초과.
+
+## AA.2 run 단위 대조 (v3 ↔ v2)
+
+`run_key` 로 맞춰 status 와 사유 집합을 비교했다 (PIOP1 WM 은 E18 로 v2 1차본에 빠진 sub-0171 창이 있는 `recovery_20260923/wm_rerun3` 과 합쳐 기준으로 삼음).
+
+| 조합 | run | ok / excluded / skipped (v2 = v3) | status 차이 | 사유 차이 |
+|---|---|---|---|---|
+| PIOP1 emomatching | 216 | 183 / 25 / 8 | 0 | 0 |
+| PIOP1 workingmemory | 216 | 176 / 31 / 9 | 0 | 0 |
+| PIOP1 restingstate | 216 | 202 / 8 / 6 | 0 | 1 |
+| PIOP2 emomatching | 226 | 204 / 18 / 4 | 0 | 1 |
+| PIOP2 workingmemory | 226 | 214 / 10 / 2 | 0 | 0 |
+| PIOP2 restingstate | 226 | 203 / 21 / 2 | 0 | 0 |
+
+사유 차이 2건은 **이미 제외된 run** 에 `residual_dof<=30` 이 추가로 붙은 것이다 (`ds002785/sub-0200` rest, `ds002790/sub-0057` emo — 둘 다 mean_fd·spike 사유로 v2 에서도 제외). 차단대역 기저가 자유도를 쓰는 P10 정확식의 예상된 결과이고, 판정은 바뀌지 않았다.
+
+## AA.3 창·코호트·분할
+
+- `12_build_windows_manifest.py`: PIOP1 창 1,436, PIOP2 창 1,672 — v2 와 `window_key` 집합이 같고 해시 외 필드 차이 0, `data_sha256` 은 전부 달라졌다(필터가 바뀌었으므로 기대한 결과).
+- `15_build_subjects.py`: 적격 **157/216**, **189/226**. `subjects.jsonl` 은 v2 와 **바이트 단위로 같다** (sha256 `5ab1933922027dee…`, `a19570288677369a…`).
+- `mobse.v2.cli split --config configs/redesign_v1/main.yaml` → `derivatives_v3/splits_piop1_p7/folds.json`: split_hash **`ace5f4a41446…` 재현**, config_hash `85556f56`, pilot 31 / main 126, outer test [26,25,25,25,25]. v2 folds 와 다른 키는 `subjects_manifest` 경로 하나.
+
+코호트·분할 불변이 확인되어 재잠금으로 진행했다 (달랐다면 멈추고 보고하기로 한 지점).
+
+## AA.4 재잠금
+
+`scripts/h197/18_build_measurement_lock.py` 의 `COHORTS` 경로를 `derivatives_v3*` 로 바꾸었다 (다른 코드 변경 없음 — `mobse/v2` 불변, code_hash `87c119c14e21` 유지).
+잠금 `cf66f91e12fb` → **`e8b648a7c4dc`** (2026-09-23T07:18:44Z). 19번 42/42, 25번 창 4,728 전부 `derivatives_v3*` 안에서 역참조·해시 일치.
+rev27 의 caveat("코드와 창이 같은 추출을 가리키지 않는다")는 이 잠금으로 해소된다. 잠금 파일에 남은 `derivatives_v2` 문자열은 `--reason` 본문 한 곳뿐이다.
+
+```
+… → c34ae1f60948 (WI-06 evaluate 배선) → cf66f91e12fb (P9/P10 구현) → e8b648a7c4dc (P9 재추출 창, 현행)
+```
+
+## AA.5 이번 회차에 확인하지 못한 것
+
+- 결합 설계 조건수(수치 안정성)는 여전히 1,295 run 전체에서 재지 않았다 (Z.7).
+- 재추출 창의 신호 수준 점검(통과대역 밖 잔여 전력)은 하지 않았다 — 합성 시험(Z.3)에만 근거.
+- P8 은 구현 전. main pool 을 소비하는 fit 은 하지 않았다.
+- `derivatives_v2*` 는 대체되었으나 삭제하지 않았다 (정리는 선생님 확인 뒤).
