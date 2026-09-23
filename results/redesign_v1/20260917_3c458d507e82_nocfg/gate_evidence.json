@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "97728706cb955e4f16bb6146494448b6f1da2662",
-  "timestamp_utc": "2026-09-23T04:57:27Z",
-  "revision": 26,
-  "supersedes_sha256": "ca6fa483787a0fc52186b8cae14904209eea5f7b1476a27526a060dbe904a684",
-  "revision_reason": "rev26 (2026-09-23): 남은 작업 1번 — WI-06 evaluate 하위 명령 본체 배선 (mobse/v2/cli.py run_evaluate). 분류만, outer test 예측만, 부트스트랩·gate 판정은 report 로 미룸. 합성 release 시험 18건(tests/v2/test_cli_evaluate.py). mobse/v2 변경으로 잠금 재생성 02e7434f228c → c34ae1f60948 (split·창 불변, code_hash 만 변경). 실자료 fit 없음 — main pool 미소비",
+  "git_head": "06299fd4a4865fdcb9be6635ea8b6d3e9f54bf65",
+  "timestamp_utc": "2026-09-23T06:17:59Z",
+  "revision": 27,
+  "supersedes_sha256": "ba768827a370fdf5765a767aecefa6be638638e99585a37ad01a4d273ace243f",
+  "revision_reason": "rev27 (2026-09-23): 선생님 결정 9 \"통과대역 0.2 Hz로\" + 결정 2 \"band-pass - 동시 회귀 ok\" 구현 — mobse/v2/extract.py 에 DCT-II 차단대역 기저 동시 회귀(BANDPASS_HIGH_HZ 0.2), residual DOF 정확식 n − rank(결합 설계)(개정 P10, P6-b 대체), 드라이버 10_wi02_extract.py 가 결합 설계로 회귀(schema wi02-extract-0.2). 계획서 §3.2·§3.3·§11 에 P9 결정 원문·P10 행 기록. 잠금 c34ae1f60948 → cf66f91e12fb (split·코호트 불변, code_hash 변경). 창 파일은 아직 P9 이전 derivatives_v2 — 전 창 재추출 대기. 발견: derivatives_v2 에 band-pass 미적용(기록만). 보고서 부록 Z. 실자료 fit 없음 — main pool 미소비",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -102,7 +102,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "dcd711f76955242022b4fc49076c31aa94d66d63e219be2edda18ecd317adf95"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "d1bf2878ec703874841e3f01abf26c428475bb13ec76b8dc47e7d9c6746ca1a1"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -158,7 +158,7 @@
             "piop2_eligible": 189,
             "piop2_folds": null
           },
-          "note": "locks/measurement_lock.json (lock_hash c34ae1f60948…) 로 잠갔고 검증 42/42 일치. 재생성 이력은 wi03_measurement_lock.chain"
+          "note": "locks/measurement_lock.json (lock_hash cf66f91e12fb…) 로 잠갔고 검증 42/42 일치. 재생성 이력은 wi03_measurement_lock.chain"
         },
         {
           "check": "pilot excluded from every main/final fit",
@@ -195,7 +195,7 @@
         "개정 P8 학습 예산 — 결정됐으나 구현 전"
       ],
       "artifact_hashes": {
-        "locks/measurement_lock.json": "c0cf4c437023a63f4dabd42c2d886395f5fc854ebbe6295d3093c06f20bd7da7",
+        "locks/measurement_lock.json": "cae74770471c5bc25e3dba8e980e1efc6d8bb29e1126702f12c5c4f6dd4c5e94",
         "reports/precision_scenarios.md": "a5d576edeb89a1223d79f97067490b85ac16fe56d516b92b56b9b4e33724aa69",
         "reports/resource_budget.md": "155ee3e7379f53e034c457f481bb159b99b70f33ff4d78be0893acfc27862019",
         "provenance/wi03_precision/precision_scenarios.json": "67284e5991af25775ee569c32e2b51e75f8833ea9f0874d477b9d68d8ae7817e",
@@ -525,7 +525,7 @@
     "06_wave2_fetch_bold.py": "3e179757ba335626f5c0464dc8df9e4e4aa9d183d600504f5f043356e0b1f4b7",
     "07_verify_import_closure.py": "4f4bbc8ef66b125924615c599f284a33087a9b36b3b36188a5c5613c75fb4d23",
     "09_survey_discarded_volumes.py": "42ad0b49e38a6cff15ba673295f82d9d5de7017729ebdd2ec2304bff8c143cc7",
-    "10_wi02_extract.py": "caa898f8b8bd3b0682c45b8071dc824560d759e56f9943960dcb591dc51985db",
+    "10_wi02_extract.py": "9f04e02737c0c82477ea7ebef95d635483112b535860d158a9fed0f20cb4594f",
     "11_filter_order_probe.py": "3f5090d3efa2636e937db7297145904c2308ddd405810bd6ef5a8432735afd33",
     "12_build_windows_manifest.py": "67fce46e2f837f2996922bb620a0d2ff38e95f9a509b6e0716336d97c4d733ad",
     "13_bank_demo.py": "c039a1784ebcb90eaa10d7d5e0ce6c0776d310a6838f2019d7b2b6240f9c4494",
@@ -681,7 +681,7 @@
     "cohort.py": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
     "config.py": "79375ca9a5b5ffe2b89bf754c60fc360149eacc737c650466231d700c26b23f2",
     "evaluate.py": "a11a324f851603edb0e93b21c2cafe8b098529a485f17fe0321876825120e9b7",
-    "extract.py": "b725f6aebc82babd802a3b3d625a13f73ead3f9071018ca4cf27977c3ca3c601",
+    "extract.py": "45425fc516cc790e45e911af11c03fe5937c573fbfed3985e4bc6e7d5e7316f9",
     "features.py": "f9c81ef8155776f3d1971304ef32baf99b94b5f7bf100c0067f82dd1600b8f10",
     "fitting.py": "411d0fc72d801fb2c743784f5c3264a36114f4d842653905becf7792335bc4ce",
     "labels.py": "89610e87315f7e1e6a1ac85130c89d69f197f47824262389a4eae5571397b3dc",
@@ -697,14 +697,14 @@
   "v2_test_hashes": {
     "README.md": "792e5f30a1036be0c28fa1481f7afb55546a4453c1ae0d03bb93ff256907ae2d",
     "test_acceptance_coverage.py": "5068bef17cc4532e45bae1a3662afcd675d18562505bbc9684e7f4ffa04b5e21",
-    "test_acquisition_facts.py": "9eb91544281de70607675d7f91971fe74e50225e0be0957672dc50cf96693ac3",
+    "test_acquisition_facts.py": "ebb3d5b0687793c3c731ae56f13278b8a1a11a1011a609c171fc542b17b434f9",
     "test_cli_evaluate.py": "8efcfc90c8a2ee1006315bfda27f3e6920a2d1d346dfee6dd9e46c9bd5c901a4",
     "test_cli_fit.py": "5d6bc849c7294c4bc62bfd64158bdc5418f2aba1b13f9065ca63854dc413efac",
     "test_cli_split.py": "0ab0f9aefbc7ad03c96f42a489142d95919410c204c5626c35d39b709f02a3a5",
     "test_cohort.py": "f5de19686bbd17b438ade14992977c341f15dc38887f7f68047d0c9a0fefe9c3",
     "test_config.py": "3cf187b4815647741d9eb7ff5d640b1e9cc21cae642c0246afbdd8453977e19f",
     "test_evaluate_cli.py": "63aae1b7db32c9f7fb6c8e60052179f9383bc7c4d98117fc59eda35b5a2857f4",
-    "test_extract.py": "68a9b00cc6d90889a429be88f76cbd21ccd3755cd76c698af65f9b057c338bbf",
+    "test_extract.py": "4c883b7202213aabedbbaef1665da18448986ffaac4fea9578bc2895e085904a",
     "test_features.py": "64f2c436fae1ec2be9430be94cac399819e398d09320d3aba32ddd09f90751a2",
     "test_fitting.py": "2ae0cc18f7458cc4181046dd728243d6c65b07cf0d8709ffd0e72b3108f44f36",
     "test_h197_scripts.py": "3f06ce1dbf1f58448309f36a0294bf0ac7daca7422f59fb709f08cca725b328e",
@@ -715,12 +715,12 @@
     "test_models.py": "7b3456a4a8a9c8f0fa2ef834d5d6543024dc1d02bcd4458d75dd34ffaf74b011",
     "test_precision_simulation.py": "b9ac5e32080266d0c992bbd8f1c582e49ec176549191a39beaa73911e03b8cb0",
     "test_preprocess.py": "648887cea08d75db3640e644f69f3c6de0a5f6d0b7726ee3ea9b58487dd5e255",
-    "test_protocol_documents.py": "a51c36198e97eca02268c20adfdbaff231c898c697c51a8718a57b6d4ace5bc8",
+    "test_protocol_documents.py": "068a5074ee6ff93e52b7ab341c2e6403256f5e0fe3994c642aeef0a127212727",
     "test_splits.py": "4c6e87633a2bf7b3740d0bb342b208337554b1061807be72dfcde3693e3b7cfb",
     "test_statistics.py": "ce543dce60636f0dc9423bbdb0e2371183278967a1dd8071126c9f605d126967",
     "test_templates.py": "0a77612932c70e490afdeb4c8431e55c5020056dbbccb0241245230f06dbef64",
     "test_train.py": "bef85a980fa8a9cee427047351ab7ba7e179a2df860306442a844b0c52efac72",
-    "test_wi02_driver.py": "2be1db94879e2b88adb2f2261a77bfcce865cb87d3caac7e003ecf5a328e5ed9",
+    "test_wi02_driver.py": "2b8a545cf4ea92a205395fadafeacf7c1b81046ba98985afd07f798c9d8b75ec",
     "test_window_files_guard.py": "1d3dfe5188de2155bc1bd50d8a72d1586eced249fb89a9f08bd7fe71a26da18b"
   },
   "legacy_suite_status": {
@@ -835,7 +835,7 @@
   },
   "protocol_amendments": {
     "section": "계획서 §11 개정 기록 (신설)",
-    "protocol_sha256": "e11c293eaa26d15234b8130ad68256d729041c6b5fb4b5f4a575609c9b0de3ce",
+    "protocol_sha256": "47282bd7b19e1f11ed2683ca3e5909a45fe7a45f1d630f115c2a8f6261f2c672",
     "instructions_sha256": "6007cfb8d9b186aeb03deece7cecb17042da95e3aba476851e635973567dde90",
     "applied": [
       "P1",
@@ -1818,8 +1818,8 @@
   "wi03_measurement_lock": {
     "gate": "G1 Measurement lock",
     "artifact": "locks/measurement_lock.json",
-    "lock_hash": "c34ae1f6094810acc99def1f9a4e0a067417ea00af8d2a714adc733b69e61ddf",
-    "locked_at_utc": "2026-09-23T04:54:54Z",
+    "lock_hash": "cf66f91e12fb1b75fc59706f767bd4b694330e9358b32e96c5363786a42d2c89",
+    "locked_at_utc": "2026-09-23T06:15:06Z",
     "module": "mobse/v2/locks.py",
     "module_sha256": "4a3dae547c0744dbf58e24f2d53ec46c4c71577bc71a502f130bd70b1272a812",
     "builder": "scripts/h197/18_build_measurement_lock.py",
@@ -1835,7 +1835,7 @@
         "folds": null,
         "reason": "계획서 §9 — PIOP2 는 held-out 외부 코호트다. fold 를 만들지 않는다."
       },
-      "code_hash": "729b28bba30e677a923b821a95f7011b679727582261c883b84f6c5093d9f6b8",
+      "code_hash": "87c119c14e2184b430a0185c0d26ac96a28a42fcef865055b8c3a103f159063d",
       "configs": {
         "external": "7daa536b",
         "main": "85556f56",
@@ -1887,12 +1887,14 @@
     ],
     "tests": "tests/v2/test_locks.py (18건)",
     "artifacts": {
-      "locks/measurement_lock.json": "c0cf4c437023a63f4dabd42c2d886395f5fc854ebbe6295d3093c06f20bd7da7",
+      "locks/measurement_lock.json": "cae74770471c5bc25e3dba8e980e1efc6d8bb29e1126702f12c5c4f6dd4c5e94",
       "locks/superseded/measurement_lock_2026-09-18T00:45:43Z.json": "abe6a9fc5e978274c8061ff90df7664140a24e55be85030abb3da4a97a8294f5",
       "locks/superseded/measurement_lock_2026-09-18T02:56:21Z.json": "b8a45c28e2fbece236f662fa993828733e5be4e2cb9980f4044514516243179e",
       "locks/superseded/measurement_lock_2026-09-18T02:57:01Z.json": "95d43ef2db9c8431c279aacfd4c6ffaf48792a3079bfadeea9a452789b2aef44",
       "locks/superseded/measurement_lock_2026-09-23T03:22:50Z.json": "3d8aed1d49907504feaf93507f2f8bfdf5e286ad2faaaa2924680c1ce69f8b5b",
-      "locks/superseded/measurement_lock_2026-09-23T04:16:47Z.json": "57fc4743a744dfee283f679192f3542292c8e747570e2140d3b6accd5a4a997d"
+      "locks/superseded/measurement_lock_2026-09-23T04:16:47Z.json": "57fc4743a744dfee283f679192f3542292c8e747570e2140d3b6accd5a4a997d",
+      "locks/superseded/measurement_lock_2026-09-23T04:32:58Z.json": "83c178987d2922ed9fc03be8d6d2ba730c67ef6d8342f610f80708e3db52e75a",
+      "locks/superseded/measurement_lock_2026-09-23T04:54:54Z.json": "c0cf4c437023a63f4dabd42c2d886395f5fc854ebbe6295d3093c06f20bd7da7"
     },
     "supersedes": {
       "lock_hash": "6e68eb939bebebc1eac27927f1b21a68e89d994c24d7b3b2aa35366f046c2d09",
@@ -1906,7 +1908,8 @@
       "44b07ea14fd5 (E18 경로 정정)",
       "6e68eb939beb (E19/E20 코드)",
       "02e7434f228c (P8·P9 개정 기록)",
-      "c34ae1f60948 (WI-06 evaluate 배선, 현행)"
+      "c34ae1f60948 (WI-06 evaluate 배선)",
+      "cf66f91e12fb (P9 band-pass·P10 DOF 구현, 현행)"
     ],
     "chain_note": "가운데 항목은 --reason 없이 재생성한 것이다. 그 직후 builder 에 --reason 필수 검사를 넣고 다시 만들었다. 지우지 않고 사슬에 남긴다",
     "builder_now_requires_reason": "--overwrite 에 --reason 이 없으면 거부한다. 변경 정책이 '새 잠금에 supersedes 와 사유를 남긴다'고 정한다"
@@ -2486,7 +2489,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev26 은 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev27 은 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -2576,5 +2579,41 @@
       "code_hash": "729b28bba30e",
       "split_and_windows": "불변 (19번 42/42)"
     }
+  },
+  "p9_bandpass_implementation": {
+    "decisions_verbatim": [
+      "band-pass - 동시 회귀 ok",
+      "통과대역 0.2 Hz로"
+    ],
+    "decision_scope": "상한 0.1 → 0.2 Hz 와 regression 순서만. 하한 0.008·MIN_RESIDUAL_DOF 30·nuisance 구성·FD 기준·창 [12,252) 불변",
+    "implementation_choice_not_decision": "DCT-II 차단대역 기저 (DOF 실측과 같은 기저), k=0 은 intercept 와 같아 제외 (rank 동일)",
+    "module": "mobse/v2/extract.py (dct_stopband_basis, passband_component_count, add_stopband, residual_degrees_of_freedom, summarize_design)",
+    "driver": "scripts/h197/10_wi02_extract.py::process_run — add_stopband 결과 하나로 DOF 판정과 잔차 계산",
+    "residual_dof": "n_frames − rank([nuisance, dct_stopband]) (개정 P10)",
+    "guards": [
+      "summarize_design 은 차단대역 기저 없는 설계를 거부",
+      "add_stopband 이중 적용 거부"
+    ],
+    "tests": {
+      "files": [
+        "tests/v2/test_extract.py",
+        "tests/v2/test_wi02_driver.py",
+        "tests/v2/test_acquisition_facts.py",
+        "tests/v2/test_protocol_documents.py"
+      ],
+      "probe_reproduced": "6개 조합 n_pass_dct 104/124/139/104/123/185, spike 없는 run DOF 74/94/109/74/93/155 = dof_probe_hi0.2.json 중앙값"
+    },
+    "mutation_check": "M1 nuisance 만 회귀 1건 실패, M2 상한 0.1 20건, M3 DOF+1 10건, M4 k=0 포함 9건 — 전부 검출 (h197 scratch 사본)",
+    "real_data_dry_run": "h197 --dry-run --limit 6, PIOP1 emo·PIOP1 rest·PIOP2 rest 18 run: 판정·사유가 derivatives_v2 와 전부 같음. 비정본 scratch $HOME/slot/p9_dry",
+    "finding": "derivatives_v2 에는 band-pass 가 적용되지 않았다 (process_run 은 bandpass_hz 를 기록만 함). P6-a 미구현 상태였음. PIOP1 rest 는 선형 보간 재표집에 anti-alias 없음",
+    "lock": {
+      "before": "c34ae1f60948",
+      "after": "cf66f91e12fb",
+      "code_hash_before": "729b28bba30e",
+      "code_hash_after": "87c119c14e21",
+      "split_and_cohorts": "불변 (19번 42/42)",
+      "caveat": "창 파일은 P9 이전 derivatives_v2 추출본 — 코드와 창이 같은 추출을 가리키지 않는다. 재추출 후 재잠금"
+    },
+    "next": "전 창 재추출 → derivatives_v3, derivatives_v3_piop2 (derivatives_v2 덮어쓰기 금지, /tmp 금지), 적격 157/189·split_hash ace5f4a4 대조"
   }
 }

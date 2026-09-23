@@ -3184,3 +3184,59 @@ rev26 마감 5단계 결과는 커밋 메시지와 인수인계 문서에 적는
 - evaluate 를 **실자료**로 돌리지 않았다 — outer fit 이 없다(통과대역·P8 전 fit 금지).
 - `report`·`prepare` 본체는 아직 없다.
 - 통과대역 상한은 여전히 선생님 결정 대기 (X.7).
+
+---
+
+# 부록 Z — P9 band-pass 구현 · P10 정확 DOF (rev27, 2026-09-23 예약 슬롯)
+
+## Z.1 결정과 범위
+
+선생님 결정 원문: 결정 2 **"band-pass - 동시 회귀 ok"**, 결정 9 **"통과대역 0.2 Hz로"** (14:21 KST).
+이 두 결정이 정한 것은 regression 순서(동시 회귀)와 통과대역 상한(0.1 → 0.2 Hz) 뿐이다. 하한 0.008 Hz,
+`MIN_RESIDUAL_DOF = 30`, nuisance 구성(24P + aCompCor 5 + spike + intercept + linear drift), FD 기준, 창 `[12,252)` 는 바꾸지 않았다.
+
+## Z.2 구현 선택 (결정이 아니라 측정과 맞춘 것)
+
+- 차단대역 기저는 결정 전 DOF 실측에 쓴 **DCT-II** `cos(π·k·(t+0.5)/n)`, `f_k = k/(2·n·TR)` 이다. `f_k` 가 [0.008, 0.2] 밖인 성분을 nuisance 설계행렬 뒤에 붙여 한 번에 최소제곱 회귀한다 (`mobse/v2/extract.py::add_stopband`).
+- **k=0 은 넣지 않는다** — 상수열이라 intercept 와 같다. 넣어도 rank 는 같으므로 실측 스크립트(k=0 포함)와 DOF 가 동일하다. linear drift 는 차단대역 기저와 선형독립이라 그대로 두었다(계획서 §3.2 상수/추세 구성 불변).
+- residual DOF 는 **정확식 `n − rank([nuisance, 차단대역 기저])`** (개정 P10). P6-b `min(…)` 식은 계획서에 기록으로 남기고 코드에서는 제거했다.
+- `summarize_design` 은 차단대역 기저가 없는 설계를 거부한다 — filter 없이 DOF 를 세면 조용히 과대 보고되던 P6-b 경로를 막는다.
+- manifest: schema `wi02-extract-0.2`, run 레코드 `design` 에 `nuisance_rank`, `design_rank`(결합), `residual_dof_definition`, `filter_spec`(method·basis·n_stopband·n_passband) 추가, `filter_dof` 제거. `nuisance_columns` 에는 nuisance 열만 적는다.
+
+## Z.3 검증
+
+- 시험: `test_extract.py` 에 6개 조합의 통과대역 성분 수(104/124/139/104/123/185)와 spike 없는 run 의 정확 DOF(74/94/109/74/93/155)를 `dof_probe_hi0.2.json` 의 `n_pass_dct`·`new_dof` 중앙값과 대조, 통과대역 보존·차단대역 제거(DCT 성분 정확, 격자 밖 0.35 Hz 사인 제거·0.07 Hz 보존), 겹친 자유도를 한 번만 세는지, 기저 없는 설계 거부. `test_wi02_driver.py` 는 드라이버가 **결합 설계로 회귀하는지**를 spy 로 직접 확인한다(DOF 수치만으로는 nuisance 만 회귀하는 결함을 못 잡는다).
+- 변이 검사 4건(h197 사본): 드라이버가 nuisance 만 회귀, 상한 0.1 복귀, DOF 1 차이, k=0 포함 — 결과는 Z.6.
+- 실자료 dry-run (h197, `--dry-run --limit 6`, 비정본 scratch `$HOME/slot/p9_dry/`): PIOP1 emo·PIOP1 rest·PIOP2 rest 18 run 의 ok/excluded 판정과 사유가 `derivatives_v2` 와 **전부 같고**, DOF 는 spike 없는 run 에서 74 / 109 / 155, spike 있는 run 에서 그보다 spike 수 이하로 작다.
+
+## Z.4 잠금
+
+`mobse/v2/extract.py` 변경으로 잠금을 재생성했다. split·코호트 불변(19번 42/42), code_hash `729b28bba30e` → `87c119c14e21`.
+
+```
+… → 02e7434f228c (P8·P9 개정 기록) → c34ae1f60948 (WI-06 evaluate 배선) → cf66f91e12fb (P9/P10 구현, 현행)
+```
+
+**주의 — 이 잠금의 창 파일은 아직 P9 이전 추출본(`derivatives_v2`, 통과대역 미적용)이다.** 잠금은 코드와 창을 함께 기록하지만
+이번 잠금에서 두 쪽은 같은 추출을 가리키지 않는다. 전 창 재추출(`derivatives_v3*`) 뒤 다시 잠근다. 그 전에는 main pool 을 소비하는 fit 을 하지 않는다.
+
+## Z.5 발견 — `derivatives_v2` 에는 band-pass 가 적용되지 않았다
+
+코드를 읽어 확인했다: 종전 `10_wi02_extract.py::process_run` 은 nuisance 회귀 → z-score → 2초 격자 재표집만 했고, `BANDPASS_*` 는
+manifest 에 **기록만** 되었다(필터 적용 코드 없음). 계획서 P6-a("전체 run 을 native grid 에서 필터링")는 구현되지 않은 상태였다.
+P9 결정 전에는 regression 순서가 미정이었으므로 적용을 미룬 것이지만, manifest 의 `bandpass_hz` 가 적용된 것처럼 읽힌다는 점은
+"기록만 하고 검사하지 않는" E20 과 같은 부류다. 이번 구현으로 `filter_spec.method` 가 실제 적용 경로를 가리키고, 기저 없는 설계는 거부된다.
+PIOP1 rest(TR 0.75초)는 그동안 0.25 Hz 초과 성분이 남은 채 2초 격자로 재표집되었다 — 재추출로 해소된다.
+
+## Z.6 변이 검사와 마감
+
+변이 검사 (h197 scratch 사본, `test_extract.py`+`test_wi02_driver.py` 66건): M1 드라이버가 nuisance 만 회귀 → 1건 실패(spy 시험),
+M2 상한 0.1 복귀 → 20건, M3 DOF +1 → 10건, M4 k=0 포함 → 9건. 네 변이 모두 검출.
+PIOP1 rest 의 2초 격자 재표집은 `preprocess.resample_to_grid` 의 선형 보간(`np.interp`)이며 별도 anti-alias 필터가 없음을 코드로 확인했다(Z.5 근거).
+rev27 마감 5단계 결과는 순환을 피해 커밋 메시지와 인수인계 문서에 적는다(Y.5 규칙).
+
+## Z.7 이번 회차에 확인하지 못한 것
+
+- 전 창 재추출을 하지 않았다 — 적격 157/189·split_hash 불변은 dry-run 18 run 에서만 확인.
+- 1,295 run 전체에서 동시 회귀의 수치 안정성(결합 설계 조건수)을 재지 않았다. PIOP1 rest 는 결합 설계 열이 약 370개(n=480)다.
+- P8 은 구현 전.
