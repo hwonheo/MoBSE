@@ -3137,3 +3137,50 @@ h197 저장소 사본 `/mnt/data/code/MoBSE` 에서, 2026-09-23T04:35Z–04:37Z.
 - **Wave 2 내용 무결성** — 해시 기준선이 없다. 파일 수만 대조했다.
 - **h197 사본의 `data/`** — 186 GB 중 일부만 전송됐다 (백그라운드 진행 중). `data/` 는 주분석에 쓰지 않는 legacy 자료다.
 - **G1 의 "resource plan from pilot measurement" fail 판정** — rev24 의 pilot 측정(부록 W) 이후 갱신됐는지 이번에 재검토하지 않았다.
+
+---
+
+# 부록 Y — WI-06 evaluate 배선 (rev26, 2026-09-23 예약 슬롯)
+
+## Y.1 무엇을 했나
+
+인수인계 남은 작업 1번. 선생님 결정 "CLI - 추천안 대로"(evaluate → report → prepare)의 첫 단계다.
+`mobse/v2/cli.py` 의 `evaluate` 가 `NotImplementedError` 를 내던 자리에 `run_evaluate` 를 붙였다.
+
+- 입력: `--config --splits --predictions … --fit-manifest … --output-dir --tasks emomatching workingmemory`.
+  release 는 cell × outer fold × seed 개의 fit 이므로 예측·manifest 경로를 fit 마다 **전부 명시**한다 (`nargs=+`).
+- 출력: `run_predictions.jsonl`(schema `wi06-run-predictions-0.1`), `evaluation.json`(cell 별 BA, H1·H2·interaction 의 subject 차이와 평균, 입력 sha256).
+- 범위: 분류만(T16), outer 최종 적합(`role=outer`, `eval_role=outer_test`)만, 두 task 모두 필수. **paired bootstrap 구간과 gate 판정은 report 몫**으로 남겼다.
+
+## Y.2 무결성 검사 (T15)
+
+checkpoint 는 manifest 옆 고정 이름 `checkpoint.pt` 에서 해시를 다시 계산해 예측 행의 `checkpoint_sha256` 과 대조한다(glob 없음, U20).
+fit 격자 완전성(seed 3, 칸마다 같은 seed 집합), fit 사이 `code_hash`·`env_hash`·`source_hash` 동일, split·config 해시 일치,
+행의 scope·cell·seed 일치, 학습 subject 누설, `window_key`↔`run_key` 접두 일치, subject·task 당 run 하나, 행 수·window×seed 격자를 검사한다.
+불완전 평균은 하지 않고 실패한다.
+
+## Y.3 시험
+
+`tests/v2/test_cli_evaluate.py` 18건 — 합성 release(outer fold 2 × cell 4 × seed 3 = 24 fit, main pool 10명)로 끝까지 돌리고
+BA·H1 을 손계산과 대조한다. 누설·scope·code_hash 동일성 검사를 끈 사본에서 해당 3건이 실패함을 확인했다.
+실자료 fit 은 돌리지 않았다 — main pool 을 소비하지 않았다.
+
+## Y.4 잠금
+
+`mobse/v2` 변경으로 잠금을 재생성했다. split·창 불변, code_hash 만 `e96eff358ce3` → `729b28bba30e`.
+
+```
+… → 6e68eb939beb (E19/E20 코드) → 02e7434f228c (P8·P9 개정 기록) → c34ae1f60948 (WI-06 evaluate 배선, 현행)
+```
+
+## Y.5 마감
+
+이 보고서의 sha256 이 gate evidence 에 묶여 있어, 이 파일 안에 자기 마감 결과를 적으면 순환한다.
+rev26 마감 5단계 결과는 커밋 메시지와 인수인계 문서에 적는다. 1·2차 마감에서 17번이 해시 갱신
+누락 3건(잠금 파일 기록 2곳, 이 보고서 1곳)을, 22번이 보고서의 lock_hash 인용 누락 1건을 잡아 고친 뒤 다시 돌렸다.
+
+## Y.6 이번 회차에 확인하지 못한 것
+
+- evaluate 를 **실자료**로 돌리지 않았다 — outer fit 이 없다(통과대역·P8 전 fit 금지).
+- `report`·`prepare` 본체는 아직 없다.
+- 통과대역 상한은 여전히 선생님 결정 대기 (X.7).
