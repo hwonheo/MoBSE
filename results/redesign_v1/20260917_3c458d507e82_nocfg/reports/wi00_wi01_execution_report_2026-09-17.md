@@ -3407,3 +3407,55 @@ evaluation.json 의 config_hash, run_predictions sha256 기록과 대조한다. 
 - report 를 **실자료**로 돌리지 않았다 — outer fit 이 없다 (main pool 미소비).
 - 합성 release 는 subject 하나 = group 하나이고 가족 group 은 시험 1건뿐이다. 실제 코호트는 관계 metadata 부재로 group = subject 다 (P4).
 - `prepare` 본체는 아직 없다.
+
+
+# 부록 AE — WI-06 prepare CLI 배선 (rev32, 2026-09-23 예약 슬롯)
+
+인수인계 남은 작업 2번. 선생님 결정 "CLI - 추천안 대로"(evaluate → report → prepare)의 마지막 단계다. 결정을 요하는 값은 새로 정하지 않았다 — 분석 구간은 잠긴 config, 통과대역은 코드 상수(결정 9)에서 읽어 **대조만** 한다.
+
+## AE.1 추출 스크립트와의 관계 (먼저 확인한 것)
+
+- 실제 release 산출물은 세 단계로 만들어졌다: `scripts/h197/10_wi02_extract.py`(fMRIPrep → ROI 창·QC, run manifest) → `12_build_windows_manifest.py`(target task manifest → `windows.jsonl`) → `15_build_subjects.py`(세 task manifest → `subjects.jsonl`·`exclusions.jsonl`).
+- 기존 prepare 골격의 계약 `--config --source-runs --output-dir` 은 쓸 입력이 없었다. release 스키마 `source_runs` 는 만들어진 적이 없고, WI-01 감사본은 스키마가 다르다 (부록 E.2).
+- 10번은 원자료 경로·atlas 를 받고 209 GiB 를 읽는다. CLI 에 넣으면 경로 계약이 원자료 배치에 묶인다.
+
+## AE.2 계약 (구현 선택, 결정 아님)
+
+- **prepare = 12 + 15 를 한 명령으로.** 입력 `--config --extract-manifests(한 dataset 의 emomatching·workingmemory·restingstate 셋) --output-dir`. 출력 `windows.jsonl`·`subjects.jsonl`·`exclusions.jsonl`·`cohort_summary.json`·`prepare_report.json`(schema `wi06-prepare-0.1`), 덮어쓰기 거부. 추출(10번)은 CLI 밖에 둔다.
+- 새 계산은 없다 — 12·15 가 부르던 `labels.build_window_records`·`cohort.build_subjects` 등을 그대로 부른다. 창은 `TARGET_TASKS` 순서로 만든다 (인자 순서 무관).
+
+## AE.3 무결성
+
+- 헤더 대조 (기록만 되고 대조되지 않는 값을 남기지 않는다, E21·E22 류): `schema_version = wi02-extract-0.2`, `analysis_interval_sec = [timing.analysis_start_s, analysis_end_s]`, `bandpass_hz = [extract.BANDPASS_LOW_HZ, BANDPASS_HIGH_HZ]`, `dry_run is False`, `atlas_sha256` 형식.
+- 세 task 정확히 하나씩, dataset·atlas_sha256 단일. rest 가 빠지면 거부 (조용히 전원 부적격을 내지 않는다).
+- 적격 subject 마다 창 2 task × 4 = 8개.
+
+## AE.4 실자료 대조 (h197, 측정 전용 — fit 없음, main pool 미소비)
+
+`derivatives_v3`·`derivatives_v3_piop2` 의 잠긴 manifest 를 **섞은 순서**(rest, wm, emo)로 넣어 `$HOME/slot/prep_eq_20260923_201836/` 에 썼다. 잠긴 산출물과 **바이트 동일**:
+
+| cohort | windows.jsonl | subjects.jsonl | exclusions.jsonl |
+|---|---|---|---|
+| PIOP1 (main.yaml) | `0750c81c0670` 동일 | `5ab1933922027` 동일 | `2e51f25bf1df` 동일 |
+| PIOP2 (external.yaml) | `640d36b58c52` 동일 | `a19570288677` 동일 | `a8546588bf2e` 동일 |
+
+## AE.5 시험
+
+`tests/v2/test_cli_prepare.py` 19건 — 합성 manifest(5명, 부적격 2명)로 12·15 스크립트를 subprocess 로 돌린 결과와 바이트 동일, 인자 순서 무관, 덮어쓰기·rest 누락·task 중복·dataset 혼합·미지 task·헤더 7종·atlas 불일치·창 누락(spy) 거부, 옛 `--source-runs` 계약 거부, 모든 하위 명령에 본체 있음. `test_evaluate_cli.py` 의 "prepare 미구현" 시험은 "옛 계약 거부" 로 바꿨다.
+
+- 돌연변이 (Mac 사본): 헤더 대조를 끄면 6건, dataset·atlas·task 중복·창 수 검사를 하나씩 끄면 각 1건 실패. 헤더의 atlas 형식 위반(`xyz`)은 헤더 대조를 꺼도 task 간 atlas 불일치 검사가 잡는다 — 중복 장치로 기록.
+- h197 전체: **667 passed / 12 skipped** (156 s).
+
+## AE.6 잠금
+
+`mobse/v2/cli.py` 변경으로 잠금을 재생성했다: `bdf27e45a1ad` → **`bcb08fc40f09`** (2026-09-23T11:23:37Z), code_hash `2f0c2d426a97` → `117f7340f186`. 창·코호트·분할 불변 (split_hash `ace5f4a41446`).
+
+```
+… → a8537ffba0bd (E22 결정성 적용) → bdf27e45a1ad (WI-06 report CLI) → bcb08fc40f09 (WI-06 prepare CLI, 현행)
+```
+
+## AE.7 이번 회차에 확인하지 못한 것
+
+- 10번(추출)과 prepare 사이의 계약(manifest 헤더 필드)은 헤더 대조로만 묶였다. 10번 자체를 CLI 로 옮기지 않았다.
+- `cohort_summary.json` 은 입력 경로를 담아 잠긴 파일과 바이트 비교하지 않았다.
+- `prepare_report.json` 의 `code_hash`·`env_hash` 는 기록하지 않는다 (잠금이 code_hash 를 가진다).

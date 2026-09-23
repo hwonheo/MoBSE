@@ -1,7 +1,7 @@
 {
   "schema_version": "measurement_lock_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "locked_at_utc": "2026-09-23T11:23:37Z",
+  "locked_at_utc": "2026-09-23T10:23:35Z",
   "gate": "G1 Measurement lock",
   "work_instruction": "WI-03",
   "roots": {
@@ -242,10 +242,10 @@
       }
     },
     "code": {
-      "code_hash": "117f7340f186e96dda5baead0a2b8923c18bd33e0a19bc62e632b45e5dc07867",
+      "code_hash": "2f0c2d426a971850e398282c734008a1fd41c831b329a25556a6030a4136d735",
       "modules": {
         "__init__.py": "c884876e4717224c87d95b1fd4b3821863307e65f9146eac605bc9a96375c9ab",
-        "cli.py": "e1faef9ff1978f910dfa171f2348db37943fed1dcf56ed26153885b9446d7b60",
+        "cli.py": "2d57626f3e36ba472fa609f4efc7b7320232ed3125f25698c675bc3192e185d9",
         "cohort.py": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
         "config.py": "5086ba86e3edc069cd12eb57a85b8b038c3411c75ef9b0b9bdb96ac62bcedc44",
         "evaluate.py": "a11a324f851603edb0e93b21c2cafe8b098529a485f17fe0321876825120e9b7",
@@ -302,9 +302,9 @@
     "formula": "126 subjects x 2 tasks x 4 windows x 3 seeds x 4 cells"
   },
   "supersedes": {
-    "lock_hash": "bdf27e45a1adc2c9e8913c2d06be772d87ea913b6a492ba76104606d9f012c72",
-    "locked_at_utc": "2026-09-23T10:23:35Z",
-    "reason": "WI-06 prepare CLI: folds WI-02 extract manifests (three tasks of one dataset) into windows, subjects and exclusions with header checks against locked timing, band-pass and atlas; byte-identical to scripts 12 and 15 on both cohorts. mobse/v2 cli changed; windows, cohorts and splits unchanged; main pool not consumed"
+    "lock_hash": "a8537ffba0bd0a77c62f8252c4e4b609205dd1b0bc3da6048fa1e700bd78f7dd",
+    "locked_at_utc": "2026-09-23T09:20:55Z",
+    "reason": "WI-06 report CLI: paired group bootstrap (seed 9001, 10000 draws shared across cells) over evaluate outputs with recomputation cross-checks and G3 completeness verdict. mobse/v2 cli changed; windows, cohorts and splits unchanged; main pool not consumed"
   },
-  "lock_hash": "bcb08fc40f0930beea0210148f0ec4dd1e9013ee5b4c0b1dc2d4dcc692aa8da7"
+  "lock_hash": "bdf27e45a1adc2c9e8913c2d06be772d87ea913b6a492ba76104606d9f012c72"
 }
