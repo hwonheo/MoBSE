@@ -633,3 +633,33 @@ def test_crosscheck_allows_the_corrected_phrase_only_inside_a_quote():
     assert mod.crosscheck(src) == [], "인용(blockquote)은 허용해야 한다"
     src["report"] += "\n하한 > δ 는 48개 칸 어디서도 0.02 를 넘지 않는다.\n"
     assert any("과잉 일반화" in f for f in mod.crosscheck(src)), "인용 밖은 잡아야 한다"
+
+
+def _gate_ok():
+    return {"wi03_measurement_lock": {"lock_hash": "L" * 64,
+                                      "chain": ["O" * 12, "L" * 12]},
+            "gates": [{"checks": [{"note": "잠금 " + "L" * 12 + " 로 잠갔다"}]}]}
+
+
+def test_crosscheck_gate_passes_with_current_lock():
+    mod = _crosscheck_module()
+    src = _fake_source()
+    src["gate"] = _gate_ok()
+    assert mod.crosscheck(src) == []
+
+
+def test_crosscheck_gate_catches_stale_lock_in_verdict_text():
+    """rev24 사고 재현: G1 판정 문장이 대체된 잠금을 인용."""
+    mod = _crosscheck_module()
+    src = _fake_source()
+    src["gate"] = _gate_ok()
+    src["gate"]["gates"][0]["checks"][0]["note"] = "잠금 " + "O" * 12 + " 로 잠갔다"
+    assert any("대체된 잠금" in f for f in mod.crosscheck(src))
+
+
+def test_crosscheck_gate_catches_stale_lock_hash_field():
+    mod = _crosscheck_module()
+    src = _fake_source()
+    src["gate"] = _gate_ok()
+    src["gate"]["wi03_measurement_lock"]["lock_hash"] = "O" * 64
+    assert any("현행 잠금이 아니다" in f for f in mod.crosscheck(src))

@@ -26,7 +26,51 @@ def load(release: Path):
         "md_prec": (release / "reports/precision_scenarios.md").read_text(encoding="utf-8"),
         "md_res": (release / "reports/resource_budget.md").read_text(encoding="utf-8"),
         "report": (release / "reports/wi00_wi01_execution_report_2026-09-17.md").read_text(encoding="utf-8"),
+        "gate": json.loads((release / "gate_evidence.json").read_text(encoding="utf-8")),
     }
+
+
+def _strings(node: Any):
+    """중첩 구조 안의 모든 문자열."""
+    if isinstance(node, str):
+        yield node
+    elif isinstance(node, dict):
+        for v in node.values():
+            yield from _strings(v)
+    elif isinstance(node, list):
+        for v in node:
+            yield from _strings(v)
+
+
+def crosscheck_gate_lock_citation(lock: Dict[str, Any], gate: Dict[str, Any]) -> List[str]:
+    """gate evidence 가 **현행** 잠금을 가리키는지 대조한다 (2026-09-23 추가).
+
+    rev24 의 G1 판정 문장이 3세대 전 잠금(1c1fba…)을 인용한 채 남아 있었다.
+    보고서 인용만 대조하던 3단계가 증거 파일 안의 같은 오류를 보지 못했다.
+
+    - `wi03_measurement_lock.lock_hash` 와 `chain` 의 끝이 현행 잠금과 같아야 한다
+    - `gates` 의 판정 문장에 **대체된** 잠금의 해시(앞 12자)가 나오면 실패
+      (대체 이력은 `wi03_measurement_lock.chain`·`supersedes` 에만 둔다)
+    """
+    fails: List[str] = []
+    cur = lock["lock_hash"]
+    rec = gate.get("wi03_measurement_lock") or {}
+    if rec.get("lock_hash") != cur:
+        fails.append(f"gate_evidence 의 lock_hash 가 현행 잠금이 아니다: "
+                     f"{str(rec.get('lock_hash'))[:12]} ≠ {cur[:12]}")
+    chain = list(rec.get("chain") or [])
+    if not chain or not cur.startswith(str(chain[-1]).rstrip("…")[:12]):
+        fails.append("gate_evidence 의 잠금 사슬 끝이 현행 잠금이 아니다")
+    old = {str(h).rstrip("…")[:12] for h in chain[:-1]}
+    sup = (lock.get("supersedes") or {}).get("lock_hash")
+    if sup:
+        old.add(sup[:12])
+    old.discard(cur[:12])
+    for text in _strings(gate.get("gates") or []):
+        for h in sorted(old):
+            if h and h in text:
+                fails.append(f"gate_evidence gates 판정 문장이 대체된 잠금 {h} 를 인용한다")
+    return fails
 
 
 def crosscheck(src: Dict[str, Any]) -> List[str]:
@@ -97,6 +141,8 @@ def crosscheck(src: Dict[str, Any]) -> List[str]:
     chk(lock["lock_hash"][:12] in report, "보고서의 lock_hash 인용 불일치")
     chk(lock["cohorts"]["piop1"]["folds"]["split_hash"][:12] in report,
         "보고서의 split_hash 인용 불일치")
+    if "gate" in src:
+        fails.extend(crosscheck_gate_lock_citation(lock, src["gate"]))
     return fails
 
 
