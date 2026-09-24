@@ -4246,3 +4246,29 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 - 원래 실행 때 실제로 stale pyc 가 생겼는지 자체는 재현할 수 없다 — 재실행은 "지금 코드에서 bytecode 없이도 검출된다" 만 보인다. (c) 11개는 당시 판정을 직접 재현한 것이 아니다 (10개는 위치 한정 사본으로 같은 의미의 돌연변이를 재현).
 - `slot_0915`·`slot_1015` 는 당시 로그 파일이 없어 당시 기록은 부록 AI·AJ 의 수치.
 - 재실행은 Mac 만 (h197 은 마감 5단계만).
+
+# 부록 AW — 남은 작업 2-c: 두 선택 CLI 입력 검사 공통화 (rev49, 2026-09-24 22:15 예약 슬롯)
+
+새 결정 아님. 규칙·값·산출물 형식 불변 — rev47 에서 `select-ad` 가 `select-comparator` 의 입력 검사를 같은 순서·같은 문구로 복사해 둔 것을 한 곳으로 모았다 (부록 AU "확인 못 한 것", 부록 AV 에서 이 중복 때문에 옛 돌연변이 10개가 적용 불가가 된 것).
+
+## AW.1 변경
+
+- `mobse/v2/cli.py` 새 `_load_inner_fit(path, *, folds, outer_fold, cfg_hash, seen_ids, check_cell, require_inner_seed)`: 스키마 → fit_id 중복 → `check_cell` (호출자 칸 규칙) → inner role → outer fold → split/config hash → (`require_inner_seed` 이면 `train.INNER_SEED`) → 이웃 파일 (U20) → fit_report fit_id → config_id 로 fit_id 재계산 → fit_subjects = inner train → 예측 행 (fit_id/cell/seed·scope·checkpoint·창 번호·truth) → 예측 subject = inner validation → `fitting.run_probabilities`. 새 `_check_inner_hashes_uniform(inputs)` (code/env/source hash 하나씩).
+- 호출자에 남긴 것 (두 CLI 가 원래 달랐던 부분): 칸 규칙 (`select-comparator` = `--structure` 하나, `select-ad` = `train.CELLS`), inner seed 요구 (`select-ad` 만 — `select-comparator` 는 원래대로 `baselines.select_comparator` 가 거부), 손실 재계산 함수 (`baselines.inner_loss` / `train.subject_equal_loss`), BA 대조 (`select-ad` 만), `CellFoldResult`·`ComparatorInner` 구성, 산출물. 오류 문구·검사 순서는 복사본과 같다 (fit 하나씩 읽고 바로 손실 대조하는 순서도 같음).
+
+## AW.2 시험 보강 — 공통화 돌연변이에서 드러난, 원래도 시험이 없던 가드
+
+- 공통화 뒤 돌연변이 틀 `.backup/slot_2215b/mut_2c.py` (helper 가드 17개는 **두 시험 파일 각각**이 잡아야 검출, 호출자 가드 13개는 해당 CLI 시험; `-B`·`PYTHONDONTWRITEBYTECODE=1`, 구간 한정 count==1, 원본 복원 확인). 첫 실행 **39/46** — 생존 7: split_hash 대조·config_hash 대조·fit_report fit_id 대조 (두 파일 모두), 예측 행 cell 대조 (`select-comparator` 만). 이 가드들은 rev42·rev47 복사본에도 있었고 시험이 없었다 (공통화가 만든 틈이 아님).
+- 추가: `test_cli_select_ad.py` 24 → **27** (`test_other_split_hash_is_refused`·`test_other_config_hash_is_refused`·`test_report_of_other_fit_is_refused`), `test_cli_select_comparator.py` 22 → **26** (같은 셋 + `test_row_of_other_structure_is_refused`, 파일 안 `_one_bad` 도우미 추가).
+- 재실행 **46/46 검출** (`mut_2c_r2.log`). 동작 불변 확인: 새 53 시험을 **HEAD `ed4668b` 의 `cli.py`** 로도 돌려 53 passed (공통화 전후 같은 판정).
+- 옛 구간 한정 틀 `slot_2015/mut_select_ad.py`·`slot_2115/mut_d14s4b_seg.py` 는 치환 문구가 helper 로 옮겨 가 적용 불가 — `mut_2c.py` 가 그 두 틀의 공통 문구 돌연변이를 helper 구간에서, 나머지를 호출자 구간에서 대신한다.
+
+## AW.3 잠금·gate
+
+- `mobse/v2` 변경 → 재잠금 `5ed00c69c411` → **`aee2b7931538`** (2026-09-24T13:22:33Z), code_hash → `06d4403d67ff`. 19번 43/43, 25번 창 4,728. split_hash `ace5f4a4…`·config_hash main `2a7d7d7f`·pilot `6498596a`·external `576f6068` 불변. gate evidence **rev49** (`ad_joint_selection.shared_input_checks_rev49`).
+- main pool 미소비, 실자료 fit 없음.
+
+## AW.4 확인하지 못한 것
+
+- 실자료 inner fit 으로 두 CLI 실행 (main OOF 승인 전). 돌연변이는 Mac 만 (h197 은 마감 5단계).
+- `select-s` 의 입력 검사는 입력 계약(`s_fit_report`)이 달라 이번 공통화 대상이 아니다.
