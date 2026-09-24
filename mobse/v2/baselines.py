@@ -554,6 +554,46 @@ def select_s(entries: Sequence[SEntry]) -> SSelection:
                       n_excluded=len(excluded))
 
 
+#: S inner fold 수 (계획서 §4-3 inner 3-fold). 선택 기록은 후보 4 × 설정 8 × 3 fold.
+S_INNER_FOLDS = 3
+
+
+def s_outer_plan(candidate: str, setting_id: str,
+                 best_epochs: Optional[Sequence[int]] = None) -> List[Dict[str, object]]:
+    """선택된 S 후보/설정의 outer fit 계획 (결정 14 4c-ii).
+
+    구현 선택 (계획서가 S outer 의 seed 수를 명시하지 않는다 — 보고서에 표시):
+
+    * logistic (S1·S3): **fit 한 번**, seed·epoch 없음 (결정적 lbfgs — `fit_s` 가
+      seed·epoch 를 거부한다). ``best_epochs`` 를 주면 실패한다.
+    * MLP (S2·S4): 호출 시점 ``train.MODEL_SEEDS`` (계획서 §5 42–44) 마다 한 번,
+      정확히 E = ``train.baseline_epochs(best_epochs)`` (계획서 §7 "Baseline의 epoch는
+      해당 선택 모델의 3개 inner best epochs 중앙값 올림"). E 는 1–``MAX_EPOCHS``.
+
+    Raises:
+        BaselineError: 알 수 없는 후보·설정, best epoch 개수·범위 위반.
+    """
+    settings = s_settings(candidate)
+    if setting_id not in settings:
+        raise BaselineError(f"{candidate}: 설정 {setting_id!r} 는 grid 밖이다")
+    if candidate in LOGISTIC_CANDIDATES:
+        if best_epochs is not None:
+            raise BaselineError(f"{candidate} 는 logistic 이다 — best epoch 가 없다")
+        return [{"candidate": candidate, "setting_id": setting_id, "model_seed": None,
+                 "epochs_exact": None}]
+    if best_epochs is None or len(best_epochs) != S_INNER_FOLDS:
+        raise BaselineError(f"{candidate}: inner best epoch {S_INNER_FOLDS} 개가 필요하다: "
+                            f"{best_epochs!r}")
+    bad = [int(e) for e in best_epochs if not 1 <= int(e) <= TR.MAX_EPOCHS]
+    if bad:
+        raise BaselineError(f"{candidate}: best epoch 가 1–{TR.MAX_EPOCHS} 밖이다: {bad}")
+    outer_e = TR.baseline_epochs([int(e) for e in best_epochs])
+    if not 1 <= outer_e <= TR.MAX_EPOCHS:
+        raise BaselineError(f"{candidate}: outer E {outer_e} 가 1–{TR.MAX_EPOCHS} 밖이다")
+    return [{"candidate": candidate, "setting_id": setting_id, "model_seed": int(s),
+             "epochs_exact": int(outer_e)} for s in TR.MODEL_SEEDS]
+
+
 # --------------------------------------------------------------------------- #
 # S 후보 fit 한 칸 (결정 14 4c-i — CLI `fit-s` 의 라이브러리 본체)
 # --------------------------------------------------------------------------- #

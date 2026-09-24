@@ -15,6 +15,8 @@
 * ``fit-s``     — §6 S 후보(S1–S4) 하나·설정 하나를 fold 하나에 학습한다 (결정 14 4c-i).
 * ``select-comparator`` — §6 구조 비교(NG·SG) 하나의 inner fit 산출물로 config·
   outer E 를 고르고 선택 기록을 쓴다 (결정 14 4b). 학습하지 않는다.
+* ``select-s``  — §6 S 후보 inner ``fit-s`` 산출물(4 후보 × 8 설정 × 3 inner fold)로
+  후보/설정을 고르고 outer 계획을 쓴다 (결정 14 4c-ii). 학습하지 않는다.
 * ``evaluate``  — 저장된 outer test 예측을 run·subject·cell 로 집계한다. **분류만.**
   부트스트랩·gate 판정은 하지 않는다 (``report`` 의 몫).
 * ``report``    — evaluate 산출물로 paired group bootstrap 구간과 G3 완전성·정합성
@@ -32,7 +34,7 @@ from mobse.v2.config import ConfigError, config_hash, load_config
 from mobse.v2.manifests import ManifestError, assert_no_glob_fallback, validate_record
 
 SUBCOMMANDS = ("validate", "prepare", "split", "fit", "fit-s", "select-comparator",
-               "evaluate", "report")
+               "select-s", "evaluate", "report")
 
 #: 하위 명령별 필수 경로 인자. 하나라도 비면 실행하지 않는다.
 REQUIRED_PATHS: Dict[str, Sequence[str]] = {
@@ -50,6 +52,9 @@ REQUIRED_PATHS: Dict[str, Sequence[str]] = {
     # × 3 inner fold)를 받는다. fit_report.json·window_predictions.jsonl 은 각 manifest
     # 옆의 고정 이름이다 — 명시한 경로에서 결정되므로 탐색이 아니다 (U20).
     "select-comparator": ("config", "splits", "fit_manifest", "output_dir"),
+    # select-s 는 한 outer fold 의 inner s_fit_report.json 96 개(4 후보 × 8 설정 × 3 inner
+    # fold)를 받는다. s_window_predictions.jsonl·s_model.npz 는 각 보고서 옆 고정 이름 (U20).
+    "select-s": ("config", "splits", "fit_report", "output_dir"),
     "evaluate": ("config", "splits", "predictions", "fit_manifest", "output_dir"),
     # report 는 evaluate 산출물(evaluation.json·run_predictions.jsonl)과 group 매핑의
     # 출처인 subjects.jsonl 을 받는다. run_predictions 에는 group_id 가 없다.
@@ -61,6 +66,7 @@ REQUIRED_PATHS: Dict[str, Sequence[str]] = {
 #: 개의 fit 으로 이루어지므로 evaluate 는 그 산출물을 전부 명시적으로 받는다.
 MULTI_PATHS = frozenset({("evaluate", "predictions"), ("evaluate", "fit_manifest"),
                          ("select-comparator", "fit_manifest"),
+                         ("select-s", "fit_report"),
                          ("prepare", "extract_manifests")})
 
 
@@ -93,6 +99,7 @@ def build_parser() -> argparse.ArgumentParser:
         "evaluation": "evaluate 가 쓴 evaluation.json 경로",
         "extract_manifests": "WI-02 추출 manifest (한 dataset 의 emomatching·workingmemory·restingstate 셋)",
         "fit_manifest": "fit_manifest.json 경로",
+        "fit_report": "fit-s 가 쓴 s_fit_report.json 경로",
         "rest_manifest": "WI-02 restingstate 추출 manifest 경로 (bank 적합용)",
         "output_dir": "산출 디렉터리",
     }
@@ -145,6 +152,9 @@ def build_parser() -> argparse.ArgumentParser:
             p.add_argument("--structure", required=True, choices=FIT_CELL_CHOICES[4:],
                            help="§6 구조 비교 NG 또는 SG — 구조별 독립 선택 (결정 14 (가))")
             p.add_argument("--outer-fold", type=int, required=True)
+        if name == "select-s":
+            p.add_argument("--outer-fold", type=int, required=True,
+                           help="main outer fold 0–4. 외부 S(outer 9) 는 아직 미구현")
         if name == "evaluate":
             p.add_argument("--tasks", nargs="+", required=True,
                            help="평가할 분류 task. 학습하지 않은 task 는 거부된다")
@@ -1015,6 +1025,245 @@ def run_select_comparator(paths: Dict[str, Any], args: argparse.Namespace
             "output": str(out_dir / SELECTION_OUTPUT)}
 
 
+#: select-s 산출물. 있으면 실행하지 않는다 (지침서 §2).
+S_SELECTION_OUTPUT = "s_selection.json"
+S_SELECTION_SCHEMA = "d14-s-selection-0.1"
+
+
+def run_select_s(paths: Dict[str, Any], args: argparse.Namespace) -> Dict[str, Any]:
+    """S 후보 inner ``fit-s`` 산출물로 후보/설정·outer 계획을 고른다 (결정 14 4c-ii).
+
+    입력은 한 outer fold 의 inner ``s_fit_report.json`` 들과 그 옆의 고정 이름
+    ``s_window_predictions.jsonl``·``s_model.npz`` 다 (U20 — 명시한 경로에서 결정).
+    창 확률은 ``fitting.run_probabilities`` 로 run 확률이 된다 — ``fit_s`` 가
+    ``eval_loss`` 를 계산한 것과 **같은 함수**이고, 그 값과 다시 대조한다.
+
+    선택 규칙은 ``baselines.select_s`` 다 (계획서 §6, 개정 P11). 이 함수는 학습하지
+    않는다. outer fit 은 기록된 계획대로 ``fit-s --inner-fold 9`` 를 부른다.
+
+    구현 선택 (결정 아님, 보고서에 표시):
+
+    * 하위 명령 이름·입력 형식(보고서 목록 + 고정 이웃 파일) — `select-comparator` 와
+      같은 모양.
+    * grid 는 **완비**여야 한다: 4 후보 × 8 설정 × 3 inner fold = 96. 불완전하면 거부
+      (미수렴으로 뺀 것과 빠진 것은 다르다).
+    * 설정 하나의 수렴 = 그 설정의 3 inner fit 이 **모두** 수렴 (P11 은 fit 단위와
+      설정 단위를 구별하지 않는다). 미수렴 설정은 `select_s` 가 빼고 기록한다.
+    * MLP inner fit 의 seed 는 ``train.INNER_SEED`` 여야 한다 (계획서 §7 Inner seed=42).
+    * outer 계획은 `baselines.s_outer_plan` — logistic 한 번, MLP 는 seed 42–44 ×
+      정확히 E (3 inner best epoch 중앙값 올림).
+    * 외부 S ("외부 S도 PIOP1 main pool의 inner 결과로만 고른다") 는 main pool 전체의
+      inner 분할(outer 9)이 folds.json 에 생긴 뒤 같은 함수로 붙인다 — 지금은
+      ``resolve_fold_subjects`` 가 outer 0–4 만 안다.
+
+    Raises:
+        CLIError: 입력 경계·무결성이 어긋나거나 산출물을 덮어쓰게 될 때.
+    """
+    from mobse.v2 import baselines as BL
+    from mobse.v2 import fitting as FIT
+    from mobse.v2 import templates as TPL
+    from mobse.v2 import train as TR
+    from mobse.v2.manifests import code_hash, read_jsonl, s_fit_id, sha256_file
+
+    outer_fold = int(args.outer_fold)
+    try:
+        cfg = load_config(Path(paths["config"]))
+    except ConfigError as exc:
+        raise CLIError(f"config 검증 실패: {exc}") from exc
+    cfg_hash = config_hash(cfg)
+    out_dir = Path(paths["output_dir"])
+    if (out_dir / S_SELECTION_OUTPUT).exists():
+        raise CLIError(f"이미 존재한다: {out_dir / S_SELECTION_OUTPUT}. 같은 release 결과를 "
+                       "덮어쓰지 않는다 (지침서 §2)")
+    folds = json.loads(Path(paths["splits"]).read_text(encoding="utf-8"))
+    split_hash = folds["split_hash"]
+
+    inputs: List[Dict[str, Any]] = []
+    per: Dict[Tuple[str, str], Dict[int, Dict[str, Any]]] = {}
+    seen: Dict[str, str] = {}
+    for rp in _as_list(paths["fit_report"]):
+        path = Path(rp)
+        rep = json.loads(path.read_text(encoding="utf-8"))
+        sid = rep.get("s_fit_id")
+        if rep.get("schema_version") != S_FIT_SCHEMA:
+            raise CLIError(f"{path}: schema_version {rep.get('schema_version')!r} ≠ "
+                           f"{S_FIT_SCHEMA}")
+        if sid in seen:
+            raise CLIError(f"s_fit_id 중복: {sid} ({seen[sid]} 와 {path})")
+        seen[sid] = str(path)
+        cand, setting = str(rep["candidate"]), str(rep["setting_id"])
+        if cand not in BL.CANDIDATE_ORDER:
+            raise CLIError(f"{sid}: 알 수 없는 S 후보 {cand!r}")
+        settings = BL.s_settings(cand)
+        if setting not in settings:
+            raise CLIError(f"{sid}: 설정 {setting!r} 는 {cand} grid 밖이다")
+        if int(rep["setting_rank"]) != settings[setting][0]:
+            raise CLIError(f"{sid}: setting_rank {rep['setting_rank']} ≠ grid 순서 "
+                           f"{settings[setting][0]}")
+        if rep["role"] != FIT.ROLE_INNER or rep["eval_role"] != FIT.EVAL_ROLE[FIT.ROLE_INNER]:
+            raise CLIError(f"{sid}: inner fit 이 아니다 (role={rep['role']!r}). 선택은 "
+                           "inner validation 결과로만 한다 (계획서 §6)")
+        if int(rep["folds"]["outer_fold"]) != outer_fold:
+            raise CLIError(f"{sid}: outer fold {rep['folds']['outer_fold']} ≠ --outer-fold "
+                           f"{outer_fold}")
+        if rep["split_hash"] != split_hash:
+            raise CLIError(f"{sid}: split_hash 가 --splits 와 다르다")
+        if rep["config_hash"] != cfg_hash:
+            raise CLIError(f"{sid}: config_hash 가 --config 와 다르다")
+        is_logistic = cand in BL.LOGISTIC_CANDIDATES
+        seed = rep["model_seed"]
+        if is_logistic:
+            if seed is not None or rep.get("best_epoch") is not None:
+                raise CLIError(f"{sid}: logistic 보고서에 seed·best_epoch 가 있다")
+        else:
+            if seed is None or int(seed) != int(TR.INNER_SEED):
+                raise CLIError(f"{sid}: MLP inner seed 는 {TR.INNER_SEED} 여야 한다: {seed!r} "
+                               "(계획서 §7)")
+            if not 1 <= int(rep["best_epoch"]) <= TR.MAX_EPOCHS:
+                raise CLIError(f"{sid}: best_epoch {rep['best_epoch']} 가 1–{TR.MAX_EPOCHS} 밖")
+        inner_fold = int(rep["folds"]["inner_fold"])
+        expect = s_fit_id(role=rep["role"], candidate=cand, setting_id=setting,
+                          outer_fold=outer_fold, inner_fold=inner_fold,
+                          model_seed=None if seed is None else int(seed),
+                          split_hash=split_hash, config_hash=cfg_hash)
+        if expect != sid:
+            raise CLIError(f"{sid}: 보고서 필드로 다시 만든 s_fit_id 가 다르다 ({expect})")
+        fold = FIT.resolve_fold_subjects(folds, outer_fold, inner_fold)
+        if sorted(rep["fit_subjects"]) != sorted(fold.train):
+            raise CLIError(f"{sid}: fit_subjects 가 folds.json 의 inner train 과 다르다")
+
+        pred_path = path.parent / "s_window_predictions.jsonl"
+        model_path = path.parent / "s_model.npz"
+        for need in (pred_path, model_path):
+            if not need.is_file():
+                raise CLIError(f"{sid}: {need.name} 가 없다 {need}. 대체 탐색하지 않는다 (U20)")
+        if sha256_file(model_path) != rep["model_sha256"]:
+            raise CLIError(f"{sid}: s_model.npz sha256 이 보고서와 다르다")
+        if sha256_file(pred_path) != rep["window_predictions_sha256"]:
+            raise CLIError(f"{sid}: s_window_predictions.jsonl sha256 이 보고서와 다르다")
+        try:
+            rows = read_jsonl(pred_path, "s_window_predictions")
+        except ManifestError as exc:
+            raise CLIError(f"{pred_path}: s_window_predictions 스키마 위반 — {exc}") from exc
+        refs, probs = [], []
+        for i, r in enumerate(rows):
+            if r["s_fit_id"] != sid or r["candidate"] != cand or r["setting_id"] != setting:
+                raise CLIError(f"{pred_path}:{i + 1}: s_fit_id/candidate/setting 이 보고서와 다르다")
+            if r["scope"] != FIT.EVAL_ROLE[FIT.ROLE_INNER]:
+                raise CLIError(f"{pred_path}:{i + 1}: scope {r['scope']!r} — inner validation "
+                               "만 선택에 쓴다")
+            if r["model_sha256"] != rep["model_sha256"]:
+                raise CLIError(f"{pred_path}:{i + 1}: model hash 가 보고서와 다르다")
+            _window_index(r["run_key"], r["window_key"])
+            if int(r["truth"]) != FIT.class_index(FIT.task_of(r["run_key"])):
+                raise CLIError(f"{pred_path}:{i + 1}: truth 가 run_key 의 task 와 다르다")
+            refs.append(FIT.WindowRef(
+                window_key=r["window_key"], run_key=r["run_key"],
+                canonical_subject=r["canonical_subject"], task=FIT.task_of(r["run_key"]),
+                path=Path(""), sha256="", label=int(r["truth"])))
+            probs.append(float(r["p_class1"]))
+        got = {r["canonical_subject"] for r in rows}
+        if got != set(fold.evaluate):
+            raise CLIError(f"{sid}: 예측 subject 가 inner validation subject 와 다르다 "
+                           f"(누락 {sorted(set(fold.evaluate) - got)[:3]}, "
+                           f"여분 {sorted(got - set(fold.evaluate))[:3]})")
+        try:
+            run_probs = FIT.run_probabilities(refs, probs)
+        except FIT.FitError as exc:
+            raise CLIError(f"{pred_path}: {exc}") from exc
+        loss = BL.inner_loss(run_probs)
+        if abs(loss - float(rep["eval_loss"])) > SELECTION_LOSS_TOL:
+            raise CLIError(f"{sid}: 창 예측으로 다시 계산한 inner 손실 {loss:.9f} ≠ "
+                           f"보고서 eval_loss {float(rep['eval_loss']):.9f}")
+        cell = per.setdefault((cand, setting), {})
+        if inner_fold in cell:
+            raise CLIError(f"{sid}: ({cand}, {setting}, inner {inner_fold}) 가 중복되었다")
+        cell[inner_fold] = {"run_probs": run_probs, "converged": bool(rep["converged"]),
+                            "best_epoch": rep.get("best_epoch")}
+        inputs.append({"s_fit_id": sid, "candidate": cand, "setting_id": setting,
+                       "inner_fold": inner_fold, "s_fit_report": str(path),
+                       "s_fit_report_sha256": sha256_file(path),
+                       "s_window_predictions_sha256": rep["window_predictions_sha256"],
+                       "model_sha256": rep["model_sha256"],
+                       "converged": bool(rep["converged"]),
+                       "best_epoch": rep.get("best_epoch"), "inner_loss": loss,
+                       "code_hash": rep["code_hash"], "env_hash": rep["env_hash"],
+                       "source_hash": rep["source_hash"]})
+
+    need = {(c, s, f) for c in BL.CANDIDATE_ORDER for s in BL.s_settings(c)
+            for f in range(BL.S_INNER_FOLDS)}
+    got_keys = {(c, s, f) for (c, s), d in per.items() for f in d}
+    missing, extra = sorted(need - got_keys), sorted(got_keys - need)
+    if missing:
+        raise CLIError(f"불완전한 grid — {len(missing)}개 누락 (예: {missing[:3]}). 불완전 "
+                       "grid 를 정상 선택으로 처리하지 않는다")
+    if extra:
+        raise CLIError(f"예상 밖 조합: {extra[:3]}")
+    for field in ("code_hash", "env_hash", "source_hash"):
+        values = sorted({i[field] for i in inputs})
+        if len(values) != 1:
+            raise CLIError(f"inner fit 사이에 {field} 가 다르다 {[v[:12] for v in values]}")
+
+    entries = []
+    try:
+        for cand in BL.CANDIDATE_ORDER:
+            for setting, (rank, _) in BL.s_settings(cand).items():
+                d = per[(cand, setting)]
+                oof = BL.merge_inner_oof([d[f]["run_probs"] for f in range(BL.S_INNER_FOLDS)])
+                entries.append(BL.SEntry(
+                    candidate=cand, setting_id=setting, setting_rank=rank,
+                    oof_run_probs=oof,
+                    converged=all(d[f]["converged"] for f in range(BL.S_INNER_FOLDS))))
+        sel = BL.select_s(entries)
+        chosen = per[(sel.candidate, sel.setting_id)]
+        best_epochs = (None if sel.candidate in BL.LOGISTIC_CANDIDATES
+                       else [int(chosen[f]["best_epoch"]) for f in range(BL.S_INNER_FOLDS)])
+        plan_rows = BL.s_outer_plan(sel.candidate, sel.setting_id, best_epochs)
+    except BL.BaselineError as exc:
+        raise CLIError(f"선택 실패: {exc}") from exc
+
+    plan = []
+    for row in plan_rows:
+        cli = ["fit-s", "--candidate", sel.candidate, "--setting-id", sel.setting_id,
+               "--outer-fold", str(outer_fold),
+               "--inner-fold", str(TPL.OUTER_FIT_INNER_FOLD)]
+        if row["model_seed"] is not None:
+            cli += ["--model-seed", str(row["model_seed"]),
+                    "--epochs", str(row["epochs_exact"])]
+        plan.append({**row, "outer_fold": outer_fold,
+                     "inner_fold": TPL.OUTER_FIT_INNER_FOLD, "cli": cli})
+    record = {
+        "schema_version": S_SELECTION_SCHEMA, "outer_fold": outer_fold,
+        "split_hash": split_hash, "config_hash": cfg_hash,
+        "selected_candidate": sel.candidate, "selected_setting_id": sel.setting_id,
+        "inner_loss": sel.loss, "best_epochs": best_epochs,
+        "outer_epochs": plan_rows[0]["epochs_exact"],
+        "excluded": list(sel.excluded), "n_excluded": sel.n_excluded,
+        "table": [dict(r) for r in sel.table], "outer_plan": plan,
+        "rules": {"loss": "설정 별 3 inner fold OOF 병합 subject 동일 가중 log loss",
+                  "tie": f"차이 ≤ {TR.TIE_TOLERANCE} → 후보 순서 S1<S2<S3<S4 → 설정 순서",
+                  "convergence": "설정의 3 inner fit 이 모두 수렴해야 후보 (개정 P11 — 미수렴 "
+                                 "설정은 빼고 수를 기록)",
+                  "outer": "logistic 한 번 (seed·epoch 없음) / MLP seed 42–44 × 정확히 E "
+                           "(3 inner best epoch 중앙값 올림, 계획서 §7 baseline)",
+                  "run_aggregation": "fitting.run_probabilities (fit_s 와 같은 함수)",
+                  "status": "구현 선택 — 결정 14 가 세부를 정하지 않음"},
+        "fit_code_hash": inputs[0]["code_hash"],
+        "selector_code_hash": code_hash(sorted(Path(__file__).resolve().parent.glob("*.py"))),
+        "inputs": sorted(inputs, key=lambda i: (BL.CANDIDATE_ORDER.index(i["candidate"]),
+                                                BL.s_settings(i["candidate"])[i["setting_id"]][0],
+                                                i["inner_fold"])),
+    }
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / S_SELECTION_OUTPUT).write_text(
+        json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"verdict": "pass", "outer_fold": outer_fold,
+            "selected_candidate": sel.candidate, "selected_setting_id": sel.setting_id,
+            "outer_epochs": record["outer_epochs"], "inner_loss": sel.loss,
+            "n_excluded": sel.n_excluded, "n_inputs": len(inputs),
+            "output": str(out_dir / S_SELECTION_OUTPUT)}
+
+
 #: evaluate 산출물. 둘 중 하나라도 있으면 실행하지 않는다 (지침서 §2).
 EVALUATE_OUTPUTS = ("run_predictions.jsonl", "evaluation.json")
 
@@ -1670,6 +1919,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     if args.command == "select-comparator":
         result = run_select_comparator(paths, args)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result["verdict"] == "pass" else 1
+
+    if args.command == "select-s":
+        result = run_select_s(paths, args)
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0 if result["verdict"] == "pass" else 1
 
