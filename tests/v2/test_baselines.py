@@ -474,3 +474,169 @@ def test_select_s_orders_mlp_between_logistic_candidates():
     sel3 = B.select_s([B.SEntry(B.S2, "config=0", 0, _oof(0.7)),
                        B.SEntry(B.S4, "config=7", 7, _oof(0.9))])
     assert (sel3.candidate, sel3.setting_id) == (B.S4, "config=7")
+
+
+# ---- 결정 14 3단계: seed 제약·구조 비교 독립 선택 --------------------------------
+
+
+@pytest.mark.parametrize("seed", [0, 41, 45])
+def test_fit_mlp_rejects_seed_outside_locked_model_seeds(seed):
+    X, y, keys = _mean_xy(4, seed=2)
+    with pytest.raises(B.BaselineError, match="MODEL_SEEDS"):
+        B.fit_mlp(X, y, X, keys, role="inner", config_id=0, model_seed=seed,
+                  min_updates=0, max_epochs=1)
+
+
+def test_fit_mlp_seed_set_is_read_at_call_time(monkeypatch):
+    X, y, keys = _mean_xy(4, seed=2)
+    monkeypatch.setattr(TR, "MODEL_SEEDS", (7,))
+    with pytest.raises(B.BaselineError, match="MODEL_SEEDS"):
+        B.fit_mlp(X, y, X, keys, role="inner", config_id=0, model_seed=42,
+                  min_updates=0, max_epochs=1)
+    fit, _ = B.fit_mlp(X, y, X, keys, role="inner", config_id=0, model_seed=7,
+                       min_updates=0, max_epochs=1)
+    assert fit.model_seed == 7
+
+
+def test_comparator_names_match_models():
+    from mobse.v2 import models as M
+    assert set(B.COMPARATOR_ORDER) == set(M.COMPARATOR_SPEC)
+
+
+def _fold_probs(fold: int, p_wm: float, n_per_fold: int = 2):
+    out = {}
+    for i in range(fold * n_per_fold, (fold + 1) * n_per_fold):
+        out[_rk(i, "emomatching")] = 1.0 - p_wm
+        out[_rk(i, "workingmemory")] = p_wm
+    return out
+
+
+def _comp_results(structure="NG", p_by_config=None, epochs=None, seed=None):
+    """8 config × 3 fold. 기본 정답 확률 0.6, best epoch (4, 7, 9)."""
+    p_by_config = p_by_config or {}
+    epochs = epochs or {}
+    out = []
+    for cid in range(8):
+        for f in range(3):
+            out.append(B.ComparatorInner(
+                structure=structure, config_id=cid, inner_fold=f,
+                model_seed=TR.INNER_SEED if seed is None else seed,
+                run_probs=_fold_probs(f, p_by_config.get(cid, 0.6)),
+                best_epoch=epochs.get(cid, (4, 7, 9))[f]))
+    return out
+
+
+def test_select_comparator_picks_lowest_oof_loss_and_baseline_epochs():
+    res = _comp_results(p_by_config={5: 0.9, 2: 0.8}, epochs={5: (3, 10, 6)})
+    sel = B.select_comparator(res, structure="NG")
+    assert sel.config_id == 5 and sel.tie_rule == "unique minimum"
+    assert sel.best_epochs == (3, 10, 6)
+    assert sel.outer_epochs == TR.baseline_epochs([3, 10, 6]) == 6
+    assert sel.loss == pytest.approx(-math.log(0.9), rel=1e-12)
+    assert [row["config_id"] for row in sel.table] == list(range(8))
+
+
+def test_select_comparator_loss_is_merged_oof_not_fold_mean():
+    """선택 손실은 3 fold 를 합친 OOF 의 subject 동일 가중 loss 다 (S 와 같은 함수)."""
+    res = _comp_results()
+    # config 1: fold 0 의 subject 수를 늘려 fold 평균과 OOF 합산이 달라지게 한다
+    res = [r for r in res if not (r.config_id == 1 and r.inner_fold == 0)]
+    big = _fold_probs(0, 0.95, n_per_fold=2)
+    big.update({_rk(i, t): (0.05 if t == "emomatching" else 0.95)
+                for i in range(100, 104) for t in TASKS})
+    for r in list(res):
+        if r.inner_fold == 0:
+            res.remove(r)
+            extra = {_rk(i, t): (0.4 if t == "emomatching" else 0.6)
+                     for i in range(100, 104) for t in TASKS}
+            res.append(B.ComparatorInner(r.structure, r.config_id, 0, r.model_seed,
+                                         {**r.run_probs, **extra}, r.best_epoch))
+    res.append(B.ComparatorInner("NG", 1, 0, TR.INNER_SEED, big, 4))
+    sel = B.select_comparator(res, structure="NG")
+    rows = {row["config_id"]: row for row in sel.table}
+    oof1 = B.merge_inner_oof([r.run_probs for r in sorted(
+        (r for r in res if r.config_id == 1), key=lambda r: r.inner_fold)])
+    assert rows[1]["inner_loss"] == pytest.approx(B.inner_loss(oof1), rel=1e-12)
+    fold_mean = np.mean([B.inner_loss(r.run_probs) for r in res if r.config_id == 1])
+    assert abs(rows[1]["inner_loss"] - fold_mean) > 1e-3
+
+
+def test_select_comparator_tie_breaks_ba_then_config_id():
+    # 전부 같은 loss → BA 도 같음 → config_id 0
+    sel = B.select_comparator(_comp_results("SG"), structure="SG")
+    assert sel.config_id == 0 and sel.tie_rule == "tie broken by BA then smallest config_id"
+    # 전 config 정답 확률 0.3 (BA 0). config 6 만 (0.9, 0.1) 쌍 — loss 같고 BA 0.5
+    res = _comp_results("SG", p_by_config={c: 0.3 for c in range(8)})
+    loss_target = -math.log(0.3)
+
+    def pair(fold, pa, pb):
+        out = {}
+        for i in range(fold * 2, fold * 2 + 2):
+            out[_rk(i, "emomatching")] = 1.0 - pa
+            out[_rk(i, "workingmemory")] = pb
+        return out
+    pa = 0.9
+    pb = math.exp(-2 * loss_target) / pa   # log loss (pa, pb) 평균 = loss_target
+    res = [r if r.config_id != 6 else B.ComparatorInner(
+        "SG", 6, r.inner_fold, r.model_seed, pair(r.inner_fold, pa, pb), r.best_epoch)
+        for r in res]
+    rows = {row["config_id"]: row for row in B.select_comparator(res, structure="SG").table}
+    assert rows[6]["inner_loss"] == pytest.approx(rows[3]["inner_loss"], abs=1e-9)
+    sel = B.select_comparator(res, structure="SG")
+    assert sel.config_id == 6 and sel.tie_rule == "tie broken by BA"
+
+
+def test_select_comparator_guards():
+    base = _comp_results()
+    with pytest.raises(B.BaselineError, match="알 수 없는 구조"):
+        B.select_comparator(base, structure="A")
+    with pytest.raises(B.BaselineError, match="없다"):
+        B.select_comparator([], structure="NG")
+    with pytest.raises(B.BaselineError, match="섞였다"):
+        B.select_comparator(base + _comp_results("SG")[:1], structure="NG")
+    with pytest.raises(B.BaselineError, match="inner seed"):
+        B.select_comparator(_comp_results(seed=43), structure="NG")
+    with pytest.raises(B.BaselineError, match="불완전"):
+        B.select_comparator(base[:-1], structure="NG")
+    with pytest.raises(B.BaselineError, match="중복"):
+        B.select_comparator(base + base[:1], structure="NG")
+    extra = B.ComparatorInner("NG", 0, 3, TR.INNER_SEED, _fold_probs(3, 0.6), 4)
+    with pytest.raises(B.BaselineError, match="예상 밖"):
+        B.select_comparator(base + [extra], structure="NG")
+    with pytest.raises(B.BaselineError, match="best_epoch"):
+        B.select_comparator(_comp_results(epochs={2: (4, 0, 9)}), structure="NG")
+    with pytest.raises(B.BaselineError, match="best_epoch"):
+        B.select_comparator(_comp_results(epochs={2: (4, TR.MAX_EPOCHS + 1, 9)}),
+                            structure="NG")
+    overlap = [r if not (r.config_id == 4 and r.inner_fold == 1) else B.ComparatorInner(
+        "NG", 4, 1, r.model_seed, _fold_probs(0, 0.6), r.best_epoch) for r in base]
+    with pytest.raises(B.BaselineError, match="겹친다"):
+        B.select_comparator(overlap, structure="NG")
+    shifted = [r if not (r.config_id == 4 and r.inner_fold == 2) else B.ComparatorInner(
+        "NG", 4, 2, r.model_seed, _fold_probs(5, 0.6), r.best_epoch) for r in base]
+    with pytest.raises(B.BaselineError, match="OOF run 집합"):
+        B.select_comparator(shifted, structure="NG")
+
+
+def test_select_comparator_is_independent_per_structure():
+    ng = _comp_results("NG", p_by_config={1: 0.9})
+    sg = _comp_results("SG", p_by_config={7: 0.9})
+    assert B.select_comparator(ng, structure="NG").config_id == 1
+    assert B.select_comparator(sg, structure="SG").config_id == 7
+
+
+def test_comparator_outer_plan_uses_locked_seeds_and_exact_epochs(monkeypatch):
+    sel = B.select_comparator(_comp_results("SG", p_by_config={2: 0.9}), structure="SG")
+    plan = sel.outer_plan()
+    assert [p["model_seed"] for p in plan] == list(TR.MODEL_SEEDS)
+    assert {(p["structure"], p["config_id"], p["epochs_exact"]) for p in plan} == {
+        ("SG", 2, sel.outer_epochs)}
+    monkeypatch.setattr(TR, "MODEL_SEEDS", (42,))
+    assert len(sel.outer_plan()) == 1
+
+
+def test_comparator_fit_count_matches_decision_14():
+    """결정 14: 구조당 inner 8×3×5 = 120 + outer 5×3 = 15 → 두 구조 270."""
+    per_outer_inner = len(_comp_results())
+    assert per_outer_inner == 24
+    assert 2 * (per_outer_inner * 5 + 5 * len(TR.MODEL_SEEDS)) == 270

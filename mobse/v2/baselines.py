@@ -347,6 +347,10 @@ def fit_mlp(X_train: np.ndarray, y_train: Sequence[int], X_eval: np.ndarray,
 
     if role not in MLP_ROLES:
         raise BaselineError(f"role 은 {MLP_ROLES} 중 하나여야 한다: {role!r}")
+    # 결정 14 3단계: seed 42–44 제약을 fit_mlp 에도 (호출 시점 train 상수).
+    if int(model_seed) not in tuple(int(s) for s in TR.MODEL_SEEDS):
+        raise BaselineError(f"model_seed {model_seed} 는 잠긴 train.MODEL_SEEDS "
+                            f"{tuple(TR.MODEL_SEEDS)} 밖이다 (계획서 §5)")
     grid = {g.config_id: g for g in TR.build_grid()}
     if config_id not in grid:
         raise BaselineError(f"config_id 는 0–7 이어야 한다: {config_id}")
@@ -548,3 +552,129 @@ def select_s(entries: Sequence[SEntry]) -> SSelection:
     return SSelection(candidate=e_sel.candidate, setting_id=e_sel.setting_id,
                       loss=float(s_sel), table=table, excluded=excluded,
                       n_excluded=len(excluded))
+
+
+# --------------------------------------------------------------------------- #
+# §6 구조 비교 2종 (NG·SG) — 구조별 독립 선택 (결정 14 3단계)
+# --------------------------------------------------------------------------- #
+
+#: 구조 비교 이름. `models.COMPARATOR_SPEC` 의 키와 같아야 한다 (시험이 고정).
+COMPARATOR_ORDER: Tuple[str, ...] = ("NG", "SG")
+#: 구조 비교 inner fold 수. outer E 는 `train.baseline_epochs` (3개 중앙값 올림) 다.
+COMPARATOR_INNER_FOLDS = 3
+
+
+@dataclass(frozen=True)
+class ComparatorInner:
+    """한 구조·config·inner fold 의 inner validation 결과 (`train_fold` inner fit 한 개)."""
+
+    structure: str
+    config_id: int
+    inner_fold: int
+    model_seed: int
+    run_probs: Mapping[str, float]
+    best_epoch: int
+
+
+@dataclass(frozen=True)
+class ComparatorSelection:
+    """한 구조의 선택 결과와 outer fit 계획."""
+
+    structure: str
+    config_id: int
+    outer_epochs: int
+    loss: float
+    balanced_accuracy: float
+    tie_rule: str
+    best_epochs: Tuple[int, ...]
+    table: Tuple[Dict[str, object], ...]
+
+    def outer_plan(self) -> List[Dict[str, object]]:
+        """outer fit 계획: 선택 config, 정확히 ``outer_epochs``, seed 42–44 (계획서 §5·§7)."""
+        return [{"structure": self.structure, "config_id": self.config_id,
+                 "model_seed": int(s), "epochs_exact": self.outer_epochs}
+                for s in TR.MODEL_SEEDS]
+
+
+def select_comparator(results: Sequence[ComparatorInner], *,
+                      structure: str) -> ComparatorSelection:
+    """구조 비교 하나(NG 또는 SG)가 8개 config 중 하나를 **독립으로** 고른다 (결정 14 (가)).
+
+    규칙 (구현 선택 — 결정 14 가 세부를 정하지 않았다. 계획서 §7 A–D 문장에 가장
+    가까운 형태로 따른다):
+
+    * 선택 손실 = config 별 3 inner fold validation run 확률을 OOF 하나로 합친 뒤
+      subject 동일 가중 log loss (`inner_loss`, S 후보·계획서 §7 "inner OOF run loss를
+      subject별 동일 가중으로 합산" 과 같은 함수). cell 가중은 없다 — 구조 하나다.
+    * 동률(차이 ≤ ``train.TIE_TOLERANCE``) → OOF BA 가 높은 것 → config_id 가 작은 것.
+    * outer E = 선택 config 의 3 inner best epoch 중앙값 올림 (`train.baseline_epochs`,
+      계획서 §7 baseline 규칙).
+    * inner fit 은 모두 ``train.INNER_SEED`` (계획서 §7 "Inner seed=42").
+
+    Raises:
+        BaselineError: 알 수 없는 구조, 다른 구조가 섞임, grid 불완전·중복·여분,
+            inner seed 위반, fold 간 run 겹침, config 간 OOF run 집합 불일치,
+            best epoch 가 1–상한 밖, outer E 가 상한을 넘을 때.
+    """
+    from .fitting import _balanced_accuracy_from_runs
+
+    if structure not in COMPARATOR_ORDER:
+        raise BaselineError(f"알 수 없는 구조 비교: {structure!r}. 허용: {COMPARATOR_ORDER}")
+    if not results:
+        raise BaselineError(f"{structure}: 선택할 inner 결과가 없다")
+    other = sorted({r.structure for r in results} - {structure})
+    if other:
+        raise BaselineError(f"{structure} 선택에 다른 구조가 섞였다: {other} — 구조별 독립 선택")
+    bad_seed = sorted({int(r.model_seed) for r in results} - {int(TR.INNER_SEED)})
+    if bad_seed:
+        raise BaselineError(f"{structure}: inner seed 는 {TR.INNER_SEED} 여야 한다: {bad_seed} "
+                            "(계획서 §7)")
+    grid_ids = [g.config_id for g in TR.build_grid()]
+    need = {(c, f) for c in grid_ids for f in range(COMPARATOR_INNER_FOLDS)}
+    keys = [(int(r.config_id), int(r.inner_fold)) for r in results]
+    if len(set(keys)) != len(keys):
+        raise BaselineError(f"{structure}: (config, inner fold) 가 중복되었다")
+    missing, extra = sorted(need - set(keys)), sorted(set(keys) - need)
+    if missing:
+        raise BaselineError(f"{structure}: 불완전한 grid — {len(missing)}개 누락 "
+                            f"(예: {missing[:3]}). 불완전 grid 를 정상 선택으로 처리하지 않는다")
+    if extra:
+        raise BaselineError(f"{structure}: 예상 밖 조합: {extra[:3]}")
+    for r in results:
+        if not 1 <= int(r.best_epoch) <= TR.MAX_EPOCHS:
+            raise BaselineError(f"{structure}: best_epoch 가 1–{TR.MAX_EPOCHS} 밖이다: "
+                                f"config {r.config_id} fold {r.inner_fold} {r.best_epoch}")
+
+    per: Dict[int, Dict[str, object]] = {}
+    runs0: Optional[set] = None
+    for cid in grid_ids:
+        rows = sorted((r for r in results if int(r.config_id) == cid),
+                      key=lambda r: int(r.inner_fold))
+        oof = merge_inner_oof([r.run_probs for r in rows])
+        if runs0 is None:
+            runs0 = set(oof)
+        elif set(oof) != runs0:
+            raise BaselineError(f"{structure}: config {cid} 의 OOF run 집합이 다르다 — "
+                                "같은 inner 모집단에서 비교해야 한다")
+        per[cid] = {"config_id": cid, "inner_loss": inner_loss(oof),
+                    "inner_ba": _balanced_accuracy_from_runs(oof),
+                    "best_epochs": tuple(int(r.best_epoch) for r in rows)}
+
+    best = min(float(v["inner_loss"]) for v in per.values())
+    tied = [c for c in grid_ids if float(per[c]["inner_loss"]) - best <= TIE_TOLERANCE]
+    tie_rule = "unique minimum"
+    if len(tied) > 1:
+        best_ba = max(float(per[c]["inner_ba"]) for c in tied)
+        tied = [c for c in tied if float(per[c]["inner_ba"]) >= best_ba - TIE_TOLERANCE]
+        tie_rule = ("tie broken by BA" if len(tied) == 1
+                    else "tie broken by BA then smallest config_id")
+    chosen = min(tied)
+    epochs = per[chosen]["best_epochs"]
+    outer_e = TR.baseline_epochs(list(epochs))
+    if not 1 <= outer_e <= TR.MAX_EPOCHS:
+        raise BaselineError(f"{structure}: outer E {outer_e} 가 1–{TR.MAX_EPOCHS} 밖이다")
+    return ComparatorSelection(
+        structure=structure, config_id=chosen, outer_epochs=outer_e,
+        loss=float(per[chosen]["inner_loss"]),
+        balanced_accuracy=float(per[chosen]["inner_ba"]), tie_rule=tie_rule,
+        best_epochs=tuple(epochs), table=tuple(per[c] for c in grid_ids))

@@ -32,7 +32,8 @@ import numpy as np
 from . import features as F
 from . import templates as T
 from .labels import CLASS_LABELS, class_index, window_key
-from .train import (BATCH_SIZE, GRAD_CLIP, MAX_EPOCHS, MIN_DELTA, MIN_UPDATES, PATIENCE,
+from .train import (BATCH_SIZE, CELLS, GRAD_CLIP, MAX_EPOCHS, MIN_DELTA, MIN_UPDATES,
+                    MODEL_SEEDS, PATIENCE,
                     TrainError, assert_no_test_leakage, build_grid,
                     clipped_log_loss, early_stop_epoch, min_epochs_for,
                     subject_equal_loss, updates_per_epoch)
@@ -550,6 +551,12 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
     if config_id not in grid:
         raise FitError(f"config_id 는 0–7 이어야 한다: {config_id}")
     gc = grid[config_id]
+    # 결정 14 3단계: 구조 비교(NG·SG) fit 은 잠긴 seed 42–44 만 받는다. A–D 는 CLI
+    # (`cli.run_fit`) 가 같은 검사를 한다 — 라이브러리 A–D 경로는 pilot 측정 틀이
+    # 쓰므로 바꾸지 않는다.
+    if cell not in CELLS and int(model_seed) not in MODEL_SEEDS:
+        raise FitError(f"구조 비교 {cell!r} 의 model_seed {model_seed} 는 잠긴 "
+                       f"train.MODEL_SEEDS {MODEL_SEEDS} 밖이다 (계획서 §5, 결정 14)")
 
     is_inner = fold.role == ROLE_INNER
     if early_stopping is None:

@@ -698,3 +698,22 @@ def test_comparator_fit_is_deterministic_and_applies_determinism(synthetic, monk
     monkeypatch.setattr(FIT, "apply_determinism", lambda: calls.append(1) or real())
     FIT.train_fold(train_set, eval_set, tr, **kw)
     assert calls == [1]
+
+
+# 결정 14 3단계 — 구조 비교 fit 의 seed 제약 (A–D 는 CLI 가 검사)
+
+@pytest.mark.parametrize("cell", ["NG", "SG"])
+@pytest.mark.parametrize("seed", [0, 41, 45])
+def test_comparator_fit_rejects_seed_outside_locked_set(synthetic, cell, seed):
+    fold, tr, train_set, eval_set, _ = _sets_sg(synthetic)
+    with pytest.raises(FIT.FitError, match="MODEL_SEEDS"):
+        FIT.train_fold(train_set, eval_set, tr, cell=cell, config_id=0,
+                       model_seed=seed, fold=fold, min_updates=0, max_epochs=1)
+
+
+def test_a_to_d_library_path_keeps_accepting_other_seeds(synthetic):
+    """A–D 라이브러리 경로는 바꾸지 않았다 (pilot 측정 틀). seed 검사는 cli.run_fit."""
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    res, _ = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                            model_seed=7, fold=fold, min_updates=0, max_epochs=1)
+    assert res.model_seed == 7
