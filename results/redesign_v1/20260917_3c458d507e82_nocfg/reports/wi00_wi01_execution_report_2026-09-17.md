@@ -3902,3 +3902,42 @@ evaluation.json 의 config_hash, run_predictions sha256 기록과 대조한다. 
 - 4단계: S 후보·구조 비교의 fit·evaluate CLI 배선 (`fit --cell` 선택지에 NG·SG 없음).
 - 실자료 fit·GPU·시간 — 없음. SG graph 의 실자료 density·조건은 미측정.
 - 결정 13 결과로 head 앞 정규화가 A–D 에 들어가면 NG·SG head 앞에도 같은 변경이 필요하다 (결정 14 절).
+
+
+# 부록 AN — 결정 14 3단계: 구조 비교(NG·SG) 구조별 독립 선택·outer 계획·seed 42–44 제약 (rev40, 2026-09-24 예약 슬롯)
+
+근거: 인수인계 결정 14 (선생님 원문 "(가) 독립 선택: 두 구조가 각자 8개 설정 중 inner 결과로 하나를 고르고, epoch은 baseline 규칙을 따르며, seed는 42–44입니다. 약 270 fit이고 슬롯 권고안입니다" 선택, 09-24 11:1x KST) 의 구현 순서 3. **CLI 배선(4단계)은 이번 회차에 하지 않았다. 잠긴 값 변경 없음. 실자료 fit 없음, main pool 미소비.** 결정 12 값(최소 update·상한)·결정 13 구조 판단과 독립이다 — 선택 함수는 호출 시점 `train` 상수를 읽는다.
+
+## AN.1 선택 — `baselines.select_comparator(results, structure=)`
+
+- 입력: 한 outer fold·한 구조의 `ComparatorInner`(structure, config_id, inner_fold, model_seed, validation run 확률, best epoch) 24개 = 8 config × 3 inner fold. 결과 하나가 `train_fold` inner fit 하나다.
+- 검사 (위반은 전부 `BaselineError`): 알 수 없는 구조 / 다른 구조가 섞임 (구조별 독립) / inner seed ≠ `train.INNER_SEED` (계획서 §7 "Inner seed=42") / (config, fold) 중복·누락·여분 (불완전 grid 를 정상 선택으로 처리하지 않음 — A–D 와 같은 원칙) / best epoch 가 1–`train.MAX_EPOCHS` 밖 / fold 간 run 겹침 (`merge_inner_oof`) / config 간 OOF run 집합 불일치.
+- **구현 선택 (결정 14 가 세부를 정하지 않았다 — 계획서 §7 A–D 문장에 가장 가까운 형태):**
+  - 선택 손실 = config 별 3 fold validation run 확률을 OOF 하나로 합친 뒤 subject 동일 가중 log loss (`inner_loss` — S 후보와 같은 함수, §7 "각 config의 inner OOF run loss를 subject별 동일 가중으로 합산"). fold 별 loss 평균이 아니다 (시험이 둘이 다른 경우를 고정). 구조가 하나라 cell 가중은 없다.
+  - 동률 (차이 ≤ `train.TIE_TOLERANCE` = 1e-6) → OOF BA (§8 `b_i` 평균) 높은 것 → config_id 작은 것.
+  - outer E = 선택 config 의 3 inner best epoch 에 `train.baseline_epochs` (중앙값 올림, §7 "Baseline의 epoch는 해당 선택 모델의 3개 inner best epochs 중앙값 올림"). 1–상한 밖이면 거부.
+- `ComparatorSelection.outer_plan()`: 선택 config, 정확히 E epoch, seed = 호출 시점 `train.MODEL_SEEDS` (42–44) 세 개. outer fit 자체는 `train_fold(role=outer, epochs_exact=E)` 로 도는데, outer early stopping 거부·P8 가드는 rev39 부터 같은 코드다.
+- fit 수: 구조당 inner 8×3×5 = 120 + outer 5×3 = 15, 두 구조 270 (결정 14 의 수와 같음 — 시험).
+
+## AN.2 seed 제약
+
+- `fit_mlp` (S 후보 2·4): `model_seed ∉ train.MODEL_SEEDS` 거부 (호출 시점 상수 — monkeypatch 시험).
+- `train_fold`: **NG·SG 에만** `model_seed ∉ MODEL_SEEDS` 거부. A–D 라이브러리 경로는 바꾸지 않았다 — A–D 의 seed 검사는 rev38 부터 `cli.run_fit` 이 하고, pilot 측정 틀(`scripts/h197/23_…`, `24_…`)이 라이브러리 A–D 경로를 부른다. 이 비대칭은 구현 선택이며 시험(`test_a_to_d_library_path_keeps_accepting_other_seeds`)이 현재 동작을 고정한다.
+- 대응표 (`test_config_consumption.py`): `train.model_seeds` 소비 지점 2 → 4 (`fitting.train_fold`, `baselines.fit_mlp` 추가). 두 학습 루프의 train 상수 참조 집합은 그대로 같다.
+
+## AN.3 시험·돌연변이
+
+- `tests/v2/test_baselines.py` 30 → 42 (+12): `fit_mlp` seed 0·41·45 거부, seed 집합 호출 시점 읽기; 구조 이름 = `models.COMPARATOR_SPEC`; 최저 OOF loss 선택·outer E = `baseline_epochs`; OOF 병합 loss ≠ fold 평균인 경우 병합 쪽으로 계산; 동률 → BA → config_id; 가드 11종; 구조별 독립; outer 계획 seed·E; fit 수 270.
+- `tests/v2/test_fitting.py` 56 → 63 (+7): NG·SG × seed 0·41·45 거부, A–D 라이브러리 경로 seed 7 수용.
+- Mac 전체 796 passed / 13 skipped.
+- 돌연변이 (`.backup/slot_1315/mut_d14s3.py`, Mac 사본, count==1 확인·복원): fit_mlp seed 가드 제거·리터럴 굳힘, fold 평균 loss, BA 동률 제거, 큰 config_id, outer E = 최댓값, inner seed 가드 제거, 구조 섞임 가드 제거, 완비 검사 제거, run 집합 검사 제거, outer 계획 seed 리터럴, best epoch 범위 검사 제거, train_fold 구조 비교 seed 가드 제거, 가드를 A–D 에도 적용 = **14/14 검출**.
+
+## AN.4 잠금
+
+`mobse/v2/baselines.py`·`fitting.py` 변경으로 재잠금 `d3f869dd5844` → **`4fa15d0dd3c5` (2026-09-24T04:23:53Z)**, code_hash `5471ff45f8c7` → `63055a8a9381`. 검사 43/43, 창 4,728 (h197 재잠금 직후 19·25번). 창·코호트·분할 불변.
+
+## AN.5 이번 회차에 확인하지 못한 것 · 남은 순서
+
+- 4단계: S 후보·구조 비교의 fit·evaluate CLI 배선 (`fit --cell` 선택지에 NG·SG 없음, 선택 결과를 파일로 남기는 경로 없음). 설계 선택 (`fit --cell` 확장 대 별도 하위 명령) 은 그때 표시.
+- 선택 함수는 합성 입력으로만 시험했다. 실자료 inner 결과·GPU·시간 — 없음.
+- 결정 13 결과로 head 앞 정규화가 A–D 에 들어가면 NG·SG head 앞에도 같은 변경이 필요하다 (결정 14 절). 선택 규칙은 그 변경과 무관하다.
