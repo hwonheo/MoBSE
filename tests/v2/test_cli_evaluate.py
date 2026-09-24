@@ -261,3 +261,17 @@ def test_parser_takes_many_fit_paths(release):
               predictions=[release["tmp"] / "nope.jsonl"]))
     with pytest.raises(cli.CLIError, match="U20"):
         cli.check_inputs_exist(cli.resolve_paths("evaluate", ns))
+
+
+def test_seed_set_outside_locked_model_seeds_fails(release):
+    """격자가 꽉 차고 칸마다 같아도, seed 집합이 잠긴 42–44 가 아니면 거부한다."""
+    for m in release["manifests"]:
+        man = json.loads(m.read_text(encoding="utf-8"))
+        if man["model_seed"] == 44:
+            man["model_seed"] = 45
+            m.write_text(json.dumps(man), encoding="utf-8")
+    for p in release["predictions"]:
+        _rewrite(p, lambda rows: [dict(r, model_seed=45) if r["model_seed"] == 44 else r
+                                  for r in rows])
+    with pytest.raises(cli.CLIError, match="train.model_seeds"):
+        cli.main(_argv(release, release["tmp"] / "e"))

@@ -454,6 +454,11 @@ def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
     except ConfigError as exc:
         raise CLIError(f"config 검증 실패: {exc}") from exc
 
+    locked_seeds = tuple(int(s) for s in cfg["train.model_seeds"])
+    if int(args.model_seed) not in locked_seeds:
+        raise CLIError(f"--model-seed {args.model_seed} 는 잠긴 train.model_seeds "
+                       f"{locked_seeds} 밖이다 (계획서 §5)")
+
     task_manifests = [Path(p) for p in args.task_manifests]
     missing = [str(p) for p in task_manifests if not p.exists()]
     if missing:
@@ -672,6 +677,7 @@ def _check_fit_grid(fits: Mapping[str, Mapping[str, Any]], folds: Mapping[str, A
     """cell × outer fold × seed 격자가 빠짐없이 채워졌는지 확인한다."""
     from mobse.v2.evaluate import CELLS
     from mobse.v2.statistics import N_SEEDS
+    from mobse.v2.train import MODEL_SEEDS
 
     outer_ids = sorted(int(o["outer_fold"]) for o in folds.get("outer_folds") or [])
     if not outer_ids:
@@ -694,6 +700,10 @@ def _check_fit_grid(fits: Mapping[str, Mapping[str, Any]], folds: Mapping[str, A
                        f"{missing[:5]}, 알 수 없는 칸 {extra[:5]}")
     if len(seed_sets) != 1:
         raise CLIError(f"칸마다 seed 집합이 다르다: {sorted(seed_sets)[:3]}")
+    locked = tuple(sorted(int(s) for s in MODEL_SEEDS))
+    if tuple(int(s) for s in next(iter(seed_sets))) != locked:
+        raise CLIError(f"fit 격자의 seed 집합 {sorted(seed_sets)[0]} 가 잠긴 "
+                       f"train.model_seeds {locked} 와 다르다 (계획서 §5)")
     return {"outer_folds": outer_ids, "seeds": list(seed_sets.pop()),
             "n_fits": len(fits)}
 

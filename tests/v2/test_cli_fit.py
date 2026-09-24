@@ -232,3 +232,16 @@ def test_fit_report_records_applied_determinism(workspace):
     assert det["use_deterministic_algorithms"] is True
     assert det["cudnn_deterministic"] is True and det["cudnn_benchmark"] is False
     assert det["cublas_workspace_config"] in (":4096:8", ":16:8")
+
+
+@pytest.mark.parametrize("seed", [0, 41, 45])
+def test_model_seed_outside_locked_set_is_rejected(workspace, seed):
+    """잠긴 ``train.model_seeds`` (계획서 §5 seed 42–44) 밖의 seed 는 fit 전에 거부한다.
+
+    rev38 이전에는 이 키가 잠금 검사만 받고 어디서도 소비되지 않았다.
+    """
+    out = workspace["tmp"] / f"fit_seed{seed}"
+    ns = _args(workspace, out, seed=seed)
+    with pytest.raises(CLIError, match="train.model_seeds"):
+        run_fit(resolve_paths("fit", ns), ns)
+    assert not out.exists() or not any(out.iterdir())
