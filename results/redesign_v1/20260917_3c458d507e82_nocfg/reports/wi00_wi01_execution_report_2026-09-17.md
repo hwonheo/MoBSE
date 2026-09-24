@@ -4134,3 +4134,38 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 - S·구조 비교 outer 예측의 집계·보고 경로 — 없음 (evaluate 는 A–D 만).
 - A–D inner 선택(`train.select_config`)을 파일로 남기는 CLI 경로 — 없음 (다음 조각).
 - 실자료 fit·시간 — 없음.
+
+
+# 부록 AT — A–D 공동 선택 손실을 OOF 병합(subject 수 가중)으로 정정 (rev46, 2026-09-24 예약 슬롯)
+
+근거: 인수인계 남은 작업 2 ("A–D inner 선택 기록 경로" 의 사전 확인). **새 결정 아님 — 계획서 §7 문장에 코드를 맞춘 정정. 실자료 fit 없음, main pool 미소비. 잠긴 값 변경 없음.**
+
+## AT.1 사전 확인에서 발견한 것
+
+- 계획서 §7 원문: "각 config의 inner OOF run loss를 subject별 동일 가중으로 합산하고 A–D 네 cell에 같은 가중을 주어 최소화한다. 동률(차이≤1e−6)은 공동 BA가 높은 것, 이후 config_id가 작은 것으로 정한다."
+- 지침서 WI-07 출력: "selection, checkpoints, …" — 선택 기록 경로가 필요하다는 읽기는 그대로 (AQ.6).
+- **어긋남**: `train.select_config` 는 cell 손실을 **3 inner fold 손실의 단순 평균** (`sum(r.loss) / n_folds`) 으로 냈다. 구조 비교(`select_comparator`, rev40)·S(`select_s`)는 같은 문장을 근거로 이미 **OOF 병합 subject 동일 가중** (`inner_loss`) 을 쓴다. inner validation 크기가 다르면 둘이 다르다.
+- 현행 분할 (h197 `derivatives_v3/splits_piop1_p7/folds.json`, 그 자리에서 잼): main 126, outer test 26/25/25/25/25, inner validation 크기 outer 0 **34/33/33**, outer 1–4 **34/34/33** — 크기가 같지 않다. 차이는 작지만 동률 경계(1e−6)에서 선택이 갈릴 수 있고, 무엇보다 계획서 문장과 다르다.
+
+## AT.2 바뀐 것
+
+- `train.CellFoldResult` 에 **`n_subjects` (기본값 없음, 1 이상 정수)** 추가. 빠뜨리면 생성 자체가 실패한다 (fold 평균으로 조용히 돌아가지 않게).
+- `train.select_config`: cell 손실·BA = Σ n_f · (fold 값) / Σ n_f. inner validation subject 는 fold 끼리 겹치지 않으므로 이는 OOF 하나로 합친 subject 동일 가중 log loss·`b_i` 평균과 **정확히 같다** (손계산 시험). 그 다음 네 cell 같은 가중 — 그대로. 동률 규칙·공통 E(12 best epoch 중앙값 올림)·완비 검사 — 그대로.
+- 새 가드: 같은 inner fold 의 `n_subjects` 가 config·cell 사이에서 다르면 거부 (같은 inner 모집단 비교).
+- 호출자: 라이브러리·CLI 에 `select_config` 호출자는 없다 (시험만, grep). 기존 산출물 영향 없음.
+
+## AT.3 시험·돌연변이
+
+- `tests/v2/test_train.py` 22 → **26**: fold 크기 3/3/1 에서 OOF 는 config 0, fold 평균은 config 1 을 뽑는 자료; subject 단위 손계산(OOF 병합 손실·BA, 1e−12)과 일치하고 fold 평균과 다름; `n_subjects` 필수·0/음수/bool/float 거부; fold subject 수 불일치 거부. 기존 시험은 `n_subjects=10` 만 덧붙임.
+- Mac: `test_train`·`test_config_consumption`·`test_baselines` 111 passed. (Mac 전체 실행은 백그라운드 프로세스가 48% 에서 끊겨 결과 없음 — 최종 판정은 h197 마감 1번.)
+- 돌연변이 (`.backup/slot_1915/mut_oof.py`, 원본 복원, `-B`·`PYTHONDONTWRITEBYTECODE=1`, 뒤 `__pycache__` 삭제): loss fold 평균·BA fold 평균·subject 수 가드 제거·n_subjects 검사 제거·n_subjects 기본값 추가·cell 가중 제거 = **6/6 검출**.
+
+## AT.4 잠금
+
+`mobse/v2/train.py` 변경으로 재잠금 `60aa5987ef0c` → **`b999c11f4c81` (2026-09-24T10:19:50Z)**, code_hash `cd9d823591fb` → `66cc8f11bf5b`. 검사 43/43, 창 4,728 (h197 재잠금 직후 19·25번). split_hash `ace5f4a4…` 불변, config_hash main `2a7d7d7f`·pilot `6498596a`·external `576f6068` 불변.
+
+## AT.5 확인하지 못한 것 · 남은 순서
+
+- A–D 선택 기록 CLI (`select-ad` 가칭, 96 fit_manifest → `train.select_config` → `selection.json` + outer 계획 4 cell × seed 42–44 × 공통 E) — 다음 조각. 입력은 `fit` 산출물(`fit_report.json`·`window_predictions.jsonl`)에서 fold 별 손실·BA·subject 수를 재계산해 `CellFoldResult` 로 넣는다.
+- 이 정정이 구조 비교·S 와 "같은 함수" 인지는 수식 동치(시험)로만 확인 — A–D 는 fold 요약값에서, 나머지는 run 확률에서 계산한다.
+- 외부 S, S·구조 비교 outer 집계, 실자료 fit·시간 — 없음.
