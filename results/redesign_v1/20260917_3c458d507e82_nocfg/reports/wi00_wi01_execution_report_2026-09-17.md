@@ -3712,3 +3712,57 @@ evaluation.json 의 config_hash, run_predictions sha256 기록과 대조한다. 
 - `fit_mlp` 의 학습 루프는 `train_fold` 와 같은 규칙을 **따로 구현**한 것이다 (공통 함수로 묶지 않음 — 주 경로 `train_fold` 를 건드리지 않으려는 선택). 두 루프가 앞으로 어긋나지 않게 하는 장치는 아직 없다 — 남은 작업 3 (잠긴 키 ↔ 소비 지점 대응표) 에서 함께 다룬다.
 - gradient clip 을 빼는 돌연변이는 시험에 넣지 않았다 (합성 자료에서 효과가 드러나지 않을 수 있어 검출을 보장하지 못함).
 - 구조 비교 2종, S 후보의 fit·evaluate CLI 배선 — 미구현.
+
+
+# 부록 AJ — §6 구조 비교 2종 모델 구조·합성 시험 (rev37, 2026-09-24 예약 슬롯)
+
+근거: 선생님 결정 5 "§6 S 후보 4 + 구조 비교 2 - 추천안 대로" (구현·합성 시험은 지금, 실자료 실행은 main OOF 와 같은 release). 인수인계 남은 작업 2번. **새 결정 없음. 실자료 fit 없음, main pool 미소비. 학습·선택 규칙은 배선하지 않았다 (AJ.5 질문).**
+
+## AJ.1 프로토콜이 정한 것 (그대로 옮김)
+
+- §6 표: 구조 비교 "ROI encoder pooled feature + PCA FC10 fusion MLP" — "같은 종류의 정보에 접근하는 no-graph comparator; 완벽한 구조 ablation은 아님". 구조 비교 "training-rest single average graph + 동일 encoder/head" — "여러 template의 필요성".
+- §6 "no-graph FC comparator와 실제 parameter/비용을 함께 보고한다". §7 "baseline·pilot·mechanism·다른 민감도 비용은 별도다".
+- 계획서는 두 구조의 **학습·선택 규칙**(자기 grid 선택인지, A–D 공동 선택 config·E 재사용인지, seed 수)을 정하지 않았다 (§6·§7 grep: 두 행 외 언급 없음).
+
+## AJ.2 구현
+
+`mobse/v2/models.py`: `COMPARATOR_SPEC = {"NG", "SG"}` (구현 편의 이름), `FUSION_HIDDEN = 32`, `FusionMLPComparator`, `SingleGraphComparator`, `build_comparator`. 두 모델 모두 `forward(x, pca)` → `{"logits", …}` 로 A–D 와 같은 호출 모양이다 (학습 루프 배선은 하지 않음).
+`mobse/v2/templates.py`: `SingleGraph`, `build_single_graph(correlations, fit_subjects)`.
+
+구현 선택 (프로토콜이 정하지 않음 — 결정 아님):
+
+| 항목 | 선택 | 이유 |
+|---|---|---|
+| NG fusion | A–D `ROIEncoder` → ROI mean pooling(32, graph layer 없음) ‖ PCA FC10 → `Linear(42→32) → GELU → Dropout(p) → Linear(32→2)` | "pooled feature + PCA FC10 fusion MLP" 의 최소 해석, 은닉 32 는 S 후보 MLP·gate 와 같음 |
+| SG 모델 | A–D 와 같은 `ROIEncoder`·`DenseGraphLayer`×2·ROI mean pooling·`Linear(32→2)`, graph 하나는 buffer, gate 없음, PCA 는 예측에 안 씀 | "동일 encoder/head"; B/D 와 같은 규칙 |
+| SG graph | training-rest window **전부의 원래 correlation 평균** (= clustering 없는 K=1 raw centroid) → §5 와 같은 대각 0·양수 상위 20%·동률 ROI index 순·`D^(−1/2)(A+I)D^(−1/2)` | "single average graph"; bank 와 같은 sparsify 규칙이라 template 수만 다르다 |
+| SG null | 만들지 않음 | §6 표에 없음 |
+| 생성 순서 | encoder 를 먼저 만든다 | 같은 seed 에서 encoder 초기값이 A–D 와 같다 (시험). graph layer·head 이후 초기값은 gate 유무로 A–D 와 다르다 |
+
+## AJ.3 시험 (합성 자료만)
+
+- `tests/v2/test_models.py` 21 → 31: 계획서 표 두 행 문장 대조, NG 구조·차원·parameter 수 공식·dropout p, NG 가 PCA 를 실제로 씀·없으면 거부, **NG 는 ROI 순서 치환에 불변** (graph 전 ROI 혼합·ROI ID 없음), SG graph buffer·PCA 비사용, **SG = bank `[S,S,S]` 인 A–D 모델(fixed·dynamic)과 가중치를 맞추면 출력 동일**, 같은 seed 에서 encoder 초기값이 cell A 와 동일, 인자·모양·NaN 거부.
+- `tests/v2/test_templates.py` 20 → 24: 평균→§5 규칙 대조, **`build_bank(k=1)` 의 template·raw centroid 와 동일**, 결정성·입력 민감성, 모양·빈 입력·NaN·빈 subject 거부.
+- 돌연변이 (`.backup/slot_1015/mut_comparators.py`, Mac 사본, python 치환·count==1 확인·복원): PCA concat 제거, fusion hidden 16, GELU→ReLU, dropout 고정, ROI pooling 을 첫 ROI 로, SG graph 재정규화, SG graph layer 1개, SG graph 를 parameter 로, encoder 생성 순서 뒤로, NaN graph 허용, NG 에 graph 허용, 평균 대신 중앙값, sparsify 생략, self-loop 정규화 생략, 빈 fit subject 허용 = **15/15 검출**.
+
+## AJ.4 잠금
+
+`mobse/v2` 변경으로 재잠금 `4acf47a8c79a` → **`ff4f766ce090`** (2026-09-24T01:18:07Z), code_hash `0f30e7b29312` → `537ff921250e`. 검사 43/43, 창 4,728, 창·코호트·분할 불변 (split_hash `ace5f4a41446`).
+
+```
+… → f93f1c504ba2 (결정 12 best checkpoint 평가) → 4acf47a8c79a (S 후보 2·4 MLP) → ff4f766ce090 (구조 비교 2종 모델, 현행)
+```
+
+## AJ.5 선생님께 여쭐 것 (결과 해석에 영향 — 배선 전에 필요)
+
+두 구조 비교의 학습·선택 규칙:
+
+- (가) **독립 선택**: 각 구조가 §7 8개 grid 에서 자기 inner OOF subject-equal loss 로 config 를 고르고, outer epoch 은 baseline 규칙(선택 config 3 inner best epochs 중앙값 올림), seed 42–44 확률 평균(§8). fit 수 구조당 inner 120 + outer 15 = 135, 두 구조 270.
+- (나) **A–D 공동 선택 config·E 재사용**: 재튜닝 없음 (추가 null 민감도와 같은 방식). fit 수 두 구조 outer 30 (+ inner 선택 없음). A–D 에 맞춰 고른 recipe 라 비교가 A 쪽에 유리할 수 있다.
+- 권고: (가). no-graph comparator 는 "같은 정보로 graph 없이 얼마나 되는가" 를 묻는 대조군이라 자기 recipe 로 맞춰야 A 와의 차이를 graph 경로 탓으로 읽을 수 있다. SG 도 같은 이유. 비용은 S 후보와 같이 "별도" 로 보고한다.
+
+## AJ.6 이번 회차에 확인하지 못한 것
+
+- 실자료 fit·GPU·main 규모 시간 — 하지 않음. fit·evaluate CLI 배선 없음 (AJ.5 결정 뒤).
+- `SingleGraph` 를 fold 변환(`fitting.fit_fold_transform`)에 붙이는 배선 없음 — 지금은 호출자가 training-rest correlation 을 넘기는 라이브러리 함수다. training subject 경계는 호출 측 책임.
+- A–D 와 graph layer·head 초기값이 다르다 (gate 유무). 비교에 영향이 있는지는 재지 않았다.
