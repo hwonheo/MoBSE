@@ -365,6 +365,17 @@ def test_s_outer_plan_guards():
                                            "model_seed": None, "epochs_exact": None}]
 
 
+def test_s_outer_plan_refuses_each_best_epoch_out_of_range():
+    """중앙값(outer E)이 범위 안이어도 inner best epoch 하나가 1–MAX_EPOCHS 밖이면 거부 (결정 16 재점검에서 보강).
+
+    [1, 1, MAX+1] 과 [0, 300, 300] 은 중앙값 올림이 1·300 이라 outer E 범위 검사만으로는 통과한다.
+    """
+    for epochs in ([1, 1, TR.MAX_EPOCHS + 1], [0, 300, 300]):
+        assert 1 <= TR.baseline_epochs(epochs) <= TR.MAX_EPOCHS
+        with pytest.raises(BL.BaselineError, match="best epoch 가 1"):
+            BL.s_outer_plan(S2, "config=0", epochs)
+
+
 def test_real_fit_s_loss_matches_cli_run_aggregation():
     """`fit_s` 의 eval_loss 가 CLI 가 쓰는 `fitting.run_probabilities` 재집계와 같다."""
     rng = np.random.default_rng(5)
