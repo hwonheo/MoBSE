@@ -1,4 +1,4 @@
-"""S 후보 1·3 (logistic) 과 S 선택 규칙 — 계획서 §6 "S 후보" 행. 합성 자료만 쓴다."""
+"""S 후보 1·3 (logistic)·2·4 (32-hidden MLP) 와 S 선택 규칙 — 계획서 §6 "S 후보" 행. 합성 자료만 쓴다."""
 
 from __future__ import annotations
 
@@ -292,3 +292,185 @@ def test_end_to_end_inner_selection_synthetic():
     sel = B.select_s(entries)
     assert sel.candidate == B.S1
     assert len(sel.table) == 16
+
+
+# ---- MLP (S 후보 2·4) ---------------------------------------------------------
+
+
+def _task_set(kind: str, n_sub: int, seed: int):
+    """subject 마다 emo 4창(class 0) + wm 4창(class 1). run key 는 창마다."""
+    a = _windows(n_sub * 4, seed=seed, **({"shift": 0.0} if kind == "mean" else {"corr": 0.0}))
+    b = _windows(n_sub * 4, seed=seed + 1,
+                 **({"shift": 1.0} if kind == "mean" else {"corr": 2.0}))
+    keys = ([_rk(i, "emomatching") for i in range(n_sub) for _ in range(4)]
+            + [_rk(i, "workingmemory") for i in range(n_sub) for _ in range(4)])
+    y = np.array([0] * (n_sub * 4) + [1] * (n_sub * 4))
+    return a + b, y, keys
+
+
+def _mean_xy(n_sub: int, seed: int):
+    w, y, keys = _task_set("mean", n_sub, seed)
+    return B.feature_matrix(w, B.FEATURE_ROI_MEAN_VAR), y, keys
+
+
+def test_mlp_constants_match_protocol():
+    text = PROTOCOL.read_text(encoding="utf-8")
+    assert "동일 200 features + 32-hidden MLP" in text
+    assert "위 FC + 32-hidden MLP" in text
+    assert "MLP는 아래 8개 grid와 같은 예산이다" in text
+    assert B.MLP_HIDDEN == 32
+    assert B.MLP_CANDIDATES == (B.S2, B.S4)
+    assert B.CANDIDATE_FEATURE[B.S2] == B.FEATURE_ROI_MEAN_VAR
+    assert B.CANDIDATE_FEATURE[B.S4] == B.FEATURE_FC_FISHER_Z
+
+
+def test_mlp_settings_share_the_common_grid():
+    s = B.mlp_settings()
+    ids = [g.config_id for g in TR.build_grid()]
+    assert len(s) == 16 and ids == list(range(8))
+    assert [c for c, _, _ in s] == [B.S2] * 8 + [B.S4] * 8
+    assert [r for _, _, r in s] == ids + ids
+    assert s[0][1] == "config=0" and s[15][1] == "config=7"
+
+
+def test_build_mlp_architecture():
+    import torch.nn as nn
+
+    m = B.build_mlp(200, 0.3)
+    assert [type(l) for l in m] == [nn.Linear, nn.GELU, nn.Dropout, nn.Linear]
+    assert (m[0].in_features, m[0].out_features) == (200, 32)
+    assert (m[3].in_features, m[3].out_features) == (32, 2)
+    assert m[2].p == 0.3
+    assert B.build_mlp(4950, 0.1)[0].in_features == 4950
+    with pytest.raises(B.BaselineError):
+        B.build_mlp(0, 0.1)
+
+
+def test_fit_mlp_defaults_are_read_from_train_at_call_time(monkeypatch):
+    """P8 기본값이 조용히 굳지 않는다 — 인자 기본은 None, 값은 호출 시점 `train` 상수."""
+    import inspect
+
+    sig = inspect.signature(B.fit_mlp)
+    assert sig.parameters["min_updates"].default is None
+    assert sig.parameters["max_epochs"].default is None
+    for banned in ("batch_size", "patience", "min_delta", "grad_clip"):
+        assert banned not in sig.parameters
+    X, y, keys = _mean_xy(4, seed=1)                 # 32 창 → 1 update/epoch
+    with pytest.raises(B.BaselineError, match=f"최소 {TR.MIN_UPDATES} update"):
+        B.fit_mlp(X, y, X, keys, role="inner", config_id=0, model_seed=42)
+    monkeypatch.setattr(TR, "MIN_UPDATES", 3)
+    fit, _ = B.fit_mlp(X, y, X, keys, role="inner", config_id=0, model_seed=42)
+    assert fit.min_epoch == 3 and fit.epochs_run >= 3
+
+
+def test_fit_mlp_guards():
+    X, y, keys = _mean_xy(4, seed=2)
+    kw = dict(model_seed=42, min_updates=0)
+    with pytest.raises(B.BaselineError, match="role"):
+        B.fit_mlp(X, y, X, keys, role="test", config_id=0, **kw)
+    with pytest.raises(B.BaselineError, match="config_id"):
+        B.fit_mlp(X, y, X, keys, role="inner", config_id=8, **kw)
+    with pytest.raises(B.BaselineError, match="정확히"):
+        B.fit_mlp(X, y, X, keys, role="outer", config_id=0, **kw)
+    with pytest.raises(B.BaselineError, match="epochs_exact"):
+        B.fit_mlp(X, y, X, keys, role="inner", config_id=0, epochs_exact=3, **kw)
+    with pytest.raises(B.BaselineError, match="상한"):
+        B.fit_mlp(X, y, X, keys, role="outer", config_id=0,
+                  epochs_exact=TR.MAX_EPOCHS + 1, **kw)
+    with pytest.raises(B.BaselineError, match="P8"):
+        B.fit_mlp(X, y, X, keys, role="outer", config_id=0, epochs_exact=5,
+                  model_seed=42, min_updates=6)
+    with pytest.raises(B.BaselineError, match="두 class"):
+        B.fit_mlp(X, np.zeros_like(y), X, keys, role="inner", config_id=0, **kw)
+    with pytest.raises(B.BaselineError, match="X_eval"):
+        B.fit_mlp(X, y, X[:, :10], keys, role="inner", config_id=0, **kw)
+    with pytest.raises(B.BaselineError, match="X_eval"):
+        B.fit_mlp(X, y, X, keys[:-1], role="inner", config_id=0, **kw)
+
+
+def test_fit_mlp_inner_never_stops_before_min_epoch():
+    X, y, keys = _mean_xy(4, seed=3)
+    V, _, vkeys = _mean_xy(3, seed=30)
+    fit, _ = B.fit_mlp(X, y, V, vkeys, role="inner", config_id=3, model_seed=42,
+                       min_updates=12)
+    assert fit.min_epoch == 12
+    assert fit.epochs_run >= 12 and fit.best_epoch >= 12
+    assert len(fit.val_losses) == fit.epochs_run
+    assert fit.updates_run == fit.updates_per_epoch * fit.epochs_run
+    assert fit.eval_epoch == fit.best_epoch
+    assert fit.record()["converged"] is True and fit.record()["hidden"] == 32
+
+
+def test_fit_mlp_inner_evaluates_best_checkpoint_not_last_epoch():
+    """inner 평가 확률 = 같은 seed 로 best_epoch 만큼만 학습한 모델의 확률 (결정 12).
+
+    검증 forward 는 eval 모드·no_grad 라 RNG 를 소비하지 않으므로, outer 로 정확히
+    best_epoch 학습한 궤적과 inner 궤적은 그 epoch 까지 같다.
+    """
+    X, y, keys = _mean_xy(6, seed=4)
+    V, _, vkeys = _mean_xy(4, seed=40)
+    found = False
+    for cid in range(8):
+        inner, m_in = B.fit_mlp(X, y, V, vkeys, role="inner", config_id=cid,
+                                model_seed=43, min_updates=4)
+        if inner.best_epoch == inner.epochs_run:
+            continue
+        found = True
+        outer, m_out = B.fit_mlp(X, y, V, vkeys, role="outer", config_id=cid,
+                                 model_seed=43, epochs_exact=inner.best_epoch,
+                                 min_updates=4)
+        np.testing.assert_array_equal(inner.eval_window_p1, outer.eval_window_p1)
+        for (k, a), (_, b) in zip(m_in.state_dict().items(), m_out.state_dict().items()):
+            assert bool((a == b).all()), k
+        assert inner.eval_loss == pytest.approx(inner.val_losses[inner.best_epoch - 1],
+                                                rel=1e-6)
+        break
+    assert found, "합성 자료에서 best < 마지막 epoch 인 fit 이 없었다 — 시험 자료를 바꿔야 한다"
+
+
+def test_fit_mlp_is_deterministic_and_scaler_uses_training_only():
+    X, y, keys = _mean_xy(4, seed=5)
+    V, _, vkeys = _mean_xy(3, seed=50)
+    V = V + 10.0                                        # 분포 다른 평가 창
+    a, _ = B.fit_mlp(X, y, V, vkeys, role="outer", config_id=1, model_seed=44,
+                     epochs_exact=6, min_updates=0)
+    b, _ = B.fit_mlp(X, y, V, vkeys, role="outer", config_id=1, model_seed=44,
+                     epochs_exact=6, min_updates=0)
+    np.testing.assert_array_equal(a.eval_window_p1, b.eval_window_p1)
+    np.testing.assert_allclose(a.scaler_mean, X.mean(axis=0))
+    c, _ = B.fit_mlp(X, y, V, vkeys, role="outer", config_id=1, model_seed=42,
+                     epochs_exact=6, min_updates=0)
+    assert not np.array_equal(a.eval_window_p1, c.eval_window_p1)
+    assert a.determinism["use_deterministic_algorithms"] is True
+    import torch
+
+    torch.manual_seed(44)
+    assert a.init_hash == B.mlp_param_hash(B.build_mlp(X.shape[1], 0.1))
+    assert a.init_hash == b.init_hash != c.init_hash
+    assert a.record()["init_hash"] == a.init_hash
+
+
+@pytest.mark.parametrize("cand,data", [(B.S2, "mean"), (B.S4, "corr")])
+def test_mlp_synthetic_signal_is_recovered(cand, data):
+    kind = B.CANDIDATE_FEATURE[cand]
+    w, y, _ = _task_set(data, 10, seed=60)
+    vw, yv, vkeys = _task_set(data, 5, seed=70)
+    fit, _ = B.fit_mlp(B.feature_matrix(w, kind), y, B.feature_matrix(vw, kind), vkeys,
+                       role="outer", config_id=0, model_seed=42, epochs_exact=40,
+                       min_updates=0)
+    assert ((fit.eval_window_p1 >= 0.5).astype(int) == yv).mean() >= 0.9
+    assert len(fit.eval_run_probs) == 10
+
+
+def test_select_s_orders_mlp_between_logistic_candidates():
+    """동률이면 S1 < S2 < S3 < S4, 같은 후보 안에서는 config_id 순."""
+    same = _oof(0.8)
+    e = [B.SEntry(B.S4, "config=0", 0, same), B.SEntry(B.S3, "C=0.001", 0, same),
+         B.SEntry(B.S2, "config=5", 5, same), B.SEntry(B.S2, "config=2", 2, same)]
+    sel = B.select_s(e)
+    assert (sel.candidate, sel.setting_id) == (B.S2, "config=2")
+    sel2 = B.select_s(e + [B.SEntry(B.S1, "C=1", 3, same)])
+    assert sel2.candidate == B.S1
+    sel3 = B.select_s([B.SEntry(B.S2, "config=0", 0, _oof(0.7)),
+                       B.SEntry(B.S4, "config=7", 7, _oof(0.9))])
+    assert (sel3.candidate, sel3.setting_id) == (B.S4, "config=7")
