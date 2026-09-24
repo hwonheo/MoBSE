@@ -4096,3 +4096,41 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 - 5,000/400 에서의 실제 fit 시간 (pilot 창, 남은 작업 6) — 미측정. main 규모 epoch 당 시간도 미측정.
 - 이전 회차 돌연변이의 stale pyc 영향 — 미확인 (AR.2).
 - 결정 14 4c-ii (S 선택 기록 CLI), A–D inner 선택 기록 경로 — 남음.
+
+
+
+# 부록 AS — 결정 14 4c-ii: S 선택 기록 하위 명령 `select-s` (rev45, 2026-09-24 예약 슬롯)
+
+근거: 인수인계 결정 14 (선생님 원문 "(가) 독립 선택: 두 구조가 각자 8개 설정 중 inner 결과로 하나를 고르고, epoch은 baseline 규칙을 따르며, seed는 42–44입니다. 약 270 fit이고 슬롯 권고안입니다") 구현 순서 4c-ii, 결정 5 (S 후보 — 구현·합성 시험은 지금, 실자료 실행은 main OOF 와 같은 release). **실자료 fit 없음, main pool 미소비. 잠긴 값 변경 없음.**
+
+## AS.1 사전 확인 (계획서 §6·§7 grep)
+
+- §6: "S는 각 outer fold에서 inner subject-equal log loss가 가장 낮은 후보/설정으로 고른다. 외부 S도 PIOP1 main pool의 inner 결과로만 고른다." · [개정 P11] 미수렴 설정은 빼고 수를 보고.
+- §7: "Baseline의 epoch는 해당 선택 모델의 3개 inner best epochs 중앙값 올림이다." · "Inner seed=42".
+- **계획서가 정하지 않은 것**: S outer fit 의 seed 수. A–D 는 seeds 42–44 (§7), 구조 비교는 결정 14 가 42–44. S MLP 도 42–44 로, logistic 은 결정적이라 한 번으로 두었다 — **구현 선택**.
+- 외부 S: `fitting.resolve_fold_subjects` 는 outer 0–4 만 안다 (folds.json 에 main pool 전체 inner 분할이 없음). 외부 S 선택은 그 분할이 생긴 뒤 같은 함수로 붙인다 — **이번에 구현하지 않음**.
+
+## AS.2 바뀐 것
+
+- 새 하위 명령 `select-s --config --splits --output-dir --outer-fold K --fit-report ×96`. `s_window_predictions.jsonl`·`s_model.npz` 는 각 `s_fit_report.json` 옆 고정 이름 (U20). 학습하지 않는다.
+- 검사: schema·s_fit_id 중복·후보/설정 grid·setting_rank·inner role/eval_role·outer fold·split/config hash·logistic 에 seed·best_epoch 없음·MLP inner seed = `train.INNER_SEED`·MLP best_epoch 1–`MAX_EPOCHS`·**보고서 필드로 s_fit_id 재계산 대조**·fit_subjects = folds inner train·**s_model.npz·예측 파일 sha256 = 보고서**·예측 행 s_fit_id/candidate/setting/scope/model hash/truth·예측 subject = inner validation·**창 → run 재집계(`fitting.run_probabilities`) 손실 vs 보고서 `eval_loss` (1e-6)**·grid 완비 96 (4 후보 × 8 설정 × 3 inner fold)·code/env/source hash 일치 → `baselines.select_s`.
+- 새 `baselines.s_outer_plan(candidate, setting_id, best_epochs)`: logistic → fit 한 번 (seed·epoch 없음, best epoch 주면 거부), MLP → 호출 시점 `train.MODEL_SEEDS` 마다 정확히 E = `train.baseline_epochs(3 best epochs)` (1–`MAX_EPOCHS`). `baselines.S_INNER_FOLDS = 3`.
+- 산출물 `s_selection.json` (schema `d14-s-selection-0.1`, 덮어쓰기 거부): 선택 후보·설정·손실·best epochs·outer E·제외 목록/수 (P11)·설정 표 32 행·outer 계획 (`fit-s … --inner-fold 9` 인자 목록)·입력 96 fit sha256.
+- **구현 선택 (표시함)**: 하위 명령 이름·입력 형식 (`select-comparator` 와 같은 모양), grid 완비 요구 (빠진 것 ≠ 미수렴), **설정의 수렴 = 3 inner fit 모두 수렴** (P11 은 fit 단위·설정 단위를 구별하지 않음), S outer seed 규칙 (AS.1).
+
+## AS.3 시험·돌연변이
+
+- 새 `tests/v2/test_cli_select_s.py` **27** (합성 inner 디렉터리 96개; logistic 선택·MLP 선택 각각 outer 계획, `MODEL_SEEDS` monkeypatch, 미수렴 설정 제외·기록, 가드 19종, `s_outer_plan` 가드, 실제 `fit_s` 손실 = CLI 재집계 함수 1e-9).
+- Mac 전체 **877 passed / 13 skipped**.
+- 돌연변이 (`.backup/slot_1815/mut_d14s4cii.py`, 파일별 원본 복원, `-B`·`PYTHONDONTWRITEBYTECODE=1`, 끝나고 `__pycache__` 삭제 뒤 rsync): grid 완비·수렴 all→any·손실 대조·MLP inner seed·s_fit_id 재계산·model sha·pred sha·scope·subject·fit_subjects·hash 일치·setting_rank·best_epoch 범위·logistic seed·role·truth·덮어쓰기·outer fold·plan seed 리터럴·outer E max·logistic plan epoch 허용 = **21/21 검출**.
+
+## AS.4 잠금
+
+`mobse/v2/cli.py`·`baselines.py` 변경으로 재잠금 `4394c7a28252` → **`60aa5987ef0c` (2026-09-24T09:22:52Z)**, code_hash `170629c693a3` → `cd9d823591fb`. 검사 43/43, 창 4,728 (h197 재잠금 직후 19·25번). split_hash `ace5f4a4…` 불변, config_hash main `2a7d7d7f`·pilot `6498596a`·external `576f6068` 불변.
+
+## AS.5 확인하지 못한 것 · 남은 순서
+
+- 외부 S 선택 (main pool 전체 inner 분할 필요) — 미구현.
+- S·구조 비교 outer 예측의 집계·보고 경로 — 없음 (evaluate 는 A–D 만).
+- A–D inner 선택(`train.select_config`)을 파일로 남기는 CLI 경로 — 없음 (다음 조각).
+- 실자료 fit·시간 — 없음.
