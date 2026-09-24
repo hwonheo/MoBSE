@@ -1,7 +1,7 @@
 {
   "schema_version": "measurement_lock_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "locked_at_utc": "2026-09-24T02:21:50Z",
+  "locked_at_utc": "2026-09-24T01:18:07Z",
   "gate": "G1 Measurement lock",
   "work_instruction": "WI-03",
   "roots": {
@@ -242,11 +242,11 @@
       }
     },
     "code": {
-      "code_hash": "bb5d96e77ef11a2cf93057176882f92ec270c5971585b1f539948a0a08c394f6",
+      "code_hash": "537ff921250e897f8c47a87908f412a64c0f32da04979bc8d05c543b4cb40be5",
       "modules": {
         "__init__.py": "c884876e4717224c87d95b1fd4b3821863307e65f9146eac605bc9a96375c9ab",
         "baselines.py": "14f7b18dd6c23cbef9fa91ab92bbf6398ecf16bdcff53c3db76a12d7fbfe13e0",
-        "cli.py": "41fb349e384c1fcc910eabcfd800b763376a80d0db3ebb69b9e4ecfd2d9a5ed2",
+        "cli.py": "31fa7c39435fdc3ce5d10a7d898f5de6d83018cd442b0edbfd1cf90a00367137",
         "cohort.py": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
         "config.py": "5086ba86e3edc069cd12eb57a85b8b038c3411c75ef9b0b9bdb96ac62bcedc44",
         "evaluate.py": "a11a324f851603edb0e93b21c2cafe8b098529a485f17fe0321876825120e9b7",
@@ -303,9 +303,9 @@
     "formula": "126 subjects x 2 tasks x 4 windows x 3 seeds x 4 cells"
   },
   "supersedes": {
-    "lock_hash": "ff4f766ce0907e5df5d7033213a64c0a84bb90d992c893f00c9d2d2ef1032f48",
-    "locked_at_utc": "2026-09-24T01:18:07Z",
-    "reason": "Locked model seeds now consumed (protocol section 5, seeds 42-44): fit CLI rejects a model seed outside train.model_seeds and evaluate rejects a fit grid whose seed set differs from it, found by the new locked-config-key consumption table test; no value or rule changed, no real-data fit; windows, cohorts and splits unchanged; main pool not consumed"
+    "lock_hash": "4acf47a8c79ac637cce16137ff60f8aef11626b27f242750e994e778367b33aa",
+    "locked_at_utc": "2026-09-24T00:22:06Z",
+    "reason": "Structure comparators (protocol section 6, teacher decision 5): no-graph fusion MLP (ROI encoder pooled feature + PCA FC10) and training-rest single average graph with the same encoder/head added to mobse/v2/models.py, single-graph builder added to mobse/v2/templates.py; architecture and synthetic tests only, training and selection rules not wired, no real-data fit; windows, cohorts and splits unchanged; main pool not consumed"
   },
-  "lock_hash": "d15dd718225ef4f8829e7377663d818b4cd98e568194e58e4300b412c25b4f2f"
+  "lock_hash": "ff4f766ce0907e5df5d7033213a64c0a84bb90d992c893f00c9d2d2ef1032f48"
 }

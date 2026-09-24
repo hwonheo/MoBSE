@@ -3766,3 +3766,46 @@ evaluation.json 의 config_hash, run_predictions sha256 기록과 대조한다. 
 - 실자료 fit·GPU·main 규모 시간 — 하지 않음. fit·evaluate CLI 배선 없음 (AJ.5 결정 뒤).
 - `SingleGraph` 를 fold 변환(`fitting.fit_fold_transform`)에 붙이는 배선 없음 — 지금은 호출자가 training-rest correlation 을 넘기는 라이브러리 함수다. training subject 경계는 호출 측 책임.
 - A–D 와 graph layer·head 초기값이 다르다 (gate 유무). 비교에 영향이 있는지는 재지 않았다.
+
+
+# 부록 AK — 잠긴 config 키 ↔ 소비 지점 대응표 시험, `train.model_seeds` 미소비 발견·적용 (rev38, 2026-09-24 예약 슬롯)
+
+근거: 인수인계 남은 작업 3 ("config 잠긴 키 ↔ 소비 지점 대응표 시험", 결정 불요·가역). **새 결정 없음. 실자료 fit 없음, main pool 미소비.**
+
+## AK.1 측정 — 잠긴 키 39개의 소비 지점
+
+`config.SCHEMA` 의 `locked_to` 키 39개마다 `mobse/v2` 함수 AST 에서 그 상수 이름(`X`, `mod.X`) 또는 config 키 문자열(`cfg["a.b"]`) 참조를 찾았다 (`.backup/slot_1115/scan.py`, 측정 전용).
+
+- 36개: 값이 계산·분기에 들어가는 함수가 있다.
+- **`train.model_seeds` (42, 43, 44)**: 어디서도 소비되지 않았다. `fit --model-seed` 는 아무 정수나 받았고, `evaluate` 의 `_check_fit_grid` 는 seed **개수**(3)와 칸마다 같은 집합인지만 봤다 — seed {1, 2, 3} 격자도 통과했다. 계획서 §5 "A–D 및 모델 seed 42–44" 와 어긋날 수 있는 경로 (E21·E22 와 같은 "잠겨 있지만 적용 안 됨" 유형).
+- `stats.nominal_pct`: 상수는 안 쓰이지만 `cli.run_report` 가 `cfg["stats.nominal_pct"]` 로 읽는다 (잠금 검사로 상수와 같음) — 소비됨.
+- `bank.null_seeds_sensitivity`: 소비 없음. 민감도 null 실행 경로가 아직 없으므로 **대기 목록**으로 둔다.
+
+## AK.2 적용 — `train.model_seeds`
+
+`mobse/v2/cli.py`:
+- `run_fit`: config 를 읽은 직후, `--model-seed` 가 `cfg["train.model_seeds"]` 밖이면 데이터를 읽기 전에 `CLIError`.
+- `_check_fit_grid`: 격자가 꽉 차고 칸마다 같은 집합이어도, 그 집합이 `train.MODEL_SEEDS` 와 다르면 `CLIError`.
+
+계획서가 정한 값의 적용일 뿐 값·규칙을 바꾸지 않았다. pilot 측정 스크립트(CLI 를 거치지 않음)와 S 후보·구조 비교 라이브러리(`fit_mlp` 등 seed 인자)는 건드리지 않았다 — 그 경로의 seed 제약은 CLI 배선 때 넣는다.
+
+## AK.3 시험
+
+- 새 `tests/v2/test_config_consumption.py` (43 시험): 잠긴 키 수 39 고정; 모든 잠긴 키가 `CONSUMERS` 또는 `PENDING` 중 정확히 하나에 있음; `CONSUMERS` 의 키마다 적힌 함수가 존재하고 그 값을 참조함 (38 키); `PENDING` 키는 아직 어디서도 참조되지 않음 (소비가 생기면 실패해 표 이동을 강제); **`fitting.train_fold` 와 `baselines.fit_mlp` 가 읽는 학습 상수 집합이 {BATCH_SIZE, MAX_EPOCHS, MIN_UPDATES, PATIENCE, MIN_DELTA, GRAD_CLIP} 로 같음** (부록 AI.5 의 "두 루프 어긋남 장치 없음" 에 대한 정적 장치); 잠긴 상수 이름이 여러 모듈에 정의되면 알려진 것(`CELLS`: `evaluate`·`train`)뿐이고 값이 같음.
+- `test_cli_fit.py` +3: seed 0·41·45 거부, 출력 디렉터리 비어 있음.
+- `test_cli_evaluate.py` +1: seed 44 → 45 로 바꾼 꽉 찬 격자 거부.
+- 돌연변이 (`.backup/slot_1115/mut_consumption.py`, Mac 사본, python 치환·count==1 확인·복원): fit seed 검사 끔, fit seed 검사 블록 삭제, evaluate seed 집합 검사 끔, report 가 nominal 대신 familywise 백분위 사용, `fit_mlp` clip 리터럴화, `train_fold` clip 기본값 리터럴화, FD 상한 리터럴화, 표 없는 잠긴 키 추가 = **8/8 검출**.
+
+한계: 대응표는 **정적 참조** 검사다. 참조는 적용의 필요조건일 뿐이며, 값이 동작을 실제로 바꾸는지는 개별 spy·결과 시험(E21·E22·P8·결정 12·AK.3 seed 시험)이 맡는다. 리터럴화 돌연변이는 값이 같아 동작 시험으로는 잡히지 않고 이 표로만 잡힌다 — 결정 12 로 값이 바뀔 때 한쪽만 바뀌는 일을 막는 용도다.
+
+## AK.4 잠금
+
+`mobse/v2/cli.py` 변경으로 재잠금 `ff4f766ce090` → **`d15dd718225e`** (2026-09-24T02:21:50Z), code_hash `537ff921250e` → `bb5d96e77ef1`. 검사 43/43, 창 4,728 (h197 재잠금 직후 19·25번), 창·코호트·분할 불변.
+
+## AK.5 이번 회차에 확인하지 못한 것
+
+- `bank.null_seeds_sensitivity` 의 소비 경로 — 민감도 null 실행이 미구현이라 대기 목록에 있다.
+- 잠기지 않은 `choices` 키(`splits.n_outer_folds`, `bank.pca_components`, `stats.delta`, `runtime.*` 등)는 표 대상이 아니다. `cfg[...]` 참조는 있으나 대응표로 고정하지 않았다.
+- `fit_mlp`·구조 비교의 seed 제약 — CLI 배선 전이라 없음.
+- 정적 표는 이름으로 찾으므로 같은 이름의 다른 상수를 구분하지 않는다. 모듈 최상위 정의 중 겹치는 이름은 `CELLS` 하나이고 값이 같음을 시험으로 고정했다. 함수 안 지역 변수·인자 이름이 상수 이름과 같은 경우는 구분하지 못한다.
+- `evaluate.CELLS` 는 `train.CELLS` 와 별도 리터럴이다 (값 같음 시험만 추가, 하나로 합치지 않음).

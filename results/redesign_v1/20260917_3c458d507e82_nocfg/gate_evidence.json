@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "9fde3b2d3ea3e327798407bcae9dce959da336bd",
-  "timestamp_utc": "2026-09-24T01:19:45Z",
-  "revision": 37,
-  "supersedes_sha256": "4c3ce2b65b40f9766e38588deb4b858731b73df77f42049044c8e245e77a780c",
-  "revision_reason": "rev37 (2026-09-24): 선생님 결정 5 의 §6 구조 비교 2종 모델 구조·합성 시험 (새 결정 아님). mobse/v2/models.py 에 FusionMLPComparator(no-graph, ROI encoder pooled + PCA FC10)·SingleGraphComparator(동일 encoder/head)·build_comparator, mobse/v2/templates.py 에 build_single_graph (training-rest 평균 → §5 sparsify·정규화). 학습·선택 규칙 미배선 (선생님 질문, 부록 AJ.5). 시험 test_models 21 → 31, test_templates 20 → 24, 돌연변이 15/15. 실자료 fit 없음. mobse/v2 변경으로 재잠금 4acf47a8c79a → ff4f766ce090 (code_hash 0f30e7b29312 → 537ff921250e), 창·코호트·분할 불변. main pool 미소비",
+  "git_head": "e11b4800ad99c8597ff67eece5d19c624456380f",
+  "timestamp_utc": "2026-09-24T02:22:51Z",
+  "revision": 38,
+  "supersedes_sha256": "ba60718987488bf8db62e639ad5a8c6e7ad6490bbb2d93485ca85bd766b1950a",
+  "revision_reason": "rev38 (2026-09-24): 인수인계 남은 작업 3 — 잠긴 config 키 39개 ↔ 소비 함수 대응표 시험 (tests/v2/test_config_consumption.py, 43 시험, 두 학습 루프 train_fold·fit_mlp 의 학습 상수 집합 동일 포함). 측정에서 train.model_seeds(42–44, 계획서 §5)가 어디서도 소비되지 않음을 발견 → mobse/v2/cli.py 의 fit 이 잠긴 seed 밖을 거부, evaluate 가 seed 집합이 잠긴 값과 다른 격자를 거부. 값·규칙 변경 없음 (새 결정 아님). 시험 test_cli_fit +3, test_cli_evaluate +1, 돌연변이 8/8. mobse/v2 변경으로 재잠금 ff4f766ce090 → d15dd718225e (code_hash 537ff921250e → bb5d96e77ef1), 창·코호트·분할 불변. main pool 미소비",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -102,7 +102,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "0403a5fd8c7d77b30155db56a46167aec1e6760e87c10479a4670d316098810b"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "51fb2981204d4a4b382281b0ca768ac522f5127cefb407b82b8ff29809d2f23d"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -158,7 +158,7 @@
             "piop2_eligible": 189,
             "piop2_folds": null
           },
-          "note": "locks/measurement_lock.json (lock_hash ff4f766ce090…) 로 잠갔고 검증 42/42 일치. 재생성 이력은 wi03_measurement_lock.chain"
+          "note": "locks/measurement_lock.json (lock_hash d15dd718225e…) 로 잠갔고 검증 42/42 일치. 재생성 이력은 wi03_measurement_lock.chain"
         },
         {
           "check": "pilot excluded from every main/final fit",
@@ -195,7 +195,7 @@
         "개정 P8 학습 예산 — 결정됐으나 구현 전"
       ],
       "artifact_hashes": {
-        "locks/measurement_lock.json": "c98c825cacc4bfcddb203d9221ade711d2447e5a6f8b27fce0271bb65c8664f2",
+        "locks/measurement_lock.json": "13e85085c792a09e8be6d3a66481663decd6f51071db38ae6a06d9c0789b6e4d",
         "reports/precision_scenarios.md": "a5d576edeb89a1223d79f97067490b85ac16fe56d516b92b56b9b4e33724aa69",
         "reports/resource_budget.md": "155ee3e7379f53e034c457f481bb159b99b70f33ff4d78be0893acfc27862019",
         "provenance/wi03_precision/precision_scenarios.json": "67284e5991af25775ee569c32e2b51e75f8833ea9f0874d477b9d68d8ae7817e",
@@ -678,7 +678,7 @@
   "v2_module_hashes": {
     "__init__.py": "c884876e4717224c87d95b1fd4b3821863307e65f9146eac605bc9a96375c9ab",
     "baselines.py": "14f7b18dd6c23cbef9fa91ab92bbf6398ecf16bdcff53c3db76a12d7fbfe13e0",
-    "cli.py": "31fa7c39435fdc3ce5d10a7d898f5de6d83018cd442b0edbfd1cf90a00367137",
+    "cli.py": "41fb349e384c1fcc910eabcfd800b763376a80d0db3ebb69b9e4ecfd2d9a5ed2",
     "cohort.py": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
     "config.py": "5086ba86e3edc069cd12eb57a85b8b038c3411c75ef9b0b9bdb96ac62bcedc44",
     "evaluate.py": "a11a324f851603edb0e93b21c2cafe8b098529a485f17fe0321876825120e9b7",
@@ -700,13 +700,14 @@
     "test_acceptance_coverage.py": "5068bef17cc4532e45bae1a3662afcd675d18562505bbc9684e7f4ffa04b5e21",
     "test_acquisition_facts.py": "ebb3d5b0687793c3c731ae56f13278b8a1a11a1011a609c171fc542b17b434f9",
     "test_baselines.py": "92656a923d60e40de627b297b1df945623f0fb40ba0dd7b973b06dc010931492",
-    "test_cli_evaluate.py": "8efcfc90c8a2ee1006315bfda27f3e6920a2d1d346dfee6dd9e46c9bd5c901a4",
-    "test_cli_fit.py": "987f40e2e44a9e97dae30894c64da7243f1ea9b1234cd29a5b429ecab0e274f0",
+    "test_cli_evaluate.py": "7790b38cf5c11d17e75730c17d28210f72b50fe3b6f7ddc3b8e4720385e53b81",
+    "test_cli_fit.py": "34962bb8d9bdb457317113182aeaf45059eb8a6f6aaa9bef0a900c5f08418ebb",
     "test_cli_prepare.py": "40a9ce4ae81b07c51745ea8ed999ec7d39efded416159eb14f5bde9a155582c5",
     "test_cli_report.py": "829f0fcbd6632a267ee1ff98d05612d9af877487f2567ee4ec102f71e7334945",
     "test_cli_split.py": "0ab0f9aefbc7ad03c96f42a489142d95919410c204c5626c35d39b709f02a3a5",
     "test_cohort.py": "f5de19686bbd17b438ade14992977c341f15dc38887f7f68047d0c9a0fefe9c3",
     "test_config.py": "e69e5ab5976d19987369e565c8de4dc8afe17bcd97d21f0d4cfdc79fea86d72d",
+    "test_config_consumption.py": "a613d2eae61c2ee90703fb348d0e6c7a37acbcef1f3ca2d66d212853be4d8f34",
     "test_evaluate_cli.py": "6c9aa7aa3e708dd464cade7ca125cfbf04e9a581161933078dd5fb62100d9660",
     "test_extract.py": "4c883b7202213aabedbbaef1665da18448986ffaac4fea9578bc2895e085904a",
     "test_features.py": "64f2c436fae1ec2be9430be94cac399819e398d09320d3aba32ddd09f90751a2",
@@ -1822,8 +1823,8 @@
   "wi03_measurement_lock": {
     "gate": "G1 Measurement lock",
     "artifact": "locks/measurement_lock.json",
-    "lock_hash": "ff4f766ce0907e5df5d7033213a64c0a84bb90d992c893f00c9d2d2ef1032f48",
-    "locked_at_utc": "2026-09-24T01:18:07Z",
+    "lock_hash": "d15dd718225ef4f8829e7377663d818b4cd98e568194e58e4300b412c25b4f2f",
+    "locked_at_utc": "2026-09-24T02:21:50Z",
     "module": "mobse/v2/locks.py",
     "module_sha256": "4a3dae547c0744dbf58e24f2d53ec46c4c71577bc71a502f130bd70b1272a812",
     "builder": "scripts/h197/18_build_measurement_lock.py",
@@ -1839,7 +1840,7 @@
         "folds": null,
         "reason": "계획서 §9 — PIOP2 는 held-out 외부 코호트다. fold 를 만들지 않는다."
       },
-      "code_hash": "537ff921250e897f8c47a87908f412a64c0f32da04979bc8d05c543b4cb40be5",
+      "code_hash": "bb5d96e77ef11a2cf93057176882f92ec270c5971585b1f539948a0a08c394f6",
       "configs": {
         "external": "7daa536b",
         "main": "85556f56",
@@ -1891,7 +1892,7 @@
     ],
     "tests": "tests/v2/test_locks.py (18건)",
     "artifacts": {
-      "locks/measurement_lock.json": "c98c825cacc4bfcddb203d9221ade711d2447e5a6f8b27fce0271bb65c8664f2",
+      "locks/measurement_lock.json": "13e85085c792a09e8be6d3a66481663decd6f51071db38ae6a06d9c0789b6e4d",
       "locks/superseded/measurement_lock_2026-09-18T00:45:43Z.json": "abe6a9fc5e978274c8061ff90df7664140a24e55be85030abb3da4a97a8294f5",
       "locks/superseded/measurement_lock_2026-09-18T02:56:21Z.json": "b8a45c28e2fbece236f662fa993828733e5be4e2cb9980f4044514516243179e",
       "locks/superseded/measurement_lock_2026-09-18T02:57:01Z.json": "95d43ef2db9c8431c279aacfd4c6ffaf48792a3079bfadeea9a452789b2aef44",
@@ -1908,7 +1909,8 @@
       "locks/superseded/measurement_lock_2026-09-23T12:21:01Z.json": "d728d338be9e611d1bfc62dcd2e02a05541cf0ae676d07bee1a8040d18da7391",
       "locks/superseded/measurement_lock_2026-09-23T13:26:24Z.json": "b6cff1c2c8b3322a998f32030f319f86910b41b5ee48ed08bb8e74dceef445d9",
       "locks/superseded/measurement_lock_2026-09-23T14:21:17Z.json": "7c488d96f43e0ec4f8c389a33a97f51d1a943ab4d78776291e0f383718a76a66",
-      "locks/superseded/measurement_lock_2026-09-24T00:22:06Z.json": "18069123e5afaa6809d51cbfb085819fb70d75090569ff6691fae903cba70509"
+      "locks/superseded/measurement_lock_2026-09-24T00:22:06Z.json": "18069123e5afaa6809d51cbfb085819fb70d75090569ff6691fae903cba70509",
+      "locks/superseded/measurement_lock_2026-09-24T01:18:07Z.json": "c98c825cacc4bfcddb203d9221ade711d2447e5a6f8b27fce0271bb65c8664f2"
     },
     "supersedes": {
       "lock_hash": "6e68eb939bebebc1eac27927f1b21a68e89d994c24d7b3b2aa35366f046c2d09",
@@ -1933,7 +1935,8 @@
       "3f3c751b35c7 (개정 P11 미수렴 제외)",
       "f93f1c504ba2 (결정 12 best checkpoint 평가)",
       "4acf47a8c79a (S 후보 2·4 MLP)",
-      "ff4f766ce090 (구조 비교 2종 모델, 현행)"
+      "ff4f766ce090 (구조 비교 2종 모델)",
+      "d15dd718225e (잠긴 model_seeds 소비, 현행)"
     ],
     "chain_note": "가운데 항목은 --reason 없이 재생성한 것이다. 그 직후 builder 에 --reason 필수 검사를 넣고 다시 만들었다. 지우지 않고 사슬에 남긴다",
     "builder_now_requires_reason": "--overwrite 에 --reason 이 없으면 거부한다. 변경 정책이 '새 잠금에 supersedes 와 사유를 남긴다'고 정한다"
@@ -2514,7 +2517,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev37 은 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev38 은 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -3177,5 +3180,22 @@
     },
     "mutation_check": "Mac 사본 15/15 검출 (.backup/slot_1015/mut_comparators.py)",
     "unverified": "실자료 fit·GPU·시간 미측정; fold 변환 배선 없음; A–D 와 graph layer·head 초기값 차이의 영향 미측정"
+  },
+  "config_consumption": {
+    "work_item": "인수인계 남은 작업 3 (결정 불요·가역)",
+    "test": "tests/v2/test_config_consumption.py",
+    "locked_keys": 39,
+    "consumers_table_keys": 38,
+    "pending": {
+      "bank.null_seeds_sensitivity": "민감도 null 실행 경로 미구현"
+    },
+    "finding": "train.model_seeds 미소비 — fit --model-seed 임의 정수 허용, evaluate 는 seed 개수만 확인",
+    "fix": [
+      "cli.run_fit: --model-seed ∉ cfg['train.model_seeds'] 거부",
+      "cli._check_fit_grid: seed 집합 ≠ train.MODEL_SEEDS 거부"
+    ],
+    "training_loop_equivalence": "fitting.train_fold 와 baselines.fit_mlp 의 train 상수 참조 집합 동일 (정적)",
+    "mutation_check": "Mac 사본 8/8 검출 (.backup/slot_1115/mut_consumption.py)",
+    "limits": "정적 참조 검사 — 적용의 필요조건일 뿐; 잠기지 않은 choices 키는 대상 아님; fit_mlp·구조 비교 seed 제약 없음 (CLI 배선 전)"
   }
 }
