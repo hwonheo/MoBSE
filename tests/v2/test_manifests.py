@@ -163,6 +163,46 @@ def test_unknown_cell_is_rejected():
     validate_record("window_predictions", rec)
 
 
+def _run_prediction_record(cell):
+    from mobse.v2.manifests import SCHEMAS
+    base = {"schema_version": "v2.0", "canonical_subject": "ds002785:sub-0001",
+            "group_id": "g", "run_key": "ds002785/sub-0001/na/emomatching/na/seq",
+            "cell": cell}
+    kinds = {"str": "x", "int": 0, "float": 0.5, "bool": False, "list": [], "dict": {}}
+    for key, kind in SCHEMAS["run_predictions"].items():
+        base.setdefault(key, kinds[kind])
+    return base
+
+
+@pytest.mark.parametrize("cell", ["NG", "SG"])
+def test_comparator_cells_are_fit_scoped(cell):
+    """결정 14 4단계 — NG·SG 는 fit 단위 산출물에서만 받고 run 집계에서는 거부한다."""
+    rec = {"schema_version": "v2.0", "canonical_subject": "ds002785:sub-0001",
+           "group_id": "g", "run_key": "ds002785/sub-0001/na/emomatching/na/seq",
+           "window_key": "w1", "truth": 0, "p_class1": 0.4, "cell": cell,
+           "model_seed": 42, "scope": "outer0", "checkpoint_sha256": H,
+           "fit_id": "f"}
+    validate_record("window_predictions", rec)
+    with pytest.raises(ManifestError, match="알 수 없는 cell"):
+        validate_record("run_predictions", _run_prediction_record(cell))
+    validate_record("run_predictions", _run_prediction_record("A"))
+    kw = dict(role="inner", cell=cell, outer_fold=0, inner_fold=1, model_seed=42,
+              split_hash="s" * 64, config_hash="c" * 64)
+    assert fit_id(**kw).startswith(f"inner-{cell}-o0i1s42-")
+    assert fit_id(**kw) != fit_id(**{**kw, "cell": "A"})
+
+
+def test_comparator_cell_names_match_models_and_baselines():
+    pytest.importorskip("torch")
+    from mobse.v2 import baselines, models
+    from mobse.v2.manifests import (ALLOWED_CELLS, COMPARATOR_CELLS, FIT_CELLS,
+                                    FIT_SCOPED_ARTIFACTS)
+    assert COMPARATOR_CELLS == set(models.COMPARATOR_SPEC) == set(baselines.COMPARATOR_ORDER)
+    assert ALLOWED_CELLS == set(models.CELL_SPEC)
+    assert FIT_CELLS == ALLOWED_CELLS | COMPARATOR_CELLS
+    assert FIT_SCOPED_ARTIFACTS == {"fit_manifest", "window_predictions"}
+
+
 # --------------------------------------------------------------------------- #
 # T15 — 무결성과 glob fallback 금지
 # --------------------------------------------------------------------------- #

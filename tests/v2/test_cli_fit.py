@@ -245,3 +245,81 @@ def test_model_seed_outside_locked_set_is_rejected(workspace, seed):
     with pytest.raises(CLIError, match="train.model_seeds"):
         run_fit(resolve_paths("fit", ns), ns)
     assert not out.exists() or not any(out.iterdir())
+
+
+# --------------------------------------------------------------------------- #
+# 결정 14 4단계 — §6 구조 비교(NG·SG)를 같은 `fit` 으로 학습
+# --------------------------------------------------------------------------- #
+
+def test_fit_cell_choices_are_cells_then_comparators():
+    from mobse.v2.baselines import COMPARATOR_ORDER
+    from mobse.v2.cli import FIT_CELL_CHOICES
+    from mobse.v2.train import CELLS
+    assert FIT_CELL_CHOICES == tuple(CELLS) + tuple(COMPARATOR_ORDER)
+    with pytest.raises(SystemExit):
+        build_parser().parse_args(["fit", "--cell", "E"])
+
+
+@pytest.mark.parametrize("cell", ["NG", "SG"])
+def test_comparator_inner_fit_writes_all_four_artifacts(workspace, cell):
+    out = workspace["tmp"] / f"fit_{cell}"
+    ns = _args(workspace, out, cell=cell)
+    res = run_fit(resolve_paths("fit", ns), ns)
+    assert res["verdict"] == "pass" and res["cell"] == cell
+    for name in ("fit_manifest.json", "checkpoint.pt",
+                 "window_predictions.jsonl", "fit_report.json"):
+        assert (out / name).is_file(), name
+    man = json.loads((out / "fit_manifest.json").read_text())
+    assert man["cell"] == cell and man["fit_id"].startswith(f"inner-{cell}-o0i0s42-")
+    rows = [json.loads(l) for l in (out / "window_predictions.jsonl").read_text().splitlines()]
+    assert len(rows) == 4 * 2 * 4 and {r["cell"] for r in rows} == {cell}
+    rep = json.loads((out / "fit_report.json").read_text())
+    assert rep["config_id"] == 0 and rep["min_updates"] == 1500
+
+
+def test_only_sg_fit_records_its_training_rest_graph(workspace):
+    """SG 만 fold 의 training-rest single graph 를 만들고 그 출처를 manifest·report 에 남긴다."""
+    got = {}
+    for cell in ("A", "NG", "SG"):
+        out = workspace["tmp"] / f"fit_graph_{cell}"
+        ns = _args(workspace, out, cell=cell)
+        run_fit(resolve_paths("fit", ns), ns)
+        got[cell] = (json.loads((out / "fit_manifest.json").read_text()),
+                     json.loads((out / "fit_report.json").read_text()))
+    for cell in ("A", "NG"):
+        man, rep = got[cell]
+        assert "single_graph_id" not in man and "single_graph_id" not in rep["transform"]
+    man, rep = got["SG"]
+    assert man["single_graph_id"] == rep["transform"]["single_graph_id"]
+    assert man["single_graph_fingerprint"] == rep["transform"]["single_graph_fingerprint"]
+    # bank 는 셋 모두 같은 fold 변환에서 나온다 (구조 비교가 다른 bank 를 쓰지 않음).
+    assert len({got[c][0]["bank_id"] for c in got}) == 1
+
+
+@pytest.mark.parametrize("cell", ["NG", "SG"])
+def test_comparator_outer_fit_runs_exact_epochs(workspace, cell):
+    out = workspace["tmp"] / f"fit_outer_{cell}"
+    ns = _args(workspace, out, cell=cell, inner=T.OUTER_FIT_INNER_FOLD, epochs=2)
+    res = run_fit(resolve_paths("fit", ns), ns)
+    assert res["role"] == "outer" and res["eval_role"] == "outer_test"
+    assert res["epochs_run"] == 2 and res["best_epoch"] == 2
+
+
+@pytest.mark.parametrize("seed", [0, 45])
+def test_comparator_seed_outside_locked_set_is_rejected(workspace, seed):
+    out = workspace["tmp"] / f"fit_ng_seed{seed}"
+    ns = _args(workspace, out, cell="NG", seed=seed)
+    with pytest.raises(CLIError, match="train.model_seeds"):
+        run_fit(resolve_paths("fit", ns), ns)
+
+
+def test_evaluate_grid_rejects_comparator_fits():
+    """구조 비교 fit 을 2×2 evaluate 에 섞으면 알 수 없는 칸으로 거부한다."""
+    from mobse.v2.cli import _check_fit_grid
+    from mobse.v2.train import CELLS, MODEL_SEEDS
+    folds = {"outer_folds": [{"outer_fold": 0}]}
+    fits = {f"{c}{s}": {"slot": (c, 0, s)} for c in CELLS for s in MODEL_SEEDS}
+    assert _check_fit_grid(fits, folds)["n_fits"] == 12
+    fits["NG42"] = {"slot": ("NG", 0, 42)}
+    with pytest.raises(CLIError, match="알 수 없는 칸"):
+        _check_fit_grid(fits, folds)

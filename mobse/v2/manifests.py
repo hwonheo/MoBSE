@@ -174,6 +174,15 @@ ALLOWED_LABEL_SOURCES = {"task_metadata", "bids_entity"}
 #: 허용된 cell 이름.
 ALLOWED_CELLS = {"A", "B", "C", "D"}
 
+#: §6 구조 비교 이름 (결정 14). `models.COMPARATOR_SPEC`·`baselines.COMPARATOR_ORDER`
+#: 와 같아야 한다 (시험이 고정). fit 단위 산출물에서만 cell 자리에 올 수 있다.
+COMPARATOR_CELLS = {"NG", "SG"}
+
+#: fit 한 번이 만드는 산출물 — 여기서만 구조 비교 이름을 받는다. run·subject 집계와
+#: 2×2 요인 분석(run_predictions 등)은 A–D 만 받는다 (구현 선택, 결정 14 4단계).
+FIT_SCOPED_ARTIFACTS = frozenset({"fit_manifest", "window_predictions"})
+FIT_CELLS = ALLOWED_CELLS | COMPARATOR_CELLS
+
 
 def validate_record(artifact: str, record: Mapping[str, Any]) -> None:
     """한 레코드가 해당 artifact 스키마를 만족하는지 확인한다.
@@ -214,8 +223,10 @@ def validate_record(artifact: str, record: Mapping[str, Any]) -> None:
         raise ManifestError(
             f"label_source 가 허용 목록에 없다: {record['label_source']!r}. "
             f"허용: {sorted(ALLOWED_LABEL_SOURCES)}. cluster ID 를 label 로 쓸 수 없다 (T11)")
-    if "cell" in record and record["cell"] not in ALLOWED_CELLS:
-        raise ManifestError(f"알 수 없는 cell: {record['cell']!r}")
+    allowed_cells = FIT_CELLS if artifact in FIT_SCOPED_ARTIFACTS else ALLOWED_CELLS
+    if "cell" in record and record["cell"] not in allowed_cells:
+        raise ManifestError(f"알 수 없는 cell: {record['cell']!r} "
+                            f"({artifact} 허용: {sorted(allowed_cells)})")
 
 
 # --------------------------------------------------------------------------- #
@@ -338,8 +349,11 @@ def code_hash(paths: Sequence[Path]) -> str:
 
 def fit_id(*, role: str, cell: str, outer_fold: int, inner_fold: int,
            model_seed: int, split_hash: str, config_hash: str) -> str:
-    """재현 가능한 fit 식별자. 같은 입력이면 항상 같은 값이다."""
-    if cell not in ALLOWED_CELLS:
+    """재현 가능한 fit 식별자. 같은 입력이면 항상 같은 값이다.
+
+    ``cell`` 은 A–D 또는 §6 구조 비교(NG·SG) 이름이다.
+    """
+    if cell not in FIT_CELLS:
         raise ManifestError(f"알 수 없는 cell: {cell!r}")
     payload = {"role": role, "cell": cell, "outer_fold": outer_fold,
                "inner_fold": inner_fold, "model_seed": model_seed,

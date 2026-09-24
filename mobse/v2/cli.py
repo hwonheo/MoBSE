@@ -52,6 +52,10 @@ MULTI_PATHS = frozenset({("evaluate", "predictions"), ("evaluate", "fit_manifest
                          ("prepare", "extract_manifests")})
 
 
+#: `fit --cell` 선택지 — A–D 다음 구조 비교 순서 (결정 14 4단계).
+FIT_CELL_CHOICES: Tuple[str, ...] = ("A", "B", "C", "D", "NG", "SG")
+
+
 class CLIError(RuntimeError):
     """CLI 사용 규칙 위반."""
 
@@ -84,7 +88,11 @@ def build_parser() -> argparse.ArgumentParser:
                            nargs="+" if many else None,
                            help=common[arg] + (" (fit 마다 하나, 여러 개)" if many else ""))
         if name == "fit":
-            p.add_argument("--cell", required=True, choices=list("ABCD"))
+            # 결정 14 4단계 — §6 구조 비교(NG·SG)도 같은 `fit` 으로 한 칸씩 학습한다.
+            # 별도 하위 명령을 두지 않는 것은 구현 선택이다: 학습 규칙이 A–D 와 같은
+            # `train_fold` 한 경로이므로 입력·산출물 계약도 하나로 둔다.
+            p.add_argument("--cell", required=True, choices=FIT_CELL_CHOICES,
+                           help="A–D (2×2) 또는 §6 구조 비교 NG·SG")
             p.add_argument("--outer-fold", type=int, required=True)
             p.add_argument("--inner-fold", type=int, required=True,
                            help="inner fold 번호. 9 는 outer 최종 적합이다")
@@ -496,7 +504,7 @@ def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
         null_seed=int(cfg["bank.null_seed"]),
         n_components=int(cfg["bank.pca_components"]),
         k=int(cfg["bank.k"]), density=float(cfg["bank.edge_density"]),
-        verify=verify)
+        verify=verify, single_graph=(args.cell == "SG"))
 
     train_set = FIT.encode_windows(FIT.select_refs(task_refs, fold.train),
                                    transform, verify=verify)
@@ -564,6 +572,10 @@ def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
         "source_hash": sha256_file(Path(paths["windows"])),
         "split_hash": folds["split_hash"],
     }
+    if transform.single is not None:
+        # SG 의 graph 는 이 fit 의 training-rest 로 만든 것이다 — 출처를 manifest 에 남긴다.
+        manifest["single_graph_id"] = transform.single.graph_id
+        manifest["single_graph_fingerprint"] = transform.single.fingerprint()
     validate_record("fit_manifest", manifest)
     (out_dir / "fit_manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
