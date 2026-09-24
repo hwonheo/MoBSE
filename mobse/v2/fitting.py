@@ -234,8 +234,18 @@ class FoldTransform:
     null: T.GraphBank
     n_rest_windows: int
     fit_subjects: Tuple[str, ...]
+    # §6 구조 비교 SG 의 training-rest single average graph (결정 14). SG fit 에만 만든다.
+    single: Optional[T.SingleGraph] = None
 
     def provenance(self) -> Dict[str, Any]:
+        out = self._bank_provenance()
+        if self.single is not None:
+            out["single_graph_id"] = self.single.graph_id
+            out["single_graph_fingerprint"] = self.single.fingerprint()
+            out["single_graph_n_windows"] = self.single.n_windows
+        return out
+
+    def _bank_provenance(self) -> Dict[str, Any]:
         return {
             "scaler_pca_id": self.frozen.artifact_id,
             "scaler_pca_fingerprint": self.frozen.fingerprint(),
@@ -256,11 +266,15 @@ def fit_fold_transform(rest_refs: Sequence[WindowRef], train_subjects: Sequence[
                        *, bank_seed: int, null_seed: int = T.NULL_SEED_PRIMARY,
                        n_components: int = F.N_PCA, k: int = T.K_DEFAULT,
                        density: float = T.EDGE_DENSITY,
-                       verify: bool = True) -> FoldTransform:
+                       verify: bool = True,
+                       single_graph: bool = False) -> FoldTransform:
     """training-rest 창으로 scaler/PCA 와 bank 를 적합한다.
 
     `allowed_subjects` 를 넘겨 허용 밖 subject 의 창이 하나라도 섞이면
     `FeatureError` 로 **실패**하게 한다 (T03).
+
+    ``single_graph=True`` 이면 §6 구조 비교 SG 의 graph 하나를 bank 와 **같은**
+    training-rest 창(training subject 경계)의 원래 correlation 으로 만든다 (결정 14).
     """
     allowed = set(train_subjects)
     used = [r for r in rest_refs if r.canonical_subject in allowed]
@@ -276,9 +290,12 @@ def fit_fold_transform(rest_refs: Sequence[WindowRef], train_subjects: Sequence[
     brain = T.build_bank(correlations, pca, fit_subjects,
                          seed=bank_seed, k=k, density=density)
     null = T.make_null_bank(brain, seed=null_seed)
+    single = (T.build_single_graph(correlations, fit_subjects, density=density)
+              if single_graph else None)
     return FoldTransform(frozen=frozen, brain=brain, null=null,
                          n_rest_windows=len(used),
-                         fit_subjects=tuple(sorted(set(fit_subjects))))
+                         fit_subjects=tuple(sorted(set(fit_subjects))),
+                         single=single)
 
 
 # --------------------------------------------------------------------------- #
@@ -465,6 +482,33 @@ def _encoder_init_hash(model) -> str:
     return hashlib.sha256(flat.numpy().tobytes()).hexdigest()[:16]
 
 
+def _build_fit_model(cell: str, cfg, transform: FoldTransform):
+    """``cell`` 이름으로 학습할 모델을 만든다 — A–D 와 §6 구조 비교(NG·SG)가 같은 경로.
+
+    구조 비교를 위해 두 번째 학습 루프를 만들지 않는다 (결정 14): best checkpoint,
+    결정성, 최소 update 가드, 상한은 이 함수를 부르는 ``train_fold`` 가 그대로 적용한다.
+    SG 의 graph 는 fold 변환이 training-rest 로 만든 것만 쓴다 — 없으면 실패한다.
+    """
+    import torch
+
+    from .models import CELL_SPEC, COMPARATOR_SPEC, build_cell, build_comparator
+
+    if cell in CELL_SPEC:
+        brain = torch.as_tensor(transform.brain.templates, dtype=torch.float32)
+        null = torch.as_tensor(transform.null.templates, dtype=torch.float32)
+        return build_cell(cell, cfg, brain, null)
+    if cell not in COMPARATOR_SPEC:
+        raise FitError(f"알 수 없는 cell/구조 비교: {cell!r}. "
+                       f"허용: {sorted(CELL_SPEC)} + {sorted(COMPARATOR_SPEC)}")
+    if cell == "NG":
+        return build_comparator("NG", cfg)
+    if transform.single is None:
+        raise FitError("SG fit 에는 fold 변환의 training-rest single average graph 가 "
+                       "필요하다 — fit_fold_transform(..., single_graph=True) (결정 14)")
+    graph = torch.as_tensor(transform.single.template, dtype=torch.float32)
+    return build_comparator("SG", cfg, graph)
+
+
 def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
                transform: FoldTransform, *, cell: str, config_id: int,
                model_seed: int, fold: FoldSubjects, device: str = "cpu",
@@ -500,7 +544,7 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
 
     import torch
 
-    from .models import ModelConfig, build_cell
+    from .models import ModelConfig
 
     grid = {g.config_id: g for g in build_grid()}
     if config_id not in grid:
@@ -536,9 +580,7 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
                       n_samples=int(train_set.x.shape[2]),
                       pca_dim=int(train_set.pca.shape[1]),
                       dropout=float(gc.dropout))
-    brain = torch.as_tensor(transform.brain.templates, dtype=torch.float32)
-    null = torch.as_tensor(transform.null.templates, dtype=torch.float32)
-    model = build_cell(cell, cfg, brain, null).to(dev)
+    model = _build_fit_model(cell, cfg, transform).to(dev)
     enc_hash = _encoder_init_hash(model)
 
     opt = torch.optim.AdamW(model.parameters(), lr=gc.learning_rate,

@@ -557,3 +557,144 @@ def test_best_checkpoint_fit_is_deterministic(synthetic):
     assert a.eval_epoch == b.eval_epoch == 1
     assert a.eval_window_probs == b.eval_window_probs
     assert a.val_losses == b.val_losses
+
+
+# ---------------------------------------------------------------------------
+# 결정 14 — §6 구조 비교(NG·SG)는 train_fold 한 경로로 학습한다 (두 번째 루프 없음)
+# ---------------------------------------------------------------------------
+
+def _sets_sg(synthetic, outer=0, inner=0):
+    fold = FIT.resolve_fold_subjects(synthetic["folds"], outer, inner)
+    rest = FIT.refs_from_extract_manifest(synthetic["rest_path"], labelled=False)
+    tr = FIT.fit_fold_transform(rest, fold.train, bank_seed=T.bank_seed(outer, min(inner, 9)),
+                                single_graph=True)
+    task_refs = []
+    for tp in synthetic["task_paths"]:
+        task_refs += FIT.refs_from_extract_manifest(tp, labelled=True)
+    train_set = FIT.encode_windows(FIT.select_refs(task_refs, fold.train), tr)
+    eval_set = FIT.encode_windows(FIT.select_refs(task_refs, fold.evaluate), tr)
+    return fold, tr, train_set, eval_set, rest
+
+
+def test_single_graph_is_built_only_when_asked(synthetic):
+    fold, tr, _, _ = _sets(synthetic)
+    assert tr.single is None
+    assert "single_graph_id" not in tr.provenance()
+
+
+def test_single_graph_uses_exactly_the_training_rest_windows(synthetic):
+    """경계: SG graph 는 bank 와 같은 training subject 의 rest 창만으로 만든다."""
+    fold, tr, _, _, rest = _sets_sg(synthetic)
+    used = [r for r in rest if r.canonical_subject in set(fold.train)]
+    corr, _ = FIT.F.stack_window_features([FIT.read_window(r) for r in used])
+    ref = T.build_single_graph(corr, [r.canonical_subject for r in used])
+    assert tr.single is not None
+    assert np.allclose(tr.single.template, ref.template)
+    assert tr.single.n_windows == tr.n_rest_windows == len(used)
+    assert set(tr.single.fit_subjects) == set(fold.train)
+    assert not set(tr.single.fit_subjects) & set(fold.evaluate)
+    prov = tr.provenance()
+    assert prov["single_graph_id"] == tr.single.graph_id
+    assert prov["single_graph_n_windows"] == len(used)
+
+
+def test_single_graph_changes_when_an_evaluate_subject_is_let_in(synthetic):
+    """경계 시험의 구별력: 평가 subject 의 rest 가 섞이면 graph 가 달라진다."""
+    fold, tr, _, _, rest = _sets_sg(synthetic)
+    leaked = FIT.fit_fold_transform(rest, list(fold.train) + list(fold.evaluate)[:1],
+                                    bank_seed=T.bank_seed(0, 0), single_graph=True)
+    assert not np.allclose(leaked.single.template, tr.single.template)
+
+
+def test_single_graph_does_not_change_the_bank(synthetic):
+    _, plain, _, _ = _sets(synthetic)
+    _, sg, _, _, _ = _sets_sg(synthetic)
+    base = plain.provenance()
+    extra = sg.provenance()
+    assert {k: extra[k] for k in base} == base
+
+
+def test_sg_fit_without_a_single_graph_is_refused(synthetic):
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    with pytest.raises(FIT.FitError, match="single average graph"):
+        FIT.train_fold(train_set, eval_set, tr, cell="SG", config_id=0,
+                       model_seed=42, fold=fold, min_updates=0, max_epochs=1)
+
+
+def test_unknown_cell_is_refused(synthetic):
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    with pytest.raises(FIT.FitError, match="알 수 없는 cell"):
+        FIT.train_fold(train_set, eval_set, tr, cell="E", config_id=0,
+                       model_seed=42, fold=fold, min_updates=0, max_epochs=1)
+
+
+@pytest.mark.parametrize("cell", ["NG", "SG"])
+def test_comparator_fit_builds_the_comparator_model(synthetic, cell):
+    from mobse.v2 import models as M
+    fold, tr, train_set, eval_set, _ = _sets_sg(synthetic)
+    res, model = FIT.train_fold(train_set, eval_set, tr, cell=cell, config_id=0,
+                                model_seed=42, fold=fold, min_updates=0, max_epochs=2)
+    want = M.FusionMLPComparator if cell == "NG" else M.SingleGraphComparator
+    assert isinstance(model, want)
+    assert res.cell == cell and res.role == FIT.ROLE_INNER
+    assert set(res.eval_window_probs) == {r.window_key for r in eval_set.refs}
+    if cell == "SG":
+        assert np.allclose(model.graph.cpu().numpy(), tr.single.template)
+
+
+@pytest.mark.parametrize("cell", ["NG", "SG"])
+def test_comparator_encoder_init_matches_the_cells(synthetic, cell):
+    """§6 "동일 encoder" — 같은 seed 에서 encoder 초기값이 A 와 같다."""
+    fold, tr, train_set, eval_set, _ = _sets_sg(synthetic)
+    a, _ = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                          model_seed=42, fold=fold, min_updates=0, max_epochs=1)
+    c, _ = FIT.train_fold(train_set, eval_set, tr, cell=cell, config_id=0,
+                          model_seed=42, fold=fold, min_updates=0, max_epochs=1)
+    assert a.encoder_init_hash == c.encoder_init_hash
+
+
+@pytest.mark.parametrize("cell", ["NG", "SG"])
+def test_comparator_inner_fit_evaluates_the_best_checkpoint(synthetic, monkeypatch, cell):
+    fold, tr, train_set, eval_set, _ = _sets_sg(synthetic)
+    seen = _record_eval_forwards(monkeypatch, eval_set)
+    res, _ = FIT.train_fold(train_set, eval_set, tr, cell=cell, config_id=0,
+                            model_seed=42, fold=fold, min_updates=0,
+                            max_epochs=6, patience=2, min_delta=10.0)
+    assert res.best_epoch == 1 and res.epochs_run == 3 and res.eval_epoch == 1
+    assert len(seen) == 4
+    assert np.allclose(_eval_vector(res, eval_set), seen[0], atol=1e-6)
+    assert not np.allclose(seen[0], seen[2], atol=1e-6), "시험이 구별력이 없다"
+
+
+@pytest.mark.parametrize("cell", ["NG", "SG"])
+def test_comparator_fit_obeys_the_p8_guards(synthetic, cell):
+    fold, tr, train_set, eval_set, _ = _sets_sg(synthetic)
+    upe = -(-len(train_set) // 32)
+    res, _ = FIT.train_fold(train_set, eval_set, tr, cell=cell, config_id=0,
+                            model_seed=42, fold=fold, max_epochs=6, min_updates=3 * upe)
+    assert res.min_epoch == 3 and 3 <= res.best_epoch <= res.epochs_run <= 6
+    with pytest.raises(FIT.FitError, match="pilot 측정으로만"):
+        FIT.train_fold(train_set, eval_set, tr, cell=cell, config_id=0,
+                       model_seed=42, fold=fold, max_epochs=2, min_updates=3 * upe)
+    ofold, otr, otrain, oeval, _ = _sets_sg(synthetic, inner=T.OUTER_FIT_INNER_FOLD)
+    with pytest.raises(FIT.FitError, match="early stopping"):
+        FIT.train_fold(otrain, oeval, otr, cell=cell, config_id=0, model_seed=42,
+                       fold=ofold, early_stopping=True, epochs_exact=2)
+    out, _ = FIT.train_fold(otrain, oeval, otr, cell=cell, config_id=0, model_seed=43,
+                            fold=ofold, min_updates=0, epochs_exact=3)
+    assert out.epochs_run == out.best_epoch == 3 and out.val_losses == []
+
+
+@pytest.mark.parametrize("cell", ["NG", "SG"])
+def test_comparator_fit_is_deterministic_and_applies_determinism(synthetic, monkeypatch, cell):
+    fold, tr, train_set, eval_set, _ = _sets_sg(synthetic)
+    kw = dict(cell=cell, config_id=0, model_seed=42, fold=fold, min_updates=0,
+              max_epochs=6, patience=2, min_delta=10.0)
+    a, _ = FIT.train_fold(train_set, eval_set, tr, **kw)
+    b, _ = FIT.train_fold(train_set, eval_set, tr, **kw)
+    assert a.eval_window_probs == b.eval_window_probs and a.val_losses == b.val_losses
+    calls = []
+    real = FIT.apply_determinism
+    monkeypatch.setattr(FIT, "apply_determinism", lambda: calls.append(1) or real())
+    FIT.train_fold(train_set, eval_set, tr, **kw)
+    assert calls == [1]
