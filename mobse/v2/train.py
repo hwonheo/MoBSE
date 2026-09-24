@@ -100,7 +100,12 @@ def subject_equal_loss(per_run: Mapping[str, Sequence[float]]) -> float:
 
 @dataclass(frozen=True)
 class CellFoldResult:
-    """한 (config, cell, inner fold) 의 결과."""
+    """한 (config, cell, inner fold) 의 결과.
+
+    ``loss`` 는 그 fold validation subject 의 subject 동일 가중 log loss,
+    ``balanced_accuracy`` 는 같은 subject 의 ``b_i`` 평균, ``n_subjects`` 는 그 subject 수다.
+    ``n_subjects`` 는 기본값이 없다 — 빠뜨리면 fold 평균으로 조용히 돌아갈 수 있기 때문이다.
+    """
 
     config_id: int
     cell: str
@@ -108,12 +113,16 @@ class CellFoldResult:
     loss: float
     balanced_accuracy: float
     best_epoch: int
+    n_subjects: int
 
     def __post_init__(self) -> None:
         if self.cell not in CELLS:
             raise TrainError(f"알 수 없는 cell: {self.cell!r}")
         if not 1 <= self.best_epoch <= MAX_EPOCHS:
             raise TrainError(f"best_epoch 가 1–{MAX_EPOCHS} 밖이다: {self.best_epoch}")
+        if isinstance(self.n_subjects, bool) or not isinstance(self.n_subjects, int) \
+                or self.n_subjects < 1:
+            raise TrainError(f"n_subjects 는 1 이상의 정수여야 한다: {self.n_subjects!r}")
 
 
 @dataclass(frozen=True)
@@ -147,18 +156,38 @@ def _require_complete(results: Sequence[CellFoldResult], n_folds: int) -> None:
 def select_config(results: Sequence[CellFoldResult], *, n_folds: int = 3) -> Selection:
     """A–D 공동 config 와 공통 epoch 를 고른다.
 
+    계획서 §7 "각 config의 inner OOF run loss를 subject별 동일 가중으로 합산하고 A–D 네
+    cell에 같은 가중을 주어 최소화한다" 를 따른다. cell 하나의 손실은 3 inner fold
+    validation 을 **OOF 하나로 합친** subject 동일 가중 log loss 다. inner validation
+    subject 는 fold 끼리 겹치지 않으므로 이는 fold 손실의 ``n_subjects`` 가중 평균과
+    정확히 같다 (fold 단순 평균이 아니다 — fold 크기가 다르면 둘이 다르다). 공동 BA 도
+    같은 방식 (OOF ``b_i`` 평균). 그 다음 네 cell 을 같은 가중으로 평균한다.
+    (09-24 19:15 슬롯 정정: 이전 구현은 fold 단순 평균이었다. 구조 비교·S 선택은 이미
+    OOF 병합이었다.)
+
     Raises:
-        TrainError: grid 가 불완전하거나 cell 가중이 어긋나면.
+        TrainError: grid 가 불완전하거나, 같은 inner fold 의 subject 수가 config·cell 사이에서
+            다르면 (같은 inner 모집단에서 비교해야 한다).
     """
     _require_complete(results, n_folds)
+
+    fold_n: Dict[int, int] = {}
+    for r in results:
+        n0 = fold_n.setdefault(r.inner_fold, r.n_subjects)
+        if n0 != r.n_subjects:
+            raise TrainError(
+                f"inner fold {r.inner_fold} 의 subject 수가 다르다: {n0} vs {r.n_subjects} "
+                f"(config {r.config_id}, cell {r.cell}) — 같은 inner 모집단에서 비교해야 한다")
+    n_total = sum(fold_n.values())
 
     per_config: Dict[int, Dict[str, float]] = {}
     for cid in sorted({r.config_id for r in results}):
         rows = [r for r in results if r.config_id == cid]
-        # A–D 네 cell 에 같은 가중: cell 별 평균을 낸 뒤 cell 을 평균한다
-        cell_loss = {c: sum(r.loss for r in rows if r.cell == c) / n_folds for c in CELLS}
-        cell_ba = {c: sum(r.balanced_accuracy for r in rows if r.cell == c) / n_folds
-                   for c in CELLS}
+        # cell 안: OOF 병합 = fold subject 수 가중. cell 사이: 같은 가중.
+        cell_loss = {c: sum(r.loss * r.n_subjects for r in rows if r.cell == c) / n_total
+                     for c in CELLS}
+        cell_ba = {c: sum(r.balanced_accuracy * r.n_subjects for r in rows if r.cell == c)
+                   / n_total for c in CELLS}
         per_config[cid] = {
             "joint_loss": sum(cell_loss.values()) / len(CELLS),
             "joint_ba": sum(cell_ba.values()) / len(CELLS),

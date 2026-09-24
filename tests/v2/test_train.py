@@ -68,7 +68,7 @@ def _results(loss_by_config, *, epochs=None, ba_by_config=None, n_folds=3):
                 out.append(CellFoldResult(
                     config_id=cid, cell=cell, inner_fold=f, loss=loss,
                     balanced_accuracy=(ba_by_config or {}).get(cid, 0.5),
-                    best_epoch=(epochs or {}).get(cid, 10)))
+                    best_epoch=(epochs or {}).get(cid, 10), n_subjects=10))
     return out
 
 
@@ -97,7 +97,7 @@ def test_all_four_cells_get_equal_weight():
             for cell in CELLS:
                 for f in range(3):
                     loss = 2.0 if (cid == 0 and cell == bad_cell) else 1.0
-                    out.append(CellFoldResult(cid, cell, f, loss, 0.5, 10))
+                    out.append(CellFoldResult(cid, cell, f, loss, 0.5, 10, 10))
         return out
     a = select_config(build("A")).per_config[0]["joint_loss"]
     d = select_config(build("D")).per_config[0]["joint_loss"]
@@ -111,12 +111,12 @@ def test_common_epoch_is_ceil_of_median_over_12_values():
     i = 0
     for cell in CELLS:
         for f in range(3):
-            results.append(CellFoldResult(0, cell, f, 1.0, 0.5, epochs[i]))
+            results.append(CellFoldResult(0, cell, f, 1.0, 0.5, epochs[i], 10))
             i += 1
     for cid in range(1, 8):
         for cell in CELLS:
             for f in range(3):
-                results.append(CellFoldResult(cid, cell, f, 2.0, 0.5, 10))
+                results.append(CellFoldResult(cid, cell, f, 2.0, 0.5, 10, 10))
     sel = select_config(results)
     assert sel.config_id == 0 and sel.common_epochs == 6
 
@@ -134,13 +134,88 @@ def test_missing_single_fold_is_rejected():
         select_config(res)
 
 
+def _oof_fixture():
+    """fold 크기 3/3/1 — 크기 가중(OOF)과 fold 단순 평균이 다른 선택을 내는 자료.
+
+    config 0: fold 0·1 (각 3명) 손실 0.2, fold 2 (1명) 손실 2.0
+      → OOF (0.2*3 + 0.2*3 + 2.0*1)/7 = 0.4571…, fold 평균 0.8
+    config 1: 모든 fold 손실 0.5 → OOF 0.5, fold 평균 0.5
+    OOF 로는 config 0, fold 평균으로는 config 1 이 뽑힌다.
+    """
+    sizes = {0: 3, 1: 3, 2: 1}
+    out = []
+    for cid in range(8):
+        for cell in CELLS:
+            for f in range(3):
+                if cid == 0:
+                    loss = 2.0 if f == 2 else 0.2
+                elif cid == 1:
+                    loss = 0.5
+                else:
+                    loss = 3.0
+                out.append(CellFoldResult(cid, cell, f, loss, 0.5, 10, sizes[f]))
+    return out
+
+
+def test_joint_loss_is_oof_subject_equal_not_fold_mean():
+    """계획서 §7 "inner OOF run loss를 subject별 동일 가중으로 합산" (19:15 정정)."""
+    sel = select_config(_oof_fixture())
+    assert sel.config_id == 0, "fold 단순 평균이면 config 1 이 뽑힌다"
+    assert sel.per_config[0]["joint_loss"] == pytest.approx((0.2 * 3 + 0.2 * 3 + 2.0) / 7)
+    assert sel.per_config[1]["joint_loss"] == pytest.approx(0.5)
+
+
+def test_joint_loss_equals_pooled_subject_equal_loss_by_hand():
+    """fold 손실을 subject 단위로 풀어 OOF 로 합친 손계산과 같다 (loss·BA)."""
+    import math as _m
+    # fold 별 subject 의 정답 확률 (subject 당 run 2개)
+    folds = {0: {"s1": [0.9, 0.8], "s2": [0.6, 0.3]},
+             1: {"s3": [0.7, 0.7], "s4": [0.2, 0.9], "s5": [0.55, 0.45]},
+             2: {"s6": [0.99, 0.51]}}
+    def b(v):
+        return sum(1.0 for p in v if p > 0.5) / len(v)
+    rows = []
+    for cid in range(8):
+        for cell in CELLS:
+            for f, subj in folds.items():
+                loss = subject_equal_loss(subj) + (0.0 if cid == 3 else 1.0)
+                ba = sum(b(v) for v in subj.values()) / len(subj)
+                rows.append(CellFoldResult(cid, cell, f, loss, ba, 10, len(subj)))
+    sel = select_config(rows)
+    pooled = {k: v for subj in folds.values() for k, v in subj.items()}
+    assert sel.config_id == 3
+    assert sel.joint_loss == pytest.approx(subject_equal_loss(pooled), abs=1e-12)
+    want_ba = sum(b(v) for v in pooled.values()) / len(pooled)
+    assert sel.joint_ba == pytest.approx(want_ba, abs=1e-12)
+    assert not _m.isclose(sel.joint_loss,
+                          sum(subject_equal_loss(s) for s in folds.values()) / 3)
+
+
+def test_n_subjects_required_and_validated():
+    with pytest.raises(TypeError):
+        CellFoldResult(0, "A", 0, 1.0, 0.5, 10)          # 기본값 없음
+    for bad in (0, -1, True, 2.0):
+        with pytest.raises(TrainError, match="n_subjects"):
+            CellFoldResult(0, "A", 0, 1.0, 0.5, 10, bad)
+
+
+def test_fold_subject_count_must_match_across_configs_and_cells():
+    res = _results({i: 1.0 for i in range(8)})
+    res = [CellFoldResult(r.config_id, r.cell, r.inner_fold, r.loss, r.balanced_accuracy,
+                          r.best_epoch, 11 if (r.config_id == 5 and r.cell == "C"
+                                               and r.inner_fold == 1) else r.n_subjects)
+           for r in res]
+    with pytest.raises(TrainError, match="subject 수가 다르다"):
+        select_config(res)
+
+
 def test_bad_cell_and_epoch_rejected():
     with pytest.raises(TrainError, match="알 수 없는 cell"):
-        CellFoldResult(0, "E", 0, 1.0, 0.5, 10)
+        CellFoldResult(0, "E", 0, 1.0, 0.5, 10, 10)
     with pytest.raises(TrainError, match="best_epoch"):
-        CellFoldResult(0, "A", 0, 1.0, 0.5, MAX_EPOCHS + 1)
+        CellFoldResult(0, "A", 0, 1.0, 0.5, MAX_EPOCHS + 1, 10)
     with pytest.raises(TrainError, match="best_epoch"):
-        CellFoldResult(0, "A", 0, 1.0, 0.5, 0)
+        CellFoldResult(0, "A", 0, 1.0, 0.5, 0, 10)
 
 
 # --------------------------------------------------------------------------- #
@@ -239,6 +314,6 @@ def test_p8_early_stopping_refuses_a_curve_shorter_than_the_minimum():
 
 
 def test_p8_common_e_may_reach_the_new_cap():
-    CellFoldResult(0, "A", 0, 1.0, 0.5, 400)          # 상한 이내
+    CellFoldResult(0, "A", 0, 1.0, 0.5, 400, 10)          # 상한 이내
     with pytest.raises(TrainError, match="best_epoch"):
-        CellFoldResult(0, "A", 0, 1.0, 0.5, 401)
+        CellFoldResult(0, "A", 0, 1.0, 0.5, 401, 10)
