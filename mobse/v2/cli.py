@@ -851,6 +851,139 @@ SELECTION_SCHEMA = "d14-comparator-selection-0.1"
 SELECTION_LOSS_TOL = 1e-6
 
 
+def _load_inner_fit(path: Path, *, folds: Mapping[str, Any], outer_fold: int,
+                    cfg_hash: str, seen_ids: Dict[str, str],
+                    check_cell: Any, require_inner_seed: bool) -> Dict[str, Any]:
+    """선택 CLI 두 개(``select-comparator``·``select-ad``)가 공유하는 inner fit 입력 검사.
+
+    한 fit 디렉터리(``fit_manifest.json`` + 고정 이웃 ``fit_report.json``·
+    ``window_predictions.jsonl``, U20)를 읽어, 두 CLI 가 rev42·rev47 에서 같은 순서·같은
+    문구로 복사해 두었던 검사를 한 곳에서 한다 (남은 작업 2-c 공통화, 동작 불변):
+    스키마 → fit_id 중복 → ``check_cell`` → inner role → outer fold → split/config hash →
+    (``require_inner_seed`` 이면 inner seed) → 이웃 파일 → fit_report fit_id → config_id
+    로 fit_id 재계산 → fit_subjects = inner train → 예측 행 (fit_id/cell/seed·scope·
+    checkpoint·창 번호·truth) → 예측 subject = inner validation → ``run_probabilities``.
+
+    손실·BA 재계산과 대조는 호출자가 한다 — 두 CLI 의 손실 함수 표기가 다르다
+    (``baselines.inner_loss`` / ``train.subject_equal_loss``), select-ad 만 BA 를 대조한다.
+
+    Args:
+        path: ``fit_manifest.json`` 경로.
+        folds: ``folds.json`` 내용.
+        outer_fold: ``--outer-fold``.
+        cfg_hash: ``--config`` 의 config hash.
+        seen_ids: fit_id → manifest 경로. 호출마다 갱신된다 (중복 검사).
+        check_cell: ``(fid, cell) -> None``, 허용되지 않는 칸이면 ``CLIError``.
+        require_inner_seed: True 면 ``model_seed == train.INNER_SEED`` 를 요구.
+
+    Returns:
+        ``fid, man, rep, rep_path, pred_path, cell, model_seed, inner_fold, config_id,
+        fold, run_probs`` 를 담은 dict.
+
+    Raises:
+        CLIError: 입력 경계·무결성이 어긋날 때.
+    """
+    from mobse.v2 import fitting as FIT
+    from mobse.v2 import train as TR
+    from mobse.v2.manifests import fit_id, read_jsonl
+
+    split_hash = folds["split_hash"]
+    man = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        validate_record("fit_manifest", man)
+    except ManifestError as exc:
+        raise CLIError(f"{path}: fit_manifest 스키마 위반 — {exc}") from exc
+    fid = man["fit_id"]
+    if fid in seen_ids:
+        raise CLIError(f"fit_id 중복: {fid} ({seen_ids[fid]} 와 {path})")
+    seen_ids[fid] = str(path)
+    cell = man["cell"]
+    check_cell(fid, cell)
+    if man["role"] != FIT.ROLE_INNER or \
+            man["folds"].get("eval_role") != FIT.EVAL_ROLE[FIT.ROLE_INNER]:
+        raise CLIError(f"{fid}: inner fit 이 아니다 (role={man['role']!r}). 선택은 "
+                       "inner validation 결과로만 한다 (계획서 §7)")
+    if int(man["folds"]["outer_fold"]) != outer_fold:
+        raise CLIError(f"{fid}: outer fold {man['folds']['outer_fold']} ≠ --outer-fold "
+                       f"{outer_fold}")
+    if man["split_hash"] != split_hash:
+        raise CLIError(f"{fid}: split_hash 가 --splits 와 다르다")
+    if man["config_hash"] != cfg_hash:
+        raise CLIError(f"{fid}: config_hash 가 --config 와 다르다")
+    seed = int(man["model_seed"])
+    if require_inner_seed and seed != TR.INNER_SEED:
+        raise CLIError(f"{fid}: model_seed {seed} ≠ inner seed {TR.INNER_SEED} "
+                       "(계획서 §7 \"Inner seed=42\")")
+
+    rep_path = path.parent / "fit_report.json"
+    pred_path = path.parent / "window_predictions.jsonl"
+    for need in (rep_path, pred_path):
+        if not need.is_file():
+            raise CLIError(f"{fid}: {need.name} 가 없다 {need}. 대체 탐색하지 않는다 (U20)")
+    rep = json.loads(rep_path.read_text(encoding="utf-8"))
+    if rep.get("fit_id") != fid:
+        raise CLIError(f"{rep_path}: fit_id {rep.get('fit_id')!r} ≠ manifest {fid}")
+    inner_fold = int(man["folds"]["inner_fold"])
+    cid = int(rep["config_id"])
+    expect = fit_id(role=man["role"], cell=cell, outer_fold=outer_fold,
+                    inner_fold=inner_fold, model_seed=seed, config_id=cid,
+                    split_hash=split_hash, config_hash=cfg_hash)
+    if expect != fid:
+        raise CLIError(f"{fid}: fit_report config_id {cid} 로 다시 만든 fit_id 가 다르다 "
+                       f"({expect}) — 보고서와 manifest 가 다른 fit 이다")
+
+    fold = FIT.resolve_fold_subjects(folds, outer_fold, inner_fold)
+    if sorted(man["fit_subjects"]) != sorted(fold.train):
+        raise CLIError(f"{fid}: fit_subjects 가 folds.json 의 inner train 과 다르다")
+    try:
+        rows = read_jsonl(pred_path, "window_predictions")
+    except ManifestError as exc:
+        raise CLIError(f"{pred_path}: window_predictions 스키마 위반 — {exc}") from exc
+    refs, probs = [], []
+    for i, r in enumerate(rows):
+        if r["fit_id"] != fid or r["cell"] != cell or int(r["model_seed"]) != seed:
+            raise CLIError(f"{pred_path}:{i + 1}: fit_id/cell/seed 가 manifest 와 다르다")
+        if r["scope"] != FIT.EVAL_ROLE[FIT.ROLE_INNER]:
+            raise CLIError(f"{pred_path}:{i + 1}: scope {r['scope']!r} — inner validation "
+                           "만 선택에 쓴다")
+        if r["checkpoint_sha256"] != rep.get("checkpoint_sha256"):
+            raise CLIError(f"{pred_path}:{i + 1}: checkpoint hash 가 fit_report 와 다르다")
+        _window_index(r["run_key"], r["window_key"])
+        if int(r["truth"]) != FIT.class_index(FIT.task_of(r["run_key"])):
+            raise CLIError(f"{pred_path}:{i + 1}: truth 가 run_key 의 task 와 다르다")
+        refs.append(FIT.WindowRef(
+            window_key=r["window_key"], run_key=r["run_key"],
+            canonical_subject=r["canonical_subject"], task=FIT.task_of(r["run_key"]),
+            path=Path(""), sha256="", label=int(r["truth"])))
+        probs.append(float(r["p_class1"]))
+    got_subjects = {r["canonical_subject"] for r in rows}
+    if got_subjects != set(fold.evaluate):
+        raise CLIError(f"{fid}: 예측 subject 가 inner validation subject 와 다르다 "
+                       f"(누락 {sorted(set(fold.evaluate) - got_subjects)[:3]}, "
+                       f"여분 {sorted(got_subjects - set(fold.evaluate))[:3]})")
+    try:
+        run_probs = FIT.run_probabilities(refs, probs)
+    except FIT.FitError as exc:
+        raise CLIError(f"{pred_path}: {exc}") from exc
+    return {"fid": fid, "man": man, "rep": rep, "rep_path": rep_path,
+            "pred_path": pred_path, "cell": cell, "model_seed": seed,
+            "inner_fold": inner_fold, "config_id": cid, "fold": fold,
+            "run_probs": run_probs}
+
+
+def _check_inner_hashes_uniform(inputs: Sequence[Mapping[str, Any]]) -> None:
+    """inner fit 들의 code/env/source hash 가 하나씩인지 (두 선택 CLI 공통).
+
+    Raises:
+        CLIError: 어느 hash 든 값이 둘 이상이거나 없을 때.
+    """
+    for field in ("code_hash", "env_hash", "source_hash"):
+        values = sorted({json.loads(Path(i["fit_manifest"]).read_text(encoding="utf-8"))[field]
+                         for i in inputs})
+        if len(values) != 1:
+            raise CLIError(f"inner fit 사이에 {field} 가 다르다 {[v[:12] for v in values]}")
+
+
 def run_select_comparator(paths: Dict[str, Any], args: argparse.Namespace
                           ) -> Dict[str, Any]:
     """구조 비교 하나의 inner fit 산출물로 config·outer E 를 고른다 (결정 14 4b).
@@ -872,10 +1005,9 @@ def run_select_comparator(paths: Dict[str, Any], args: argparse.Namespace
         CLIError: 입력 경계·무결성이 어긋나거나 산출물을 덮어쓰게 될 때.
     """
     from mobse.v2 import baselines as BL
-    from mobse.v2 import fitting as FIT
     from mobse.v2 import templates as TPL
     from mobse.v2 import train as TR
-    from mobse.v2.manifests import code_hash, fit_id, read_jsonl, sha256_file
+    from mobse.v2.manifests import code_hash, sha256_file
 
     structure = str(args.structure)
     if structure not in BL.COMPARATOR_ORDER:
@@ -894,106 +1026,37 @@ def run_select_comparator(paths: Dict[str, Any], args: argparse.Namespace
     folds = json.loads(Path(paths["splits"]).read_text(encoding="utf-8"))
     split_hash = folds["split_hash"]
 
+    def _cell_ok(fid: str, cell: str) -> None:
+        if cell != structure:
+            raise CLIError(f"{fid}: cell {cell!r} — {structure} 선택에 다른 칸을 "
+                           "섞지 않는다 (결정 14 (가) 구조별 독립 선택)")
+
     results: List[Any] = []
     inputs: List[Dict[str, Any]] = []
     seen_ids: Dict[str, str] = {}
     for mp in _as_list(paths["fit_manifest"]):
         path = Path(mp)
-        man = json.loads(path.read_text(encoding="utf-8"))
-        try:
-            validate_record("fit_manifest", man)
-        except ManifestError as exc:
-            raise CLIError(f"{path}: fit_manifest 스키마 위반 — {exc}") from exc
-        fid = man["fit_id"]
-        if fid in seen_ids:
-            raise CLIError(f"fit_id 중복: {fid} ({seen_ids[fid]} 와 {path})")
-        seen_ids[fid] = str(path)
-        if man["cell"] != structure:
-            raise CLIError(f"{fid}: cell {man['cell']!r} — {structure} 선택에 다른 칸을 "
-                           "섞지 않는다 (결정 14 (가) 구조별 독립 선택)")
-        if man["role"] != FIT.ROLE_INNER or \
-                man["folds"].get("eval_role") != FIT.EVAL_ROLE[FIT.ROLE_INNER]:
-            raise CLIError(f"{fid}: inner fit 이 아니다 (role={man['role']!r}). 선택은 "
-                           "inner validation 결과로만 한다 (계획서 §7)")
-        if int(man["folds"]["outer_fold"]) != outer_fold:
-            raise CLIError(f"{fid}: outer fold {man['folds']['outer_fold']} ≠ --outer-fold "
-                           f"{outer_fold}")
-        if man["split_hash"] != split_hash:
-            raise CLIError(f"{fid}: split_hash 가 --splits 와 다르다")
-        if man["config_hash"] != cfg_hash:
-            raise CLIError(f"{fid}: config_hash 가 --config 와 다르다")
-
-        rep_path = path.parent / "fit_report.json"
-        pred_path = path.parent / "window_predictions.jsonl"
-        for need in (rep_path, pred_path):
-            if not need.is_file():
-                raise CLIError(f"{fid}: {need.name} 가 없다 {need}. 대체 탐색하지 않는다 (U20)")
-        rep = json.loads(rep_path.read_text(encoding="utf-8"))
-        if rep.get("fit_id") != fid:
-            raise CLIError(f"{rep_path}: fit_id {rep.get('fit_id')!r} ≠ manifest {fid}")
-        inner_fold = int(man["folds"]["inner_fold"])
-        cid = int(rep["config_id"])
-        expect = fit_id(role=man["role"], cell=structure, outer_fold=outer_fold,
-                        inner_fold=inner_fold, model_seed=int(man["model_seed"]),
-                        config_id=cid, split_hash=split_hash, config_hash=cfg_hash)
-        if expect != fid:
-            raise CLIError(f"{fid}: fit_report config_id {cid} 로 다시 만든 fit_id 가 다르다 "
-                           f"({expect}) — 보고서와 manifest 가 다른 fit 이다")
-
-        fold = FIT.resolve_fold_subjects(folds, outer_fold, inner_fold)
-        if sorted(man["fit_subjects"]) != sorted(fold.train):
-            raise CLIError(f"{fid}: fit_subjects 가 folds.json 의 inner train 과 다르다")
-        try:
-            rows = read_jsonl(pred_path, "window_predictions")
-        except ManifestError as exc:
-            raise CLIError(f"{pred_path}: window_predictions 스키마 위반 — {exc}") from exc
-        refs, probs = [], []
-        for i, r in enumerate(rows):
-            if r["fit_id"] != fid or r["cell"] != structure or \
-                    int(r["model_seed"]) != int(man["model_seed"]):
-                raise CLIError(f"{pred_path}:{i + 1}: fit_id/cell/seed 가 manifest 와 다르다")
-            if r["scope"] != FIT.EVAL_ROLE[FIT.ROLE_INNER]:
-                raise CLIError(f"{pred_path}:{i + 1}: scope {r['scope']!r} — inner validation "
-                               "만 선택에 쓴다")
-            if r["checkpoint_sha256"] != rep.get("checkpoint_sha256"):
-                raise CLIError(f"{pred_path}:{i + 1}: checkpoint hash 가 fit_report 와 다르다")
-            _window_index(r["run_key"], r["window_key"])
-            if int(r["truth"]) != FIT.class_index(FIT.task_of(r["run_key"])):
-                raise CLIError(f"{pred_path}:{i + 1}: truth 가 run_key 의 task 와 다르다")
-            refs.append(FIT.WindowRef(
-                window_key=r["window_key"], run_key=r["run_key"],
-                canonical_subject=r["canonical_subject"], task=FIT.task_of(r["run_key"]),
-                path=Path(""), sha256="", label=int(r["truth"])))
-            probs.append(float(r["p_class1"]))
-        got_subjects = {r["canonical_subject"] for r in rows}
-        if got_subjects != set(fold.evaluate):
-            raise CLIError(f"{fid}: 예측 subject 가 inner validation subject 와 다르다 "
-                           f"(누락 {sorted(set(fold.evaluate) - got_subjects)[:3]}, "
-                           f"여분 {sorted(got_subjects - set(fold.evaluate))[:3]})")
-        try:
-            run_probs = FIT.run_probabilities(refs, probs)
-        except FIT.FitError as exc:
-            raise CLIError(f"{pred_path}: {exc}") from exc
+        fit = _load_inner_fit(path, folds=folds, outer_fold=outer_fold, cfg_hash=cfg_hash,
+                              seen_ids=seen_ids, check_cell=_cell_ok,
+                              require_inner_seed=False)
+        fid, rep, run_probs = fit["fid"], fit["rep"], fit["run_probs"]
+        cid, inner_fold = fit["config_id"], fit["inner_fold"]
         loss = BL.inner_loss(run_probs)
         if abs(loss - float(rep["eval_loss"])) > SELECTION_LOSS_TOL:
             raise CLIError(f"{fid}: 창 예측으로 다시 계산한 inner 손실 {loss:.9f} ≠ "
                            f"fit_report eval_loss {float(rep['eval_loss']):.9f}")
         results.append(BL.ComparatorInner(
             structure=structure, config_id=cid, inner_fold=inner_fold,
-            model_seed=int(man["model_seed"]), run_probs=run_probs,
+            model_seed=fit["model_seed"], run_probs=run_probs,
             best_epoch=int(rep["best_epoch"])))
         inputs.append({"fit_id": fid, "config_id": cid, "inner_fold": inner_fold,
                        "fit_manifest": str(path), "fit_manifest_sha256": sha256_file(path),
-                       "fit_report_sha256": sha256_file(rep_path),
-                       "window_predictions_sha256": sha256_file(pred_path),
+                       "fit_report_sha256": sha256_file(fit["rep_path"]),
+                       "window_predictions_sha256": sha256_file(fit["pred_path"]),
                        "checkpoint_sha256": rep.get("checkpoint_sha256"),
                        "best_epoch": int(rep["best_epoch"]), "inner_loss": loss})
 
-    for field in ("code_hash", "env_hash", "source_hash"):
-        values = sorted({json.loads(Path(i["fit_manifest"]).read_text(encoding="utf-8"))[field]
-                         for i in inputs})
-        if len(values) != 1:
-            raise CLIError(f"inner fit 사이에 {field} 가 다르다 {[v[:12] for v in values]}")
+    _check_inner_hashes_uniform(inputs)
     try:
         sel = BL.select_comparator(results, structure=structure)
     except BL.BaselineError as exc:
@@ -1053,8 +1116,8 @@ def run_select_ad(paths: Dict[str, Any], args: argparse.Namespace) -> Dict[str, 
     창 확률은 ``fitting.run_probabilities`` 로 접는다 — ``train_fold`` 가 inner
     ``eval_loss`` 를 계산한 것과 같은 함수이고, 그 값과 1e-6 안에서 대조한다.
 
-    입력 검사는 ``select-comparator`` 와 같은 순서·같은 문구다 (그 함수는 바꾸지 않았다 —
-    구현 선택; 두 경로의 공통화는 남은 작업). 하위 명령 이름·산출물 이름은 구현 선택이다.
+    입력 검사는 ``select-comparator`` 와 공유하는 ``_load_inner_fit`` 이 한다 (rev49 공통화 —
+    rev47 의 복사본과 같은 순서·같은 문구). 하위 명령 이름·산출물 이름은 구현 선택이다.
 
     Raises:
         CLIError: 입력 경계·무결성이 어긋나거나 산출물을 덮어쓰게 될 때.
@@ -1062,7 +1125,7 @@ def run_select_ad(paths: Dict[str, Any], args: argparse.Namespace) -> Dict[str, 
     from mobse.v2 import fitting as FIT
     from mobse.v2 import templates as TPL
     from mobse.v2 import train as TR
-    from mobse.v2.manifests import code_hash, fit_id, read_jsonl, sha256_file
+    from mobse.v2.manifests import code_hash, sha256_file
 
     outer_fold = int(args.outer_fold)
     try:
@@ -1078,90 +1141,22 @@ def run_select_ad(paths: Dict[str, Any], args: argparse.Namespace) -> Dict[str, 
     folds = json.loads(Path(paths["splits"]).read_text(encoding="utf-8"))
     split_hash = folds["split_hash"]
 
+    def _cell_ok(fid: str, cell: str) -> None:
+        if cell not in TR.CELLS:
+            raise CLIError(f"{fid}: cell {cell!r} — A–D 공동 선택에 다른 칸을 섞지 않는다 "
+                           "(구조 비교는 select-comparator, 계획서 §7)")
+
     results: List[Any] = []
     inputs: List[Dict[str, Any]] = []
     seen_ids: Dict[str, str] = {}
     for mp in _as_list(paths["fit_manifest"]):
         path = Path(mp)
-        man = json.loads(path.read_text(encoding="utf-8"))
-        try:
-            validate_record("fit_manifest", man)
-        except ManifestError as exc:
-            raise CLIError(f"{path}: fit_manifest 스키마 위반 — {exc}") from exc
-        fid = man["fit_id"]
-        if fid in seen_ids:
-            raise CLIError(f"fit_id 중복: {fid} ({seen_ids[fid]} 와 {path})")
-        seen_ids[fid] = str(path)
-        cell = man["cell"]
-        if cell not in TR.CELLS:
-            raise CLIError(f"{fid}: cell {cell!r} — A–D 공동 선택에 다른 칸을 섞지 않는다 "
-                           "(구조 비교는 select-comparator, 계획서 §7)")
-        if man["role"] != FIT.ROLE_INNER or \
-                man["folds"].get("eval_role") != FIT.EVAL_ROLE[FIT.ROLE_INNER]:
-            raise CLIError(f"{fid}: inner fit 이 아니다 (role={man['role']!r}). 선택은 "
-                           "inner validation 결과로만 한다 (계획서 §7)")
-        if int(man["folds"]["outer_fold"]) != outer_fold:
-            raise CLIError(f"{fid}: outer fold {man['folds']['outer_fold']} ≠ --outer-fold "
-                           f"{outer_fold}")
-        if man["split_hash"] != split_hash:
-            raise CLIError(f"{fid}: split_hash 가 --splits 와 다르다")
-        if man["config_hash"] != cfg_hash:
-            raise CLIError(f"{fid}: config_hash 가 --config 와 다르다")
-        seed = int(man["model_seed"])
-        if seed != TR.INNER_SEED:
-            raise CLIError(f"{fid}: model_seed {seed} ≠ inner seed {TR.INNER_SEED} "
-                           "(계획서 §7 \"Inner seed=42\")")
-
-        rep_path = path.parent / "fit_report.json"
-        pred_path = path.parent / "window_predictions.jsonl"
-        for need in (rep_path, pred_path):
-            if not need.is_file():
-                raise CLIError(f"{fid}: {need.name} 가 없다 {need}. 대체 탐색하지 않는다 (U20)")
-        rep = json.loads(rep_path.read_text(encoding="utf-8"))
-        if rep.get("fit_id") != fid:
-            raise CLIError(f"{rep_path}: fit_id {rep.get('fit_id')!r} ≠ manifest {fid}")
-        inner_fold = int(man["folds"]["inner_fold"])
-        cid = int(rep["config_id"])
-        expect = fit_id(role=man["role"], cell=cell, outer_fold=outer_fold,
-                        inner_fold=inner_fold, model_seed=seed, config_id=cid,
-                        split_hash=split_hash, config_hash=cfg_hash)
-        if expect != fid:
-            raise CLIError(f"{fid}: fit_report config_id {cid} 로 다시 만든 fit_id 가 다르다 "
-                           f"({expect}) — 보고서와 manifest 가 다른 fit 이다")
-
-        fold = FIT.resolve_fold_subjects(folds, outer_fold, inner_fold)
-        if sorted(man["fit_subjects"]) != sorted(fold.train):
-            raise CLIError(f"{fid}: fit_subjects 가 folds.json 의 inner train 과 다르다")
-        try:
-            rows = read_jsonl(pred_path, "window_predictions")
-        except ManifestError as exc:
-            raise CLIError(f"{pred_path}: window_predictions 스키마 위반 — {exc}") from exc
-        refs, probs = [], []
-        for i, r in enumerate(rows):
-            if r["fit_id"] != fid or r["cell"] != cell or int(r["model_seed"]) != seed:
-                raise CLIError(f"{pred_path}:{i + 1}: fit_id/cell/seed 가 manifest 와 다르다")
-            if r["scope"] != FIT.EVAL_ROLE[FIT.ROLE_INNER]:
-                raise CLIError(f"{pred_path}:{i + 1}: scope {r['scope']!r} — inner validation "
-                               "만 선택에 쓴다")
-            if r["checkpoint_sha256"] != rep.get("checkpoint_sha256"):
-                raise CLIError(f"{pred_path}:{i + 1}: checkpoint hash 가 fit_report 와 다르다")
-            _window_index(r["run_key"], r["window_key"])
-            if int(r["truth"]) != FIT.class_index(FIT.task_of(r["run_key"])):
-                raise CLIError(f"{pred_path}:{i + 1}: truth 가 run_key 의 task 와 다르다")
-            refs.append(FIT.WindowRef(
-                window_key=r["window_key"], run_key=r["run_key"],
-                canonical_subject=r["canonical_subject"], task=FIT.task_of(r["run_key"]),
-                path=Path(""), sha256="", label=int(r["truth"])))
-            probs.append(float(r["p_class1"]))
-        got_subjects = {r["canonical_subject"] for r in rows}
-        if got_subjects != set(fold.evaluate):
-            raise CLIError(f"{fid}: 예측 subject 가 inner validation subject 와 다르다 "
-                           f"(누락 {sorted(set(fold.evaluate) - got_subjects)[:3]}, "
-                           f"여분 {sorted(got_subjects - set(fold.evaluate))[:3]})")
-        try:
-            run_probs = FIT.run_probabilities(refs, probs)
-        except FIT.FitError as exc:
-            raise CLIError(f"{pred_path}: {exc}") from exc
+        fit = _load_inner_fit(path, folds=folds, outer_fold=outer_fold, cfg_hash=cfg_hash,
+                              seen_ids=seen_ids, check_cell=_cell_ok,
+                              require_inner_seed=True)
+        fid, rep, run_probs = fit["fid"], fit["rep"], fit["run_probs"]
+        cell, cid, inner_fold, fold = (fit["cell"], fit["config_id"], fit["inner_fold"],
+                                       fit["fold"])
         loss = TR.subject_equal_loss(FIT.subject_run_true_probs(run_probs))
         if abs(loss - float(rep["eval_loss"])) > SELECTION_LOSS_TOL:
             raise CLIError(f"{fid}: 창 예측으로 다시 계산한 inner 손실 {loss:.9f} ≠ "
@@ -1180,19 +1175,15 @@ def run_select_ad(paths: Dict[str, Any], args: argparse.Namespace) -> Dict[str, 
         inputs.append({"fit_id": fid, "cell": cell, "config_id": cid,
                        "inner_fold": inner_fold, "n_subjects": len(fold.evaluate),
                        "fit_manifest": str(path), "fit_manifest_sha256": sha256_file(path),
-                       "fit_report_sha256": sha256_file(rep_path),
-                       "window_predictions_sha256": sha256_file(pred_path),
+                       "fit_report_sha256": sha256_file(fit["rep_path"]),
+                       "window_predictions_sha256": sha256_file(fit["pred_path"]),
                        "checkpoint_sha256": rep.get("checkpoint_sha256"),
                        "best_epoch": int(rep["best_epoch"]), "inner_loss": loss,
                        "inner_balanced_accuracy": ba})
 
     if not inputs:
         raise CLIError("inner fit 이 없다")
-    for field in ("code_hash", "env_hash", "source_hash"):
-        values = sorted({json.loads(Path(i["fit_manifest"]).read_text(encoding="utf-8"))[field]
-                         for i in inputs})
-        if len(values) != 1:
-            raise CLIError(f"inner fit 사이에 {field} 가 다르다 {[v[:12] for v in values]}")
+    _check_inner_hashes_uniform(inputs)
     try:
         sel = TR.select_config(results)          # 3 inner fold 고정 (계획서 §7)
     except TR.TrainError as exc:

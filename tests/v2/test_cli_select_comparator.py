@@ -306,3 +306,37 @@ def test_truth_must_follow_task(ws):
     mans = full_grid(ws, skip={(1, 1)}) + [make_fit(ws, cid=1, fold=1, mutate=m)]
     with pytest.raises(CLIError, match="truth"):
         run(ws, mans)
+
+
+# rev49 (남은 작업 2-c 공통화 돌연변이에서 드러난, 기존에도 시험이 없던 가드)
+
+def _one_bad(ws, cid, fold, mutate):
+    return full_grid(ws, skip={(cid, fold)}) + [make_fit(ws, cid=cid, fold=fold, mutate=mutate)]
+
+
+def test_other_split_hash_is_refused(ws):
+    def m(man, rep, rows):
+        man["split_hash"] = "0" * 64
+    with pytest.raises(CLIError, match="split_hash"):
+        run(ws, _one_bad(ws, 4, 1, m))
+
+
+def test_other_config_hash_is_refused(ws):
+    def m(man, rep, rows):
+        man["config_hash"] = "0" * 64
+    with pytest.raises(CLIError, match="config_hash"):
+        run(ws, _one_bad(ws, 3, 2, m))
+
+
+def test_report_of_other_fit_is_refused(ws):
+    def m(man, rep, rows):
+        rep["fit_id"] = "wi05-fit-other"
+    with pytest.raises(CLIError, match="≠ manifest"):
+        run(ws, _one_bad(ws, 1, 0, m))
+
+
+def test_row_of_other_structure_is_refused(ws):
+    def m(man, rep, rows):
+        rows[1]["cell"] = "SG"
+    with pytest.raises(CLIError, match="fit_id/cell/seed"):
+        run(ws, _one_bad(ws, 5, 0, m))

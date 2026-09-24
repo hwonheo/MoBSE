@@ -341,3 +341,26 @@ def test_row_of_other_cell_is_refused(ws):
         rows[1]["cell"] = "B"
     with pytest.raises(CLIError, match="fit_id/cell/seed"):
         run(ws, _one_bad(ws, "A", 5, 0, m))
+
+
+# rev49 (남은 작업 2-c 공통화 돌연변이에서 드러난, 기존에도 시험이 없던 가드)
+
+def test_other_split_hash_is_refused(ws):
+    def m(man, rep, rows):
+        man["split_hash"] = "0" * 64
+    with pytest.raises(CLIError, match="split_hash"):
+        run(ws, _one_bad(ws, "C", 4, 1, m))
+
+
+def test_other_config_hash_is_refused(ws):
+    def m(man, rep, rows):
+        man["config_hash"] = "0" * 64
+    with pytest.raises(CLIError, match="config_hash"):
+        run(ws, _one_bad(ws, "D", 3, 2, m))
+
+
+def test_report_of_other_fit_is_refused(ws):
+    def m(man, rep, rows):
+        rep["fit_id"] = "wi05-fit-other"
+    with pytest.raises(CLIError, match="≠ manifest"):
+        run(ws, _one_bad(ws, "B", 1, 0, m))
