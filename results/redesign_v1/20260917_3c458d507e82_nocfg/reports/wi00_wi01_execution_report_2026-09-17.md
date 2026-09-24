@@ -4058,3 +4058,41 @@ evaluation.json 의 config_hash, run_predictions sha256 기록과 대조한다. 
 - A–D inner 선택 기록 경로 (WI-07 출력 "selection") — 없음.
 - 구조 비교·S outer 예측의 집계·보고 경로 — 없음.
 - 실자료 fit·시간 (S3·S4 는 4,950 차원) — 없음.
+
+
+# 부록 AR — 결정 15 반영: P8 값 5,000 update / 상한 400 epoch (계획서 P8-b, rev44, 2026-09-24 예약 슬롯)
+
+근거: 인수인계 결정 15. 결정 13 결과(부록 AL) 보고 뒤 대화에서 제시한 선택지 "(ㄱ-1) 구조 변경 보류 + 결정 12 값 3,000 update / 상한 200 (권고)", "(ㄱ-2) 구조 변경 보류 + 5,000 / 400 (슬롯 원 권고, 비용이 큼)", "(ㄱ-3) 구조 변경 보류 + 1,500 / 200 유지 (현행)", "(ㄴ) BN 쪽 검토 …" 가운데 선생님 선택 원문 **"(ㄱ-2) 구조 변경 보류 + 5,000 / 400 (슬롯 원 권고, 비용이 큼)"** (09-24 17:0x KST 기록). **실자료 fit 없음, main pool 미소비. main OOF 착수 승인 아님.**
+
+## AR.1 바뀐 것
+
+- 계획서 §11 에 **P8-b** 행 추가 (결정 원문 인용, 근거 부록 AH.2–AH.3·AL, 값 1,500/200 → 5,000/400, 모델 구조 불변). §7 본문 P8 표시 옆에 `[개정 P8-b]` 표시.
+- `mobse/v2/train.py`: `MIN_UPDATES = 5000`, `MAX_EPOCHS = 400` (docstring 포함). `mobse/v2/config.py`: `train.max_epochs` 설명 문구만 (잠금 값은 `train` 상수 참조). `mobse/v2/fitting.py`: `train_fold` docstring 의 기본값 문구만.
+- `configs/redesign_v1/{main,pilot,external}.yaml`: `train.max_epochs: 400`, `train.min_updates: 5000`. config_hash main `96aa166e` → `2a7d7d7f`, pilot → `6498596a`, external `0c3329a8` → `576f6068`.
+- 바꾸지 않은 것: A–D·NG·SG 모델 구조 (head 앞 정규화 없음), 학습률·patience 5·min_delta 0.0005·batch 32·grid·gradient clip·dropout·weight decay, early stopping 은 최소치 이후에만·best checkpoint 평가(결정 12), outer 공통 E 고정 epoch 규칙. (ㄴ) BN 가설 측정은 하지 않았다.
+- 다른 곳의 1,500·200 리터럴: `mobse/v2`·`configs` grep 결과 없음 (docstring 2곳 정정). `fit_mlp`·`train_fold`·구조 비교·`fit-s`·선택 함수는 호출 시점 `train` 상수 또는 config `train.min_updates` 를 읽는다 — CLI spy 시험 (`test_cli_fit`·`test_cli_fit_s`) 이 5,000 전달을 확인.
+
+## AR.2 시험·돌연변이
+
+- 고정 시험 갱신: `test_train` (상수 5,000/400, `min_epochs_for(544)=295 ≤ 400`, outer `min_epochs_for(808)=193`·`(800)=200`, 상한 경계 400/401), `test_fitting` (기본값 5,000, 상한 400), `test_cli_fit`·`test_cli_fit_s` (spy·보고서 `min_updates` 5,000). 시험 수 불변.
+- Mac 전체 850 passed / 13 skipped.
+- 돌연변이 (`.backup/slot_1715/mut_d15.py`, 파일별 원본 복원, `-B`·`PYTHONDONTWRITEBYTECODE`): `MIN_UPDATES` 1,500, `MAX_EPOCHS` 200·300, main.yaml `min_updates` 1,500·`max_epochs` 200, pilot.yaml `min_updates` 3,000, external.yaml `max_epochs` 200 = **7/7 검출** (상수 → `test_p8_constants…`, yaml → `test_shipped_config_validates` 잠금 대조).
+- **새 사고 (이번 회차 발견·정정):** 첫 돌연변이 실행이 같은 크기 치환(400→300)을 같은 초 안에 복원해 `mobse/v2/__pycache__/train.cpython-311.pyc` 가 **돌연변이 판(300)** 으로 남았다 (pyc 는 원본 mtime·크기로만 무효화). rsync 가 그 pyc 를 h197 로 옮겨 h197 import 가 `MAX_EPOCHS=300` 을 읽었다 — 귀결 계산 출력에서 발견. 조치: Mac·h197 `mobse`·`tests`·`scripts` 의 `__pycache__` 전부 삭제, 돌연변이는 bytecode 를 쓰지 않게 다시 실행 (위 7/7 은 재실행 결과). 잠금 재생성·마감은 삭제 뒤에 했다. 이전 회차 돌연변이 결과가 같은 영향을 받았는지는 **확인하지 않았다** (검출 판정 방향으로만 틀릴 수 있음 — 놓친 것을 잡았다고 볼 위험).
+
+## AR.3 main 귀결 (재계산 — folds.json subject 수 × 8 창, 창·라벨·예측 미열람)
+
+h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에서 `train.updates_per_epoch`·`min_epochs_for` 로 다시 셈 (AH.3 은 같은 수를 손으로 셈):
+- inner 학습 창 528–544 → 17 update/epoch → **최소 epoch 295** (15 fold 전부), 상한 400 까지 early stopping 여유 105 epoch.
+- outer 학습 창 800–808 → 25–26 update/epoch → **outer 공통 E ≥ 193–200**. 선택된 inner best epoch 이 295 이상이므로 공통 E(중앙값 올림)는 295–400 범위이고, outer 최소치 조건은 자동으로 채워진다.
+- pilot 창 규모 (pilot 31명 × 8 = 248 창, inner 학습 창 104–112 → 4 update/epoch) 에서는 최소 epoch 1,250 > 400 이라 **pilot 규모 fit 은 거부된다** — P8 구현 때와 같은 성질. pilot 측정은 계속 프로세스 안 `MAX_EPOCHS` 덮기로만 한다.
+- 시간: AH.3 의 외삽(학습 상한 약 15 h, 결정성 적용 전 합성 벤치마크 기준) 은 **실측이 아니다**. 실제 fit 시간은 남은 작업 6 에서 pilot 창으로 잰다.
+
+## AR.4 잠금
+
+`mobse/v2/train.py`·`config.py`·`fitting.py`·configs·계획서 변경으로 재잠금 `64c4ef67f4d0` → **`4394c7a28252` (2026-09-24T08:22:37Z)**, code_hash `a9a0fcea2bcb` → `170629c693a3`. 검사 43/43, 창 4,728 (h197 재잠금 직후 19·25번). **split_hash `ace5f4a4…` 불변**, N 126/189 불변. 창·코호트·분할 불변.
+
+## AR.5 이번 회차에 확인하지 못한 것 · 남은 순서
+
+- 5,000/400 에서의 실제 fit 시간 (pilot 창, 남은 작업 6) — 미측정. main 규모 epoch 당 시간도 미측정.
+- 이전 회차 돌연변이의 stale pyc 영향 — 미확인 (AR.2).
+- 결정 14 4c-ii (S 선택 기록 CLI), A–D inner 선택 기록 경로 — 남음.
