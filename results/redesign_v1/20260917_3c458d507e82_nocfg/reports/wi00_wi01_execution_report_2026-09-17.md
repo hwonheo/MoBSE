@@ -3974,3 +3974,46 @@ evaluation.json 의 config_hash, run_predictions sha256 기록과 대조한다. 
 - 4b: 구조 비교 inner fit 산출물(`fit_report.json`·`window_predictions.jsonl`) → `ComparatorInner` → `select_comparator` → 선택 기록 파일 → outer fit 명령. 하위 명령 이름·입력 형식은 그때 표시.
 - 4c: S 후보 1–4 fit·선택 CLI.
 - 실자료 fit·GPU·시간 — 없음. 결정 13 판단으로 head 앞 정규화가 A–D 에 들어가면 NG·SG 에도 같은 변경 (결정 14 절).
+
+
+# 부록 AP — 결정 14 4단계 (4b): `select-comparator` 선택 기록 하위 명령 + `fit_id` 에 config_id (rev42, 2026-09-24 예약 슬롯)
+
+근거: 인수인계 결정 14 (선생님 원문 "(가) 독립 선택: 두 구조가 각자 8개 설정 중 inner 결과로 하나를 고르고, epoch은 baseline 규칙을 따르며, seed는 42–44입니다. 약 270 fit이고 슬롯 권고안입니다" 선택, 09-24 11:1x KST) 의 구현 순서 4 중 **4b**. S 후보 CLI(4c)는 이번 회차에 하지 않았다. **잠긴 값 변경 없음. 실자료 fit 없음, main pool 미소비.**
+
+## AP.1 사전 확인 — window → run 집계 함수
+
+- `evaluate` 는 `evaluate.aggregate_runs` 를 쓴다. 이 함수는 cell A–D 에 **창 4 × seed 3 격자**를 요구하는 outer test 집계다 (`statistics.run_probability`, seed 평균 → 창 평균).
+- inner fit 은 seed 42 하나다 (계획서 §7). `train_fold` 는 inner `eval_loss`·`eval_run_probs` 를 `fitting.run_probabilities` (run 당 창 4 개 평균) 로 계산한다.
+- 그래서 선택 기록 하위 명령은 **`fitting.run_probabilities`** 를 쓴다 — inner fit 이 손실을 계산한 것과 같은 함수. `evaluate.aggregate_runs` 는 쓰지 않는다.
+
+## AP.2 새 발견 — inner grid 의 `fit_id` 충돌 (정정함)
+
+- `manifests.fit_id` payload 가 (role, cell, outer_fold, inner_fold, model_seed, split_hash, config_hash) 였고 **config_id 가 없었다.** inner grid 는 같은 (cell, fold, seed=42) 에서 config 0–7 여덟 개를 학습하므로, 서로 다른 여덟 fit 이 같은 `fit_id` 를 가졌다. A–D inner grid 도 같다. `fit_manifest.json` 에는 config_id 필드가 없고 `fit_report.json` 에만 있다.
+- 정정 (규칙 변경 아님, 식별자 정정): `fit_id(..., config_id=)` 필수 인자, payload 에 추가. 접두(`inner-NG-o0i1s42-`)는 그대로. 빠뜨리면 `TypeError`, 음수·bool·float 는 `ManifestError`. `cli.run_fit` 이 `--config-id` 를 넘긴다. 실자료 fit 이 아직 없으므로 기존 산출물 영향 없음.
+- 선택 기록 하위 명령은 fit_report 의 config_id 로 fit_id 를 다시 만들어 manifest 와 대조한다 — 보고서와 manifest 가 다른 fit 이면 거부.
+
+## AP.3 `select-comparator` (설계 선택 — 표시함)
+
+- **하위 명령 이름·입력 형식은 구현 선택이다.** `mobse-v2 select-comparator --config --splits --output-dir --structure NG|SG --outer-fold K --fit-manifest <24개>`. `fit_report.json`·`window_predictions.jsonl` 은 각 manifest 옆 고정 이름 (evaluate 의 `checkpoint.pt` 와 같은 방식 — 명시한 경로에서 결정, 탐색 아님, U20). 학습하지 않는다.
+- 검사 (위반은 전부 `CLIError`): manifest 스키마 / fit_id 중복 / cell ≠ `--structure` (구조별 독립) / role ≠ inner 또는 eval_role ≠ inner_validation / outer fold ≠ `--outer-fold` / split_hash·config_hash 불일치 / 이웃 파일 없음 / fit_report fit_id ≠ manifest / config_id 로 다시 만든 fit_id ≠ manifest / fit_subjects ≠ folds.json inner train / 예측 행의 fit_id·cell·seed·scope·checkpoint hash 불일치 / truth ≠ run_key task / 예측 subject ≠ inner validation subject / 창으로 다시 계산한 inner 손실과 fit_report `eval_loss` 차이 > 1e-6 / fit 사이 code·env·source hash 불일치. 그 다음 `baselines.select_comparator` (rev40 가드 11종 — 불완전 grid·inner seed 등) 를 그대로 부른다.
+- 산출물 `comparator_selection.json` (schema `d14-comparator-selection-0.1`, 있으면 거부): 선택 config·outer E·inner 손실·BA·동률 규칙·best epoch 3 개·config 별 표·outer 계획 (seed = 호출 시점 `train.MODEL_SEEDS`, `fit --cell <구조> --outer-fold K --inner-fold 9 --config-id <선택> --epochs <E> --model-seed <s>` 인자 목록)·규칙 문구 (구현 선택 표시)·입력 fit 24 개의 sha256·selector code_hash.
+- 선택 규칙 자체는 rev40 그대로 (부록 AN.1, 구현 선택).
+
+## AP.4 시험·돌연변이
+
+- 새 `tests/v2/test_cli_select_comparator.py` (22 시험): 하위 명령 등록·필수 경로·구조 선택지 = `COMPARATOR_ORDER`; 합성 24 fit 에서 선택·outer E = `baseline_epochs`·입력 24 개 fit_id 서로 다름; outer 계획 인자가 `fit` parser 로 그대로 읽힘 (seed 42–44, inner 9, E); SG 독립 선택; 덮어쓰기 거부; 손실 재계산 = fit_report; 거부 15 종 (불완전 grid, 다른 구조, outer fit, outer fold, inner seed, config_id 바꿔치기, manifest 중복, 손실 불일치, validation subject 누락, outer_test scope, fit_subjects, code_hash 섞임, 이웃 파일 없음, checkpoint hash, truth).
+- `tests/v2/test_cli_fit.py` 22 → 24: 실제 `run_fit` NG·SG inner 산출물(float32 forward → float 기록)의 창 예측으로 다시 계산한 손실이 fit_report `eval_loss` 와 1e-6 안에서 같고, config 0·1 fit_id 가 다름.
+- `tests/v2/test_manifests.py` 33 → 34: 8 config fit_id 서로 다름, config_id 누락·잘못된 형 거부.
+- Mac 전체 833 passed / 13 skipped.
+- 돌연변이 (`.backup/slot_1515/mut_d14s4b.py`, count==1 확인·복원): fit_id payload config_id 제거, config_id 형 검사 제거, cell·role·outer fold·fit_id 재계산·손실 대조·subject·scope·fit_subjects·hash 일치·checkpoint·truth·덮어쓰기 가드 각각 제거, outer 계획 E+1, CLI 가 config_id=0 고정 = **16/16 검출**.
+
+## AP.5 잠금
+
+`mobse/v2/cli.py`·`manifests.py` 변경으로 재잠금 `987de3635cb4` → **`26adaed6f303` (2026-09-24T06:23:50Z)**, code_hash `c258f65edb56` → `07fd6cdb958e`. 검사 43/43, 창 4,728 (h197 재잠금 직후 19·25번). 창·코호트·분할 불변.
+
+## AP.6 이번 회차에 확인하지 못한 것 · 남은 순서
+
+- 4c: S 후보 1–4 fit·선택 CLI.
+- 구조 비교 outer 예측의 집계·보고 경로 (evaluate 는 A–D 만) — 결정 14 가 정하지 않은 범위라 아직 없음.
+- A–D inner grid 의 선택(`train.select_config`)을 파일로 남기는 CLI 경로도 없다 — 이번에 확인만 함.
+- 실자료 fit·GPU·시간 — 없음.
