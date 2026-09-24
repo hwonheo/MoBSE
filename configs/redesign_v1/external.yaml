@@ -52,8 +52,8 @@ train:
   dropouts: [0.1, 0.3]
   weight_decays: [0.0001, 0.001]
   batch_size: 32
-  max_epochs: 200      # [개정 P8]
-  min_updates: 1500    # [개정 P8]
+  max_epochs: 400      # [개정 P8-b]
+  min_updates: 5000    # [개정 P8-b]
   patience: 5
   min_delta: 0.0005
   grad_clip: 1.0

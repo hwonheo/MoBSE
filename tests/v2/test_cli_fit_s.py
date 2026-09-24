@@ -256,7 +256,7 @@ def test_mlp_inner_requires_locked_seed_and_no_epochs(ws):
 
 def test_mlp_inner_runs_and_passes_locked_min_updates(ws, min_updates_spy):
     res, out = _run(ws, "m3", cand=S2, setting="config=1", seed=42)
-    assert min_updates_spy == [1500]
+    assert min_updates_spy == [5000]
     rep = json.loads((out / "s_fit_report.json").read_text())
     assert rep["model_seed"] == 42 and rep["fit"]["kind"] == "mlp"
     assert rep["best_epoch"] == rep["fit"]["best_epoch"] >= 1

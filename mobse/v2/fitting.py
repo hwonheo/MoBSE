@@ -532,7 +532,7 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
         early_stopping: 기본값은 role 이 inner 일 때만 True. **outer fit 에서
             True 로 켤 수 없다** — outer test 로 멈추는 것이 되기 때문이다.
         epochs_exact: outer fit 에서 정확히 이 epoch 만큼 학습한다 (계획서 §7).
-        min_updates: 보장할 최소 optimizer update 수 (계획서 §11 P8, 기본 1,500).
+        min_updates: 보장할 최소 optimizer update 수 (계획서 §11 P8·P8-b, 기본 5,000).
             inner fit 은 최소치 epoch 전에 멈추지 않고, outer fit 은 ``epochs_exact``
             가 최소치를 채우지 못하면 거부한다. 0 은 합성 시험 전용이다.
 

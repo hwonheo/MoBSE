@@ -198,11 +198,11 @@ def test_fit_budget_matches_protocol_table():
 
 
 # --------------------------------------------------------------------------- #
-# [개정 P8] 최소 1,500 update · 상한 200 epoch · 최소치 이후 early stopping
+# [개정 P8-b] 최소 5,000 update · 상한 400 epoch · 최소치 이후 early stopping
 # --------------------------------------------------------------------------- #
 
 def test_p8_constants_and_unchanged_stopping_parameters():
-    assert MIN_UPDATES == 1500 and MAX_EPOCHS == 200
+    assert MIN_UPDATES == 5000 and MAX_EPOCHS == 400   # 결정 15 (P8-b)
     # 결정은 patience·min_delta 를 바꾸지 않았다
     assert PATIENCE == 5 and MIN_DELTA == 0.0005
 
@@ -210,7 +210,9 @@ def test_p8_constants_and_unchanged_stopping_parameters():
 def test_p8_min_epochs_counts_the_last_partial_batch():
     assert updates_per_epoch(544, 32) == 17          # main inner 규모 (부록 W)
     assert updates_per_epoch(545, 32) == 18
-    assert min_epochs_for(544) == 89                  # ceil(1500 / 17)
+    assert min_epochs_for(544) == 295                 # ceil(5000 / 17)
+    assert min_epochs_for(544) <= MAX_EPOCHS          # main inner 가 상한 안에 든다
+    assert min_epochs_for(808) == 193 and min_epochs_for(800) == 200  # outer E 하한
     assert min_epochs_for(544) * updates_per_epoch(544) >= MIN_UPDATES
     assert min_epochs_for(10, min_updates=0) == 1
     with pytest.raises(TrainError):
@@ -237,6 +239,6 @@ def test_p8_early_stopping_refuses_a_curve_shorter_than_the_minimum():
 
 
 def test_p8_common_e_may_reach_the_new_cap():
-    CellFoldResult(0, "A", 0, 1.0, 0.5, 200)          # 상한 이내
+    CellFoldResult(0, "A", 0, 1.0, 0.5, 400)          # 상한 이내
     with pytest.raises(TrainError, match="best_epoch"):
-        CellFoldResult(0, "A", 0, 1.0, 0.5, 201)
+        CellFoldResult(0, "A", 0, 1.0, 0.5, 401)

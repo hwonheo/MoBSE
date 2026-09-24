@@ -12,9 +12,9 @@
   subject 별 동일 가중으로 합산하고 A–D 네 cell 에 같은 가중을 주어 최소화한다.
 * 동률(차이 ≤ 1e−6)은 공동 BA 가 높은 것, 이후 ``config_id`` 가 작은 것으로 정한다.
 * 선택 config 의 4 cells × 3 inner folds best epochs **중앙값을 올림**해 공통
-  E(1–200)를 정한다.
-* **[개정 P8]** 모든 fit 은 최소 1,500 optimizer update 를 보장한다. epoch 상한은
-  200 이다. early stopping 은 최소치(``min_epochs_for``)에 닿은 뒤에만 멈출 수 있고,
+  E(1–400)를 정한다.
+* **[개정 P8, P8-b]** 모든 fit 은 최소 5,000 optimizer update 를 보장한다. epoch 상한은
+  400 이다 (P8 1,500/200 → P8-b 5,000/400, 선생님 결정 15). early stopping 은 최소치(``min_epochs_for``)에 닿은 뒤에만 멈출 수 있고,
   best epoch 도 최소치 이후 epoch 중에서 고른다 — 그래야 공통 E 가 최소치 아래로
   내려가지 않는다 (구현 선택, 계획서 §11 P8).
 * **outer test 로 early stopping 하지 않는다.**
@@ -31,8 +31,8 @@ LEARNING_RATES = (0.001, 0.0003)
 DROPOUTS = (0.1, 0.3)
 WEIGHT_DECAYS = (0.0001, 0.001)
 BATCH_SIZE = 32
-MAX_EPOCHS = 200          # [개정 P8] 50 → 200
-MIN_UPDATES = 1500        # [개정 P8] 최소 optimizer update 수
+MAX_EPOCHS = 400          # [개정 P8-b] 50 → 200 (P8) → 400 (결정 15)
+MIN_UPDATES = 5000        # [개정 P8-b] 최소 optimizer update 수 1,500 (P8) → 5,000 (결정 15)
 PATIENCE = 5
 MIN_DELTA = 0.0005
 GRAD_CLIP = 1.0
@@ -228,7 +228,7 @@ def min_epochs_for(n_train: int, *, batch_size: int = BATCH_SIZE,
     """최소 update 를 채우는 최소 epoch 수 (계획서 §11 P8).
 
     ``min_updates`` 가 0 이면 1 을 돌려준다 — 합성 시험 전용이며 CLI 는 config 의
-    잠긴 값(1,500)을 넘긴다.
+    잠긴 값(5,000, P8-b)을 넘긴다.
     """
     if min_updates < 0:
         raise TrainError(f"min_updates 는 음수일 수 없다: {min_updates}")

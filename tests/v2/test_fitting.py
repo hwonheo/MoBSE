@@ -435,11 +435,11 @@ def test_fit_is_reproducible_at_the_same_seed(synthetic):
 # --- [개정 P8] 최소 update 보장·상한 200·최소치 이후 early stopping ------------
 
 def test_p8_default_min_updates_is_the_locked_constant():
-    """기본값이 1,500 이어야 한다 — 빠뜨리면 조용히 최소치가 꺼지는 기본값 금지."""
+    """기본값이 5,000 (P8-b) 이어야 한다 — 빠뜨리면 조용히 최소치가 꺼지는 기본값 금지."""
     import inspect
 
     from mobse.v2.train import MIN_UPDATES
-    assert MIN_UPDATES == 1500
+    assert MIN_UPDATES == 5000
     sig = inspect.signature(FIT.train_fold)
     assert sig.parameters["min_updates"].default == MIN_UPDATES
 
@@ -472,9 +472,9 @@ def test_p8_outer_common_e_below_the_minimum_is_refused(synthetic):
                        min_updates=2 * upe + 1)
 
 
-def test_p8_epoch_cap_is_200(synthetic):
+def test_p8_epoch_cap_is_400(synthetic):
     from mobse.v2.train import MAX_EPOCHS
-    assert MAX_EPOCHS == 200
+    assert MAX_EPOCHS == 400
     fold, tr, train_set, eval_set = _sets(synthetic)
     with pytest.raises(FIT.FitError, match="상한"):
         FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,

@@ -216,9 +216,9 @@ def test_cli_passes_locked_min_updates(workspace, min_updates_spy):
     out = workspace["tmp"] / "fit7"
     ns = _args(workspace, out)
     run_fit(resolve_paths("fit", ns), ns)
-    assert min_updates_spy == [1500]
+    assert min_updates_spy == [5000]
     rep = json.loads((out / "fit_report.json").read_text())
-    assert rep["min_updates"] == 1500
+    assert rep["min_updates"] == 5000
     assert rep["updates_run"] == rep["updates_per_epoch"] * rep["epochs_run"]
 
 
@@ -274,7 +274,7 @@ def test_comparator_inner_fit_writes_all_four_artifacts(workspace, cell):
     rows = [json.loads(l) for l in (out / "window_predictions.jsonl").read_text().splitlines()]
     assert len(rows) == 4 * 2 * 4 and {r["cell"] for r in rows} == {cell}
     rep = json.loads((out / "fit_report.json").read_text())
-    assert rep["config_id"] == 0 and rep["min_updates"] == 1500
+    assert rep["config_id"] == 0 and rep["min_updates"] == 5000
 
 
 def test_only_sg_fit_records_its_training_rest_graph(workspace):
