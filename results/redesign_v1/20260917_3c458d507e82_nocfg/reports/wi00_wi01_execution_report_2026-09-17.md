@@ -3809,3 +3809,96 @@ evaluation.json 의 config_hash, run_predictions sha256 기록과 대조한다. 
 - `fit_mlp`·구조 비교의 seed 제약 — CLI 배선 전이라 없음.
 - 정적 표는 이름으로 찾으므로 같은 이름의 다른 상수를 구분하지 않는다. 모듈 최상위 정의 중 겹치는 이름은 `CELLS` 하나이고 값이 같음을 시험으로 고정했다. 함수 안 지역 변수·인자 이름이 상수 이름과 같은 경우는 구분하지 못한다.
 - `evaluate.CELLS` 는 `train.CELLS` 와 별도 리터럴이다 (값 같음 시험만 추가, 하나로 합치지 않음).
+
+# 부록 AL — 결정 13: pilot head 직전 특징 정규화(BN·LN) 6,000 update 곡선 (측정 전용, rev39, 2026-09-24 예약 슬롯)
+
+근거: 인수인계 결정 13 (선생님 원문 "(ㄷ) 결정 전에 pilot에서 (ㄴ)을 한 번 재 보기: config 0·4 곡선이 안정되는지만 확인하는 측정입니다." 선택, 09-24 11:1x KST; (ㄴ) = "마지막 층 직전에 특징 정규화 추가"). **측정 전용 — `mobse/v2` 모델·계획서·잠금·최소 update·상한·학습률 등 불변, main pool 미소비, val 은 저장만 하고 해석하지 않는다.** 모델 구조 변경 여부는 선생님 판단.
+
+## AL.1 조건
+
+- `grid6000_det` (부록 AH.2) 와 같다: v3 창(0.2 Hz), cell A, outer 0, inner 0–2 × seed 42–44, config 0 (lr 0.001) 과 config 4 (lr 0.0003), 결정적 실행(E22), 6,000 update (= pilot 1,500 epoch, 이 프로세스 안에서만 `fitting.MAX_EPOCHS` 덮기), 100 update 마다 기록, 기록 forward 는 RNG 저장·복원.
+- 변형: 측정 시작 시점 코드 사본(HEAD 3d5440b, `headnorm6000_det/code/`)의 `models.build_cell` 을 프로세스 안에서만 감싸 `head = Sequential(norm, 원래 Linear(32→2))`. **BN** = `BatchNorm1d(32)`(주 변형), **LN** = `LayerNorm(32)`(참고), **ID** = `Identity`(대조). BN·LN 초기 affine 은 1/0 이라 RNG 를 쓰지 않아 encoder·graph·head 초기값은 무정규화와 같다. 기록 forward 는 eval 모드 (BN 은 running 통계 — 실제 평가·선택 경로와 같은 모드).
+- 규모: BN·LN × 2 config × 9 = 36 실행 + ID 대조 6 (inner 0 × seed 42–44 × 2 config). GPU 0 (다른 사용자 sglang 동거)에서 5 개 나란히. 벽시계 03:16:12Z–03:41:56Z, 실행당 학습 62–91 s. 42/42 rc=0.
+- 산출물: h197 `MoBSE_dataset/derivatives_v3/pilot_tech_p8/headnorm6000_det/` (실행 JSON 42, `summary.json` sha256 `e6aff2d0eb37…`, 스크립트 `d13_headnorm6000.py`, 코드 사본, `git_head.txt`).
+
+**대조**: ID 6 실행 모두 곡선 60 기록(특징 통계 키 제외)과 val loss 1,500 개가 `grid6000_det` 과 **완전히 같다** (6/6) — 감싸기 자체는 학습 경로를 바꾸지 않는다.
+
+## AL.2 곡선 (train BA 는 eval 모드, 9 실행)
+
+| 변형 | config | train BA 중앙값 (1,500 / 3,000 / 4,500 / 6,000) | 1.0 수 / 9 (같은 지점) | train loss 중앙값 @6,000 |
+|---|---|---|---|---|
+| 무정규화 (AH.2) | 0 | 0.962 / 1.000 / 1.000 / 1.000 | 1 / 6 / 5 / 7 | 0.0025 |
+| BN | 0 | 1.000 / 0.654 / 0.821 / 0.786 | 5 / 2 / 2 / 3 | 0.438 |
+| LN | 0 | 0.846 / 1.000 / 1.000 / 1.000 | 1 / 5 / 8 / 5 | 0.0042 |
+| 무정규화 (AH.2) | 4 | 0.808 / 0.654 / 0.692 / 0.769 | 0 / 0 / 1 / 1 | 0.473 |
+| BN | 4 | 0.786 / 0.962 / 1.000 / 1.000 | 3 / 4 / 6 / 5 | 0.014 |
+| LN | 4 | 0.577 / 0.643 / 0.769 / 0.731 | 0 / 0 / 3 / 2 | 0.381 |
+
+| 변형 | config | 처음 1.0 도달 update 중앙값 [범위] (도달 수) | 6,000 까지 못 닿음 | 끝까지 1.0 유지 시작 (해당 수) | 진동 횟수 [범위] (중앙값) |
+|---|---|---|---|---|---|
+| 무정규화 | 0 | 2,100 [1,100, 2,700] (9) | 0 | 5,400–6,000 (7) | 13–23 (20) |
+| BN | 0 | 400 [100, 1,700] (9) | 0 | 5,000, 5,900, 6,000 (3) | 24–30 (27) |
+| LN | 0 | 1,600 [1,200, 2,600] (9) | 0 | 2,500–5,300 (5) | 15–21 (18) |
+| 무정규화 | 4 | 3,600 [2,400, 4,600] (6) | 3 | 6,000 (1) | 8–18 (12) |
+| BN | 4 | 850 [700, 1,700] (8) | 1 | 5,000–6,000 (5) | 17–27 (24) |
+| LN | 4 | 4,100 [1,200, 5,600] (7) | 2 | 5,800, 6,000 (2) | 5–14 (11) |
+
+진동 = 기록 간 train loss 가 직전의 1.5 배 초과 (AH.2 와 같은 정의). **상대비 기준이라 loss 가 작을수록 작은 절대 변동에도 걸린다** — BN 의 loss 가 훨씬 작은 구간이 많아 횟수가 부풀었을 수 있다 (이번 회차에 절대 기준으로 다시 세지 않았다).
+
+## AL.3 head 입력 특징 (train 집합, eval 모드, 중앙값)
+
+| 변형 | config | 입력 절댓값 평균 @1,500 / @6,000 | 입력 표본 간 SD @1,500 / @6,000 | 정규화 출력 표본 간 SD @1,500 / @6,000 |
+|---|---|---|---|---|
+| ID (inner 0, 3 실행) | 0 | 0.632 / 0.683 | 0.373 / 0.619 | = 입력 |
+| ID (inner 0, 3 실행) | 4 | 0.623 / 0.763 | 0.366 / 0.354 | = 입력 |
+| BN | 0 | 1.060 / 1.010 | 0.033 / 0.037 | 1.10 / 1.26 |
+| BN | 4 | 0.962 / 1.073 | 0.025 / 0.033 | 0.94 / 1.16 |
+| LN | 0 | 0.560 / 0.386 | 0.304 / 0.328 | 0.54 / 0.73 |
+| LN | 4 | 0.501 / 0.436 | 0.338 / 0.319 | 0.54 / 0.66 |
+
+표본 간 SD = 특징별 표본 SD(ddof 0)의 32 특징 평균. 부록 W(09-18 pilot, v2 창·다른 학습 조건)의 0.802 / 0.054 와 직접 비교할 수 없다 — 이번 무정규화(ID) 는 1,500 update 에서 이미 표본 간 SD 0.37 이다. BN 을 넣으면 **head 입력은 오히려 "큰 공통 값(≈1.0) 위의 작은 표본 간 변동(≈0.03)"** 으로 머물고 BN 이 이를 약 30–40 배 키워 head 에 준다.
+
+## AL.4 읽는 법 (측정 사실만)
+
+1. **BN**: 두 config 모두 1.0 첫 도달이 크게 앞당겨졌다 (config 0 2,100 → 400, config 4 3,600 → 850). config 4 는 6,000 에서 1.0 이 1/9 → 5/9, 못 닿음 3/9 → 1/9. 그러나 **config 0 은 1,500 이후 오히려 불안정** (6,000 에서 1.0 7/9 → 3/9, loss 중앙값 0.0025 → 0.44) 이고 진동 횟수는 두 config 모두 늘었다.
+2. **LN**: config 0 은 무정규화와 비슷하거나 조금 앞선다 (첫 도달 1,600, 4,500 에서 8/9). config 4 는 무정규화와 비슷하게 적합이 안 된다 (6,000 에서 2/9, 못 닿음 2/9).
+3. **"config 0·4 곡선이 모두 안정"** 된 변형은 없다. 결정 13 명세의 (i) 조건 "config 4 가 적합하고 진동이 줄면" 은 BN 에서 전반부(적합)만 충족, 후반부(진동 감소)는 충족하지 않는다 (진동 기준의 상대비 한계는 AL.2).
+4. 확인하지 못한 원인 (진단은 승인 범위 밖): BN 의 후반 불안정이 학습(배치 통계)↔평가(running 통계) 차이에서 오는지 — head 입력 표본 간 SD 가 0.03 수준이라 running 평균·분산의 작은 오차가 크게 증폭될 수 있다는 가설이다. 이번 회차에 재지 않았다.
+
+## AL.5 권고 (선생님 판단 대기 — 값·구조 변경 없음)
+
+- **(ㄱ) 구조 변경 보류 + 결정 12 권고로 복귀** — 이번 측정만으로는 BN·LN 어느 쪽도 두 config 를 함께 안정시키지 못했다. 최소 update·상한은 AH.3 의 선택지(U = 5,000·상한 400 / 3,000·200 / 1,500·200) 중에서 정한다. **슬롯 권고안.**
+- (ㄴ) BN 채택 쪽으로 가려면, 먼저 AL.4-4 가설을 가르는 pilot 측정 1회 (예: 같은 조건에서 기록 forward 를 train 모드 배치 통계로도 재어 두 모드 train BA 비교, 또는 BN momentum·eval 통계 재추정) 가 필요하다 — 새 승인 대상.
+- 어느 쪽이든 A–D 구조를 바꾸면 계획서 개정 행 + NG·SG head 앞 동일 변경(결정 14) + 잠금 재생성이 따른다.
+
+# 부록 AM — 결정 14 배선 1·2단계: 구조 비교(NG·SG)를 `train_fold` 한 경로로, SG graph 를 fold 변환에 (rev39, 2026-09-24 예약 슬롯)
+
+근거: 인수인계 결정 14 (선생님 원문 "(가) 독립 선택: 두 구조가 각자 8개 설정 중 inner 결과로 하나를 고르고, epoch은 baseline 규칙을 따르며, seed는 42–44입니다. 약 270 fit이고 슬롯 권고안입니다" 선택, 09-24 11:1x KST) 의 구현 순서 1·2. **선택 규칙(3단계)·CLI 배선(4단계)은 이번 회차에 하지 않았다. 실자료 fit 없음, main pool 미소비.**
+
+## AM.1 학습 루프 — 두 번째 루프 없음
+
+`mobse/v2/fitting.py`:
+- 새 `_build_fit_model(cell, cfg, transform)`: `cell` 이 A–D 면 기존 `build_cell` (brain/null bank), `NG` 면 `build_comparator("NG", cfg)`, `SG` 면 fold 변환의 single graph 로 `build_comparator("SG", cfg, graph)`. 그 밖의 이름은 `FitError`. SG 인데 fold 변환에 single graph 가 없으면 `FitError` (다른 graph 로 대체하지 않는다).
+- `train_fold` 는 모델 생성 한 줄만 이 함수로 바꿨다. 따라서 구조 비교도 결정성(`apply_determinism` → seed), P8 최소 update·상한 가드, inner 의 최소 epoch 이후 early stopping·best checkpoint 복원(결정 12), outer 의 early stopping 거부·정확히 E epoch 을 **같은 코드**로 받는다. `train` 상수 참조 집합은 변하지 않았다 (rev38 대응표 시험 통과).
+
+## AM.2 fold 변환 — SG graph
+
+- `fit_fold_transform(..., single_graph=False)`: `True` 이면 bank 를 만든 **같은** training-rest 창(training subject 경계, `allowed_subjects` 검사를 거친 목록)의 원래 correlation 으로 `templates.build_single_graph` 를 부른다. 기본값 False 라 A–D 경로의 변환·provenance 는 바뀌지 않는다.
+- `FoldTransform.single` (기본 None). 있으면 provenance 에 `single_graph_id`·`single_graph_fingerprint`·`single_graph_n_windows` 를 **덧붙인다** (기존 키 불변 — 시험).
+- 구현 선택 (결정 아님): SG graph 를 SG fit 에서만 만드는 opt-in. density 는 bank 와 같은 인자를 넘긴다.
+
+## AM.3 시험·돌연변이
+
+- `tests/v2/test_fitting.py` 40 → 56 (+16): single graph 는 요청할 때만 생김; training-rest 창과 정확히 같은 창으로 만든 graph 와 일치·평가 subject 없음; 평가 subject 하나를 넣으면 graph 가 달라짐(경계 시험의 구별력); single graph 가 bank provenance 를 바꾸지 않음; SG 에 graph 없으면 거부; 알 수 없는 cell 거부; NG·SG 각각 — 모델 종류·SG buffer = fold graph, encoder 초기값 해시가 A 와 같음(§6 "동일 encoder"), inner best checkpoint 평가(결정 12), P8 가드·outer early stopping 거부·정확히 E epoch, 같은 seed 재현·`apply_determinism` 1회 호출.
+- 돌연변이 (`.backup/slot_1215/mut_d14.py`, Mac 사본, python 치환·count==1 확인·복원): single graph 안 만듦, SG 가 brain bank 첫 template 사용, NG 가 cell A 로 빌드, graph 없음 가드 제거, provenance 에서 single 누락, single density 변경, single graph 를 전체 rest(평가 subject 포함)로 만듦, 알 수 없는 cell 이 통과 = **8/8 검출**.
+
+## AM.4 잠금
+
+`mobse/v2/fitting.py` 변경으로 재잠금 `d15dd718225e` → **`d3f869dd5844` (2026-09-24T03:24:05Z)**, code_hash `bb5d96e77ef1` → `5471ff45f8c7`. 검사 43/43, 창 4,728 (h197 재잠금 직후 19·25번). 창·코호트·분할 불변.
+
+## AM.5 이번 회차에 확인하지 못한 것 · 남은 순서
+
+- 3단계 선택: 구조별 8 config inner OOF 병합 → 선택(선택 손실·동률 세부는 구현 선택으로 표시), outer E = 선택 config 의 3 inner best epoch 중앙값 올림, seed 42–44 로 outer fit. **`fit_mlp`·구조 비교의 seed 42–44 제약은 아직 없다** (A–D CLI 만, rev38).
+- 4단계: S 후보·구조 비교의 fit·evaluate CLI 배선 (`fit --cell` 선택지에 NG·SG 없음).
+- 실자료 fit·GPU·시간 — 없음. SG graph 의 실자료 density·조건은 미측정.
+- 결정 13 결과로 head 앞 정규화가 A–D 에 들어가면 NG·SG head 앞에도 같은 변경이 필요하다 (결정 14 절).

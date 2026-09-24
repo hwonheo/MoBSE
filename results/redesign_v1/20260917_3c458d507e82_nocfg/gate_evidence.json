@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "e11b4800ad99c8597ff67eece5d19c624456380f",
-  "timestamp_utc": "2026-09-24T02:22:51Z",
-  "revision": 38,
-  "supersedes_sha256": "ba60718987488bf8db62e639ad5a8c6e7ad6490bbb2d93485ca85bd766b1950a",
-  "revision_reason": "rev38 (2026-09-24): 인수인계 남은 작업 3 — 잠긴 config 키 39개 ↔ 소비 함수 대응표 시험 (tests/v2/test_config_consumption.py, 43 시험, 두 학습 루프 train_fold·fit_mlp 의 학습 상수 집합 동일 포함). 측정에서 train.model_seeds(42–44, 계획서 §5)가 어디서도 소비되지 않음을 발견 → mobse/v2/cli.py 의 fit 이 잠긴 seed 밖을 거부, evaluate 가 seed 집합이 잠긴 값과 다른 격자를 거부. 값·규칙 변경 없음 (새 결정 아님). 시험 test_cli_fit +3, test_cli_evaluate +1, 돌연변이 8/8. mobse/v2 변경으로 재잠금 ff4f766ce090 → d15dd718225e (code_hash 537ff921250e → bb5d96e77ef1), 창·코호트·분할 불변. main pool 미소비",
+  "git_head": "3d5440b0c31246f531eaec0df2fba7e9ac1f653f",
+  "timestamp_utc": "2026-09-24T03:42:59Z",
+  "revision": 39,
+  "supersedes_sha256": "5fde7362a010ffe0968fd0c2299a155ab9e383ccc345fdd87ce24ecd75bd33fa",
+  "revision_reason": "rev39 (2026-09-24): (1) 결정 13 측정 — pilot head 직전 특징 정규화(BN·LN) 6,000 update 곡선, 측정 시작 시점 코드 사본에서만 모델을 바꿈, mobse/v2 모델 불변 (부록 AL). (2) 결정 14 배선 1·2단계 — 구조 비교 NG·SG 가 train_fold 한 경로로 학습 (_build_fit_model), fit_fold_transform(single_graph=True) 가 bank 와 같은 training-rest 창으로 SG graph 생성 (부록 AM). 값·규칙 변경 없음. 시험 test_fitting 40 → 56, 돌연변이 8/8. mobse/v2/fitting.py 변경으로 재잠금 d15dd718225e → d3f869dd5844 (code_hash bb5d96e77ef1 → 5471ff45f8c7), 창·코호트·분할 불변. main pool 미소비",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -102,7 +102,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "51fb2981204d4a4b382281b0ca768ac522f5127cefb407b82b8ff29809d2f23d"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "799801fdc6caaebc160fca02409d59bb177fc7474e12c859c414d07f0989f81c"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -158,7 +158,7 @@
             "piop2_eligible": 189,
             "piop2_folds": null
           },
-          "note": "locks/measurement_lock.json (lock_hash d15dd718225e…) 로 잠갔고 검증 42/42 일치. 재생성 이력은 wi03_measurement_lock.chain"
+          "note": "locks/measurement_lock.json (lock_hash d3f869dd5844…) 로 잠갔고 검증 42/42 일치. 재생성 이력은 wi03_measurement_lock.chain"
         },
         {
           "check": "pilot excluded from every main/final fit",
@@ -195,7 +195,7 @@
         "개정 P8 학습 예산 — 결정됐으나 구현 전"
       ],
       "artifact_hashes": {
-        "locks/measurement_lock.json": "13e85085c792a09e8be6d3a66481663decd6f51071db38ae6a06d9c0789b6e4d",
+        "locks/measurement_lock.json": "f35ae52d2623df5c83c0afd9e492232642f85b5a70289cadb7af16b43ba7465c",
         "reports/precision_scenarios.md": "a5d576edeb89a1223d79f97067490b85ac16fe56d516b92b56b9b4e33724aa69",
         "reports/resource_budget.md": "155ee3e7379f53e034c457f481bb159b99b70f33ff4d78be0893acfc27862019",
         "provenance/wi03_precision/precision_scenarios.json": "67284e5991af25775ee569c32e2b51e75f8833ea9f0874d477b9d68d8ae7817e",
@@ -684,7 +684,7 @@
     "evaluate.py": "a11a324f851603edb0e93b21c2cafe8b098529a485f17fe0321876825120e9b7",
     "extract.py": "45425fc516cc790e45e911af11c03fe5937c573fbfed3985e4bc6e7d5e7316f9",
     "features.py": "f9c81ef8155776f3d1971304ef32baf99b94b5f7bf100c0067f82dd1600b8f10",
-    "fitting.py": "017e7bc086074e6aa9a121ec94957317d5399bf318d4db937d69747c7fc46d03",
+    "fitting.py": "ab21332f1d8b5cf5e77cb299fcb564fef8415f0dd8878c96f4c1a9777946d6c9",
     "labels.py": "89610e87315f7e1e6a1ac85130c89d69f197f47824262389a4eae5571397b3dc",
     "locks.py": "13b7fde3753ca607d138c54887d3ad9c7fbfc7e132e4c654436c2c731b9c45ca",
     "manifests.py": "92fdc2879b87511c9de4310fae4ebccfe61f0c964cab0cf5ea414710a3ac5786",
@@ -711,7 +711,7 @@
     "test_evaluate_cli.py": "6c9aa7aa3e708dd464cade7ca125cfbf04e9a581161933078dd5fb62100d9660",
     "test_extract.py": "4c883b7202213aabedbbaef1665da18448986ffaac4fea9578bc2895e085904a",
     "test_features.py": "64f2c436fae1ec2be9430be94cac399819e398d09320d3aba32ddd09f90751a2",
-    "test_fitting.py": "e341e925a5853a323e1303c5d907045405397d08983322fc63db7defde553545",
+    "test_fitting.py": "0ad6fb9b0fdf6936f8a71f3b8f5c0a1af0f3566a2bff78246a0186d6d9e16a89",
     "test_h197_scripts.py": "3f06ce1dbf1f58448309f36a0294bf0ac7daca7422f59fb709f08cca725b328e",
     "test_import_closure.py": "a6c9ff480644409af7d48cbc1b8446c5d1ea6e59a57e99269ad2409510123fba",
     "test_labels.py": "648ff806bf259fd4f05d704f3fc38afc0a267ea8407c67c6b8252f472ee80e91",
@@ -1823,8 +1823,8 @@
   "wi03_measurement_lock": {
     "gate": "G1 Measurement lock",
     "artifact": "locks/measurement_lock.json",
-    "lock_hash": "d15dd718225ef4f8829e7377663d818b4cd98e568194e58e4300b412c25b4f2f",
-    "locked_at_utc": "2026-09-24T02:21:50Z",
+    "lock_hash": "d3f869dd584401b8ae184ec86cc5dd9ee02485ad48f110d5bec4453d9afc7d42",
+    "locked_at_utc": "2026-09-24T03:24:05Z",
     "module": "mobse/v2/locks.py",
     "module_sha256": "4a3dae547c0744dbf58e24f2d53ec46c4c71577bc71a502f130bd70b1272a812",
     "builder": "scripts/h197/18_build_measurement_lock.py",
@@ -1840,7 +1840,7 @@
         "folds": null,
         "reason": "계획서 §9 — PIOP2 는 held-out 외부 코호트다. fold 를 만들지 않는다."
       },
-      "code_hash": "bb5d96e77ef11a2cf93057176882f92ec270c5971585b1f539948a0a08c394f6",
+      "code_hash": "5471ff45f8c720ca1d37f670a1ee7a243f773d36feb67466524ba96a4035e4d6",
       "configs": {
         "external": "7daa536b",
         "main": "85556f56",
@@ -1892,7 +1892,7 @@
     ],
     "tests": "tests/v2/test_locks.py (18건)",
     "artifacts": {
-      "locks/measurement_lock.json": "13e85085c792a09e8be6d3a66481663decd6f51071db38ae6a06d9c0789b6e4d",
+      "locks/measurement_lock.json": "f35ae52d2623df5c83c0afd9e492232642f85b5a70289cadb7af16b43ba7465c",
       "locks/superseded/measurement_lock_2026-09-18T00:45:43Z.json": "abe6a9fc5e978274c8061ff90df7664140a24e55be85030abb3da4a97a8294f5",
       "locks/superseded/measurement_lock_2026-09-18T02:56:21Z.json": "b8a45c28e2fbece236f662fa993828733e5be4e2cb9980f4044514516243179e",
       "locks/superseded/measurement_lock_2026-09-18T02:57:01Z.json": "95d43ef2db9c8431c279aacfd4c6ffaf48792a3079bfadeea9a452789b2aef44",
@@ -1910,7 +1910,8 @@
       "locks/superseded/measurement_lock_2026-09-23T13:26:24Z.json": "b6cff1c2c8b3322a998f32030f319f86910b41b5ee48ed08bb8e74dceef445d9",
       "locks/superseded/measurement_lock_2026-09-23T14:21:17Z.json": "7c488d96f43e0ec4f8c389a33a97f51d1a943ab4d78776291e0f383718a76a66",
       "locks/superseded/measurement_lock_2026-09-24T00:22:06Z.json": "18069123e5afaa6809d51cbfb085819fb70d75090569ff6691fae903cba70509",
-      "locks/superseded/measurement_lock_2026-09-24T01:18:07Z.json": "c98c825cacc4bfcddb203d9221ade711d2447e5a6f8b27fce0271bb65c8664f2"
+      "locks/superseded/measurement_lock_2026-09-24T01:18:07Z.json": "c98c825cacc4bfcddb203d9221ade711d2447e5a6f8b27fce0271bb65c8664f2",
+      "locks/superseded/measurement_lock_2026-09-24T02:21:50Z.json": "13e85085c792a09e8be6d3a66481663decd6f51071db38ae6a06d9c0789b6e4d"
     },
     "supersedes": {
       "lock_hash": "6e68eb939bebebc1eac27927f1b21a68e89d994c24d7b3b2aa35366f046c2d09",
@@ -1936,7 +1937,8 @@
       "f93f1c504ba2 (결정 12 best checkpoint 평가)",
       "4acf47a8c79a (S 후보 2·4 MLP)",
       "ff4f766ce090 (구조 비교 2종 모델)",
-      "d15dd718225e (잠긴 model_seeds 소비, 현행)"
+      "d15dd718225e (잠긴 model_seeds 소비)",
+      "d3f869dd5844 (구조 비교 train_fold 배선·SG graph, 현행)"
     ],
     "chain_note": "가운데 항목은 --reason 없이 재생성한 것이다. 그 직후 builder 에 --reason 필수 검사를 넣고 다시 만들었다. 지우지 않고 사슬에 남긴다",
     "builder_now_requires_reason": "--overwrite 에 --reason 이 없으면 거부한다. 변경 정책이 '새 잠금에 supersedes 와 사유를 남긴다'고 정한다"
@@ -2163,7 +2165,7 @@
   },
   "wi05_fit_implementation": {
     "module": "mobse/v2/fitting.py",
-    "module_sha256": "017e7bc086074e6aa9a121ec94957317d5399bf318d4db937d69747c7fc46d03",
+    "module_sha256": "ab21332f1d8b5cf5e77cb299fcb564fef8415f0dd8878c96f4c1a9777946d6c9",
     "cli": "mobse/v2/cli.py run_fit()",
     "unit": "한 번의 호출 = (role, cell, outer, inner, config, seed) 하나 = §7 비용표의 한 칸",
     "required_paths": [
@@ -2517,7 +2519,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev38 은 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev39 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -3197,5 +3199,22 @@
     "training_loop_equivalence": "fitting.train_fold 와 baselines.fit_mlp 의 train 상수 참조 집합 동일 (정적)",
     "mutation_check": "Mac 사본 8/8 검출 (.backup/slot_1115/mut_consumption.py)",
     "limits": "정적 참조 검사 — 적용의 필요조건일 뿐; 잠기지 않은 choices 키는 대상 아님; fit_mlp·구조 비교 seed 제약 없음 (CLI 배선 전)"
+  },
+  "structure_comparator_wiring": {
+    "decision": "결정 14 (가) 독립 선택 — 구현 순서 1·2",
+    "training_path": "fitting._build_fit_model: A–D → build_cell, NG → build_comparator('NG'), SG → build_comparator('SG', fold single graph); train_fold 하나 (두 번째 루프 없음)",
+    "fold_transform": "fit_fold_transform(single_graph=True) → FoldTransform.single = templates.build_single_graph(bank 와 같은 training-rest 창)",
+    "tests": "tests/v2/test_fitting.py 40 → 56",
+    "mutation_check": "Mac 사본 8/8 검출 (.backup/slot_1215/mut_d14.py)",
+    "not_done": [
+      "3단계 구조별 선택·outer E·seed 42–44 제약 (fit_mlp 포함)",
+      "4단계 CLI 배선",
+      "실자료 fit"
+    ]
+  },
+  "decision13_headnorm_pilot": {
+    "scope": "측정 전용 — 선생님 승인: config 0·4 곡선 안정 여부만. mobse/v2 모델·계획서·값 불변",
+    "artifacts": "h197 MoBSE_dataset/derivatives_v3/pilot_tech_p8/headnorm6000_det/ (summary.json, 실행 JSON, 코드 사본)",
+    "report": "부록 AL"
   }
 }
