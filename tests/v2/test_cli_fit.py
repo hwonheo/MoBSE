@@ -353,3 +353,31 @@ def test_written_window_predictions_reproduce_inner_eval_loss(workspace, cell):
         assert abs(loss - rep["eval_loss"]) <= SELECTION_LOSS_TOL
         ids.append(rep["fit_id"])
     assert ids[0] != ids[1]
+
+
+@pytest.mark.parametrize("cell", ["A", "D"])
+def test_ad_window_predictions_reproduce_inner_loss_and_ba(workspace, cell):
+    """select-ad 는 창 예측으로 inner 손실·BA 를 다시 계산해 fit_report 와 대조한다.
+
+    실제 A–D `run_fit` 산출물이 그 허용 차이 안에 드는지 확인한다 (WI-07 select-ad).
+    """
+    from pathlib import Path as _P
+
+    from mobse.v2 import fitting as FIT
+    from mobse.v2 import train as TR
+    from mobse.v2.cli import SELECTION_LOSS_TOL
+
+    out = workspace["tmp"] / f"fit_ad_{cell}"
+    ns = _args(workspace, out, cell=cell, config_id=2)
+    run_fit(resolve_paths("fit", ns), ns)
+    rep = json.loads((out / "fit_report.json").read_text())
+    rows = [json.loads(l) for l in (out / "window_predictions.jsonl").read_text().splitlines()]
+    refs = [FIT.WindowRef(window_key=r["window_key"], run_key=r["run_key"],
+                          canonical_subject=r["canonical_subject"],
+                          task=FIT.task_of(r["run_key"]), path=_P(""), sha256="",
+                          label=r["truth"]) for r in rows]
+    rp = FIT.run_probabilities(refs, [r["p_class1"] for r in rows])
+    loss = TR.subject_equal_loss(FIT.subject_run_true_probs(rp))
+    assert abs(loss - rep["eval_loss"]) <= SELECTION_LOSS_TOL
+    assert abs(FIT._balanced_accuracy_from_runs(rp) - rep["eval_balanced_accuracy"]) \
+        <= SELECTION_LOSS_TOL
