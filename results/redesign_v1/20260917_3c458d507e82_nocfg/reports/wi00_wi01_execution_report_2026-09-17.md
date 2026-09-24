@@ -3664,3 +3664,51 @@ evaluation.json 의 config_hash, run_predictions sha256 기록과 대조한다. 
 - config 1–3·5–7, cell B–D 의 곡선.
 - 곡선 진동·config 4 적합 저하의 원인 — 승인 범위 밖, 진단하지 않음.
 - 정정된 `train_fold` 의 실자료 실행 — 합성 시험만 (측정 곡선은 early stopping 이 발동하지 않는 방식이라 영향 없음).
+
+# 부록 AI — S 후보 2·4 (32-hidden MLP) 구현·합성 시험 (rev36, 2026-09-24 예약 슬롯)
+
+근거: 선생님 결정 5 "§6 S 후보 4 + 구조 비교 2 - 추천안 대로" (구현·합성 시험은 지금, 실자료 실행은 main OOF 와 같은 release). 인수인계 남은 작업 2번 — 결정 12 확인을 기다리는 동안 진행하는 가역 항목. **새 결정 없음. 실자료 fit 없음, main pool 미소비.**
+
+## AI.1 프로토콜이 정한 것 (그대로 옮김)
+
+- §6 표: S 후보 2 "동일 200 features + 32-hidden MLP", S 후보 4 "위 FC + 32-hidden MLP". feature 함수는 S 후보 1·3 과 같은 `roi_mean_var`·`fc_fisher_z`.
+- §6 "S 후보의 StandardScaler는 해당 training task에만 fit한다", "MLP는 아래 8개 grid와 같은 예산이다" → §7 공통 grid config_id 0–7, AdamW·batch 32·cross-entropy·gradient clip 1.0, [개정 P8] 최소 update·상한 epoch·최소치 이후 early stopping, subject-equal validation log loss·patience 5·min_delta 0.0005, selected best checkpoint (결정 12 정정과 같은 규칙), outer 는 "해당 선택 모델의 3개 inner best epochs 중앙값 올림" (`train.baseline_epochs`) 만큼 정확히.
+- 선택은 S 후보 1–4 공통 `select_s` (동률 S1<S2<S3<S4 → 설정 순서). MLP 의 setting_rank = config_id.
+
+## AI.2 구현 (`mobse/v2/baselines.py`)
+
+- `MLP_CANDIDATES = (S2, S4)`, `MLP_HIDDEN = 32`, `mlp_settings()` → 16 설정 (`config=<id>`), `build_mlp`, `fit_mlp`, `MLPFit` (`record()` 에 `converged: True`·`init_hash`), `mlp_param_hash`.
+- `fit_mlp` 는 `fitting.train_fold` 의 학습 규칙을 feature 벡터 입력에 옮긴 것이다 — 결정성 적용(`fitting.apply_determinism`), `torch.manual_seed(model_seed)` 초기화, `model_seed` CPU generator shuffle, inner 는 최소 epoch 이후 best 갱신마다 가중치 보관 → best 복원 → 평가(보관/best 불일치면 실패), outer/external 은 `epochs_exact` 필수·early stopping 없음, 상한 초과·최소 update 미달 거부.
+- **값은 모두 호출 시점의 `train` 상수를 읽는다** (`min_updates`·`max_epochs` 인자 기본값은 None, batch·patience·min_delta·grad clip 은 인자로 받지 않음). 결정 12 로 `train.MIN_UPDATES`·`MAX_EPOCHS` 가 바뀌면 MLP 쪽은 고칠 곳이 없다.
+
+구현 선택 (프로토콜이 정하지 않음 — 결정 아님):
+
+| 항목 | 선택 | 이유 |
+|---|---|---|
+| 층 구성 | 은닉층 1개 `Linear(d→32) → GELU → Dropout(p) → Linear(32→2)` | "32-hidden" 의 최소 해석 |
+| 활성화 | GELU | §6 ROI encoder·gate 와 같은 활성화 |
+| dropout 위치 | 은닉 활성화 뒤, p = grid 값 | grid 의 dropout 을 쓰는 유일한 자리 |
+| 입력 표준화 | sklearn StandardScaler, training 창만 | S 후보 1·3 과 같음 |
+| 초기화 | PyTorch 기본 (seed 뒤) | `train_fold` 와 같음 |
+| 수렴 | 개념 없음 → `SEntry.converged` 항상 True | P11 은 logistic 규칙 |
+
+## AI.3 시험 (`tests/v2/test_baselines.py`, 19 → 30, 합성 자료만)
+
+계획서 문장 대조 (32-hidden, 8개 grid 예산), 설정 16개·순서, 구조 (층 종류·차원·dropout p), P8 기본값이 호출 시점 `train` 상수에서 오는지 (monkeypatch), 가드 9종, inner 가 최소 epoch 전에 멈추지 않음, **inner 평가 확률 = 같은 seed 로 best_epoch 만큼만 학습한 outer fit 의 확률·가중치와 완전 동일** (best checkpoint 복원 확인), 결정성·seed 별 초기화 해시·scaler 가 training 창만, S2(mean 신호)·S4(FC 신호) 합성 신호 회복 (창 정확도 ≥ 0.9), `select_s` 에서 S1<S2<S3<S4·config 순 동률 처리.
+
+돌연변이 (`.backup/slot_0915/mut_mlp.py`, Mac 사본): best 복원 제거, 최소 epoch 전 멈춤 허용, scaler 를 평가 창에 fit, hidden 16, GELU→ReLU, dropout 고정, MIN_UPDATES 리터럴 고정, outer epoch 요구 제거, 상한 검사 제거, seed 무시, 후보 순서 뒤집기 = **11/11 검출** (seed 무시는 첫 판에서 살아남아 `init_hash` 기록·시험을 추가한 뒤 검출).
+
+## AI.4 잠금
+
+`mobse/v2` 변경으로 재잠금 `f93f1c504ba2` → **`4acf47a8c79a`** (2026-09-24T00:22:06Z), code_hash `39863e0e81fa` → `0f30e7b29312`. 검사 43/43, 창 4,728, 창·코호트·분할 불변 (split_hash `ace5f4a41446`).
+
+```
+… → 3f3c751b35c7 (개정 P11) → f93f1c504ba2 (결정 12 best checkpoint 평가) → 4acf47a8c79a (S 후보 2·4 MLP, 현행)
+```
+
+## AI.5 이번 회차에 확인하지 못한 것
+
+- MLP 의 실자료 fit·GPU 실행·main 규모 시간 — 하지 않음 (실자료 실행은 main OOF 와 같은 release).
+- `fit_mlp` 의 학습 루프는 `train_fold` 와 같은 규칙을 **따로 구현**한 것이다 (공통 함수로 묶지 않음 — 주 경로 `train_fold` 를 건드리지 않으려는 선택). 두 루프가 앞으로 어긋나지 않게 하는 장치는 아직 없다 — 남은 작업 3 (잠긴 키 ↔ 소비 지점 대응표) 에서 함께 다룬다.
+- gradient clip 을 빼는 돌연변이는 시험에 넣지 않았다 (합성 자료에서 효과가 드러나지 않을 수 있어 검출을 보장하지 못함).
+- 구조 비교 2종, S 후보의 fit·evaluate CLI 배선 — 미구현.

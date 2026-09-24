@@ -1,7 +1,7 @@
 {
   "schema_version": "measurement_lock_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "locked_at_utc": "2026-09-24T00:22:06Z",
+  "locked_at_utc": "2026-09-23T14:21:17Z",
   "gate": "G1 Measurement lock",
   "work_instruction": "WI-03",
   "roots": {
@@ -242,10 +242,10 @@
       }
     },
     "code": {
-      "code_hash": "0f30e7b2931285d36e71f245d0cdf33c4d38985e2692d565ccf323319e705943",
+      "code_hash": "39863e0e81fa97a2453fa4a842489296070eb0a6aa6da71664cd7d34e966dbed",
       "modules": {
         "__init__.py": "c884876e4717224c87d95b1fd4b3821863307e65f9146eac605bc9a96375c9ab",
-        "baselines.py": "14f7b18dd6c23cbef9fa91ab92bbf6398ecf16bdcff53c3db76a12d7fbfe13e0",
+        "baselines.py": "b19fcafffcd688b1274957f8be3050a4fc437d325386639051d846db5544e65b",
         "cli.py": "31fa7c39435fdc3ce5d10a7d898f5de6d83018cd442b0edbfd1cf90a00367137",
         "cohort.py": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
         "config.py": "5086ba86e3edc069cd12eb57a85b8b038c3411c75ef9b0b9bdb96ac62bcedc44",
@@ -303,9 +303,9 @@
     "formula": "126 subjects x 2 tasks x 4 windows x 3 seeds x 4 cells"
   },
   "supersedes": {
-    "lock_hash": "f93f1c504ba287efcb714665c79e5ddd8627e9a8925e154f7dbc216305b5b51f",
-    "locked_at_utc": "2026-09-23T14:21:17Z",
-    "reason": "S candidates 2 and 4 (protocol section 6, teacher decision 5): 32-hidden MLP baselines added to mobse/v2/baselines.py with the shared config grid and the P8/decision-12 training rules read from train constants at call time; library and synthetic tests only, no real-data fit; windows, cohorts and splits unchanged; main pool not consumed"
+    "lock_hash": "3f3c751b35c7750825225a500dc8f442324cc13e8e4cfc9cd469f1dd948e619d",
+    "locked_at_utc": "2026-09-23T13:26:24Z",
+    "reason": "Decision 12 correction (protocol section 7 selected best checkpoint): inner-fold train_fold now restores the best-epoch weights before computing evaluation probabilities and returns that model; outer/external fits unchanged; FitResult.eval_epoch and fit_report eval_epoch record the evaluated epoch. mobse/v2 fitting changed; windows, cohorts and splits unchanged; main pool not consumed"
   },
-  "lock_hash": "4acf47a8c79ac637cce16137ff60f8aef11626b27f242750e994e778367b33aa"
+  "lock_hash": "f93f1c504ba287efcb714665c79e5ddd8627e9a8925e154f7dbc216305b5b51f"
 }
