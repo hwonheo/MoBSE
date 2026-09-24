@@ -555,6 +555,103 @@ def select_s(entries: Sequence[SEntry]) -> SSelection:
 
 
 # --------------------------------------------------------------------------- #
+# S 후보 fit 한 칸 (결정 14 4c-i — CLI `fit-s` 의 라이브러리 본체)
+# --------------------------------------------------------------------------- #
+
+
+def s_settings(candidate: str) -> Dict[str, Tuple[int, Any]]:
+    """후보 하나의 ``setting_id → (setting_rank, 값)``.
+
+    logistic 은 ``C=<값>`` → (C grid 순서, C), MLP 는 ``config=<id>`` → (config_id,
+    config_id). `logistic_settings`·`mlp_settings` 와 같은 문자열이다.
+    """
+    if candidate in LOGISTIC_CANDIDATES:
+        rows = [(sid, c) for cand, sid, c in logistic_settings() if cand == candidate]
+    elif candidate in MLP_CANDIDATES:
+        rows = [(sid, cid) for cand, sid, cid in mlp_settings() if cand == candidate]
+    else:
+        raise BaselineError(f"알 수 없는 S 후보: {candidate!r}. 허용: {CANDIDATE_ORDER}")
+    return {sid: (rank, val) for rank, (sid, val) in enumerate(rows)}
+
+
+@dataclass
+class SFit:
+    """S 후보·설정 하나를 한 fold 에 fit 한 결과 (평가 집합 예측 포함)."""
+
+    candidate: str
+    setting_id: str
+    setting_rank: int
+    role: str
+    model_seed: Optional[int]
+    converged: bool
+    best_epoch: Optional[int]
+    eval_window_p1: np.ndarray
+    eval_run_probs: Dict[str, float]
+    eval_loss: float
+    record: Dict[str, object]
+    #: 저장할 parameter 배열 (이름 → ndarray). scaler 포함.
+    arrays: Dict[str, np.ndarray]
+
+
+def fit_s(X_train: np.ndarray, y_train: Sequence[int], X_eval: np.ndarray,
+          eval_run_keys: Sequence[str], *, candidate: str, setting_id: str, role: str,
+          model_seed: Optional[int] = None, epochs_exact: Optional[int] = None,
+          min_updates: Optional[int] = None, device: str = "cpu") -> SFit:
+    """S 후보·설정 하나를 fit 하고 평가 집합 확률을 낸다.
+
+    * logistic (S1·S3): `fit_logistic`. 결정적이라 ``model_seed``·``epochs_exact`` 를
+      받지 않는다 (받으면 실패 — 기록과 실제가 어긋나지 않게).
+    * MLP (S2·S4): `fit_mlp`. ``model_seed`` 필수. inner 는 early stopping (epochs
+      인자 없음), outer/external 은 ``epochs_exact`` 필수 — `fit_mlp` 가 검사한다.
+
+    run 확률은 `fitting.run_probabilities`, 손실은 `inner_loss` 와 같은 subject 동일
+    가중 log loss 다 (A–D·구조 비교와 같은 함수).
+
+    Raises:
+        BaselineError: 알 수 없는 후보·설정, 후보 종류에 맞지 않는 인자, 하위 fit 위반.
+    """
+    settings = s_settings(candidate)
+    if setting_id not in settings:
+        raise BaselineError(f"{candidate}: 설정 {setting_id!r} 는 grid 밖이다. "
+                            f"허용: {list(settings)}")
+    rank, value = settings[setting_id]
+    if role not in MLP_ROLES:
+        raise BaselineError(f"role 은 {MLP_ROLES} 중 하나여야 한다: {role!r}")
+    Xe = np.asarray(X_eval, dtype=float)
+    if Xe.ndim != 2 or Xe.shape[0] != len(eval_run_keys):
+        raise BaselineError(f"X_eval {Xe.shape} 와 run key {len(eval_run_keys)} 가 맞지 않는다")
+
+    if candidate in LOGISTIC_CANDIDATES:
+        if model_seed is not None or epochs_exact is not None:
+            raise BaselineError(f"{candidate} 는 logistic 이다 — model_seed·epochs 를 받지 "
+                                "않는다 (결정적 lbfgs)")
+        lf = fit_logistic(X_train, y_train, float(value))
+        p1 = lf.predict_p1(Xe)
+        run_probs = _run_probs(eval_run_keys, p1)
+        rec = {"kind": "logistic", **lf.record()}
+        arrays = {"scaler_mean": lf.scaler_mean, "scaler_scale": lf.scaler_scale,
+                  "coef": lf.coef, "intercept": np.asarray([lf.intercept])}
+        return SFit(candidate=candidate, setting_id=setting_id, setting_rank=rank,
+                    role=role, model_seed=None, converged=bool(lf.converged),
+                    best_epoch=None, eval_window_p1=p1, eval_run_probs=run_probs,
+                    eval_loss=inner_loss(run_probs), record=rec, arrays=arrays)
+
+    if model_seed is None:
+        raise BaselineError(f"{candidate} 는 MLP 다 — model_seed 가 필요하다 (계획서 §5)")
+    mf, model = fit_mlp(X_train, y_train, Xe, eval_run_keys, role=role,
+                        config_id=int(value), model_seed=int(model_seed),
+                        epochs_exact=epochs_exact, min_updates=min_updates, device=device)
+    arrays = {"scaler_mean": mf.scaler_mean, "scaler_scale": mf.scaler_scale}
+    for name, tensor in sorted(model.state_dict().items()):
+        arrays[f"state.{name}"] = tensor.detach().cpu().numpy()
+    rec = {"kind": "mlp", **mf.record(), "val_losses": list(mf.val_losses)}
+    return SFit(candidate=candidate, setting_id=setting_id, setting_rank=rank, role=role,
+                model_seed=int(model_seed), converged=True, best_epoch=int(mf.best_epoch),
+                eval_window_p1=mf.eval_window_p1, eval_run_probs=mf.eval_run_probs,
+                eval_loss=float(mf.eval_loss), record=rec, arrays=arrays)
+
+
+# --------------------------------------------------------------------------- #
 # §6 구조 비교 2종 (NG·SG) — 구조별 독립 선택 (결정 14 3단계)
 # --------------------------------------------------------------------------- #
 

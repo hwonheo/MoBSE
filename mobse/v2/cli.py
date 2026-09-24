@@ -12,6 +12,7 @@
   읽는 추출 자체는 ``scripts/h197/10_wi02_extract.py`` 의 몫이다.
 * ``split``     — pilot 과 outer/inner fold 를 만든다.
 * ``fit``       — 지정한 fold·cell·seed 하나를 학습한다.
+* ``fit-s``     — §6 S 후보(S1–S4) 하나·설정 하나를 fold 하나에 학습한다 (결정 14 4c-i).
 * ``select-comparator`` — §6 구조 비교(NG·SG) 하나의 inner fit 산출물로 config·
   outer E 를 고르고 선택 기록을 쓴다 (결정 14 4b). 학습하지 않는다.
 * ``evaluate``  — 저장된 outer test 예측을 run·subject·cell 로 집계한다. **분류만.**
@@ -30,8 +31,8 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from mobse.v2.config import ConfigError, config_hash, load_config
 from mobse.v2.manifests import ManifestError, assert_no_glob_fallback, validate_record
 
-SUBCOMMANDS = ("validate", "prepare", "split", "fit", "select-comparator", "evaluate",
-               "report")
+SUBCOMMANDS = ("validate", "prepare", "split", "fit", "fit-s", "select-comparator",
+               "evaluate", "report")
 
 #: 하위 명령별 필수 경로 인자. 하나라도 비면 실행하지 않는다.
 REQUIRED_PATHS: Dict[str, Sequence[str]] = {
@@ -42,6 +43,9 @@ REQUIRED_PATHS: Dict[str, Sequence[str]] = {
     "prepare": ("config", "extract_manifests", "output_dir"),
     "split": ("config", "subjects", "output_dir"),
     "fit": ("config", "splits", "subjects", "windows", "rest_manifest", "output_dir"),
+    # fit-s 는 S 후보 한 칸이다 (결정 14 4c-i). raw ROI 창에서 feature 를 만들므로
+    # bank·PCA 가 없다 — rest manifest 를 받지 않는다.
+    "fit-s": ("config", "splits", "subjects", "windows", "output_dir"),
     # select-comparator 는 구조 하나·outer fold 하나의 inner fit_manifest 24 개(8 config
     # × 3 inner fold)를 받는다. fit_report.json·window_predictions.jsonl 은 각 manifest
     # 옆의 고정 이름이다 — 명시한 경로에서 결정되므로 탐색이 아니다 (U20).
@@ -62,6 +66,10 @@ MULTI_PATHS = frozenset({("evaluate", "predictions"), ("evaluate", "fit_manifest
 
 #: `fit --cell` 선택지 — A–D 다음 구조 비교 순서 (결정 14 4단계).
 FIT_CELL_CHOICES: Tuple[str, ...] = ("A", "B", "C", "D", "NG", "SG")
+
+#: `fit-s --candidate` 선택지 — `baselines.CANDIDATE_ORDER` 와 같다 (시험 고정).
+S_CANDIDATE_CHOICES: Tuple[str, ...] = ("S1_roi_mean_var_logreg", "S2_roi_mean_var_mlp",
+                                        "S3_fc_fisher_z_logreg", "S4_fc_fisher_z_mlp")
 
 
 class CLIError(RuntimeError):
@@ -109,6 +117,25 @@ def build_parser() -> argparse.ArgumentParser:
                            help="공통 grid 의 config 번호 0–7 (계획서 §7)")
             p.add_argument("--epochs", type=int, required=True,
                            help="inner 은 최대 epoch, outer 은 공통 E 로 정확히 이만큼")
+            p.add_argument("--task-manifests", type=Path, nargs="+", required=True,
+                           help="WI-02 target task 추출 manifest. 창 경로의 유일한 출처다")
+            p.add_argument("--device", default="cpu")
+            p.add_argument("--skip-hash-verify", action="store_true",
+                           help="창 sha256 대조를 건너뛴다. 기본은 대조한다")
+        if name == "fit-s":
+            # 결정 14 4c-i. `fit` 과 입력 계약이 다르다 (raw 창 feature, bank 없음,
+            # logistic 은 seed·epoch 없음) — 그래서 별도 하위 명령이다 (구현 선택).
+            p.add_argument("--candidate", required=True, choices=S_CANDIDATE_CHOICES,
+                           help="S 후보 (계획서 §6 표)")
+            p.add_argument("--setting-id", required=True,
+                           help="logistic 은 'C=<값>', MLP 는 'config=<0–7>'")
+            p.add_argument("--outer-fold", type=int, required=True)
+            p.add_argument("--inner-fold", type=int, required=True,
+                           help="inner fold 번호. 9 는 outer 최종 적합이다")
+            p.add_argument("--model-seed", type=int, default=None,
+                           help="MLP 만. logistic 에 주면 거부한다")
+            p.add_argument("--epochs", type=int, default=None,
+                           help="MLP outer 만 — 정확히 이만큼. inner·logistic 에 주면 거부")
             p.add_argument("--task-manifests", type=Path, nargs="+", required=True,
                            help="WI-02 target task 추출 manifest. 창 경로의 유일한 출처다")
             p.add_argument("--device", default="cpu")
@@ -627,6 +654,174 @@ def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
         "timing": result.timing, "memory": result.memory,
         "output_dir": str(out_dir),
     }
+
+
+#: fit-s 산출물. 하나라도 있으면 실행하지 않는다 (지침서 §2).
+S_FIT_OUTPUTS = ("s_fit_report.json", "s_window_predictions.jsonl", "s_model.npz")
+S_FIT_SCHEMA = "d14-s-fit-report-0.1"
+S_PRED_SCHEMA = "d14-s-window-predictions-0.1"
+
+
+def run_fit_s(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
+    """S 후보 하나·설정 하나를 fold 하나에 학습한다 (결정 14 4c-i, 계획서 §6).
+
+    feature 는 raw ROI 창에서 `baselines.feature_matrix` 로 만든다 (S1·S2 ROI
+    mean/variance 200, S3·S4 signed Fisher-z FC 4,950). StandardScaler 는 이 fit 의
+    training 창에만 맞춘다 (`fit_logistic`·`fit_mlp` 안). bank·PCA 는 쓰지 않는다.
+
+    산출물 셋 — ``s_fit_report.json`` (식별자·provenance·fit 기록·평가 손실),
+    ``s_window_predictions.jsonl`` (평가 집합 창 확률), ``s_model.npz`` (scaler 와
+    parameter 배열). run 확률은 쓰지 않는다: 선택은 inner 산출물을 모아 따로 한다
+    (4c-ii), outer 예측 집계도 fit 단위가 아니다.
+
+    구현 선택 (결정 아님, 보고서에 표시): 하위 명령을 `fit` 과 나눈 것 (입력 계약이
+    다르다), logistic 에 seed·epoch 인자를 받지 않는 것, MLP inner 에 ``--epochs`` 를
+    받지 않는 것 (상한은 호출 시점 `train.MAX_EPOCHS`), 모델을 npz 배열로 저장하는 것.
+
+    Raises:
+        CLIError: 입력이 어긋나거나 산출물을 덮어쓰게 될 때, 하위 fit 규칙 위반.
+    """
+    import numpy as np
+
+    from mobse.v2 import baselines as BL
+    from mobse.v2 import fitting as FIT
+    from mobse.v2 import templates as TPL
+    from mobse.v2.manifests import code_hash, s_fit_id, sha256_file, write_jsonl
+
+    candidate = str(args.candidate)
+    if candidate not in BL.CANDIDATE_ORDER:
+        raise CLIError(f"--candidate {candidate!r} 는 S 후보가 아니다: {BL.CANDIDATE_ORDER}")
+    is_logistic = candidate in BL.LOGISTIC_CANDIDATES
+    try:
+        cfg = load_config(Path(paths["config"]))
+    except ConfigError as exc:
+        raise CLIError(f"config 검증 실패: {exc}") from exc
+    if cfg["runtime.deterministic"] is not True:
+        raise CLIError("runtime.deterministic 은 True 여야 한다 (E22)")
+
+    seed = args.model_seed
+    if is_logistic:
+        if seed is not None or args.epochs is not None:
+            raise CLIError(f"{candidate} 는 logistic 이다 — --model-seed·--epochs 를 받지 "
+                           "않는다 (결정적 lbfgs)")
+    else:
+        if seed is None:
+            raise CLIError(f"{candidate} 는 MLP 다 — --model-seed 가 필요하다 (계획서 §5)")
+        locked = tuple(int(s) for s in cfg["train.model_seeds"])
+        if int(seed) not in locked:
+            raise CLIError(f"--model-seed {seed} 는 잠긴 train.model_seeds {locked} 밖이다 "
+                           "(계획서 §5)")
+        seed = int(seed)
+    settings = BL.s_settings(candidate)
+    if args.setting_id not in settings:
+        raise CLIError(f"--setting-id {args.setting_id!r} 는 {candidate} grid 밖이다. "
+                       f"허용: {list(settings)}")
+
+    task_manifests = [Path(p) for p in args.task_manifests]
+    missing = [str(p) for p in task_manifests if not p.exists()]
+    if missing:
+        raise CLIError(f"task manifest 가 없다: {missing}. 대체 탐색하지 않는다 (U20)")
+    out_dir = Path(paths["output_dir"])
+    for name in S_FIT_OUTPUTS:
+        if (out_dir / name).exists():
+            raise CLIError(f"이미 존재한다: {out_dir / name}. 같은 release 결과를 "
+                           "덮어쓰지 않는다 (지침서 §2)")
+
+    folds = json.loads(Path(paths["splits"]).read_text(encoding="utf-8"))
+    outer_fold, inner_fold = int(args.outer_fold), int(args.inner_fold)
+    fold = FIT.resolve_fold_subjects(folds, outer_fold, inner_fold)
+    is_inner = fold.role == FIT.ROLE_INNER
+    if not is_logistic:
+        if is_inner and args.epochs is not None:
+            raise CLIError("MLP inner fit 은 --epochs 를 받지 않는다 — early stopping 이다 "
+                           "(상한은 train.MAX_EPOCHS)")
+        if not is_inner and args.epochs is None:
+            raise CLIError("MLP outer fit 은 --epochs (선택 설정 inner best epochs 중앙값 "
+                           "올림) 가 필요하다 (계획서 §7)")
+
+    group_of = {}
+    for line in Path(paths["subjects"]).read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            rec = json.loads(line)
+            group_of[rec["canonical_subject"]] = rec["group_id"]
+    unknown = sorted((set(fold.train) | set(fold.evaluate)) - set(group_of))
+    if unknown:
+        raise CLIError(f"subjects.jsonl 에 없는 subject: {unknown[:5]}")
+
+    verify = not bool(getattr(args, "skip_hash_verify", False))
+    task_refs: List[Any] = []
+    for mp in task_manifests:
+        task_refs += FIT.refs_from_extract_manifest(mp, labelled=True)
+    FIT.crosscheck_with_windows_manifest(task_refs, Path(paths["windows"]))
+    train_refs = FIT.select_refs(task_refs, fold.train)
+    eval_refs = FIT.select_refs(task_refs, fold.evaluate)
+    if not train_refs or not eval_refs:
+        raise CLIError(f"창이 없다: train {len(train_refs)}, eval {len(eval_refs)}")
+    kind = BL.CANDIDATE_FEATURE[candidate]
+    try:
+        X_train = BL.feature_matrix([FIT.read_window(r, verify=verify) for r in train_refs],
+                                    kind)
+        X_eval = BL.feature_matrix([FIT.read_window(r, verify=verify) for r in eval_refs],
+                                   kind)
+        res = BL.fit_s(X_train, [int(r.label) for r in train_refs], X_eval,
+                       [r.run_key for r in eval_refs], candidate=candidate,
+                       setting_id=str(args.setting_id), role=fold.role,
+                       model_seed=seed,
+                       epochs_exact=None if (is_logistic or is_inner) else int(args.epochs),
+                       min_updates=None if is_logistic else int(cfg["train.min_updates"]),
+                       device=str(getattr(args, "device", "cpu")))
+    except (BL.BaselineError, FIT.FitError) as exc:
+        raise CLIError(f"S fit 실패: {exc}") from exc
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    model_path = out_dir / "s_model.npz"
+    with model_path.open("wb") as fh:
+        np.savez(fh, **res.arrays)
+    model_sha = sha256_file(model_path)
+
+    cfg_hash = config_hash(cfg)
+    sid = s_fit_id(role=fold.role, candidate=candidate, setting_id=res.setting_id,
+                   outer_fold=outer_fold, inner_fold=inner_fold, model_seed=res.model_seed,
+                   split_hash=folds["split_hash"], config_hash=cfg_hash)
+    rows = [{
+        "schema_version": S_PRED_SCHEMA, "canonical_subject": r.canonical_subject,
+        "group_id": group_of[r.canonical_subject], "run_key": r.run_key,
+        "window_key": r.window_key, "truth": int(r.label), "p_class1": float(p),
+        "candidate": candidate, "setting_id": res.setting_id, "scope": fold.eval_role,
+        "model_sha256": model_sha, "s_fit_id": sid,
+    } for r, p in zip(eval_refs, res.eval_window_p1)]
+    written = write_jsonl(out_dir / "s_window_predictions.jsonl", "s_window_predictions", rows)
+
+    module_dir = Path(__file__).resolve().parent
+    report = {
+        "schema_version": S_FIT_SCHEMA, "s_fit_id": sid, "candidate": candidate,
+        "feature": kind, "setting_id": res.setting_id, "setting_rank": res.setting_rank,
+        "role": fold.role, "eval_role": fold.eval_role,
+        "folds": {"outer_fold": outer_fold, "inner_fold": inner_fold,
+                  "n_train_subjects": len(fold.train),
+                  "n_eval_subjects": len(fold.evaluate)},
+        "model_seed": res.model_seed, "converged": res.converged,
+        "best_epoch": res.best_epoch, "eval_loss": res.eval_loss,
+        "eval_balanced_accuracy": FIT._balanced_accuracy_from_runs(res.eval_run_probs),
+        "fit": res.record, "n_train_windows": len(train_refs),
+        "n_eval_windows": len(eval_refs), "n_features": int(X_train.shape[1]),
+        "fit_subjects": list(fold.train), "model_sha256": model_sha,
+        "window_predictions_sha256": written["sha256"],
+        "code_hash": code_hash(sorted(module_dir.glob("*.py"))),
+        "env_hash": _env_hash(), "config_hash": cfg_hash,
+        "source_hash": sha256_file(Path(paths["windows"])),
+        "split_hash": folds["split_hash"],
+        "outer_fit_inner_fold": TPL.OUTER_FIT_INNER_FOLD,
+    }
+    (out_dir / "s_fit_report.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"verdict": "pass", "s_fit_id": sid, "candidate": candidate,
+            "setting_id": res.setting_id, "role": fold.role, "outer_fold": outer_fold,
+            "inner_fold": inner_fold, "model_seed": res.model_seed,
+            "converged": res.converged, "best_epoch": res.best_epoch,
+            "eval_role": fold.eval_role, "eval_loss": res.eval_loss,
+            "n_train_windows": len(train_refs), "n_eval_windows": len(eval_refs),
+            "window_predictions": written, "output_dir": str(out_dir)}
 
 
 #: select-comparator 산출물. 있으면 실행하지 않는다 (지침서 §2).
@@ -1465,6 +1660,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     if args.command == "fit":
         result = run_fit(paths, args)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result["verdict"] == "pass" else 1
+
+    if args.command == "fit-s":
+        result = run_fit_s(paths, args)
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0 if result["verdict"] == "pass" else 1
 

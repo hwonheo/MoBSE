@@ -157,6 +157,15 @@ SCHEMAS: Dict[str, Dict[str, str]] = {
         "cell": _STR, "model_seed": _INT, "scope": _STR,
         "checkpoint_sha256": _STR, "fit_id": _STR,
     },
+    # 결정 14 4c-i — S 후보 fit 한 칸의 창 예측. A–D·NG·SG 의 window_predictions 와
+    # 따로 둔다: cell 자리가 없고(후보·설정이 식별자), logistic 은 seed 가 없다.
+    # 2×2 집계(evaluate)로 새어 들어가지 않게 artifact 이름부터 다르다 (구현 선택).
+    "s_window_predictions": {
+        "schema_version": _STR, "canonical_subject": _STR, "group_id": _STR,
+        "run_key": _STR, "window_key": _STR, "truth": _INT, "p_class1": _FLOAT,
+        "candidate": _STR, "setting_id": _STR, "scope": _STR,
+        "model_sha256": _STR, "s_fit_id": _STR,
+    },
     "run_predictions": {
         "schema_version": _STR, "canonical_subject": _STR, "run_key": _STR,
         "truth": _INT, "ensemble_p": _FLOAT, "n_windows": _INT, "n_seeds": _INT,
@@ -166,7 +175,7 @@ SCHEMAS: Dict[str, Dict[str, str]] = {
 
 #: 값이 SHA256 hex 여야 하는 필드.
 _HASH_FIELDS = {"source_sha256", "output_sha256", "data_sha256",
-                "checkpoint_sha256", "atlas_hash", "roi_order_hash"}
+                "checkpoint_sha256", "model_sha256", "atlas_hash", "roi_order_hash"}
 
 #: 허용된 label_source. cluster ID 를 label 로 쓰는 것을 막는다 (T11).
 ALLOWED_LABEL_SOURCES = {"task_metadata", "bids_entity"}
@@ -300,6 +309,7 @@ def _primary_key_fields(artifact: str) -> Optional[Tuple[str, ...]]:
         # 한 파일 안의 유일 단위는 아래와 같다. scope 는 파일 단위로 고정이라
         # 키에 넣지 않는다 — 넣으면 키가 넓어져 중복을 놓친다.
         "window_predictions": ("cell", "model_seed", "window_key"),
+        "s_window_predictions": ("candidate", "setting_id", "window_key"),
         "run_predictions": ("cell", "run_key"),
     }.get(artifact)
 
@@ -365,6 +375,34 @@ def fit_id(*, role: str, cell: str, outer_fold: int, inner_fold: int,
                "config_id": config_id,
                "split_hash": split_hash, "config_hash": config_hash}
     return f"{role}-{cell}-o{outer_fold}i{inner_fold}s{model_seed}-{sha256_obj(payload)[:12]}"
+
+
+#: S 후보 이름. `baselines.CANDIDATE_ORDER` 와 같아야 한다 (시험이 고정).
+S_CANDIDATES = ("S1_roi_mean_var_logreg", "S2_roi_mean_var_mlp",
+                "S3_fc_fisher_z_logreg", "S4_fc_fisher_z_mlp")
+
+
+def s_fit_id(*, role: str, candidate: str, setting_id: str, outer_fold: int,
+             inner_fold: int, model_seed: Optional[int], split_hash: str,
+             config_hash: str) -> str:
+    """S 후보 fit 한 칸의 재현 가능한 식별자 (결정 14 4c-i).
+
+    후보·설정·seed 가 모두 payload 에 들어간다 — 같은 fold 의 grid 16 설정(logistic)
+    또는 8 config(MLP)가 서로 다른 식별자를 갖는다 (rev42 `fit_id` 정정과 같은 이유).
+    logistic 은 seed 가 없어 ``None`` 이다.
+    """
+    if candidate not in S_CANDIDATES:
+        raise ManifestError(f"알 수 없는 S 후보: {candidate!r}")
+    if model_seed is not None and (isinstance(model_seed, bool)
+                                   or not isinstance(model_seed, int)):
+        raise ManifestError(f"model_seed 는 정수 또는 None 이어야 한다: {model_seed!r}")
+    payload = {"role": role, "candidate": candidate, "setting_id": setting_id,
+               "outer_fold": outer_fold, "inner_fold": inner_fold,
+               "model_seed": model_seed, "split_hash": split_hash,
+               "config_hash": config_hash}
+    seed = "na" if model_seed is None else model_seed
+    return (f"s-{role}-{candidate[:2]}-o{outer_fold}i{inner_fold}s{seed}-"
+            f"{sha256_obj(payload)[:12]}")
 
 
 def expected_prediction_rows(n_subjects: int, *, n_tasks: int = 2, n_windows: int = 4,
