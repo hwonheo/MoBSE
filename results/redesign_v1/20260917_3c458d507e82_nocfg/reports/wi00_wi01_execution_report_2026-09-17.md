@@ -4169,3 +4169,30 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 - A–D 선택 기록 CLI (`select-ad` 가칭, 96 fit_manifest → `train.select_config` → `selection.json` + outer 계획 4 cell × seed 42–44 × 공통 E) — 다음 조각. 입력은 `fit` 산출물(`fit_report.json`·`window_predictions.jsonl`)에서 fold 별 손실·BA·subject 수를 재계산해 `CellFoldResult` 로 넣는다.
 - 이 정정이 구조 비교·S 와 "같은 함수" 인지는 수식 동치(시험)로만 확인 — A–D 는 fold 요약값에서, 나머지는 run 확률에서 계산한다.
 - 외부 S, S·구조 비교 outer 집계, 실자료 fit·시간 — 없음.
+
+
+# 부록 AU — A–D inner 선택 기록 CLI `select-ad` (WI-07 출력 "selection", rev47, 2026-09-24 예약 슬롯)
+
+새 결정 아님. 규칙은 모두 계획서 §7 이 정한다 — "각 config의 inner OOF run loss를 subject별 동일 가중으로 합산하고 A–D 네 cell에 같은 가중을 주어 최소화", 동률(차이 ≤1e-6) → 공동 BA → 작은 config_id, 공통 E = 4 cells × 3 inner folds best epochs 중앙값 올림, "Inner seed=42", outer seed 42–44. 선택 함수는 rev46 에서 OOF 가중으로 정정한 `train.select_config` 이며 바꾸지 않았다. 하위 명령·산출물 형식만 구현 선택.
+
+## AU.1 바뀐 것
+
+- `mobse/v2/cli.py`: 하위 명령 **`select-ad --config --splits --output-dir --outer-fold K --fit-manifest ×96`** (4 cell × 8 config × 3 inner fold). `fit_report.json`·`window_predictions.jsonl` 은 manifest 옆 고정 이름 (U20, `select-comparator` 와 같음). 기존 `run_select_comparator` 는 **바꾸지 않았다** — 입력 검사는 같은 순서·같은 문구로 새 함수에 따로 둠 (구현 선택; 두 경로 공통화는 남은 작업).
+- 검사: fit_manifest 스키마 · fit_id 중복 · cell ∈ A–D (NG·SG 거부) · inner role · outer fold · split/config hash · **model_seed = `train.INNER_SEED`** · 이웃 파일 · fit_report fit_id · config_id 로 fit_id 재계산 · fit_subjects = folds.json inner train · 예측 행 fit_id/cell/seed/scope/checkpoint/truth · 예측 subject = inner validation · 창 → run (`fitting.run_probabilities`) → **손실 (`train.subject_equal_loss`) 과 BA (`_balanced_accuracy_from_runs`) 를 fit_report `eval_loss`·`eval_balanced_accuracy` 와 1e-6 대조** · code/env/source hash 일치 → `CellFoldResult(n_subjects = folds.json inner validation 수)` → `train.select_config` (grid 완비·fold 크기 일치 가드는 거기서).
+- 산출물 `selection.json` (schema `wi07-ad-selection-0.1`, 덮어쓰기 거부): 선택 config·공통 E·공동 손실·BA·동률 규칙·선택 config 12 best epoch·inner fold subject 수·config 8 행 표·outer 계획 (4 cell × 호출 시점 `train.MODEL_SEEDS`, 각 `fit --cell X --inner-fold 9 --config-id --epochs E --model-seed s` 인자)·입력 96 fit sha256.
+
+## AU.2 시험·돌연변이
+
+- 새 `tests/v2/test_cli_select_ad.py` **24** (inner validation 크기 4/4/3 — 공동 손실이 cell 별 OOF 병합 손계산과 1e-12 안에서 같고 fold 평균과는 다름을 확인, outer 계획 인자가 `fit` parser 로 다시 읽힘, `MODEL_SEEDS` monkeypatch, 경계·무결성 18). `test_cli_fit` 26 → **28**: 실제 A·D `run_fit` 산출물의 창 예측으로 다시 계산한 손실·BA 가 fit_report 와 1e-6 안.
+- Mac: `test_cli_select_ad`·`test_cli_select_comparator`·`test_cli_prepare`·`test_evaluate_cli`·`test_config_consumption` 140 passed, `test_cli_fit -k ad_window` 2 passed.
+- 돌연변이 (`.backup/slot_2015/mut_select_ad.py`, `run_select_ad` 본문 구간 안에서만 치환, 원본 복원, `-B`·`PYTHONDONTWRITEBYTECODE=1`, 뒤 `__pycache__` 삭제): inner seed 가드·subject 수 가중 → 1·BA 대조·손실 대조·cell 허용 넓힘·validation subject·scope·outer seed 리터럴·덮어쓰기·fit_id 재계산·계획 E·hash 일치·행 cell·checkpoint·fit_subjects·role·fit_id 중복·outer fold·truth·이웃 파일 = **20/20 검출**.
+
+## AU.3 잠금
+
+`mobse/v2/cli.py` 변경으로 재잠금 `b999c11f4c81` → **`5ed00c69c411` (2026-09-24T11:21:47Z)**, code_hash `66cc8f11bf5b` → `711b212fa011`. 검사 43/43, 창 4,728 (h197 재잠금 직후 19·25번). split_hash `ace5f4a4…` 불변, config_hash main `2a7d7d7f`·pilot `6498596a`·external `576f6068` 불변.
+
+## AU.4 확인하지 못한 것 · 남은 순서
+
+- 실자료 inner fit 96 개로 돈 적 없음 (main OOF 승인 전). 합성 자료와 실제 `run_fit` 산출물 한 칸씩으로만 확인.
+- `select-comparator` 와 입력 검사 코드가 중복 — 한쪽만 고치면 어긋날 수 있다 (공통화는 가역·결정 불요 후보).
+- A–D outer 예측 → `evaluate` 경로는 기존 그대로 (`fit --inner-fold 9` × 12 → evaluate). 외부 선택(outer 9, main pool 전체 inner 분할)·S·구조 비교 outer 집계는 없음.

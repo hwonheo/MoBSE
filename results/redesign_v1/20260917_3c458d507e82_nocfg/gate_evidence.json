@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "b10be63e7410798dc3962402224102f6c93a1ea6",
-  "timestamp_utc": "2026-09-24T10:21:20Z",
-  "revision": 46,
-  "supersedes_sha256": "528c8a934d6bd41db602454c7dd45be6d0f94f5ffc09953fa51786c519c8ed69",
-  "revision_reason": "rev46 (2026-09-24): A–D 공동 선택 정정 — train.select_config 의 cell 손실·BA 를 inner fold 단순 평균에서 fold validation subject 수 가중 (= OOF 병합 subject 동일 가중, 계획서 §7 \"inner OOF run loss를 subject별 동일 가중으로 합산\") 으로 바꿈. CellFoldResult.n_subjects 필수 (기본값 없음), fold subject 수 불일치 거부. 구조 비교·S 는 이미 OOF 병합. 새 결정 아님, 잠긴 값 변경 없음 (부록 AT). 시험 test_train 22 → 26, 돌연변이 6/6. mobse/v2 변경으로 재잠금 60aa5987ef0c → b999c11f4c81 (code_hash cd9d823591fb → 66cc8f11bf5b), 창·코호트·분할 불변. main pool 미소비",
+  "git_head": "87f5b5c936689e411de0e16b957ed7d5ce228211",
+  "timestamp_utc": "2026-09-24T11:22:39Z",
+  "revision": 47,
+  "supersedes_sha256": "abc6ad335bb93b3bdc890dbdc09d9aa77abb66682b28547ad85a9d85d0d6fc9c",
+  "revision_reason": "rev47 (2026-09-24): WI-07 A–D inner 선택 기록 CLI select-ad — outer fold 하나의 A–D inner fit 96 개 (4 cell × 8 config × 3 inner fold) 를 검사해 fold 별 손실·BA·subject 수를 재계산, train.select_config (rev46 OOF 가중) → selection.json + outer 계획 (4 cell × 호출 시점 MODEL_SEEDS × 공통 E). 규칙은 계획서 §7, 새 결정 아님 (부록 AU). select-comparator 는 바꾸지 않음. 시험 새 test_cli_select_ad 24, test_cli_fit 26 → 28, 돌연변이 20/20. mobse/v2 변경으로 재잠금 b999c11f4c81 → 5ed00c69c411 (code_hash 66cc8f11bf5b → 711b212fa011), 창·코호트·분할 불변. main pool 미소비",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -102,7 +102,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "4a71b55f12411fdec57c4f93e09b3e69f6b10da7f27c5a981006a4aba1de8305"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "c4619dff0a4481ef4051e0551d1c30d10fc1c7c00ec34566f6eec477ba0780e7"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -158,7 +158,7 @@
             "piop2_eligible": 189,
             "piop2_folds": null
           },
-          "note": "locks/measurement_lock.json (lock_hash b999c11f4c81…) 로 잠갔고 검증 42/42 일치. 재생성 이력은 wi03_measurement_lock.chain"
+          "note": "locks/measurement_lock.json (lock_hash 5ed00c69c411…) 로 잠갔고 검증 42/42 일치. 재생성 이력은 wi03_measurement_lock.chain"
         },
         {
           "check": "pilot excluded from every main/final fit",
@@ -195,7 +195,7 @@
         "개정 P8 학습 예산 — 결정됐으나 구현 전"
       ],
       "artifact_hashes": {
-        "locks/measurement_lock.json": "0513e4c9767ee6775135bb000b7d9d9099abb598f29408750e638c4158909dc4",
+        "locks/measurement_lock.json": "e2f4af52cf1574bfaac91b4476257f06e74fd44296324f016cd6c549d1497aec",
         "reports/precision_scenarios.md": "a5d576edeb89a1223d79f97067490b85ac16fe56d516b92b56b9b4e33724aa69",
         "reports/resource_budget.md": "155ee3e7379f53e034c457f481bb159b99b70f33ff4d78be0893acfc27862019",
         "provenance/wi03_precision/precision_scenarios.json": "67284e5991af25775ee569c32e2b51e75f8833ea9f0874d477b9d68d8ae7817e",
@@ -678,7 +678,7 @@
   "v2_module_hashes": {
     "__init__.py": "c884876e4717224c87d95b1fd4b3821863307e65f9146eac605bc9a96375c9ab",
     "baselines.py": "4dc480f05a2021d2133cf77826c6e1956a6fc01b55195a1172431958768a7748",
-    "cli.py": "65743e9da34489bed30d02d31a2f2ba181b9c992bbebc7f37d128af0bc8d24b8",
+    "cli.py": "c64a595981b34d5c6e9d3232fc88998d85bf40ab99f75fde7f321311792b97d2",
     "cohort.py": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
     "config.py": "0a61104787f5664fa3fda0c860adb18e96590da97dcdd906a593564a54fa9746",
     "evaluate.py": "a11a324f851603edb0e93b21c2cafe8b098529a485f17fe0321876825120e9b7",
@@ -701,10 +701,11 @@
     "test_acquisition_facts.py": "ebb3d5b0687793c3c731ae56f13278b8a1a11a1011a609c171fc542b17b434f9",
     "test_baselines.py": "a2668cc4cc68b3ddf640564f157f1f1665765263b8ff7ceecbbdcafebb8c4f2d",
     "test_cli_evaluate.py": "7790b38cf5c11d17e75730c17d28210f72b50fe3b6f7ddc3b8e4720385e53b81",
-    "test_cli_fit.py": "bbe69818a914b2acbb4732cf3cf828525c3cc8c963f92711cf8870cf8839d13b",
+    "test_cli_fit.py": "3f98215ce86a779fadeb2aeee02fc355e80b7a1f027b9fd934870f5e2ad472c0",
     "test_cli_fit_s.py": "0ccdaeb4be1c767c01c10cd8972f15c02113af2d3de4266955767a88f846491b",
     "test_cli_prepare.py": "40a9ce4ae81b07c51745ea8ed999ec7d39efded416159eb14f5bde9a155582c5",
     "test_cli_report.py": "829f0fcbd6632a267ee1ff98d05612d9af877487f2567ee4ec102f71e7334945",
+    "test_cli_select_ad.py": "88b5d4a7586484e385492a927c2a994b19713b79b5e697bf5cfe0306b63057b4",
     "test_cli_select_comparator.py": "e62da1979f511e9cb1cb7417c94cc3e2b3f09bc7991aa148a49296c6079729aa",
     "test_cli_select_s.py": "4cde21bbc27d961162f3efad7695deac27ce16c6420271b41188353247c524ac",
     "test_cli_split.py": "0ab0f9aefbc7ad03c96f42a489142d95919410c204c5626c35d39b709f02a3a5",
@@ -1826,8 +1827,8 @@
   "wi03_measurement_lock": {
     "gate": "G1 Measurement lock",
     "artifact": "locks/measurement_lock.json",
-    "lock_hash": "b999c11f4c81f838a389800aa681aac6c9c4235d378f76fe2424b5c65c44f640",
-    "locked_at_utc": "2026-09-24T10:19:50Z",
+    "lock_hash": "5ed00c69c41158ef69937e6cbe51b38d5166940a3f973efade3525426feda5ab",
+    "locked_at_utc": "2026-09-24T11:21:47Z",
     "module": "mobse/v2/locks.py",
     "module_sha256": "4a3dae547c0744dbf58e24f2d53ec46c4c71577bc71a502f130bd70b1272a812",
     "builder": "scripts/h197/18_build_measurement_lock.py",
@@ -1843,7 +1844,7 @@
         "folds": null,
         "reason": "계획서 §9 — PIOP2 는 held-out 외부 코호트다. fold 를 만들지 않는다."
       },
-      "code_hash": "66cc8f11bf5ba23d10c9cd0518174499f92f0c3aae325c500201675cb6cb1770",
+      "code_hash": "711b212fa011a25dc36bee0395f3b6fc20adcfaab682b7caba72adf1c40920ce",
       "configs": {
         "external": "7daa536b",
         "main": "85556f56",
@@ -1895,7 +1896,7 @@
     ],
     "tests": "tests/v2/test_locks.py (18건)",
     "artifacts": {
-      "locks/measurement_lock.json": "0513e4c9767ee6775135bb000b7d9d9099abb598f29408750e638c4158909dc4",
+      "locks/measurement_lock.json": "e2f4af52cf1574bfaac91b4476257f06e74fd44296324f016cd6c549d1497aec",
       "locks/superseded/measurement_lock_2026-09-18T00:45:43Z.json": "abe6a9fc5e978274c8061ff90df7664140a24e55be85030abb3da4a97a8294f5",
       "locks/superseded/measurement_lock_2026-09-18T02:56:21Z.json": "b8a45c28e2fbece236f662fa993828733e5be4e2cb9980f4044514516243179e",
       "locks/superseded/measurement_lock_2026-09-18T02:57:01Z.json": "95d43ef2db9c8431c279aacfd4c6ffaf48792a3079bfadeea9a452789b2aef44",
@@ -1921,7 +1922,8 @@
       "locks/superseded/measurement_lock_2026-09-24T06:23:50Z.json": "d79680836ae75a7953a277520c81dfaa8baf21f1de828407957384e47959a673",
       "locks/superseded/measurement_lock_2026-09-24T07:23:52Z.json": "a4d183c3c66c424a7cf9695e2feea82cfbfe9679bfa709cfa622d867d62be4d4",
       "locks/superseded/measurement_lock_2026-09-24T08:22:37Z.json": "e9f97ce31e68862e314c122fc752e59de3fcadde59e2ed7a189496f34bf5950b",
-      "locks/superseded/measurement_lock_2026-09-24T09:22:52Z.json": "8bc47d3f0cd6d17041141ceeead18a9ee5011674ece3b3e830b332b41f5125dc"
+      "locks/superseded/measurement_lock_2026-09-24T09:22:52Z.json": "8bc47d3f0cd6d17041141ceeead18a9ee5011674ece3b3e830b332b41f5125dc",
+      "locks/superseded/measurement_lock_2026-09-24T10:19:50Z.json": "0513e4c9767ee6775135bb000b7d9d9099abb598f29408750e638c4158909dc4"
     },
     "supersedes": {
       "lock_hash": "6e68eb939bebebc1eac27927f1b21a68e89d994c24d7b3b2aa35366f046c2d09",
@@ -1955,7 +1957,8 @@
       "64c4ef67f4d0 (fit-s S 후보 한 칸)",
       "4394c7a28252 (결정 15 P8-b 5,000/400)",
       "60aa5987ef0c (select-s S 선택 기록)",
-      "b999c11f4c81 (A–D 공동 선택 OOF 가중 정정, 현행)"
+      "b999c11f4c81 (A–D 공동 선택 OOF 가중 정정)",
+      "5ed00c69c411 (A–D inner 선택 기록 CLI select-ad, 현행)"
     ],
     "chain_note": "가운데 항목은 --reason 없이 재생성한 것이다. 그 직후 builder 에 --reason 필수 검사를 넣고 다시 만들었다. 지우지 않고 사슬에 남긴다",
     "builder_now_requires_reason": "--overwrite 에 --reason 이 없으면 거부한다. 변경 정책이 '새 잠금에 supersedes 와 사유를 남긴다'고 정한다"
@@ -2536,7 +2539,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev46 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev47 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -3240,7 +3243,6 @@
     "not_done": [
       "구조 비교·S outer 예측 집계·보고 경로",
       "외부 S 선택",
-      "A–D inner 선택 기록 경로 (WI-07 출력 selection) — 선택 함수 OOF 정정은 rev46, CLI 는 아직",
       "실자료 fit"
     ],
     "selection": "baselines.select_comparator(results, structure): 8 config × 3 inner fold 완비 검사, inner seed = train.INNER_SEED, config 별 inner OOF 병합 → inner_loss, 동률 ≤ TIE_TOLERANCE → OOF BA → 작은 config_id, outer E = train.baseline_epochs(선택 config 3 best epoch); ComparatorSelection.outer_plan() = train.MODEL_SEEDS × 정확히 E (구현 선택)",
@@ -3327,7 +3329,21 @@
       "mutation_check": "6/6 (.backup/slot_1915/mut_oof.py)"
     },
     "not_done": [
-      "A–D 선택 기록 CLI (WI-07 출력 selection)"
-    ]
+      "select-ad 와 select-comparator 입력 검사 공통화",
+      "실자료 inner fit 96 개로 실행"
+    ],
+    "cli_rev47": {
+      "subcommand": "select-ad --config --splits --output-dir --outer-fold K --fit-manifest ×96",
+      "output": "selection.json (schema wi07-ad-selection-0.1, 덮어쓰기 거부)",
+      "recompute": "창 → fitting.run_probabilities → train.subject_equal_loss·_balanced_accuracy_from_runs, fit_report 와 1e-6 대조",
+      "n_subjects": "folds.json inner validation 수",
+      "outer_plan": "4 cells × 호출 시점 train.MODEL_SEEDS × 공통 E, fit --inner-fold 9",
+      "tests": {
+        "test_cli_select_ad.py": 24,
+        "test_cli_fit.py": 28
+      },
+      "mutation_check": "20/20 (.backup/slot_2015/mut_select_ad.py)",
+      "status": "규칙은 계획서 §7; 하위 명령·산출물 형식은 구현 선택"
+    }
   }
 }
