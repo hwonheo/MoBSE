@@ -281,3 +281,146 @@ def test_model_has_no_forecasting_head():
     assert out["logits"].shape == (x.shape[0], 2)
     names = " ".join(n for n, _ in m.named_modules())
     assert "etth" not in names.lower() and "forecast" not in names.lower()
+
+
+# --------------------------------------------------------------------------- #
+# §6 구조 비교 2종 (모델 구조만)
+# --------------------------------------------------------------------------- #
+
+from mobse.v2.models import (                     # noqa: E402
+    COMPARATOR_SPEC, FUSION_HIDDEN, FusionMLPComparator, SingleGraphComparator,
+    build_comparator,
+)
+
+
+def _graph(seed=3):
+    g = torch.Generator().manual_seed(seed)
+    a = torch.rand(CFG.n_roi, CFG.n_roi, generator=g)
+    return (a + a.T) / 2
+
+
+def _enc_hash(model):
+    return torch.cat([p.detach().reshape(-1) for n, p in sorted(model.named_parameters())
+                      if n.startswith("encoder.")])
+
+
+def test_comparator_spec_matches_protocol_rows():
+    from pathlib import Path
+    text = (Path(__file__).resolve().parents[2] / "docs/experiments/mobse_redesign_protocol_2026-09-17.md").read_text(encoding="utf-8")
+    assert "| 구조 비교 | ROI encoder pooled feature + PCA FC10 fusion MLP |" in text
+    assert "| 구조 비교 | training-rest single average graph + 동일 encoder/head |" in text
+    assert set(COMPARATOR_SPEC) == {"NG", "SG"}
+    assert FUSION_HIDDEN == 32
+
+
+def test_fusion_forward_shape_and_structure():
+    torch.manual_seed(0)
+    m = build_comparator("NG", CFG).eval()
+    x, pca = _inputs()
+    out = m(x, pca)
+    assert set(out) == {"logits"} and out["logits"].shape == (4, CFG.n_classes)
+    assert isinstance(m, FusionMLPComparator)
+    assert not list(m.buffers())                       # graph·bank 없음
+    assert not any("graph" in n or "gate" in n for n, _ in m.named_parameters())
+    lin = m.fusion[0]
+    assert (lin.in_features, lin.out_features) == (CFG.hidden_dim + CFG.pca_dim, FUSION_HIDDEN)
+    assert isinstance(m.fusion[1], torch.nn.GELU)
+    assert (m.head.in_features, m.head.out_features) == (FUSION_HIDDEN, CFG.n_classes)
+    enc = sum(p.numel() for n, p in m.named_parameters() if n.startswith("encoder."))
+    want = enc + (CFG.hidden_dim + CFG.pca_dim) * FUSION_HIDDEN + FUSION_HIDDEN \
+        + FUSION_HIDDEN * CFG.n_classes + CFG.n_classes
+    assert m.trainable_parameter_count() == want
+
+
+def test_fusion_dropout_follows_config():
+    m = build_comparator("NG", ModelConfig(n_roi=8, n_samples=12, hidden_dim=8,
+                                           gate_hidden=8, dropout=0.3))
+    assert m.fusion[2].p == 0.3 and m.encoder.drop.p == 0.3
+
+
+def test_fusion_uses_pca_and_rejects_missing():
+    torch.manual_seed(0)
+    m = build_comparator("NG", CFG).eval()
+    x, pca = _inputs()
+    a = m(x, pca)["logits"]
+    b = m(x, pca + 1.0)["logits"]
+    assert not torch.allclose(a, b)
+    with pytest.raises(ModelError):
+        m(x, None)
+    with pytest.raises(ModelError):
+        m(x, pca[:, :5])
+    with pytest.raises(ModelError):
+        m(x, pca, routing_override=torch.ones(4, 3) / 3)
+
+
+def test_fusion_is_roi_permutation_invariant():
+    """graph 전 ROI 혼합·ROI ID 가 없으므로 ROI 순서를 바꿔도 출력이 같다."""
+    torch.manual_seed(0)
+    m = build_comparator("NG", CFG).eval()
+    x, pca = _inputs()
+    perm = torch.randperm(CFG.n_roi, generator=torch.Generator().manual_seed(9))
+    assert torch.allclose(m(x, pca)["logits"], m(x[:, perm], pca)["logits"], atol=1e-6)
+
+
+def test_single_graph_forward_buffer_and_pca_unused():
+    torch.manual_seed(0)
+    m = build_comparator("SG", CFG, _graph()).eval()
+    assert isinstance(m, SingleGraphComparator) and m.bank_is_frozen()
+    x, pca = _inputs()
+    out = m(x, pca)
+    assert out["logits"].shape == (4, CFG.n_classes)
+    assert torch.equal(out["graph"][0], _graph())
+    assert torch.allclose(out["logits"], m(x, pca * 7.0)["logits"])
+    assert torch.allclose(out["logits"], m(x, None)["logits"])
+    assert len(m.graph_layers) == CFG.n_graph_layers
+    assert not any("gate" in n for n, _ in m.named_parameters())
+
+
+def test_single_graph_equals_abcd_model_with_identical_templates():
+    """'동일 encoder/head': bank [S,S,S] 인 A–D 모델과 가중치를 맞추면 출력이 같다."""
+    s = _graph()
+    torch.manual_seed(0)
+    sg = build_comparator("SG", CFG, s).eval()
+    for routing in ("fixed", "dynamic"):
+        torch.manual_seed(5)
+        ref = MoBSEv2(CFG, s.unsqueeze(0).repeat(3, 1, 1), routing=routing).eval()
+        shared = {k: v for k, v in sg.state_dict().items() if k != "graph"}
+        missing = ref.load_state_dict(shared, strict=False)
+        assert all(k.startswith("gate.") or k == "template_bank" for k in missing.missing_keys)
+        assert not missing.unexpected_keys
+        x, pca = _inputs()
+        assert torch.allclose(sg(x, pca)["logits"], ref(x, pca)["logits"], atol=1e-5)
+
+
+def test_comparators_share_encoder_init_with_cells_under_same_seed():
+    brain, null = _banks()
+    torch.manual_seed(42)
+    a = build_cell("A", CFG, brain, null)
+    for name, g in (("NG", None), ("SG", _graph())):
+        torch.manual_seed(42)
+        m = build_comparator(name, CFG, g)
+        assert torch.equal(_enc_hash(a), _enc_hash(m)), name
+
+
+def test_single_graph_rejects_bad_graph_and_routing():
+    with pytest.raises(ModelError):
+        build_comparator("SG", CFG, torch.rand(3, CFG.n_roi, CFG.n_roi))
+    with pytest.raises(ModelError):
+        build_comparator("SG", CFG, torch.rand(CFG.n_roi + 1, CFG.n_roi + 1))
+    bad = _graph().clone()
+    bad[0, 1] = float("nan")
+    with pytest.raises(ModelError):
+        build_comparator("SG", CFG, bad)
+    m = build_comparator("SG", CFG, _graph())
+    x, pca = _inputs()
+    with pytest.raises(ModelError):
+        m(x, pca, routing_override=torch.ones(4, 3) / 3)
+
+
+def test_build_comparator_argument_rules():
+    with pytest.raises(ModelError):
+        build_comparator("A", CFG)
+    with pytest.raises(ModelError):
+        build_comparator("SG", CFG)
+    with pytest.raises(ModelError):
+        build_comparator("NG", CFG, _graph())

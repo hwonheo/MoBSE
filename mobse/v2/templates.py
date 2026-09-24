@@ -256,3 +256,64 @@ def mix_templates(templates: np.ndarray, weights: np.ndarray) -> np.ndarray:
     if w.shape[1] != t.shape[0]:
         raise TemplateError(f"weight 수 {w.shape[1]} 와 template 수 {t.shape[0]} 불일치")
     return np.einsum("be,enm->bnm", w, t)
+
+
+# --------------------------------------------------------------------------- #
+# §6 구조 비교 — training-rest single average graph
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True)
+class SingleGraph:
+    """§6 구조 비교 "training-rest single average graph" 의 graph 하나와 provenance.
+
+    구현 선택 (계획서가 정하지 않은 부분, 결정 아님):
+
+    * 평균 대상은 training-rest window 전부의 **원래 correlation matrix** 다
+      (= clustering 없는 K=1 raw centroid). 따라서 군집 seed 가 없다.
+    * sparsify·정규화는 §5 bank 와 같은 규칙 (대각 0, 양수 상위 20%, 동률은
+      ROI index 순, ``D^(−1/2)(A+I)D^(−1/2)``) 을 그대로 쓴다.
+    * null 짝은 만들지 않는다 (§6 표에 없다).
+    """
+
+    template: np.ndarray                # (n_roi, n_roi)
+    raw_mean: np.ndarray                # (n_roi, n_roi)
+    n_windows: int
+    density_stats: Dict[str, float]
+    fit_subjects: Tuple[str, ...]
+    graph_id: str
+
+    def fingerprint(self) -> str:
+        return hashlib.sha256(
+            np.ascontiguousarray(self.template, dtype=float).tobytes()).hexdigest()
+
+
+def build_single_graph(correlations: np.ndarray, fit_subjects: Sequence[str], *,
+                       density: float = EDGE_DENSITY) -> SingleGraph:
+    """training-rest correlation 전부의 평균으로 graph 하나를 만든다.
+
+    Args:
+        correlations: ``(n_windows, n_roi, n_roi)`` training-rest 원래 correlation.
+            호출자가 training subject 의 rest window 만 넘긴다 (bank 와 같은 경계).
+        fit_subjects: 이 window 를 제공한 subject (감사 흔적).
+
+    Raises:
+        TemplateError: 모양이 틀리거나 window 가 없거나 유한하지 않은 값이 있으면.
+    """
+    corr = np.asarray(correlations, dtype=float)
+    if corr.ndim != 3 or corr.shape[1] != corr.shape[2]:
+        raise TemplateError(f"correlation 은 (n, r, r) 이어야 한다: {corr.shape}")
+    if corr.shape[0] == 0:
+        raise TemplateError("training-rest window 가 없다")
+    if not np.all(np.isfinite(corr)):
+        raise TemplateError("correlation 에 유한하지 않은 값이 있다")
+    if len(fit_subjects) == 0:
+        raise TemplateError("fit subject 가 없다")
+    mean = corr.mean(axis=0)
+    adj, stats = sparsify_positive(mean, density=density)
+    tmpl = normalize_with_self_loop(adj)
+    g = SingleGraph(template=tmpl, raw_mean=mean, n_windows=int(corr.shape[0]),
+                    density_stats=stats, fit_subjects=tuple(fit_subjects), graph_id="")
+    return SingleGraph(template=g.template, raw_mean=g.raw_mean, n_windows=g.n_windows,
+                       density_stats=g.density_stats, fit_subjects=g.fit_subjects,
+                       graph_id=g.fingerprint()[:16])

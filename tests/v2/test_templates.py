@@ -226,3 +226,64 @@ def test_clustering_is_reproducible_for_same_seed():
     a, _ = cluster_rest(x, seed=30009)
     b, _ = cluster_rest(x, seed=30009)
     assert np.array_equal(a, b)
+
+
+# --------------------------------------------------------------------------- #
+# §6 구조 비교 — training-rest single average graph
+# --------------------------------------------------------------------------- #
+
+from mobse.v2.templates import SingleGraph, build_single_graph   # noqa: E402
+
+
+def _corrs(n=12, r=10, seed=4):
+    rng = np.random.default_rng(seed)
+    out = []
+    for _ in range(n):
+        x = rng.standard_normal((40, r))
+        out.append(np.corrcoef(x, rowvar=False))
+    return np.stack(out)
+
+
+def test_single_graph_is_mean_then_bank_rules():
+    c = _corrs()
+    g = build_single_graph(c, ["s1", "s2"])
+    assert isinstance(g, SingleGraph)
+    np.testing.assert_allclose(g.raw_mean, c.mean(axis=0))
+    adj, st = sparsify_positive(c.mean(axis=0), density=EDGE_DENSITY)
+    np.testing.assert_allclose(g.template, normalize_with_self_loop(adj))
+    assert g.density_stats == st and g.n_windows == 12
+    assert g.fit_subjects == ("s1", "s2")
+    np.testing.assert_allclose(g.template, g.template.T)
+    assert g.graph_id == g.fingerprint()[:16]
+
+
+def test_single_graph_equals_k1_bank():
+    """clustering 없는 K=1 raw centroid 와 같은 graph 다."""
+    c = _corrs()
+    pca = np.random.default_rng(0).standard_normal((12, 10))
+    b = build_bank(c, pca, ["s1"], seed=bank_seed(0, 0), k=1)
+    g = build_single_graph(c, ["s1"])
+    np.testing.assert_allclose(g.template, b.templates[0])
+    np.testing.assert_allclose(g.raw_mean, b.raw_centroids[0])
+
+
+def test_single_graph_deterministic_and_input_sensitive():
+    c = _corrs()
+    assert build_single_graph(c, ["s"]).graph_id == build_single_graph(c.copy(), ["s"]).graph_id
+    assert build_single_graph(c[:6], ["s"]).graph_id != build_single_graph(c, ["s"]).graph_id
+
+
+def test_single_graph_rejects_bad_input():
+    c = _corrs()
+    with pytest.raises(TemplateError):
+        build_single_graph(c[:0], ["s"])
+    with pytest.raises(TemplateError):
+        build_single_graph(c[:, :, :5], ["s"])
+    with pytest.raises(TemplateError):
+        build_single_graph(c[0], ["s"])
+    with pytest.raises(TemplateError):
+        build_single_graph(c, [])
+    bad = c.copy()
+    bad[0, 0, 1] = np.nan
+    with pytest.raises(TemplateError):
+        build_single_graph(bad, ["s"])

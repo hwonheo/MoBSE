@@ -269,3 +269,115 @@ def load_checkpoint(path, brain_bank: Tensor, null_bank: Tensor,
     model.load_state_dict(payload["state_dict"])
     model.eval()
     return model
+
+
+# --------------------------------------------------------------------------- #
+# §6 구조 비교 2종 — 모델 구조만. 학습·선택 규칙은 여기서 정하지 않는다.
+# --------------------------------------------------------------------------- #
+
+#: §6 구조 비교 표의 두 행. key 는 구현 편의 이름이다 (계획서 ID 아님).
+COMPARATOR_SPEC: Dict[str, str] = {
+    "NG": "ROI encoder pooled feature + PCA FC10 fusion MLP (no-graph comparator)",
+    "SG": "training-rest single average graph + 동일 encoder/head",
+}
+#: fusion MLP 은닉 폭. **구현 선택** — §6 S 후보 MLP·dynamic gate 와 같은 32.
+FUSION_HIDDEN = 32
+
+
+class FusionMLPComparator(nn.Module):
+    """§6 구조 비교 "ROI encoder pooled feature + PCA FC10 fusion MLP".
+
+    A–D 와 같은 ``ROIEncoder`` 뒤 ROI mean pooling(graph layer 없음) 한 32 차원과
+    fold 변환의 PCA FC10 을 이어 붙여
+    ``Linear(32+10→32) → GELU → Dropout(p) → Linear(32→2)`` 로 분류한다.
+    graph·bank·gate 가 없다. 층 구성은 **구현 선택**이다 (결정 아님).
+    """
+
+    def __init__(self, cfg: ModelConfig) -> None:
+        super().__init__()
+        self.cfg = cfg
+        self.backend = BACKEND
+        self.routing = "none"
+        self.encoder = ROIEncoder(cfg)            # A–D 와 같은 순서로 먼저 만든다
+        self.fusion = nn.Sequential(
+            nn.Linear(cfg.hidden_dim + cfg.pca_dim, FUSION_HIDDEN),
+            nn.GELU(),
+            nn.Dropout(cfg.dropout),
+        )
+        self.head = nn.Linear(FUSION_HIDDEN, cfg.n_classes)
+
+    def forward(self, x: Tensor, pca: Optional[Tensor] = None,
+                *, routing_override: Optional[Tensor] = None) -> Dict[str, Tensor]:
+        if routing_override is not None:
+            raise ModelError("no-graph comparator 에는 routing 이 없다")
+        if pca is None:
+            raise ModelError("fusion MLP 에 PCA FC10 feature 가 필요하다")
+        if pca.dim() != 2 or pca.shape != (x.shape[0], self.cfg.pca_dim):
+            raise ModelError(f"PCA feature 모양이 잘못됐다: {tuple(pca.shape)}")
+        pooled = self.encoder(x).mean(dim=1)      # ROI mean pooling
+        z = self.fusion(torch.cat([pooled, pca], dim=1))
+        return {"logits": self.head(z)}
+
+    def trainable_parameter_count(self) -> int:
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
+
+class SingleGraphComparator(nn.Module):
+    """§6 구조 비교 "training-rest single average graph + 동일 encoder/head".
+
+    A–D 와 같은 ``ROIEncoder``·``DenseGraphLayer`` ×2·ROI mean pooling·
+    ``Linear(32→2)`` 에 고정 graph 하나(buffer, optimizer 제외)를 쓴다. gate 가 없고
+    PCA feature 는 받더라도 예측에 쓰지 않는다 (B/D 와 같은 규칙).
+    bank ``[S, S, S]`` 인 A–D 모델과 가중치를 맞추면 출력이 같다 (시험).
+    """
+
+    def __init__(self, cfg: ModelConfig, graph: Tensor) -> None:
+        super().__init__()
+        g = torch.as_tensor(graph, dtype=torch.float32)
+        if g.dim() != 2 or g.shape[0] != g.shape[1]:
+            raise ModelError(f"graph 모양이 (n, n) 이 아니다: {tuple(g.shape)}")
+        if g.shape[0] != cfg.n_roi:
+            raise ModelError(f"ROI 수 불일치: {cfg.n_roi} vs {g.shape[0]}")
+        if not torch.isfinite(g).all():
+            raise ModelError("graph 에 유한하지 않은 값이 있다")
+        self.cfg = cfg
+        self.backend = BACKEND
+        self.routing = "none"
+        self.register_buffer("graph", g)          # optimizer 제외
+        self.encoder = ROIEncoder(cfg)            # A–D 와 같은 순서로 먼저 만든다
+        self.graph_layers = nn.ModuleList(
+            [DenseGraphLayer(cfg.hidden_dim, cfg.dropout)
+             for _ in range(cfg.n_graph_layers)])
+        self.head = nn.Linear(cfg.hidden_dim, cfg.n_classes)
+
+    def forward(self, x: Tensor, pca: Optional[Tensor] = None,
+                *, routing_override: Optional[Tensor] = None) -> Dict[str, Tensor]:
+        if routing_override is not None:
+            raise ModelError("single graph comparator 에는 routing 이 없다")
+        b = x.shape[0]
+        s = self.graph.unsqueeze(0).expand(b, -1, -1)
+        h = self.encoder(x)
+        for layer in self.graph_layers:
+            h = layer(h, s)
+        return {"logits": self.head(h.mean(dim=1)), "graph": s}
+
+    def trainable_parameter_count(self) -> int:
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
+    def bank_is_frozen(self) -> bool:
+        names = {n for n, _ in self.named_parameters()}
+        return "graph" not in names and "graph" in dict(self.named_buffers())
+
+
+def build_comparator(name: str, cfg: ModelConfig,
+                     single_graph: Optional[Tensor] = None) -> nn.Module:
+    """구조 비교 모델을 이름으로 만든다. ``SG`` 는 graph 가 반드시 필요하다."""
+    if name not in COMPARATOR_SPEC:
+        raise ModelError(f"알 수 없는 구조 비교: {name!r}. 허용: {sorted(COMPARATOR_SPEC)}")
+    if name == "NG":
+        if single_graph is not None:
+            raise ModelError("no-graph comparator 에 graph 를 줄 수 없다")
+        return FusionMLPComparator(cfg)
+    if single_graph is None:
+        raise ModelError("SG 에는 training-rest single average graph 가 필요하다")
+    return SingleGraphComparator(cfg, single_graph)
