@@ -4196,3 +4196,53 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 - 실자료 inner fit 96 개로 돈 적 없음 (main OOF 승인 전). 합성 자료와 실제 `run_fit` 산출물 한 칸씩으로만 확인.
 - `select-comparator` 와 입력 검사 코드가 중복 — 한쪽만 고치면 어긋날 수 있다 (공통화는 가역·결정 불요 후보).
 - A–D outer 예측 → `evaluate` 경로는 기존 그대로 (`fit --inner-fold 9` × 12 → evaluate). 외부 선택(outer 9, main pool 전체 inner 분할)·S·구조 비교 outer 집계는 없음.
+
+
+# 부록 AV — 결정 16: 이전 회차 돌연변이 stale pyc 재점검 (rev48, 2026-09-24 21:15 예약 슬롯)
+
+선생님 결정 16 (09-24 20:1x, 대화 권고 "캐시를 끈 상태로 이전 돌연변이 스크립트를 다시 돌려 확인" 에 "ok"). 측정·시험 보강만 — 계획서·규칙·값 변경 없음, `mobse/v2` 변경 없음, main pool fit 없음.
+
+## AV.1 방법
+
+- 대상 (Mac `.backup` 에서 `ls` 로 확정): `slot_*/mut*.py` 12개 (`slot_0915/mut_mlp`·`slot_1015/mut_comparators`·`slot_1115/mut_consumption`·`slot_1215/mut_d14`·`slot_1315/mut_d14s3`·`slot_1415/mut_d14s4`·`slot_1515/mut_d14s4b`·`slot_1615/mut_d14s4c`·`slot_1715/mut_d15`·`slot_1815/mut_d14s4cii`·`slot_1915/mut_oof`·`slot_2015/mut_select_ad`) + `slot_2315/mut_best_ckpt.sh` (rev35) + 그 이전 회차 틀 `.backup/baselines_mutation.sh` (rev33)·`baselines_mutation_p11.sh` (rev34)·`report_mutation.sh` (rev31)·`prepare_mutation.sh` (rev32). `slot_2215/mut_p11.log` 의 틀은 `baselines_mutation_p11.sh` (gate evidence 인용).
+- 현재 HEAD `9a3e6cd` (작업트리 깨끗) 에 대해 Mac `.venv` 로 실행. 옛 파이썬 틀은 subprocess env 를 `{"PYTHONPATH", "PATH"}` 로 새로 만들어 부모의 `PYTHONDONTWRITEBYTECODE` 가 전달되지 않으므로, 감싸개 `.backup/slot_2115/rerun_d16.py` 가 `subprocess.run` 을 가로채 python 호출에 `-B` 와 env `PYTHONDONTWRITEBYTECODE=1` 을 넣었다. 치환 원문 `assert … .count(…) == 1` 은 틀 사본에서 "NOT-APPLICABLE" 출력 + 다음 돌연변이로 바꿔 (c) 를 돌연변이별로 기록. 셸 틀은 `export PYTHONDONTWRITEBYTECODE=1` (원 틀이 `.backup` 원본 사본을 덮어쓰는 두 틀은 경로만 `slot_2115` 로 바꾼 사본). 치환 문구·시험 선택은 원 틀 그대로.
+- 틀마다 전후 `find mobse scripts tests -name '*.pyc'` = **0**, `git status --porcelain -- mobse tests configs scripts` 비어 있음 — 17개 틀 전부 확인. 실행 21:17:04–21:31:00 KST. 로그 `.backup/slot_2115/rerun.log`·`rerun_old_sh.log`·`mut_seg.log` (커밋 안 함).
+- 읽는 법 (결정 16 명세): stale pyc 는 "잡았다고 잘못 본" 방향으로만 작용 → 원래 검출이 재실행에서 **생존**으로 바뀐 것이 영향 받은 돌연변이. (c) 는 코드가 그 뒤 바뀐 것이라 판단 불가. 원래 틀이 rc≠0 을 검출로 세므로, 돌연변이 없는 HEAD 에서 해당 시험이 통과함(rev47 마감 908 passed, 같은 HEAD)과 `mut_best_ckpt.sh` 의 `-k` 선택이 4 시험을 모음(collect-only)을 확인했다.
+
+## AV.2 결과
+
+| 틀 (회차) | 당시 기록 | 재실행 (a) 검출 | (b) 생존 | (c) 적용 불가 |
+|---|---|---|---|---|
+| `report_mutation.sh` (rev31) | sha·group·부적격 검출, subject_scores·subject_differences 대조 단독 끔은 "중복 장치" | 3 | 2 (xcheck·xcheck2 — **당시와 같음**, 단독으로는 원래 생존으로 기록) | 0 |
+| `prepare_mutation.sh` (rev32) | 5 검출 | 5 | 0 | 0 |
+| `baselines_mutation.sh` (rev33) | 9/9 | 7 | 1 (`no_unconv` — 아래) | 1 (`no_tie_tol` sed no-op) |
+| `baselines_mutation_p11.sh` (rev34) | 14/14 | 14 | 0 | 0 |
+| `slot_2315/mut_best_ckpt.sh` (rev35) | 6/6 | 6 | 0 | 0 |
+| `slot_0915/mut_mlp.py` (rev36) | 11/11 | 11 | 0 | 0 |
+| `slot_1015/mut_comparators.py` (rev37) | 15/15 | 15 | 0 | 0 |
+| `slot_1115/mut_consumption.py` (rev38) | 8/8 | 8 | 0 | 0 |
+| `slot_1215/mut_d14.py` (rev39) | 8/8 | 8 | 0 | 0 |
+| `slot_1315/mut_d14s3.py` (rev40) | 14/14 | 14 | 0 | 0 |
+| `slot_1415/mut_d14s4.py` (rev41) | 9/9 | 9 | 0 | 0 |
+| `slot_1515/mut_d14s4b.py` (rev42) | 16/16 | 6 | 0 | 10 → 구간 한정 재실행 10/10 검출 |
+| `slot_1615/mut_d14s4c.py` (rev43) | 14/14 | 14 | 0 | 0 |
+| `slot_1715/mut_d15.py` (rev44) | 7/7 | 7 | 0 | 0 |
+| `slot_1815/mut_d14s4cii.py` (rev45) | 21/21 | 21 | 0 | 0 |
+| `slot_1915/mut_oof.py` (rev46) | 6/6 | 6 | 0 | 0 |
+| `slot_2015/mut_select_ad.py` (rev47) | 20/20 | 20 | 0 | 0 |
+
+- **원래 검출 → 재실행 생존으로 바뀐 돌연변이: 0.** stale pyc 가 이전 회차 검출 판정을 부풀린 흔적은 없다.
+- `slot_1515` s2–s11 (c): rev47 `select-ad` 가 같은 검사 문구를 복사해 `cli.py` 안 출현이 2–3 회가 됨 (PATTERN-COUNT). 치환 문구·시험은 그대로 두고 위치만 `run_select_comparator` 본문 구간으로 한정한 사본 `.backup/slot_2115/mut_d14s4b_seg.py` 로 **10/10 검출**.
+- `baselines_mutation.sh` `no_unconv` (`^    if bad:$` → `if False:`): 원래 줄(미수렴 거부)은 rev34 P11 에서 없어졌고, 같은 패턴이 rev45 `baselines.s_outer_plan` 의 **inner best epoch 범위 가드**에 걸렸다 — 원 돌연변이로서는 (c) 이지만, 새 위치의 돌연변이가 `test_baselines`·`test_cli_select_s` 69 시험 전부를 통과했다 (`mut_s_outer_bad.log`). outer E 범위 검사가 [0,0,0]·[500,500,500] 은 잡지만 [1, 1, 401]·[0, 300, 300] 처럼 중앙값이 범위 안인 경우는 이 가드만 잡는다. `no_tie_tol` 은 P11 에서 식이 바뀌어 sed 가 no-op.
+
+## AV.3 보강 시험 (가역, 결정 불요)
+
+- `tests/v2/test_cli_select_s.py` 에 `test_s_outer_plan_refuses_each_best_epoch_out_of_range` 1개 (27 → **28**): [1, 1, MAX+1]·[0, 300, 300] 이 outer E 범위 안임을 먼저 확인한 뒤 `s_outer_plan` 거부 ("best epoch 가 1").
+- 같은 돌연변이 재실행: **검출** (1 failed, 69 passed — 새 시험). `mobse/v2` 불변.
+- `select-s` CLI 자체의 best_epoch 범위 가드는 rev45 돌연변이 "best_epoch 범위 끔" 에서 이미 검출 (이번 재실행에서도 검출) — 이번 것은 라이브러리 `s_outer_plan` 쪽의 두 번째 가드.
+
+## AV.4 확인하지 못한 것
+
+- 원래 실행 때 실제로 stale pyc 가 생겼는지 자체는 재현할 수 없다 — 재실행은 "지금 코드에서 bytecode 없이도 검출된다" 만 보인다. (c) 11개는 당시 판정을 직접 재현한 것이 아니다 (10개는 위치 한정 사본으로 같은 의미의 돌연변이를 재현).
+- `slot_0915`·`slot_1015` 는 당시 로그 파일이 없어 당시 기록은 부록 AI·AJ 의 수치.
+- 재실행은 Mac 만 (h197 은 마감 5단계만).

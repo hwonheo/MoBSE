@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "87f5b5c936689e411de0e16b957ed7d5ce228211",
-  "timestamp_utc": "2026-09-24T11:22:39Z",
-  "revision": 47,
-  "supersedes_sha256": "abc6ad335bb93b3bdc890dbdc09d9aa77abb66682b28547ad85a9d85d0d6fc9c",
-  "revision_reason": "rev47 (2026-09-24): WI-07 A–D inner 선택 기록 CLI select-ad — outer fold 하나의 A–D inner fit 96 개 (4 cell × 8 config × 3 inner fold) 를 검사해 fold 별 손실·BA·subject 수를 재계산, train.select_config (rev46 OOF 가중) → selection.json + outer 계획 (4 cell × 호출 시점 MODEL_SEEDS × 공통 E). 규칙은 계획서 §7, 새 결정 아님 (부록 AU). select-comparator 는 바꾸지 않음. 시험 새 test_cli_select_ad 24, test_cli_fit 26 → 28, 돌연변이 20/20. mobse/v2 변경으로 재잠금 b999c11f4c81 → 5ed00c69c411 (code_hash 66cc8f11bf5b → 711b212fa011), 창·코호트·분할 불변. main pool 미소비",
+  "git_head": "9a3e6cda7669328a9a20fbc86f187060fbbea08d",
+  "timestamp_utc": "2026-09-24T12:33:17Z",
+  "revision": 48,
+  "supersedes_sha256": "5e0a4420bbc77bda15d0a3c6a761df6316578115fb19f4a2edc2727413668450",
+  "revision_reason": "rev48 (2026-09-24): 결정 16 — 이전 회차 돌연변이 틀 17개를 bytecode 없이 (-B, PYTHONDONTWRITEBYTECODE=1, 틀 전후 *.pyc 0) 현재 HEAD 9a3e6cd 에 재실행. 원래 검출 → 재실행 생존 0 (stale pyc 영향 흔적 없음). 적용 불가 11 중 10 은 select-ad 복사로 문구가 중복된 slot_1515 s2–s11 — run_select_comparator 구간 한정 재실행 10/10. 옛 no_unconv 패턴이 rev45 s_outer_plan best epoch 범위 가드에 걸려 생존 → test_cli_select_s 27 → 28 로 보강, 검출 확인 (부록 AV). mobse/v2 불변 — 잠금 5ed00c69 유지. main pool 미소비",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -102,7 +102,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "c4619dff0a4481ef4051e0551d1c30d10fc1c7c00ec34566f6eec477ba0780e7"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "958989de028efe80118102797b757028b79d2184e0aff37eff82d31b72b90969"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -707,7 +707,7 @@
     "test_cli_report.py": "829f0fcbd6632a267ee1ff98d05612d9af877487f2567ee4ec102f71e7334945",
     "test_cli_select_ad.py": "88b5d4a7586484e385492a927c2a994b19713b79b5e697bf5cfe0306b63057b4",
     "test_cli_select_comparator.py": "e62da1979f511e9cb1cb7417c94cc3e2b3f09bc7991aa148a49296c6079729aa",
-    "test_cli_select_s.py": "4cde21bbc27d961162f3efad7695deac27ce16c6420271b41188353247c524ac",
+    "test_cli_select_s.py": "3a09eb87d6bd317a489091ead354a867f3a29ec6cb950c57107ef6ff434864c6",
     "test_cli_split.py": "0ab0f9aefbc7ad03c96f42a489142d95919410c204c5626c35d39b709f02a3a5",
     "test_cohort.py": "f5de19686bbd17b438ade14992977c341f15dc38887f7f68047d0c9a0fefe9c3",
     "test_config.py": "e69e5ab5976d19987369e565c8de4dc8afe17bcd97d21f0d4cfdc79fea86d72d",
@@ -2539,7 +2539,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev47 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev48 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -3345,5 +3345,26 @@
       "mutation_check": "20/20 (.backup/slot_2015/mut_select_ad.py)",
       "status": "규칙은 계획서 §7; 하위 명령·산출물 형식은 구현 선택"
     }
+  },
+  "decision16_mutation_recheck": {
+    "decision": "결정 16 (09-24 20:1x): 캐시를 끈 상태로 이전 회차 돌연변이 스크립트를 다시 돌려 확인 — \"ok\"",
+    "head": "9a3e6cd",
+    "method": "Mac .venv, subprocess 감싸개로 -B·PYTHONDONTWRITEBYTECODE=1 강제, 틀 전후 *.pyc 0·작업트리 깨끗 확인 (.backup/slot_2115/rerun_d16.py)",
+    "scripts": 17,
+    "originally_caught_now_survived": 0,
+    "not_applicable": {
+      "count": 11,
+      "slot_1515_s2_s11": "select-ad 복사로 문구 2–3 회 — run_select_comparator 구간 한정 10/10 검출",
+      "baselines_mutation.sh no_tie_tol": "P11 이후 sed no-op"
+    },
+    "survived_same_as_recorded": "report_mutation.sh xcheck·xcheck2 (당시 중복 장치로 기록)",
+    "new_location_survivor": {
+      "mutant": "baselines_mutation.sh no_unconv ('    if bad:' → if False) — 원 줄은 P11 에서 삭제, rev45 s_outer_plan best epoch 범위 가드에 걸림",
+      "before": "test_baselines + test_cli_select_s 69 passed (생존)",
+      "fix": "test_cli_select_s.py::test_s_outer_plan_refuses_each_best_epoch_out_of_range (27 → 28)",
+      "after": "검출 (1 failed)"
+    },
+    "lock": "mobse/v2 불변 — 재잠금 없음",
+    "report_appendix": "AV"
   }
 }
