@@ -4017,3 +4017,44 @@ evaluation.json 의 config_hash, run_predictions sha256 기록과 대조한다. 
 - 구조 비교 outer 예측의 집계·보고 경로 (evaluate 는 A–D 만) — 결정 14 가 정하지 않은 범위라 아직 없음.
 - A–D inner grid 의 선택(`train.select_config`)을 파일로 남기는 CLI 경로도 없다 — 이번에 확인만 함.
 - 실자료 fit·GPU·시간 — 없음.
+
+
+# 부록 AQ — 결정 14 4단계 (4c-i): S 후보 한 칸 fit 하위 명령 `fit-s` (rev43, 2026-09-24 예약 슬롯)
+
+근거: 인수인계 결정 14 (선생님 원문 "(가) 독립 선택: 두 구조가 각자 8개 설정 중 inner 결과로 하나를 고르고, epoch은 baseline 규칙을 따르며, seed는 42–44입니다. 약 270 fit이고 슬롯 권고안입니다" 선택, 09-24 11:1x KST) 의 구현 순서 4c ("S 후보 1–4 fit·선택 CLI") 를 둘로 나눈 앞 조각 **4c-i (fit)**. 선택 기록(4c-ii)은 이번 회차에 하지 않았다. S 후보의 규칙 자체는 결정 5 ("§6 S 후보 4 + 구조 비교 2 - 추천안 대로") 로 이미 구현된 rev33·rev36 그대로다. **잠긴 값 변경 없음. 실자료 fit 없음, main pool 미소비.**
+
+## AQ.1 사전 확인
+
+- S 후보는 raw ROI 창에서 feature 를 만든다 (`baselines.feature_matrix` — S1·S2 ROI mean/variance 200, S3·S4 signed Fisher-z FC 4,950). `fit` 은 fold 변환(bank·PCA)을 거친 `EncodedSet` 으로 학습하므로 **입력 계약이 다르다.** logistic(S1·S3)은 결정적 lbfgs 라 seed·epoch 개념이 없다.
+- 지침서 WI-07 출력에 "selection" 이 있다 — A–D inner 선택(`train.select_config`)을 파일로 남기는 경로도 필요하다는 뜻으로 읽힌다. 경로는 아직 없다 (기록만, AQ.6).
+
+## AQ.2 `fit-s` (설계 선택 — 표시함)
+
+- **`fit` 과 나눈 별도 하위 명령은 구현 선택이다** (입력 계약이 달라서). `mobse-v2 fit-s --config --splits --subjects --windows --output-dir --task-manifests … --candidate S1…S4 --setting-id 'C=<값>'|'config=<0–7>' --outer-fold K --inner-fold F [--model-seed s] [--epochs E]`. rest manifest 를 받지 않는다 (bank·PCA 없음).
+- 인자 규칙 (위반은 `CLIError`): logistic 에 `--model-seed`·`--epochs` 를 주면 거부 · MLP 는 `--model-seed` 필수, 잠긴 `train.model_seeds` 밖이면 거부 · MLP inner 에 `--epochs` 를 주면 거부 (early stopping, 상한은 호출 시점 `train.MAX_EPOCHS`) · MLP outer (`--inner-fold 9`) 는 `--epochs` 필수 (선택 설정 inner best epochs 중앙값 올림 — 계획서 §7) · 설정이 후보 grid 밖이면 거부 · 산출물이 있으면 거부 · 창 sha256 대조 (기본). MLP 에는 config 의 잠긴 `train.min_updates` 를 넘긴다.
+- 라이브러리 본체 `baselines.fit_s` (새) 가 기존 `fit_logistic`·`fit_mlp` 를 그대로 부른다 — 학습 규칙 변경 없음. StandardScaler 는 이 fit 의 training 창에만 맞춘다. run 확률은 `fitting.run_probabilities`, 손실은 `inner_loss` (A–D·구조 비교와 같은 함수). `baselines.s_settings(candidate)` 는 `logistic_settings`·`mlp_settings` 와 같은 setting_id 문자열과 순위를 준다.
+- 산출물 셋: `s_fit_report.json` (schema `d14-s-fit-report-0.1` — s_fit_id·후보·feature·설정·role·fold·seed·수렴·best epoch·평가 손실·BA·fit 기록·fit_subjects·모델/예측 sha256·code/env/config/source/split hash), `s_window_predictions.jsonl`, `s_model.npz` (scaler 와 parameter 배열 — torch 저장이 아니라 npz 인 것도 구현 선택). run 확률은 쓰지 않는다 — 선택은 inner 산출물을 모아 따로 한다 (4c-ii).
+- **새 manifests artifact `s_window_predictions`** (구현 선택): cell 자리가 없고 후보·설정이 식별자, `model_sha256` 은 SHA256 형식 검사, 유일 키 (candidate, setting_id, window_key). `window_predictions` 와 이름부터 달라 2×2 `evaluate` 로 새어 들어가지 않는다 (시험 — S 행은 `window_predictions` 검증에서 거부).
+- **새 `manifests.s_fit_id`**: payload 에 role·후보·설정·outer/inner fold·seed(logistic 은 None)·split/config hash — rev42 `fit_id` 정정과 같은 이유로 같은 fold 의 설정·seed 가 서로 다른 식별자를 갖는다. 접두 `s-<role>-S<n>-o<K>i<F>s<seed|na>-`.
+
+## AQ.3 시험·돌연변이
+
+- 새 `tests/v2/test_cli_fit_s.py` (17 시험, 합성 자료 ROI 12): 등록·필수 경로(rest manifest 없음); 후보 이름 3곳 일치 (`cli.S_CANDIDATE_CHOICES` = `baselines.CANDIDATE_ORDER` = `manifests.S_CANDIDATES`); setting 문자열·순위; logistic inner 산출물 셋 + 창 확률·손실이 같은 X 의 `fit_s` 와 일치; 분리 가능한 합성 신호에서 BA ≥ 0.75·확률 방향; 행으로 다시 계산한 손실 = 보고서 (1e-9)·S3 차원 = n_roi(n_roi−1)/2; scaler 평균 = training 창 평균 (평가 창 포함 평균과 다름); logistic seed·epochs 거부; grid 밖 설정 거부 4종; 덮어쓰기 거부; 변조 창 거부; MLP seed 누락·잠긴 seed 밖·inner epochs 거부; MLP inner 가 잠긴 최소 update 1,500 전달 (spy)·state 배열 저장; MLP outer epochs 필수·정확히 E epoch·행 scope = outer_test; `s_fit_id` 12 조합 구별·알 수 없는 후보 거부; S 행 `window_predictions` 거부; `s_window_predictions` 스키마 hash·키.
+- Mac 전체 850 passed / 13 skipped (rev42 833 + 17).
+- 돌연변이 (`.backup/slot_1615/mut_d14s4c.py`, count==1 확인·복원, rc 확인): logistic seed 가드·MLP 잠긴 seed·MLP inner epochs 가드 제거, min_updates 미전달, training 에 평가 subject 섞기, feature 종류 고정, 창 hash 대조 끄기, 행 scope 고정, logistic 확률 뒤집기, MLP state 미저장, `s_fit_id` payload 설정 제거, `model_sha256` hash 검사 제거, 유일 키 축소, `s_settings` 후보 거르기 제거 = **14/14 검출**.
+- 등가로 남긴 것: CLI 의 grid 밖 설정 가드를 지워도 `fit_s` 가 같은 문구로 거부한다 (이중 가드 — 돌연변이 목록에서 뺌).
+
+## AQ.4 잠금
+
+`mobse/v2/baselines.py`·`cli.py`·`manifests.py` 변경으로 재잠금 `26adaed6f303` → **`64c4ef67f4d0` (2026-09-24T07:23:52Z)**, code_hash `07fd6cdb958e` → `a9a0fcea2bcb`. 검사 43/43, 창 4,728 (h197 재잠금 직후 19·25번). 창·코호트·분할 불변.
+
+## AQ.5 결정 12·13 과의 관계
+
+`fit-s` 는 `fit_mlp` 를 부르고 `fit_mlp` 는 호출 시점 `train.MAX_EPOCHS`·`MIN_UPDATES` 를 읽는다. CLI 는 config `train.min_updates` 를 넘긴다 (spy 시험). 결정 12 값이 바뀌어도 여기서 따로 고칠 곳 없음. 결정 13 (head 앞 정규화) 은 S 후보와 무관하다 (S 는 §6 모델 구조를 쓰지 않는다).
+
+## AQ.6 이번 회차에 확인하지 못한 것 · 남은 순서
+
+- 4c-ii: S 선택 기록 하위 명령 (inner `s_fit_report`·`s_window_predictions` 32 설정 × 3 inner fold → `select_s` → 선택·outer 계획). outer 계획의 MLP seed·logistic 단일 fit 규칙, 외부 S ("외부 S도 PIOP1 main pool의 inner 결과로만 고른다") 의 입력 형식은 그때 확인.
+- A–D inner 선택 기록 경로 (WI-07 출력 "selection") — 없음.
+- 구조 비교·S outer 예측의 집계·보고 경로 — 없음.
+- 실자료 fit·시간 (S3·S4 는 4,950 차원) — 없음.
