@@ -323,3 +323,33 @@ def test_evaluate_grid_rejects_comparator_fits():
     fits["NG42"] = {"slot": ("NG", 0, 42)}
     with pytest.raises(CLIError, match="알 수 없는 칸"):
         _check_fit_grid(fits, folds)
+
+
+@pytest.mark.parametrize("cell", ["NG", "SG"])
+def test_written_window_predictions_reproduce_inner_eval_loss(workspace, cell):
+    """select-comparator 는 창 예측 → run 확률을 다시 계산해 fit_report 와 대조한다.
+
+    실제 `run_fit` 산출물(float32 forward → float 기록)이 그 허용 차이 안에 드는지
+    확인한다 (결정 14 4b). fit_id 는 config_id 로 구별된다 (rev42).
+    """
+    from pathlib import Path as _P
+
+    from mobse.v2 import baselines as BL
+    from mobse.v2 import fitting as FIT
+    from mobse.v2.cli import SELECTION_LOSS_TOL
+
+    ids = []
+    for cid in (0, 1):
+        out = workspace["tmp"] / f"fit_loss_{cell}_{cid}"
+        ns = _args(workspace, out, cell=cell, config_id=cid)
+        run_fit(resolve_paths("fit", ns), ns)
+        rep = json.loads((out / "fit_report.json").read_text())
+        rows = [json.loads(l) for l in (out / "window_predictions.jsonl").read_text().splitlines()]
+        refs = [FIT.WindowRef(window_key=r["window_key"], run_key=r["run_key"],
+                              canonical_subject=r["canonical_subject"],
+                              task=FIT.task_of(r["run_key"]), path=_P(""), sha256="",
+                              label=r["truth"]) for r in rows]
+        loss = BL.inner_loss(FIT.run_probabilities(refs, [r["p_class1"] for r in rows]))
+        assert abs(loss - rep["eval_loss"]) <= SELECTION_LOSS_TOL
+        ids.append(rep["fit_id"])
+    assert ids[0] != ids[1]

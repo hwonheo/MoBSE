@@ -12,6 +12,8 @@
   읽는 추출 자체는 ``scripts/h197/10_wi02_extract.py`` 의 몫이다.
 * ``split``     — pilot 과 outer/inner fold 를 만든다.
 * ``fit``       — 지정한 fold·cell·seed 하나를 학습한다.
+* ``select-comparator`` — §6 구조 비교(NG·SG) 하나의 inner fit 산출물로 config·
+  outer E 를 고르고 선택 기록을 쓴다 (결정 14 4b). 학습하지 않는다.
 * ``evaluate``  — 저장된 outer test 예측을 run·subject·cell 로 집계한다. **분류만.**
   부트스트랩·gate 판정은 하지 않는다 (``report`` 의 몫).
 * ``report``    — evaluate 산출물로 paired group bootstrap 구간과 G3 완전성·정합성
@@ -28,7 +30,8 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from mobse.v2.config import ConfigError, config_hash, load_config
 from mobse.v2.manifests import ManifestError, assert_no_glob_fallback, validate_record
 
-SUBCOMMANDS = ("validate", "prepare", "split", "fit", "evaluate", "report")
+SUBCOMMANDS = ("validate", "prepare", "split", "fit", "select-comparator", "evaluate",
+               "report")
 
 #: 하위 명령별 필수 경로 인자. 하나라도 비면 실행하지 않는다.
 REQUIRED_PATHS: Dict[str, Sequence[str]] = {
@@ -39,6 +42,10 @@ REQUIRED_PATHS: Dict[str, Sequence[str]] = {
     "prepare": ("config", "extract_manifests", "output_dir"),
     "split": ("config", "subjects", "output_dir"),
     "fit": ("config", "splits", "subjects", "windows", "rest_manifest", "output_dir"),
+    # select-comparator 는 구조 하나·outer fold 하나의 inner fit_manifest 24 개(8 config
+    # × 3 inner fold)를 받는다. fit_report.json·window_predictions.jsonl 은 각 manifest
+    # 옆의 고정 이름이다 — 명시한 경로에서 결정되므로 탐색이 아니다 (U20).
+    "select-comparator": ("config", "splits", "fit_manifest", "output_dir"),
     "evaluate": ("config", "splits", "predictions", "fit_manifest", "output_dir"),
     # report 는 evaluate 산출물(evaluation.json·run_predictions.jsonl)과 group 매핑의
     # 출처인 subjects.jsonl 을 받는다. run_predictions 에는 group_id 가 없다.
@@ -49,6 +56,7 @@ REQUIRED_PATHS: Dict[str, Sequence[str]] = {
 #: 여러 경로를 받는 (하위 명령, 인자). release 하나는 cell × outer fold × seed
 #: 개의 fit 으로 이루어지므로 evaluate 는 그 산출물을 전부 명시적으로 받는다.
 MULTI_PATHS = frozenset({("evaluate", "predictions"), ("evaluate", "fit_manifest"),
+                         ("select-comparator", "fit_manifest"),
                          ("prepare", "extract_manifests")})
 
 
@@ -106,6 +114,10 @@ def build_parser() -> argparse.ArgumentParser:
             p.add_argument("--device", default="cpu")
             p.add_argument("--skip-hash-verify", action="store_true",
                            help="창 sha256 대조를 건너뛴다. 기본은 대조한다")
+        if name == "select-comparator":
+            p.add_argument("--structure", required=True, choices=FIT_CELL_CHOICES[4:],
+                           help="§6 구조 비교 NG 또는 SG — 구조별 독립 선택 (결정 14 (가))")
+            p.add_argument("--outer-fold", type=int, required=True)
         if name == "evaluate":
             p.add_argument("--tasks", nargs="+", required=True,
                            help="평가할 분류 task. 학습하지 않은 task 는 거부된다")
@@ -535,6 +547,7 @@ def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
     module_dir = Path(__file__).resolve().parent
     fid = fit_id(role=fold.role, cell=args.cell, outer_fold=int(args.outer_fold),
                  inner_fold=int(args.inner_fold), model_seed=int(args.model_seed),
+                 config_id=int(args.config_id),
                  split_hash=folds["split_hash"], config_hash=cfg_hash)
 
     rows = []
@@ -614,6 +627,197 @@ def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
         "timing": result.timing, "memory": result.memory,
         "output_dir": str(out_dir),
     }
+
+
+#: select-comparator 산출물. 있으면 실행하지 않는다 (지침서 §2).
+SELECTION_OUTPUT = "comparator_selection.json"
+SELECTION_SCHEMA = "d14-comparator-selection-0.1"
+#: fit_report 의 eval_loss 와 창 예측으로 다시 계산한 inner 손실의 허용 차이.
+#: 창 확률은 float32 forward 를 float 로 옮겨 적은 값이라 평균 순서만 다르다.
+SELECTION_LOSS_TOL = 1e-6
+
+
+def run_select_comparator(paths: Dict[str, Any], args: argparse.Namespace
+                          ) -> Dict[str, Any]:
+    """구조 비교 하나의 inner fit 산출물로 config·outer E 를 고른다 (결정 14 4b).
+
+    입력은 한 구조·한 outer fold 의 inner fit 디렉터리들(각 ``fit_manifest.json``
+    와 그 옆의 ``fit_report.json``·``window_predictions.jsonl``)이다. 창 확률은
+    ``fitting.run_probabilities`` 로 run 확률이 된다 — ``train_fold`` 가 inner
+    ``eval_loss`` 를 계산한 것과 **같은 함수**이고, 그 값과 다시 대조한다.
+    ``evaluate.aggregate_runs`` 는 쓰지 않는다: 그것은 seed 3 개 × 창 4 개 격자를
+    요구하는 outer test 집계이며, inner fit 은 seed 42 하나다 (계획서 §7).
+
+    선택 규칙은 ``baselines.select_comparator`` 다 (rev40, 구현 선택 표시). 이 함수는
+    학습하지 않으며, outer fit 은 기록된 계획대로 ``fit --cell <구조> --inner-fold 9
+    --config-id <선택> --epochs <E>`` 를 seed 마다 부른다.
+
+    하위 명령 이름·입력 형식(manifest 목록 + 고정 이웃 파일)은 구현 선택이다.
+
+    Raises:
+        CLIError: 입력 경계·무결성이 어긋나거나 산출물을 덮어쓰게 될 때.
+    """
+    from mobse.v2 import baselines as BL
+    from mobse.v2 import fitting as FIT
+    from mobse.v2 import templates as TPL
+    from mobse.v2 import train as TR
+    from mobse.v2.manifests import code_hash, fit_id, read_jsonl, sha256_file
+
+    structure = str(args.structure)
+    if structure not in BL.COMPARATOR_ORDER:
+        raise CLIError(f"--structure {structure!r} 는 구조 비교가 아니다: {BL.COMPARATOR_ORDER}")
+    outer_fold = int(args.outer_fold)
+    try:
+        cfg = load_config(Path(paths["config"]))
+    except ConfigError as exc:
+        raise CLIError(f"config 검증 실패: {exc}") from exc
+    cfg_hash = config_hash(cfg)
+
+    out_dir = Path(paths["output_dir"])
+    if (out_dir / SELECTION_OUTPUT).exists():
+        raise CLIError(f"이미 존재한다: {out_dir / SELECTION_OUTPUT}. 같은 release 결과를 "
+                       "덮어쓰지 않는다 (지침서 §2)")
+    folds = json.loads(Path(paths["splits"]).read_text(encoding="utf-8"))
+    split_hash = folds["split_hash"]
+
+    results: List[Any] = []
+    inputs: List[Dict[str, Any]] = []
+    seen_ids: Dict[str, str] = {}
+    for mp in _as_list(paths["fit_manifest"]):
+        path = Path(mp)
+        man = json.loads(path.read_text(encoding="utf-8"))
+        try:
+            validate_record("fit_manifest", man)
+        except ManifestError as exc:
+            raise CLIError(f"{path}: fit_manifest 스키마 위반 — {exc}") from exc
+        fid = man["fit_id"]
+        if fid in seen_ids:
+            raise CLIError(f"fit_id 중복: {fid} ({seen_ids[fid]} 와 {path})")
+        seen_ids[fid] = str(path)
+        if man["cell"] != structure:
+            raise CLIError(f"{fid}: cell {man['cell']!r} — {structure} 선택에 다른 칸을 "
+                           "섞지 않는다 (결정 14 (가) 구조별 독립 선택)")
+        if man["role"] != FIT.ROLE_INNER or \
+                man["folds"].get("eval_role") != FIT.EVAL_ROLE[FIT.ROLE_INNER]:
+            raise CLIError(f"{fid}: inner fit 이 아니다 (role={man['role']!r}). 선택은 "
+                           "inner validation 결과로만 한다 (계획서 §7)")
+        if int(man["folds"]["outer_fold"]) != outer_fold:
+            raise CLIError(f"{fid}: outer fold {man['folds']['outer_fold']} ≠ --outer-fold "
+                           f"{outer_fold}")
+        if man["split_hash"] != split_hash:
+            raise CLIError(f"{fid}: split_hash 가 --splits 와 다르다")
+        if man["config_hash"] != cfg_hash:
+            raise CLIError(f"{fid}: config_hash 가 --config 와 다르다")
+
+        rep_path = path.parent / "fit_report.json"
+        pred_path = path.parent / "window_predictions.jsonl"
+        for need in (rep_path, pred_path):
+            if not need.is_file():
+                raise CLIError(f"{fid}: {need.name} 가 없다 {need}. 대체 탐색하지 않는다 (U20)")
+        rep = json.loads(rep_path.read_text(encoding="utf-8"))
+        if rep.get("fit_id") != fid:
+            raise CLIError(f"{rep_path}: fit_id {rep.get('fit_id')!r} ≠ manifest {fid}")
+        inner_fold = int(man["folds"]["inner_fold"])
+        cid = int(rep["config_id"])
+        expect = fit_id(role=man["role"], cell=structure, outer_fold=outer_fold,
+                        inner_fold=inner_fold, model_seed=int(man["model_seed"]),
+                        config_id=cid, split_hash=split_hash, config_hash=cfg_hash)
+        if expect != fid:
+            raise CLIError(f"{fid}: fit_report config_id {cid} 로 다시 만든 fit_id 가 다르다 "
+                           f"({expect}) — 보고서와 manifest 가 다른 fit 이다")
+
+        fold = FIT.resolve_fold_subjects(folds, outer_fold, inner_fold)
+        if sorted(man["fit_subjects"]) != sorted(fold.train):
+            raise CLIError(f"{fid}: fit_subjects 가 folds.json 의 inner train 과 다르다")
+        try:
+            rows = read_jsonl(pred_path, "window_predictions")
+        except ManifestError as exc:
+            raise CLIError(f"{pred_path}: window_predictions 스키마 위반 — {exc}") from exc
+        refs, probs = [], []
+        for i, r in enumerate(rows):
+            if r["fit_id"] != fid or r["cell"] != structure or \
+                    int(r["model_seed"]) != int(man["model_seed"]):
+                raise CLIError(f"{pred_path}:{i + 1}: fit_id/cell/seed 가 manifest 와 다르다")
+            if r["scope"] != FIT.EVAL_ROLE[FIT.ROLE_INNER]:
+                raise CLIError(f"{pred_path}:{i + 1}: scope {r['scope']!r} — inner validation "
+                               "만 선택에 쓴다")
+            if r["checkpoint_sha256"] != rep.get("checkpoint_sha256"):
+                raise CLIError(f"{pred_path}:{i + 1}: checkpoint hash 가 fit_report 와 다르다")
+            _window_index(r["run_key"], r["window_key"])
+            if int(r["truth"]) != FIT.class_index(FIT.task_of(r["run_key"])):
+                raise CLIError(f"{pred_path}:{i + 1}: truth 가 run_key 의 task 와 다르다")
+            refs.append(FIT.WindowRef(
+                window_key=r["window_key"], run_key=r["run_key"],
+                canonical_subject=r["canonical_subject"], task=FIT.task_of(r["run_key"]),
+                path=Path(""), sha256="", label=int(r["truth"])))
+            probs.append(float(r["p_class1"]))
+        got_subjects = {r["canonical_subject"] for r in rows}
+        if got_subjects != set(fold.evaluate):
+            raise CLIError(f"{fid}: 예측 subject 가 inner validation subject 와 다르다 "
+                           f"(누락 {sorted(set(fold.evaluate) - got_subjects)[:3]}, "
+                           f"여분 {sorted(got_subjects - set(fold.evaluate))[:3]})")
+        try:
+            run_probs = FIT.run_probabilities(refs, probs)
+        except FIT.FitError as exc:
+            raise CLIError(f"{pred_path}: {exc}") from exc
+        loss = BL.inner_loss(run_probs)
+        if abs(loss - float(rep["eval_loss"])) > SELECTION_LOSS_TOL:
+            raise CLIError(f"{fid}: 창 예측으로 다시 계산한 inner 손실 {loss:.9f} ≠ "
+                           f"fit_report eval_loss {float(rep['eval_loss']):.9f}")
+        results.append(BL.ComparatorInner(
+            structure=structure, config_id=cid, inner_fold=inner_fold,
+            model_seed=int(man["model_seed"]), run_probs=run_probs,
+            best_epoch=int(rep["best_epoch"])))
+        inputs.append({"fit_id": fid, "config_id": cid, "inner_fold": inner_fold,
+                       "fit_manifest": str(path), "fit_manifest_sha256": sha256_file(path),
+                       "fit_report_sha256": sha256_file(rep_path),
+                       "window_predictions_sha256": sha256_file(pred_path),
+                       "checkpoint_sha256": rep.get("checkpoint_sha256"),
+                       "best_epoch": int(rep["best_epoch"]), "inner_loss": loss})
+
+    for field in ("code_hash", "env_hash", "source_hash"):
+        values = sorted({json.loads(Path(i["fit_manifest"]).read_text(encoding="utf-8"))[field]
+                         for i in inputs})
+        if len(values) != 1:
+            raise CLIError(f"inner fit 사이에 {field} 가 다르다 {[v[:12] for v in values]}")
+    try:
+        sel = BL.select_comparator(results, structure=structure)
+    except BL.BaselineError as exc:
+        raise CLIError(f"선택 실패: {exc}") from exc
+
+    plan = [{**row, "outer_fold": outer_fold,
+             "inner_fold": TPL.OUTER_FIT_INNER_FOLD,
+             "cli": ["fit", "--cell", structure, "--outer-fold", str(outer_fold),
+                     "--inner-fold", str(TPL.OUTER_FIT_INNER_FOLD),
+                     "--config-id", str(sel.config_id),
+                     "--epochs", str(sel.outer_epochs),
+                     "--model-seed", str(row["model_seed"])]}
+            for row in sel.outer_plan()]
+    record = {
+        "schema_version": SELECTION_SCHEMA, "structure": structure,
+        "outer_fold": outer_fold, "split_hash": split_hash, "config_hash": cfg_hash,
+        "selected_config_id": sel.config_id, "outer_epochs": sel.outer_epochs,
+        "inner_loss": sel.loss, "inner_balanced_accuracy": sel.balanced_accuracy,
+        "tie_rule": sel.tie_rule, "best_epochs": list(sel.best_epochs),
+        "table": [{**r, "best_epochs": list(r["best_epochs"])} for r in sel.table],
+        "outer_plan": plan,
+        "rules": {"loss": "config 별 3 inner fold OOF 병합 subject 동일 가중 log loss",
+                  "tie": f"차이 ≤ {TR.TIE_TOLERANCE} → OOF BA → 작은 config_id",
+                  "outer_epochs": "선택 config 3 inner best epoch 중앙값 올림 (계획서 §7 baseline)",
+                  "run_aggregation": "fitting.run_probabilities (train_fold inner 와 같은 함수)",
+                  "status": "구현 선택 — 결정 14 가 세부를 정하지 않음"},
+        "fit_code_hash": json.loads(Path(inputs[0]["fit_manifest"]).read_text(
+            encoding="utf-8"))["code_hash"],
+        "selector_code_hash": code_hash(sorted(Path(__file__).resolve().parent.glob("*.py"))),
+        "inputs": sorted(inputs, key=lambda i: (i["config_id"], i["inner_fold"])),
+    }
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / SELECTION_OUTPUT).write_text(
+        json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"verdict": "pass", "structure": structure, "outer_fold": outer_fold,
+            "selected_config_id": sel.config_id, "outer_epochs": sel.outer_epochs,
+            "inner_loss": sel.loss, "tie_rule": sel.tie_rule, "n_inputs": len(inputs),
+            "output": str(out_dir / SELECTION_OUTPUT)}
 
 
 #: evaluate 산출물. 둘 중 하나라도 있으면 실행하지 않는다 (지침서 §2).
@@ -1261,6 +1465,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     if args.command == "fit":
         result = run_fit(paths, args)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result["verdict"] == "pass" else 1
+
+    if args.command == "select-comparator":
+        result = run_select_comparator(paths, args)
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0 if result["verdict"] == "pass" else 1
 

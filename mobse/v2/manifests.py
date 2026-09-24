@@ -348,15 +348,21 @@ def code_hash(paths: Sequence[Path]) -> str:
 
 
 def fit_id(*, role: str, cell: str, outer_fold: int, inner_fold: int,
-           model_seed: int, split_hash: str, config_hash: str) -> str:
+           model_seed: int, config_id: int, split_hash: str, config_hash: str) -> str:
     """재현 가능한 fit 식별자. 같은 입력이면 항상 같은 값이다.
 
-    ``cell`` 은 A–D 또는 §6 구조 비교(NG·SG) 이름이다.
+    ``cell`` 은 A–D 또는 §6 구조 비교(NG·SG) 이름이다. ``config_id`` 는 공통 grid
+    번호(0–7)다 — inner grid 는 같은 (cell, fold, seed=42) 에서 8 개 config 를
+    학습하므로, 이것이 빠지면 서로 다른 fit 이 같은 식별자를 갖는다 (rev42 정정).
+    접두는 바꾸지 않는다; config_id 는 해시 payload 에만 들어간다.
     """
     if cell not in FIT_CELLS:
         raise ManifestError(f"알 수 없는 cell: {cell!r}")
+    if isinstance(config_id, bool) or not isinstance(config_id, int) or config_id < 0:
+        raise ManifestError(f"config_id 는 0 이상 정수여야 한다: {config_id!r}")
     payload = {"role": role, "cell": cell, "outer_fold": outer_fold,
                "inner_fold": inner_fold, "model_seed": model_seed,
+               "config_id": config_id,
                "split_hash": split_hash, "config_hash": config_hash}
     return f"{role}-{cell}-o{outer_fold}i{inner_fold}s{model_seed}-{sha256_obj(payload)[:12]}"
 

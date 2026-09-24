@@ -187,7 +187,7 @@ def test_comparator_cells_are_fit_scoped(cell):
         validate_record("run_predictions", _run_prediction_record(cell))
     validate_record("run_predictions", _run_prediction_record("A"))
     kw = dict(role="inner", cell=cell, outer_fold=0, inner_fold=1, model_seed=42,
-              split_hash="s" * 64, config_hash="c" * 64)
+              config_id=0, split_hash="s" * 64, config_hash="c" * 64)
     assert fit_id(**kw).startswith(f"inner-{cell}-o0i1s42-")
     assert fit_id(**kw) != fit_id(**{**kw, "cell": "A"})
 
@@ -262,12 +262,25 @@ def test_assert_no_glob_fallback():
 
 def test_fit_id_is_deterministic_and_input_bound():
     kw = dict(role="main", cell="A", outer_fold=0, inner_fold=1, model_seed=42,
-              split_hash="s" * 64, config_hash="c" * 64)
+              config_id=0, split_hash="s" * 64, config_hash="c" * 64)
     assert fit_id(**kw) == fit_id(**kw)
     assert fit_id(**{**kw, "model_seed": 43}) != fit_id(**kw)
     assert fit_id(**kw).startswith("main-A-o0i1s42-")
     with pytest.raises(ManifestError):
         fit_id(**{**kw, "cell": "Z"})
+
+
+def test_fit_id_separates_inner_grid_configs():
+    """inner grid 8 config 는 같은 (cell, fold, seed) 에서 서로 다른 fit_id 를 가져야 한다."""
+    kw = dict(role="inner", cell="NG", outer_fold=0, inner_fold=1, model_seed=42,
+              split_hash="s" * 64, config_hash="c" * 64)
+    ids = {fit_id(**kw, config_id=c) for c in range(8)}
+    assert len(ids) == 8
+    with pytest.raises(TypeError):
+        fit_id(**kw)                       # config_id 를 빠뜨리면 조용히 넘어가지 않는다
+    for bad in (-1, True, 1.0):
+        with pytest.raises(ManifestError, match="config_id"):
+            fit_id(**kw, config_id=bad)
 
 
 def test_release_id_format():
