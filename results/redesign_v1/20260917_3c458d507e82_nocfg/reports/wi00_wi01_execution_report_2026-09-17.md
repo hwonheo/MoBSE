@@ -3941,3 +3941,36 @@ evaluation.json 의 config_hash, run_predictions sha256 기록과 대조한다. 
 - 4단계: S 후보·구조 비교의 fit·evaluate CLI 배선 (`fit --cell` 선택지에 NG·SG 없음, 선택 결과를 파일로 남기는 경로 없음). 설계 선택 (`fit --cell` 확장 대 별도 하위 명령) 은 그때 표시.
 - 선택 함수는 합성 입력으로만 시험했다. 실자료 inner 결과·GPU·시간 — 없음.
 - 결정 13 결과로 head 앞 정규화가 A–D 에 들어가면 NG·SG head 앞에도 같은 변경이 필요하다 (결정 14 절). 선택 규칙은 그 변경과 무관하다.
+
+
+# 부록 AO — 결정 14 4단계 (일부 4a): `fit --cell NG|SG` 배선 (rev41, 2026-09-24 예약 슬롯)
+
+근거: 인수인계 결정 14 (선생님 원문 "(가) 독립 선택: 두 구조가 각자 8개 설정 중 inner 결과로 하나를 고르고, epoch은 baseline 규칙을 따르며, seed는 42–44입니다. 약 270 fit이고 슬롯 권고안입니다" 선택, 09-24 11:1x KST) 의 구현 순서 4 중 **fit 배선만**. 선택 결과를 파일로 남기는 하위 명령(4b)·S 후보 CLI(4c)는 이번 회차에 하지 않았다. **잠긴 값 변경 없음. 실자료 fit 없음, main pool 미소비.**
+
+## AO.1 설계 선택 (표시함)
+
+- **`fit --cell` 확장** — 별도 하위 명령을 두지 않았다. 근거: 구조 비교 학습은 rev39 부터 A–D 와 같은 `train_fold` 한 경로이므로 입력(경로·fold·config·seed·epoch)과 산출물(`fit_manifest.json`·`checkpoint.pt`·`window_predictions.jsonl`·`fit_report.json`) 계약도 하나로 둔다. 선택지 `cli.FIT_CELL_CHOICES = ("A","B","C","D","NG","SG")` (= `train.CELLS` + `baselines.COMPARATOR_ORDER`, 시험 고정).
+- SG 이면 `fit_fold_transform(..., single_graph=True)` — 이 fit 의 training-rest 로 graph 하나를 만든다. `fit_manifest.json` 에 `single_graph_id`·`single_graph_fingerprint` 를 덧붙인다 (기존 키 불변, `fit_report.json` `transform` 과 같은 값). A–D·NG 는 만들지 않는다. bank 는 여섯 이름 모두 같은 fold 변환에서 나온다.
+- seed: 잠긴 `train.model_seeds` 검사는 `cli.run_fit` 이 cell 과 무관하게 먼저 한다 (NG·SG 는 `train_fold` 에서 한 번 더).
+
+## AO.2 manifest 범위
+
+- `manifests.COMPARATOR_CELLS = {"NG","SG"}` (= `models.COMPARATOR_SPEC` = `baselines.COMPARATOR_ORDER`, 시험 고정), `FIT_CELLS = ALLOWED_CELLS ∪ COMPARATOR_CELLS`.
+- **구현 선택:** 구조 비교 이름은 fit 단위 산출물(`FIT_SCOPED_ARTIFACTS = {fit_manifest, window_predictions}`)과 `fit_id` 에서만 받는다. `run_predictions` 등 run·subject 집계는 A–D 만 받는다. `evaluate` 는 바꾸지 않았다 — NG·SG fit 을 섞으면 `_check_fit_grid` 가 "알 수 없는 칸" 으로 거부한다 (시험). 구조 비교의 outer 집계·보고 경로는 아직 없다.
+
+## AO.3 시험·돌연변이
+
+- `tests/v2/test_cli_fit.py` 13 → 22 (+9): 선택지 순서·알 수 없는 cell 거부; NG·SG inner fit 네 산출물·fit_id·예측 행 수·min_updates 1,500 전달; SG 만 graph 출처 기록 + A·NG 는 없음 + bank 동일; NG·SG outer 정확히 E epoch; NG seed 0·45 거부; evaluate 격자가 NG 칸 거부.
+- `tests/v2/test_manifests.py` 30 → 33 (+3): NG·SG 가 window_predictions·fit_id 에서 받아지고 run_predictions 에서 거부; 이름 집합 일치 (torch 없으면 skip).
+- Mac 전체 808 passed / 13 skipped.
+- 돌연변이 (`.backup/slot_1415/mut_d14s4.py`, count==1 확인·복원): SG 에 graph 안 만듦, 모든 cell 에 graph 만듦, manifest graph 기록 제거, 선택지 A–D 로, 모든 artifact 에 NG·SG 허용, fit 범위 제거, fit_id A–D 로, run_predictions 를 fit 범위에 추가, 구조 이름 여분 = **9/9 검출**.
+
+## AO.4 잠금
+
+`mobse/v2/cli.py`·`manifests.py` 변경으로 재잠금 `4fa15d0dd3c5` → **`987de3635cb4` (2026-09-24T05:21:27Z)**, code_hash `63055a8a9381` → `c258f65edb56`. 검사 43/43, 창 4,728 (h197 재잠금 직후 19·25번). 창·코호트·분할 불변.
+
+## AO.5 이번 회차에 확인하지 못한 것 · 남은 순서
+
+- 4b: 구조 비교 inner fit 산출물(`fit_report.json`·`window_predictions.jsonl`) → `ComparatorInner` → `select_comparator` → 선택 기록 파일 → outer fit 명령. 하위 명령 이름·입력 형식은 그때 표시.
+- 4c: S 후보 1–4 fit·선택 CLI.
+- 실자료 fit·GPU·시간 — 없음. 결정 13 판단으로 head 앞 정규화가 A–D 에 들어가면 NG·SG 에도 같은 변경 (결정 14 절).
