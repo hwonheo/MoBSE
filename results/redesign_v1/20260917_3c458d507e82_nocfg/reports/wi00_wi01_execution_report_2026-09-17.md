@@ -4429,3 +4429,34 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 
 - S outer 쪽 (`s_fit_report.json` 의 seed·`s_selection.json` outer 계획 → `ComparisonWindowPrediction`) 없음. 하위 명령·산출물·A−S CI 없음. 실자료 outer 예측 없음.
 - 결정 요청 (부록 BA.4, A−NG·A−SG) 은 여전히 대기.
+
+
+# 부록 BC — S main outer fit 산출물 → 보조 비교 집계 helper (rev55, 2026-09-25 15:15 예약 슬롯)
+
+남은 작업 2-c "CLI 배선" 의 두 번째 조각 (부록 BB 의 S 쪽). 새 결정 아님 — 규칙은 계획서 §8 run 집계 (부록 BA), S outer 계획은 결정 14 4c-ii (`baselines.s_outer_plan`, 부록 AS). 합성 자료 시험만, 실자료 fit 없음, main pool 미소비. **하위 명령은 만들지 않았다** (CLI 10 개 불변).
+
+## BC.1 사전 확인 (grep, 15:1x)
+
+- `fit-s --inner-fold 9` 산출물: `s_fit_report.json` (schema `d14-s-fit-report-0.1`; `s_fit_id`·candidate·setting_id·role·eval_role·folds·`model_seed` (logistic None)·converged·`fit` 기록 (MLP 는 `epochs_run`)·fit_subjects·`model_sha256`·`window_predictions_sha256`·hash 들) + 옆 `s_window_predictions.jsonl` (행에 seed 자리 없음) + `s_model.npz`.
+- `s_selection.json`: `selected_candidate`·`selected_setting_id`·`outer_epochs` (logistic None)·`outer_plan` 행 (`candidate`·`setting_id`·`model_seed`·`epochs_exact`·`outer_fold`·`inner_fold` 9). logistic 은 seed·epoch 없는 한 행, MLP 는 `train.MODEL_SEEDS` × E.
+
+## BC.2 구현 (`mobse/v2/cli.py`)
+
+- 새 `_load_s_outer(report_paths, *, folds, cfg_hash, selections)` + `S_OUTER_NEIGHBOURS = ("s_window_predictions.jsonl", "s_model.npz")` (보고서 옆 고정 이름, U20). 가드 순서·고유 문구는 `_load_comparator_outer` (부록 BB) 틀을 따름.
+- 선택 기록 검사: outer fold 집합 = folds.json 전부, 스키마, outer_fold·split/config hash, 외부 기록 거부, 선택 후보 ∈ S 후보, 계획 행 후보/설정·fold (outer, 9) = 선택 기록. **logistic**: seed·epoch 없는 한 행, `outer_epochs` None → 계획 seed `(None,)`. **MLP**: seed None·중복·빈 목록 거부, **seed 집합 = 호출 시점 잠긴 `train.MODEL_SEEDS`**, outer E 1–`MAX_EPOCHS`, 계획 행 E = outer E.
+- 보고서 검사: 스키마·`s_fit_id` 중복·role/eval_role outer·외부 분할 기록 (두 키 각각) 거부·split/config hash·inner_fold 9·선택 기록 없는 outer fold·후보/설정 = 그 fold 선택·seed ∈ 계획·(outer, seed) 중복·**보고서 필드로 `s_fit_id` 재계산**·MLP `fit.epochs_run` = outer E·이웃 파일 2 개·`s_model.npz`·예측 파일 sha256 = 보고서.
+- 예측 행 검사: 스키마 (`s_window_predictions`)·s_fit_id·후보/설정·scope outer_test·model_sha256·학습 subject 누설·outer test 밖·fit 하나가 그 outer test 전부를 덮음. 전체: 계획 (outer, seed) 빠짐 없음·code/env/source hash 한 값·subject·task 당 run 하나 → `ComparisonWindowPrediction(cell="S")` + subject 별 계획 seed → `aggregate_comparison_runs(cell="S")`.
+- **구현 선택 (표시함)**: 행 seed 는 보고서 `model_seed` 에서 가져옴 (행에 seed 자리가 없어서). outer logistic 의 `converged` 는 거부하지 않고 `fits` 에 기록만 (P11 은 inner 선택 규칙 — outer 미수렴 처리는 계획서에 없음). helper 만, 하위 명령·산출물 없음.
+- 첫 돌연변이에서 `len(rows) != 1` 조건이 `seeds != [None]` 에 포함돼 (seed 는 행마다 하나) 중복임을 확인 → 그 조건을 지우고 주석으로 이유를 적음 (동작 동치).
+
+## BC.3 시험·돌연변이·잠금
+
+- 새 `tests/v2/test_cli_s_outer.py` **67** (outer 0 = S1 logistic 한 fit, outer 1 = S2 MLP seed 3 fit 의 혼합 합성; 짝수 subject 의 WM 을 틀리게 해 b=0.5/1.0, BA 0.75 손계산; logistic run n_seeds 1·MLP 3; seed 지도 (None,)/(42,43,44); 두 fold 모두 MLP — 정상 경로 4; 선택 기록·계획 가드 23; 보고서 가드 27 (이웃 파일 2·모델 교체 포함); 예측 행 가드 13).
+- 돌연변이 `.backup/slot_1515b/mut_s_outer.py` (`-B`·`PYTHONDONTWRITEBYTECODE=1`, helper 구간 안 count==1, 원본 복원): 첫 실행 **53/54** — 생존 `logi_rows` (위 중복 조건, `mut_s_outer_r1.log`) → 조건 제거·돌연변이 목록 정정 → 재실행 **53/53** (`mut_s_outer_r2.log`). Mac `*.pyc` 0 (돌연변이 뒤·rsync 전).
+- 관련 6 파일 Mac 226 passed.
+- 재잠금 `850e7fce7b0a` → **`c96a74b297ec`** (2026-09-25T06:23:32Z), code_hash `0413a736dca1` → `e7f27665a89f`. 19번 45/45, 25번 창 4,728. split_hash `ace5f4a4…`·external_split_hash `40e50350…`·config_hash 불변. gate evidence **rev55** (`s_outer_loader_rev55`).
+
+## BC.4 확인하지 못한 것 · 다음
+
+- 하위 명령·산출물 (새 하위 명령 vs `evaluate` 확장), A−S 의 A–D run 입력 (`evaluate` 산출물 `run_predictions` 를 읽을지), §8 95% 기술적 CI 배선 없음. 실자료 outer 예측 없음.
+- 결정 요청 (부록 BA.4, A−NG·A−SG) 은 여전히 대기.
