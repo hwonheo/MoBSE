@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "1e399ec1f6e241dbcfe4fb5c32d77124296b1392",
-  "timestamp_utc": "2026-09-25T13:37:52Z",
-  "revision": 61,
-  "supersedes_sha256": "f954462957dd9c2907253e852bb9aa6a6a5df33f19cbb74a492e2069755e1839",
-  "revision_reason": "rev61 (2026-09-25): 남은 작업 6 잔여 — pilot 기술 분할 fit 비용 칸별 반복 (칸당 3회) 과 동시 실행 처리량 (칸 A, k=2·4) 측정 (부록 BI, resource_budget.md 9.1). 같은 인자 반복에서 A·C·D s/epoch 최대 2.7 배 변동 — rev58 A·C 차이는 칸 차이 아님. k=4 처리량 2.23 배 (pilot 규모). 순차 상한 33.5 → 34.0 h. G1 check 판정 불변. 코드·시험·잠금 불변 (78ddd887). main pool 미소비. 새 결정 아님",
+  "git_head": "bf9f6d2271f97e631f64e850a8bc47d074638828",
+  "timestamp_utc": "2026-09-25T14:24:16Z",
+  "revision": 62,
+  "supersedes_sha256": "9f98b8d1ed79009912595e44f4cb4df584f1f1a052cae02cfe8b3fa83abf2b0b",
+  "revision_reason": "rev62 (2026-09-25): 남은 작업 5-c — 부록 BG.4 '추출에 실제 쓰인 잔차와의 대조' 와 부록 BH.4 '창 격자에서 관측 불가한 차단대역' 을 pilot 31명 ok run 93 (계획서 §3.2 pilot 기술 검증) 에서 BOLD 를 원 TR 로 다시 읽어 측정 (부록 BJ). 재계산 창 = 저장 창 바이트 동일 372/372, 결합 설계 잔차의 차단대역 DCT 전력 비율 <= 3.1e-15 (nuisance 만 회귀하면 0.3-37%). 코드·시험·잠금 불변 (78ddd887). main pool run 미사용, 라벨·fold·fit 없음. 새 결정 아님",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -102,7 +102,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "4e621551edec9b9f45547243c20d971ffac90af924e69a206943b32e1dab7b3b"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "8093631756df151161a7a4e9e65931871b1a200b18c0e80073d41fa36cd11fee"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -2562,7 +2562,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev61 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev62 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -4080,5 +4080,238 @@
       "G1 check 판정 변경 여부 (선생님 확인)"
     ],
     "report_appendix": "BI"
+  },
+  "extraction_residual_check_rev62": {
+    "basis": [
+      "부록 BG.4: 추출에 실제 쓰인 잔차와의 대조 (미확인)",
+      "부록 BH.4: 차단대역 하단 (<0.008 Hz) 과 rest 원 TR 0.25-0.67 Hz 는 창 격자에서 관측 불가",
+      "계획서 §3.2: filter 종류·차수·padding·regression 순서는 pilot 기술 검증에서 기록하고 main 전에 동결한다"
+    ],
+    "scope": "PIOP1 pilot 31명 (folds.json pilot.subjects), ok run 93, 창 372; main pool ok run 468 건너뜀",
+    "method": "process_run 과 같은 함수 순서로 BOLD 원 TR 재계산 → (i) float32 창 바이트 대조 (ii) DCT-II ortho 전력 중 f<0.008·f>0.2 비율 (series / 결합 설계 잔차 / nuisance 만 잔차)",
+    "code": "h197 HEAD bf9f6d2 사본, python -B, 246 s",
+    "window_bytes_equal": "372/372",
+    "by_task": {
+      "restingstate": {
+        "n_runs": 31,
+        "n_win": 124,
+        "native_tr": [
+          0.75
+        ],
+        "n_frames": [
+          480
+        ],
+        "n_frames_match": 31,
+        "n_win_match": 31,
+        "sha_saved_ok": 124,
+        "bytes_equal": 124,
+        "max_abs_diff": 0.0,
+        "sec_total_median": 4.9,
+        "series_n_lo_hi": [
+          [
+            5,
+            335
+          ]
+        ],
+        "series_lo": {
+          "run_med_median": 0.1440576000446521,
+          "run_med_min": 0.0596925846927249,
+          "run_med_max": 0.5788737093902214,
+          "roi_max": 0.8686827630423889
+        },
+        "series_hi": {
+          "run_med_median": 0.10768056180525543,
+          "run_med_min": 0.03947894079501892,
+          "run_med_max": 0.19609177060198574,
+          "roi_max": 0.6939691141278728
+        },
+        "resid_n_lo_hi": [
+          [
+            5,
+            335
+          ]
+        ],
+        "resid_lo": {
+          "run_med_median": 8.404222458738573e-19,
+          "run_med_min": 1.5263838642891684e-20,
+          "run_med_max": 5.568947159833536e-18,
+          "roi_max": 6.983850795933273e-17
+        },
+        "resid_hi": {
+          "run_med_median": 1.0262162300456751e-17,
+          "run_med_min": 8.685450923054188e-19,
+          "run_med_max": 5.99121629190514e-17,
+          "roi_max": 7.483605525584017e-16
+        },
+        "resid_nuis_n_lo_hi": [
+          [
+            5,
+            335
+          ]
+        ],
+        "resid_nuis_lo": {
+          "run_med_median": 0.01888524521079199,
+          "run_med_min": 0.005909740431682177,
+          "run_med_max": 0.048975689898376,
+          "roi_max": 0.24302122062244116
+        },
+        "resid_nuis_hi": {
+          "run_med_median": 0.2195652887006853,
+          "run_med_min": 0.15338034266866904,
+          "run_med_max": 0.3669617638107313,
+          "roi_max": 0.7069859795659033
+        }
+      },
+      "emomatching": {
+        "n_runs": 31,
+        "n_win": 124,
+        "native_tr": [
+          2.0
+        ],
+        "n_frames": [
+          135
+        ],
+        "n_frames_match": 31,
+        "n_win_match": 31,
+        "sha_saved_ok": 124,
+        "bytes_equal": 124,
+        "max_abs_diff": 0.0,
+        "sec_total_median": 1.42,
+        "series_n_lo_hi": [
+          [
+            4,
+            26
+          ]
+        ],
+        "series_lo": {
+          "run_med_median": 0.15366639296439244,
+          "run_med_min": 0.06398479381211372,
+          "run_med_max": 0.34473334945965406,
+          "roi_max": 0.8888247703077912
+        },
+        "series_hi": {
+          "run_med_median": 0.02433073780344572,
+          "run_med_min": 0.013123782844894571,
+          "run_med_max": 0.08091464792185846,
+          "roi_max": 0.4687317279794587
+        },
+        "resid_n_lo_hi": [
+          [
+            4,
+            26
+          ]
+        ],
+        "resid_lo": {
+          "run_med_median": 2.4260795311791615e-19,
+          "run_med_min": 2.5959132607447854e-20,
+          "run_med_max": 1.8474410483833602e-17,
+          "roi_max": 2.220079127800366e-16
+        },
+        "resid_hi": {
+          "run_med_median": 3.548111111575905e-18,
+          "run_med_min": 5.663828345300997e-19,
+          "run_med_max": 3.014595521859004e-16,
+          "roi_max": 3.1020826507942165e-15
+        },
+        "resid_nuis_n_lo_hi": [
+          [
+            4,
+            26
+          ]
+        ],
+        "resid_nuis_lo": {
+          "run_med_median": 0.014470970912378315,
+          "run_med_min": 0.0032286892050462437,
+          "run_med_max": 0.035608495573610954,
+          "roi_max": 0.20217889342966983
+        },
+        "resid_nuis_hi": {
+          "run_med_median": 0.07715914959087809,
+          "run_med_min": 0.05845141128896745,
+          "run_med_max": 0.10794961626981338,
+          "roi_max": 0.37476109717744727
+        }
+      },
+      "workingmemory": {
+        "n_runs": 31,
+        "n_win": 124,
+        "native_tr": [
+          2.0
+        ],
+        "n_frames": [
+          162
+        ],
+        "n_frames_match": 31,
+        "n_win_match": 31,
+        "sha_saved_ok": 124,
+        "bytes_equal": 124,
+        "max_abs_diff": 0.0,
+        "sec_total_median": 1.64,
+        "series_n_lo_hi": [
+          [
+            5,
+            32
+          ]
+        ],
+        "series_lo": {
+          "run_med_median": 0.17695332485408208,
+          "run_med_min": 0.05101113881507359,
+          "run_med_max": 0.3183654827131891,
+          "roi_max": 0.9252964426241714
+        },
+        "series_hi": {
+          "run_med_median": 0.028537931508750995,
+          "run_med_min": 0.014835941468299864,
+          "run_med_max": 0.08577347194335505,
+          "roi_max": 0.2916296575147257
+        },
+        "resid_n_lo_hi": [
+          [
+            5,
+            32
+          ]
+        ],
+        "resid_lo": {
+          "run_med_median": 1.2938501477663e-19,
+          "run_med_min": 4.7182303003190586e-21,
+          "run_med_max": 1.1771795979660649e-18,
+          "roi_max": 1.4134411995537538e-17
+        },
+        "resid_hi": {
+          "run_med_median": 2.1267534917520807e-18,
+          "run_med_min": 1.4778959684284454e-19,
+          "run_med_max": 1.9414525436653677e-17,
+          "roi_max": 9.375072673797044e-17
+        },
+        "resid_nuis_n_lo_hi": [
+          [
+            5,
+            32
+          ]
+        ],
+        "resid_nuis_lo": {
+          "run_med_median": 0.01733573705521396,
+          "run_med_min": 0.004594946289244561,
+          "run_med_max": 0.0639547966203266,
+          "roi_max": 0.22951777060860143
+        },
+        "resid_nuis_hi": {
+          "run_med_median": 0.0749082173447201,
+          "run_med_min": 0.05827391957998142,
+          "run_med_max": 0.12825137371398415,
+          "roi_max": 0.3795916879077453
+        }
+      }
+    },
+    "outputs_sha256": {
+      "resid_check.jsonl": "e0310fc59e06427393d0ae51191ee8f4115f399df12948e1ab6dc175b05c7605",
+      "summary.json": "6497f1791bd0069860ae61c1ac8916f56bc4f5887752ec0429ae229f8f0cad2a"
+    },
+    "output_location": "h197 $HOME/slot/rc_2315c/ (Mac .backup/slot_2315c/out/ 사본, 커밋 안 함)",
+    "not_done": [
+      "main pool·PIOP2 run",
+      "독립 구현과의 대조 (재계산은 추출과 같은 코드)"
+    ],
+    "report_appendix": "BJ"
   }
 }
