@@ -4397,3 +4397,35 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 
 - **결정 요청**: 구조 비교 NG·SG 를 A 와 paired contrast (A−NG, A−SG, 95% 기술적 CI) 로 보고할지, 칸별 BA·비용만 보고할지. 계획서 §6·§9 는 보고 대상으로만 두고 contrast 를 정하지 않았다. 슬롯 권고: **A−NG·A−SG 를 A−S 와 같은 보조 contrast 로 추가** (같은 paired bootstrap seed 9001, 95% 기술적 CI; primary 가 아님을 표시) — 계산이 이미 있는 함수로 되고, 칸별 BA 만으로는 "graph prior 없이/단일 graph 로 얼마나 되는가" 를 subject 짝 없이 비교하게 된다. 결정 전에는 NG·SG contrast 를 만들지 않는다.
 - CLI 배선 (S·NG·SG outer 산출물 → `ComparisonWindowPrediction` → 집계 → 통계) 없음 — S 는 `s_window_predictions.jsonl`, NG·SG 는 fit `window_predictions.jsonl` 로 입력 계약이 달라 다음 조각. 실자료 outer 예측 없음.
+
+
+
+# 부록 BB — 구조 비교 (NG·SG) main outer fit 산출물 → 보조 비교 집계 helper (rev54, 2026-09-25 14:15 예약 슬롯)
+
+남은 작업 2-c "CLI 배선" 의 첫 조각이다. 새 결정 아님 — 규칙은 계획서 §8 run 집계 (부록 BA) 와 결정 14 의 outer 계획 (부록 AP). 합성 자료 시험만, 실자료 fit 없음, main pool 미소비. **하위 명령은 만들지 않았다** (CLI 10 개 불변).
+
+## BB.1 사전 확인 (grep, 14:1x)
+
+- `manifests.SCHEMAS["s_window_predictions"]` 에는 **`model_seed` 자리가 없다** (후보·설정·`s_fit_id` 만). S MLP 행의 seed 는 `s_fit_report.json` 에서 와야 한다 → S 쪽은 입력 계약이 NG·SG 와 달라 다음 조각으로 미룸.
+- NG·SG outer fit 은 `fit --cell NG|SG --inner-fold 9` 가 A–D 와 같은 `fit_manifest.json`·`fit_report.json` (`config_id`·`epochs_run`·`checkpoint_sha256`)·`window_predictions.jsonl`·`checkpoint.pt` 를 쓴다 (부록 AO). `comparator_selection.json` 의 `outer_plan` 행은 `config_id`·`model_seed`·`epochs_exact` 를 갖는다 (부록 AP).
+
+## BB.2 구현 (`mobse/v2/cli.py`)
+
+- 새 `_load_comparator_outer(manifest_paths, *, structure, folds, cfg_hash, selections)` + `COMPARATOR_OUTER_NEIGHBOURS = ("fit_report.json", "window_predictions.jsonl", "checkpoint.pt")` (manifest 옆 고정 이름, U20).
+- 선택 기록 검사: outer fold 집합 = folds.json outer fold 전부, 스키마 `d14-comparator-selection-0.1`, 구조·outer_fold·split/config hash 일치, 외부 기록 (`external_split_hash`) 거부, outer 계획 seed 비었거나 중복 거부, **계획 seed = 잠긴 `train.MODEL_SEEDS`** (`_check_fit_grid` 와 같은 규칙), 계획 행의 config/E = 선택 기록.
+- fit 검사: 스키마·fit_id 중복·cell = 구조·outer role·외부 분할 기록 거부·split/config hash·선택 기록 없는 outer fold·계획 밖 seed·(outer, seed) 중복·이웃 파일 3 개·fit_report fit_id·**config_id = 선택, epochs_run = outer E**·checkpoint sha256 = fit_report.
+- 예측 행 검사: fit_id·cell/seed·scope outer_test·checkpoint sha·학습 subject 누설·outer test 밖 subject·**fit 하나가 그 outer test 를 빠짐없이 덮음**. 전체: 계획의 (outer, seed) 가 모두 있음, code/env/source hash 한 값, subject·task 당 run 하나.
+- 행 → `evaluate.ComparisonWindowPrediction`, `seeds_by_subject` = subject 가 속한 outer fold 의 계획 seed → `evaluate.aggregate_comparison_runs` (부록 BA). 반환 runs·예측·seed 지도·fit 기록.
+- **구현 선택 (표시함)**: helper 만 두고 하위 명령·산출물 파일은 만들지 않음 (`evaluate` 확장 대 새 하위 명령은 다음 조각에서 정함). A−NG·A−SG 는 만들지 않음 (결정 요청 대기).
+
+## BB.3 시험·돌연변이·잠금
+
+- 새 `tests/v2/test_cli_comparator_outer.py` **40** (outer 2 × seed 3 합성, 짝수 subject 의 WM 을 틀리게 해 b=0.5/1.0, BA 0.75 손계산; run p 0.2·n_seeds 3; 선택 기록 가드 6 + 계획 3; fit 가드; 이웃 파일 3; fit_report 가드 4; 예측 행 가드 7; 누락·중복·hash·run 여럿·격자 불완전; SG 칸; 예측이 A–D 집계로 새지 않음).
+- 돌연변이 `.backup/slot_1415b/mut_cmp_outer.py` (`-B`·`PYTHONDONTWRITEBYTECODE=1`, helper 구간 안 count==1, 원본 복원): 첫 실행 **35/37** — 생존 `no_plan` (선택 기록 없는 outer fold 의 fit — 시험 없음), `cell_pred` (예측 cell 을 구조 대신 "NG" 로 고정 — fixture 가 NG 만). 시험 2 추가 (outer_fold 5 fit, SG 칸) → 재실행 **37/37**. Mac `*.pyc` 0 (돌연변이 뒤·rsync 전).
+- 관련 9 파일 Mac 205 passed.
+- 재잠금 `2d2250119456` → **`850e7fce7b0a`** (2026-09-25T05:21:28Z), code_hash `45d312b905dd` → `0413a736dca1`. 19번 45/45, 25번 창 4,728. split_hash `ace5f4a4…`·external_split_hash `40e50350…`·config_hash 불변. gate evidence **rev54** (`comparator_outer_loader_rev54`).
+
+## BB.4 확인하지 못한 것 · 다음
+
+- S outer 쪽 (`s_fit_report.json` 의 seed·`s_selection.json` outer 계획 → `ComparisonWindowPrediction`) 없음. 하위 명령·산출물·A−S CI 없음. 실자료 outer 예측 없음.
+- 결정 요청 (부록 BA.4, A−NG·A−SG) 은 여전히 대기.
