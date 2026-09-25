@@ -481,6 +481,47 @@ def _external_folds_for(splits_path: Path, outer_fold: int
     return json.loads(path.read_text(encoding="utf-8")), _sha256(path)
 
 
+#: fit 기록 (`fit_manifest.json`·`s_fit_report.json`) 의 외부 분할 키 (rev51).
+EXTERNAL_RECORD_KEYS = ("external_split_hash", "external_folds_sha256")
+
+
+def _check_external_record(ident: str, record: Mapping[str, Any], outer_fold: int,
+                           external: Optional[Tuple[Dict[str, Any], str]]) -> None:
+    """선택 CLI 입력 fit 의 외부 분할 기록을 ``--splits`` 옆 파일과 대조한다.
+
+    결정 17 명세 7 (b). 구현 선택 (결정 아님, 보고서에 표시): outer 9 fit 은
+    ``external_split_hash``·``external_folds_sha256`` 이 지금 읽은 외부 파일과 같아야 하고
+    (fit 뒤 파일 교체 검출), outer 0–4 fit 에는 두 키가 없어야 한다 (`fit`·`fit-s` 는
+    outer 9 에서만 쓴다 — 섞이면 경계 혼입).
+
+    Raises:
+        CLIError: 어긋날 때.
+    """
+    if external is None:
+        present = [k for k in EXTERNAL_RECORD_KEYS if k in record]
+        if present:
+            raise CLIError(f"{ident}: outer fold {outer_fold} fit 에 외부 분할 기록 {present} "
+                           "가 있다 — 외부 파일은 outer 9 에서만 쓴다 (결정 17)")
+        return
+    if record.get("external_split_hash") != external[0]["external_split_hash"]:
+        raise CLIError(f"{ident}: 기록된 external_split_hash 가 --splits 옆 "
+                       f"{EXTERNAL_FOLDS_NAME} 과 다르다 (결정 17)")
+    if record.get("external_folds_sha256") != external[1]:
+        raise CLIError(f"{ident}: 기록된 external_folds_sha256 이 --splits 옆 "
+                       f"{EXTERNAL_FOLDS_NAME} 파일과 다르다 (결정 17)")
+
+
+def _external_selection_fields(external: Optional[Tuple[Dict[str, Any], str]]
+                               ) -> Dict[str, Any]:
+    """outer 9 선택 기록에 덧붙일 외부 분할 필드 (outer 0–4 는 빈 dict — 기존 키 불변)."""
+    if external is None:
+        return {}
+    return {"external_split_hash": str(external[0]["external_split_hash"]),
+            "external_folds_sha256": external[1],
+            "outer_plan_status": "outer 9 계획의 (9, 9) external final 은 PIOP2 평가 배선 "
+                                 "전이라 fit 이 거부한다 — 계획 기록만 (결정 17 범위 밖)"}
+
+
 def _build_folds_from_cfg(groups: Sequence[Any], cfg: Mapping[str, Any]) -> Dict[str, Any]:
     """config 의 잠긴 seed 로 `splits.build_folds` 를 부른다."""
     from mobse.v2.splits import build_folds
@@ -995,7 +1036,8 @@ SELECTION_LOSS_TOL = 1e-6
 
 def _load_inner_fit(path: Path, *, folds: Mapping[str, Any], outer_fold: int,
                     cfg_hash: str, seen_ids: Dict[str, str],
-                    check_cell: Any, require_inner_seed: bool) -> Dict[str, Any]:
+                    check_cell: Any, require_inner_seed: bool,
+                    external: Optional[Tuple[Dict[str, Any], str]]) -> Dict[str, Any]:
     """선택 CLI 두 개(``select-comparator``·``select-ad``)가 공유하는 inner fit 입력 검사.
 
     한 fit 디렉터리(``fit_manifest.json`` + 고정 이웃 ``fit_report.json``·
@@ -1017,6 +1059,8 @@ def _load_inner_fit(path: Path, *, folds: Mapping[str, Any], outer_fold: int,
         seen_ids: fit_id → manifest 경로. 호출마다 갱신된다 (중복 검사).
         check_cell: ``(fid, cell) -> None``, 허용되지 않는 칸이면 ``CLIError``.
         require_inner_seed: True 면 ``model_seed == train.INNER_SEED`` 를 요구.
+        external: ``_external_folds_for`` 결과 (outer 9 이면 (내용, sha256), 아니면 None).
+            outer 9 inner 경계를 여기서 꺼내고 fit 기록의 외부 키를 대조한다 (결정 17 7b).
 
     Returns:
         ``fid, man, rep, rep_path, pred_path, cell, model_seed, inner_fold, config_id,
@@ -1052,6 +1096,7 @@ def _load_inner_fit(path: Path, *, folds: Mapping[str, Any], outer_fold: int,
         raise CLIError(f"{fid}: split_hash 가 --splits 와 다르다")
     if man["config_hash"] != cfg_hash:
         raise CLIError(f"{fid}: config_hash 가 --config 와 다르다")
+    _check_external_record(fid, man, outer_fold, external)
     seed = int(man["model_seed"])
     if require_inner_seed and seed != TR.INNER_SEED:
         raise CLIError(f"{fid}: model_seed {seed} ≠ inner seed {TR.INNER_SEED} "
@@ -1074,7 +1119,8 @@ def _load_inner_fit(path: Path, *, folds: Mapping[str, Any], outer_fold: int,
         raise CLIError(f"{fid}: fit_report config_id {cid} 로 다시 만든 fit_id 가 다르다 "
                        f"({expect}) — 보고서와 manifest 가 다른 fit 이다")
 
-    fold = FIT.resolve_fold_subjects(folds, outer_fold, inner_fold)
+    fold = FIT.resolve_fold_subjects(folds, outer_fold, inner_fold,
+                                     external_folds=None if external is None else external[0])
     if sorted(man["fit_subjects"]) != sorted(fold.train):
         raise CLIError(f"{fid}: fit_subjects 가 folds.json 의 inner train 과 다르다")
     try:
@@ -1167,6 +1213,7 @@ def run_select_comparator(paths: Dict[str, Any], args: argparse.Namespace
                        "덮어쓰지 않는다 (지침서 §2)")
     folds = json.loads(Path(paths["splits"]).read_text(encoding="utf-8"))
     split_hash = folds["split_hash"]
+    ext = _external_folds_for(Path(paths["splits"]), outer_fold)
 
     def _cell_ok(fid: str, cell: str) -> None:
         if cell != structure:
@@ -1180,7 +1227,7 @@ def run_select_comparator(paths: Dict[str, Any], args: argparse.Namespace
         path = Path(mp)
         fit = _load_inner_fit(path, folds=folds, outer_fold=outer_fold, cfg_hash=cfg_hash,
                               seen_ids=seen_ids, check_cell=_cell_ok,
-                              require_inner_seed=False)
+                              require_inner_seed=False, external=ext)
         fid, rep, run_probs = fit["fid"], fit["rep"], fit["run_probs"]
         cid, inner_fold = fit["config_id"], fit["inner_fold"]
         loss = BL.inner_loss(run_probs)
@@ -1215,6 +1262,7 @@ def run_select_comparator(paths: Dict[str, Any], args: argparse.Namespace
     record = {
         "schema_version": SELECTION_SCHEMA, "structure": structure,
         "outer_fold": outer_fold, "split_hash": split_hash, "config_hash": cfg_hash,
+        **_external_selection_fields(ext),
         "selected_config_id": sel.config_id, "outer_epochs": sel.outer_epochs,
         "inner_loss": sel.loss, "inner_balanced_accuracy": sel.balanced_accuracy,
         "tie_rule": sel.tie_rule, "best_epochs": list(sel.best_epochs),
@@ -1282,6 +1330,7 @@ def run_select_ad(paths: Dict[str, Any], args: argparse.Namespace) -> Dict[str, 
                        "덮어쓰지 않는다 (지침서 §2)")
     folds = json.loads(Path(paths["splits"]).read_text(encoding="utf-8"))
     split_hash = folds["split_hash"]
+    ext = _external_folds_for(Path(paths["splits"]), outer_fold)
 
     def _cell_ok(fid: str, cell: str) -> None:
         if cell not in TR.CELLS:
@@ -1295,7 +1344,7 @@ def run_select_ad(paths: Dict[str, Any], args: argparse.Namespace) -> Dict[str, 
         path = Path(mp)
         fit = _load_inner_fit(path, folds=folds, outer_fold=outer_fold, cfg_hash=cfg_hash,
                               seen_ids=seen_ids, check_cell=_cell_ok,
-                              require_inner_seed=True)
+                              require_inner_seed=True, external=ext)
         fid, rep, run_probs = fit["fid"], fit["rep"], fit["run_probs"]
         cell, cid, inner_fold, fold = (fit["cell"], fit["config_id"], fit["inner_fold"],
                                        fit["fold"])
@@ -1347,6 +1396,7 @@ def run_select_ad(paths: Dict[str, Any], args: argparse.Namespace) -> Dict[str, 
     record = {
         "schema_version": AD_SELECTION_SCHEMA, "cells": list(TR.CELLS),
         "outer_fold": outer_fold, "split_hash": split_hash, "config_hash": cfg_hash,
+        **_external_selection_fields(ext),
         "selected_config_id": sel.config_id, "common_epochs": sel.common_epochs,
         "joint_loss": sel.joint_loss, "joint_balanced_accuracy": sel.joint_ba,
         "tie_rule": sel.tie_rule, "best_epochs": chosen_epochs,
@@ -1403,9 +1453,9 @@ def run_select_s(paths: Dict[str, Any], args: argparse.Namespace) -> Dict[str, A
     * MLP inner fit 의 seed 는 ``train.INNER_SEED`` 여야 한다 (계획서 §7 Inner seed=42).
     * outer 계획은 `baselines.s_outer_plan` — logistic 한 번, MLP 는 seed 42–44 ×
       정확히 E (3 inner best epoch 중앙값 올림).
-    * 외부 S ("외부 S도 PIOP1 main pool의 inner 결과로만 고른다") 는 main pool 전체의
-      inner 분할(outer 9)이 folds.json 에 생긴 뒤 같은 함수로 붙인다 — 지금은
-      ``resolve_fold_subjects`` 가 outer 0–4 만 안다.
+    * 외부 S ("외부 S도 PIOP1 main pool의 inner 결과로만 고른다") 는 ``--outer-fold 9``:
+      inner 경계는 ``--splits`` 옆 ``external_folds.json`` (결정 17, rev52), 보고서의
+      외부 분할 기록을 그 파일과 대조한다. grid 완비 96·3 inner fold 는 같다.
 
     Raises:
         CLIError: 입력 경계·무결성이 어긋나거나 산출물을 덮어쓰게 될 때.
@@ -1428,6 +1478,7 @@ def run_select_s(paths: Dict[str, Any], args: argparse.Namespace) -> Dict[str, A
                        "덮어쓰지 않는다 (지침서 §2)")
     folds = json.loads(Path(paths["splits"]).read_text(encoding="utf-8"))
     split_hash = folds["split_hash"]
+    ext = _external_folds_for(Path(paths["splits"]), outer_fold)
 
     inputs: List[Dict[str, Any]] = []
     per: Dict[Tuple[str, str], Dict[int, Dict[str, Any]]] = {}
@@ -1461,6 +1512,7 @@ def run_select_s(paths: Dict[str, Any], args: argparse.Namespace) -> Dict[str, A
             raise CLIError(f"{sid}: split_hash 가 --splits 와 다르다")
         if rep["config_hash"] != cfg_hash:
             raise CLIError(f"{sid}: config_hash 가 --config 와 다르다")
+        _check_external_record(sid, rep, outer_fold, ext)
         is_logistic = cand in BL.LOGISTIC_CANDIDATES
         seed = rep["model_seed"]
         if is_logistic:
@@ -1479,7 +1531,9 @@ def run_select_s(paths: Dict[str, Any], args: argparse.Namespace) -> Dict[str, A
                           split_hash=split_hash, config_hash=cfg_hash)
         if expect != sid:
             raise CLIError(f"{sid}: 보고서 필드로 다시 만든 s_fit_id 가 다르다 ({expect})")
-        fold = FIT.resolve_fold_subjects(folds, outer_fold, inner_fold)
+        fold = FIT.resolve_fold_subjects(
+            folds, outer_fold, inner_fold,
+            external_folds=None if ext is None else ext[0])
         if sorted(rep["fit_subjects"]) != sorted(fold.train):
             raise CLIError(f"{sid}: fit_subjects 가 folds.json 의 inner train 과 다르다")
 
@@ -1586,6 +1640,7 @@ def run_select_s(paths: Dict[str, Any], args: argparse.Namespace) -> Dict[str, A
     record = {
         "schema_version": S_SELECTION_SCHEMA, "outer_fold": outer_fold,
         "split_hash": split_hash, "config_hash": cfg_hash,
+        **_external_selection_fields(ext),
         "selected_candidate": sel.candidate, "selected_setting_id": sel.setting_id,
         "inner_loss": sel.loss, "best_epochs": best_epochs,
         "outer_epochs": plan_rows[0]["epochs_exact"],

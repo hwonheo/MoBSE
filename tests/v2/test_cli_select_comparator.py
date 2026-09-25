@@ -58,11 +58,11 @@ def _p_true(structure: str, cid: int, fold: int, subject: str, task: str, w: int
 
 
 def make_fit(ws, *, structure="NG", cid=0, fold=0, seed=42, best_epoch=None,
-             mutate=None, name=None):
+             mutate=None, name=None, outer=0):
     """`run_fit` 과 같은 세 파일을 쓴다. ``mutate(man, rep, rows)`` 로 어긋남을 넣는다."""
     folds = ws["folds_obj"]
-    inner = folds["outer_folds"][0]["inner"][fold]
-    fid = fit_id(role="inner", cell=structure, outer_fold=0, inner_fold=fold,
+    inner = _inner_rec(ws, outer, fold)
+    fid = fit_id(role="inner", cell=structure, outer_fold=outer, inner_fold=fold,
                  model_seed=seed, config_id=cid, split_hash=folds["split_hash"],
                  config_hash=ws["cfg_hash"])
     rows, run_p = [], {}
@@ -85,14 +85,17 @@ def make_fit(ws, *, structure="NG", cid=0, fold=0, seed=42, best_epoch=None,
             run_p[rk] = float(np.mean(ps))
     man = {"schema_version": "wi05-fit-manifest-0.1", "fit_id": fid,
            "parent_release": "r", "role": "inner", "cell": structure,
-           "folds": {"outer_fold": 0, "inner_fold": fold,
+           "folds": {"outer_fold": outer, "inner_fold": fold,
                      "n_train_subjects": len(inner["train_subjects"]),
-                     "n_eval_subjects": 4, "eval_role": "inner_validation"},
+                     "n_eval_subjects": len(inner["val_subjects"]),
+                     "eval_role": "inner_validation"},
            "model_seed": seed, "bank_seed": 1, "null_seed": 1729,
            "fit_subjects": list(inner["train_subjects"]), "scaler_id": "x",
            "pca_id": "x", "bank_id": "x", "code_hash": "c" * 64, "env_hash": "e" * 64,
            "config_hash": ws["cfg_hash"], "source_hash": "s" * 64,
            "split_hash": folds["split_hash"]}
+    if outer == TPL.EXTERNAL_OUTER_FOLD:
+        man.update(ws["ext_rec"])
     rep = {"fit_id": fid, "config_id": cid,
            "best_epoch": best_epoch if best_epoch is not None else 10 + cid + fold,
            "eval_loss": BL.inner_loss(run_p), "checkpoint_sha256": H}
@@ -310,8 +313,9 @@ def test_truth_must_follow_task(ws):
 
 # rev49 (남은 작업 2-c 공통화 돌연변이에서 드러난, 기존에도 시험이 없던 가드)
 
-def _one_bad(ws, cid, fold, mutate):
-    return full_grid(ws, skip={(cid, fold)}) + [make_fit(ws, cid=cid, fold=fold, mutate=mutate)]
+def _one_bad(ws, cid, fold, mutate, outer=0):
+    return full_grid(ws, skip={(cid, fold)}, outer=outer) + \
+        [make_fit(ws, cid=cid, fold=fold, mutate=mutate, outer=outer)]
 
 
 def test_other_split_hash_is_refused(ws):
@@ -340,3 +344,115 @@ def test_row_of_other_structure_is_refused(ws):
         rows[1]["cell"] = "SG"
     with pytest.raises(CLIError, match="fit_id/cell/seed"):
         run(ws, _one_bad(ws, 5, 0, m))
+
+
+# --------------------------------------------------------------------------- #
+# 결정 17 명세 7 (b) — outer 9 (외부 최종 선택) 경로
+# --------------------------------------------------------------------------- #
+
+def _inner_rec(ws, outer, fold):
+    """outer 9 이면 external_folds.json 의 inner, 아니면 fixture folds.json outer 0 의 inner."""
+    if outer == TPL.EXTERNAL_OUTER_FOLD:
+        return ws["ext"]["inner"][fold]
+    return ws["folds_obj"]["outer_folds"][0]["inner"][fold]
+
+
+def _with_external(ws):
+    """fixture folds.json 에 외부 분할 입력을 채우고 옆에 external_folds.json 을 쓴다 (rev51 방식)."""
+    from mobse.v2.splits import build_external_folds, make_groups
+
+    folds = ws["folds_obj"]
+    subs = sorted(set(folds["pilot"]["subjects"]) | set(folds["main_pool"]["subjects"]))
+    groups = make_groups(subjects=subs)
+    pilot = set(folds["pilot"]["subjects"])
+    folds["pilot"]["groups"] = [g.group_id for g in groups if set(g.subjects) & pilot]
+    folds["seeds"] = {"external": 20262000}
+    ws["folds"].write_text(json.dumps(folds), encoding="utf-8")
+    ext = build_external_folds(groups, folds)
+    path = ws["folds"].parent / "external_folds.json"
+    path.write_text(json.dumps(ext), encoding="utf-8")
+    ws["ext"] = ext
+    ws["ext_rec"] = {"external_split_hash": ext["external_split_hash"],
+                     "external_folds_sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+    return ext, path
+
+
+def test_external_selection_takes_inner_boundaries_from_external_folds(ws):
+    ext, path = _with_external(ws)
+    res, out = run(ws, full_grid(ws, outer=9), outer=9)
+    rec = json.loads((out / SELECTION_OUTPUT).read_text())
+    assert res["verdict"] == "pass" and rec["outer_fold"] == 9
+    assert rec["external_split_hash"] == ext["external_split_hash"]
+    assert rec["external_folds_sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
+    assert "PIOP2" in rec["outer_plan_status"]
+    assert all(p["outer_fold"] == 9 and p["inner_fold"] == TPL.OUTER_FIT_INNER_FOLD
+               for p in rec["outer_plan"])
+    assert {i["inner_fold"] for i in rec["inputs"]} == {0, 1, 2}
+
+
+def test_main_outer_selection_record_has_no_external_fields(ws):
+    _with_external(ws)
+    _, out = run(ws, full_grid(ws))
+    rec = json.loads((out / SELECTION_OUTPUT).read_text())
+    assert not {"external_split_hash", "external_folds_sha256", "outer_plan_status"} & set(rec)
+
+
+def test_external_selection_without_external_folds_file_is_refused(ws):
+    with pytest.raises(CLIError, match="--splits 옆 external_folds.json 가 필요하다"):
+        run(ws, [ws["tmp"] / "none.json"], outer=9)
+
+
+def test_external_fit_with_other_external_split_hash_is_refused(ws):
+    _with_external(ws)
+
+    def m(man, rep, rows):
+        man["external_split_hash"] = "0" * 64
+    with pytest.raises(CLIError, match="기록된 external_split_hash"):
+        run(ws, _one_bad(ws, 2, 1, m, outer=9), outer=9)
+
+
+def test_external_fit_without_external_record_is_refused(ws):
+    _with_external(ws)
+
+    def m(man, rep, rows):
+        del man["external_split_hash"]
+    with pytest.raises(CLIError, match="기록된 external_split_hash"):
+        run(ws, _one_bad(ws, 2, 1, m, outer=9), outer=9)
+
+
+def test_external_fit_with_other_external_file_sha_is_refused(ws):
+    _with_external(ws)
+
+    def m(man, rep, rows):
+        man["external_folds_sha256"] = "0" * 64
+    with pytest.raises(CLIError, match="기록된 external_folds_sha256"):
+        run(ws, _one_bad(ws, 2, 1, m, outer=9), outer=9)
+
+
+def test_external_file_replaced_after_fits_is_refused(ws):
+    """경계가 같아도 파일 바이트가 바뀌면 (fit 뒤 교체) 거부한다."""
+    ext, path = _with_external(ws)
+    fits = full_grid(ws, outer=9)
+    path.write_text(json.dumps(ext, indent=1), encoding="utf-8")
+    with pytest.raises(CLIError, match="기록된 external_folds_sha256"):
+        run(ws, fits, outer=9)
+
+
+def test_main_outer_fit_carrying_external_record_is_refused(ws):
+    _with_external(ws)
+
+    def m(man, rep, rows):
+        man.update(ws["ext_rec"])
+    with pytest.raises(CLIError, match="외부 분할 기록"):
+        run(ws, _one_bad(ws, 2, 1, m))
+
+
+def test_external_fit_trained_on_main_outer_inner_is_refused(ws):
+    """outer 9 fit 의 학습 subject 가 external_folds.json 이 아닌 folds.json outer 0 inner 면 거부."""
+    _with_external(ws)
+
+    def m(man, rep, rows):
+        man["fit_subjects"] = list(ws["folds_obj"]["outer_folds"][0]["inner"][0]
+                                   ["train_subjects"])
+    with pytest.raises(CLIError, match="fit_subjects 가"):
+        run(ws, _one_bad(ws, 2, 1, m, outer=9), outer=9)
