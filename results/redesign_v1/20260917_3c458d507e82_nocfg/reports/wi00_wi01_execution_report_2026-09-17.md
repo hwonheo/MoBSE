@@ -4684,3 +4684,43 @@ bmcws · RTX 3090 Ti · torch 2.10.0+cu128 · float32 (AMP 미사용) · batch 3
 - main 규모 동시 실행 처리량, k=3·k>4, CPU 단계를 캐시로 나누는 방식 (fold 변환 재사용 — 구현 변경이라 범위 밖).
 - S 후보 fit 시간 (`fit-s` timing 기록 없음 — 남은 작업 2-c 선택 항목).
 - 산출물: h197 `$HOME/slot/pc_2215c/` (Mac `.backup/slot_2215c/out/` 사본, 커밋 안 함), 요약 `.backup/slot_2215c/summary.json` (sha256 `33dc8a73d297…`).
+
+
+# 부록 BJ. 남은 작업 5-c — 추출에 실제 쓰인 잔차 대조와 창 격자에서 안 보이는 차단대역 (pilot, 2026-09-25 23:15 슬롯, gate rev62)
+
+**새 결정 아님.** 부록 BG.4 "추출에 실제 쓰인 잔차와의 대조" 와 부록 BH.4 "차단대역 하단 (< 0.008 Hz) 과 PIOP1 rest 원 TR 의 0.25–0.67 Hz 대역" 을 잰다. 범위는 계획서 §3.2 "filter 종류·차수·padding·regression 순서는 pilot 기술 검증에서 기록하고 main 전에 동결한다" 에 따라 **pilot 31명만** (`derivatives_v3/splits_piop1_p7/folds.json` `pilot.subjects`). main pool ok run 468 은 건너뛰고 수만 셈 (BOLD·창·confounds 안 읽음). 라벨·fold·fit 없음. 코드·시험·잠금 불변 (78ddd887).
+
+## BJ.1 방법
+
+- 틀 `.backup/slot_2315c/resid_check.py` (h197 HEAD `bf9f6d2` 사본, `python -B`, 14:18:11Z–약 14:22:17Z, 246 s). run 마다 `scripts/h197/10_wi02_extract.py` (importlib) 의 `run_paths`·`load_atlas_on_grid`·`roi_timeseries` 와 `mobse.v2.extract` 의 `build_design`·`add_stopband`·`regress_out`·`zscore_rois`, `mobse.v2.preprocess` 의 `original_times`·`resample_to_grid`·`cut_windows` 를 `process_run` 과 같은 순서로 불러 BOLD 를 원 TR 로 다시 읽는다 (atlas 는 v3 manifest header 경로).
+- (i) 재계산 창을 추출과 같이 float32 로 바꿔 저장된 창 `.npy` 와 바이트 비교 + 최대 절대 차이. 저장 파일 sha256 = manifest 도 함께 대조.
+- (ii) 원 TR 시계열의 DCT-II (orthonormal) 계수 전력 — k ≥ 1 전력 중 차단대역 하단 (f < 0.008 Hz) · 상단 (f > 0.2 Hz) 비율, ROI 마다. 추출이 쓰는 차단대역 기저도 같은 DCT-II 성분 (`dct_stopband_basis`) 이다. 세 가지를 나란히: `series` (회귀 전 ROI 평균), `resid` (결합 설계 = nuisance + 차단대역, 추출과 같음), `resid_nuis` (nuisance 만 — 필터 누락 시 기대값).
+
+## BJ.2 결과
+
+- pilot ok run **93** (task 별 31), 창 **372**. frame 수·창 수 manifest 와 93/93 일치. 저장 창 sha256 = manifest **372/372**.
+- (i) 재계산 창 = 저장 창 **바이트 동일 372/372**, 최대 절대 차이 **0.0** (세 task 모두).
+- (ii) 차단대역 성분 수 (하단, 상단): rest (TR 0.75 s, 480 frame) 5, 335 · emo (TR 2 s, 135) 4, 26 · wm (TR 2 s, 162) 5, 32. run 별 ROI 중앙 비율의 중앙 [최소, 최대]; ROI 최댓값:
+
+| task | 대역 | series | resid (결합) | resid_nuis (nuisance 만) |
+|---|---|---|---|---|
+| rest | 하단 | 0.144 [0.060, 0.579]; 0.869 | 8.4e-19 [1.5e-20, 5.6e-18]; 7.0e-17 | 0.019 [0.006, 0.049]; 0.243 |
+| rest | 상단 | 0.108 [0.039, 0.196]; 0.694 | 1.0e-17 [8.7e-19, 6.0e-17]; 7.5e-16 | 0.220 [0.153, 0.367]; 0.707 |
+| emo | 하단 | 0.154 [0.064, 0.345]; 0.889 | 2.4e-19 [2.6e-20, 1.8e-17]; 2.2e-16 | 0.014 [0.003, 0.036]; 0.202 |
+| emo | 상단 | 0.024 [0.013, 0.081]; 0.469 | 3.5e-18 [5.7e-19, 3.0e-16]; 3.1e-15 | 0.077 [0.058, 0.108]; 0.375 |
+| wm | 하단 | 0.177 [0.051, 0.318]; 0.925 | 1.3e-19 [4.7e-21, 1.2e-18]; 1.4e-17 | 0.017 [0.005, 0.064]; 0.230 |
+| wm | 상단 | 0.029 [0.015, 0.086]; 0.292 | 2.1e-18 [1.5e-19, 1.9e-17]; 9.4e-17 | 0.075 [0.058, 0.128]; 0.380 |
+
+- 시간: run 당 중앙 rest 4.9 s · emo 1.42 s · wm 1.64 s (대부분 ROI 평균).
+
+## BJ.3 읽는 법
+
+- (i) pilot 창 파일은 지금 코드·지금 fMRIPrep 입력에서 **바이트 그대로 재현된다** — 창이 결합 설계 (차단대역 포함) 잔차에서 나왔다는 직접 확인. 부록 BH 의 간접 판독 (0.2–0.25 Hz 비율) 과 같은 방향.
+- (ii) 결합 설계 잔차의 차단대역 DCT 전력은 하단·상단 모두 **float64 반올림 수준 (≤ 3.1e-15)** — 최소제곱 잔차가 설계 열에 직교하는 성질 그대로이고, 창 격자에서 안 보이던 하단과 rest 0.25–0.67 Hz 도 원 TR 에서 제거되어 있다. nuisance 만 회귀하면 같은 대역에 0.3%–37% (ROI 중앙) 가 남는다.
+- [한계] (i) 은 추출과 **같은 코드**로 재계산한 재현성 확인이지 독립 구현 대조가 아니다. (ii) 는 DCT-II 기준 (추출 기저와 같은 기준) — 창 단위 Fourier 누설은 부록 BH 가 다룬다. 규칙·설계 변경 근거 없음.
+
+## BJ.4 확인하지 못한 것
+
+- main pool·PIOP2 run (범위 밖 — §3.2 는 pilot 기술 검증).
+- 독립 구현 (다른 라이브러리의 필터·회귀) 과의 대조.
+- 산출물: h197 `$HOME/slot/rc_2315c/resid_check.jsonl` (sha256 `e0310fc59e06…`), 요약 `.backup/slot_2315c/out/summary.json` (`6497f1791bd0…`), 로그 `rc_full.log` — Mac `.backup/slot_2315c/out/` 사본, 커밋 안 함.
