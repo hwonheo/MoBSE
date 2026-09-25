@@ -4530,3 +4530,26 @@ bmcws · RTX 3090 Ti · torch 2.10.0+cu128 · float32 (AMP 미사용) · batch 3
 - 실자료 fit 의 NG·SG `timing`·`memory` 집계 (main OOF 승인 전 없음). `report-comparison` 에 비용 칸을 넣을지는 그때 정한다.
 - S 후보 (logistic·MLP) 의 fit 시간 — `mobse/v2/baselines.py` 에 timing 기록이 없다 (grep `timing\|perf_counter` 0건; `cli.py` 의 `"timing"` 은 `run_fit` 두 곳뿐). 넣으려면 `fit-s` 산출물 계약 변경 (별도 조각).
 - 결정 요청 (부록 BA.4, A−NG·A−SG) 은 여전히 대기.
+
+# 부록 BF. 남은 작업 6 — pilot 실측 기반 5,000/400 학습 예산 (2026-09-25 18:15 슬롯, gate rev58)
+
+**새 결정 아님.** 계획서 §7 "표는 실행 횟수 계획이고 소요시간 보장이 아니다. pilot에서 peak memory·시간을 측정해 자원 계획을 만든다" 에 맞춰 pilot 창에서 fit 비용을 재고, 결정 15 값으로 예산을 다시 잡았다. 결과 본문은 `reports/resource_budget.md` 9절.
+
+## BF.1 사전 확인 (grep)
+
+- G1 행 (계획서 §10 표): "G1 Measurement lock | 재추출/QC, pilot/main IDs, split hashes, 정밀도·자원 계획 | 고정 rule와 실제 N, pilot 경계 확인". gate `gates[1].checks[7]` "resource plan from pilot measurement" 는 `fail` ("pilot fit 미구현으로 합성 측정으로 대체했다 … §7 요구는 미충족").
+- 합성 측정 (rev57, 부록 BE) 은 §7 의 "pilot에서" 를 채우지 못한다 → pilot 기술 분할 실측을 새로 했다.
+
+## BF.2 측정
+
+- 틀 `.backup/slot_1815b/pilot_cost.py`·`run_cost.sh` (커밋 안 함): 시작 시점 HEAD `ee0a4d2` 의 `mobse` 사본 (`git archive`), `python -B`, pilot 기술 분할 outer 0 · inner 0 (학습 104창, 평가 56창), config 0, seed 42, 칸 A·B·C·D·NG·SG 각 1회 순차, 정확히 5,000 update (프로세스 안에서만 `MAX_EPOCHS` 덮기, d12 와 같은 우회). 산출물 h197 `$HOME/slot/pc_1815b/cost_*.json` (Mac `.backup/slot_1815b/` 사본). val 성능은 기록하지 않는다.
+- s/epoch 0.034–0.060, 고정비 8.6–18.1 s, peak GPU ≤136.4 MiB, peak RSS 1.48–1.49 GiB. A·C (같은 구조) 차이로 보아 반복 1회의 칸 사이 차이는 해석하지 않는다.
+
+## BF.3 예산 [추정]
+
+순차 1 프로세스 학습 14.1–33.5 h + 고정비 ≤5.2 h (1,038 fit = §7 표 768 + 구조 비교 270). 하한·상한 식과 묶음별 값은 `resource_budget.md` 9절.
+
+## BF.4 판정·확인하지 못한 것
+
+- gate `gates[1].checks[7]` 의 `result` 는 **바꾸지 않았다** (`fail` 유지). 실패 사유 ("pilot fit 미구현") 는 해소됐으나 G1 판정 변경은 선생님 확인 사항으로 남긴다. rev58 는 측정 기록 블록 `resource_plan_pilot_rev58` 만 더한다.
+- 미측정: S 후보 fit 시간, main 규모 실자료 epoch 시간, 동시 실행 처리량, 반복 측정에 의한 칸 간 차이.
