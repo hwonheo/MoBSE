@@ -1,7 +1,7 @@
 {
   "schema_version": "measurement_lock_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "locked_at_utc": "2026-09-25T01:25:01Z",
+  "locked_at_utc": "2026-09-24T13:22:33Z",
   "gate": "G1 Measurement lock",
   "work_instruction": "WI-03",
   "roots": {
@@ -123,33 +123,6 @@
           ]
         },
         "subjects_manifest_sha256": "5ab1933922027dee41ddd4b9aabd0b4e70e8255399e2b06086d1434bb6f7278a"
-      },
-      "external_folds": {
-        "path": "derivatives_v3/splits_piop1_p7/external_folds.json",
-        "sha256": "698f7436b17c711acaa0cb84bf2da1374e968ec31e91557e99de2eb9ad4ace2f",
-        "bytes": 15871,
-        "external_split_hash": "40e50350e97af22fa131c9509cde41e20dfeef7ce100811974aed09c055c0da2",
-        "parent_split_hash": "ace5f4a41446a5857848290c21cc404196960429fb2b8f483511c49dcb9342d7",
-        "seed": 20262000,
-        "n_folds": 3,
-        "invariants": {
-          "structure_valid": true,
-          "schema_version_valid": true,
-          "parent_split_hash_matches": true,
-          "external_split_hash_recomputes": true,
-          "seed_is_parent_external_seed": true,
-          "inner_seeds_match": true,
-          "inner_fold_ids_are_0_to_n": true,
-          "val_mutually_disjoint": true,
-          "val_union_is_main_pool": true,
-          "train_is_main_pool_minus_val": true,
-          "pilot_absent": true,
-          "val_sizes": [
-            42,
-            42,
-            42
-          ]
-        }
       }
     },
     "piop2": {
@@ -269,23 +242,23 @@
       }
     },
     "code": {
-      "code_hash": "13a051a6a663911234a19dbdb4f24d48cbe0dc16f3dcf65acbf1c992699ac34f",
+      "code_hash": "06d4403d67ff16ca610b03fc542fef3d87852eac007ce344eefd2e89a929736f",
       "modules": {
         "__init__.py": "c884876e4717224c87d95b1fd4b3821863307e65f9146eac605bc9a96375c9ab",
         "baselines.py": "4dc480f05a2021d2133cf77826c6e1956a6fc01b55195a1172431958768a7748",
-        "cli.py": "38428ab644b39e63e4702e1391155fd4ca869534a8af274b1891d18e0c20cbb1",
+        "cli.py": "2715180c58b7995ac8d0a069b74ba549ed0e75a9e00efe76199cc44f12d9c707",
         "cohort.py": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
         "config.py": "0a61104787f5664fa3fda0c860adb18e96590da97dcdd906a593564a54fa9746",
         "evaluate.py": "a11a324f851603edb0e93b21c2cafe8b098529a485f17fe0321876825120e9b7",
         "extract.py": "45425fc516cc790e45e911af11c03fe5937c573fbfed3985e4bc6e7d5e7316f9",
         "features.py": "f9c81ef8155776f3d1971304ef32baf99b94b5f7bf100c0067f82dd1600b8f10",
-        "fitting.py": "12ad51ceed897ab656dbf345d4380847faf96e090657923563dadb7db11929bb",
+        "fitting.py": "33e13acf255e537a5d79cc00731a593a5df77da442430b0e3673c3ba220881d3",
         "labels.py": "89610e87315f7e1e6a1ac85130c89d69f197f47824262389a4eae5571397b3dc",
-        "locks.py": "4fbe5691d76c9037d2c2b590d37ac5a9c6fa0184bd375f6fea4335f2627d322b",
+        "locks.py": "13b7fde3753ca607d138c54887d3ad9c7fbfc7e132e4c654436c2c731b9c45ca",
         "manifests.py": "23a84d38b56bebd001e8d768e616e3cb898458ab4ced506c4d7cf35c7e91aaa0",
         "models.py": "1378ac7080b7480e24b1c8c7359d86c5effe66b36221adf279899a7a76f90e2f",
         "preprocess.py": "689ed2d8dbf186b12fd3ae4e58ab153693b31f8d59f047efee32d067f9bea7de",
-        "splits.py": "26d404acf1d111a5306d7f46f025ba3881e879aca3d712a041bfef0db907dbcd",
+        "splits.py": "8291021bcad5929f4d4e8900efe6178233a8c0728274b04d32f38231b1f92046",
         "statistics.py": "99028ff3042b396a6bb6ac9516af3d700a3939bb0cd5d5aa908e61573ad207b1",
         "templates.py": "ec4d56f9e7b8ed9065f5f2b131c541c3e48f7360dc01696662c13465d0b58b78",
         "train.py": "e7aa911fdfd5b8d18253191cd8305b5766d6742029aaba68437a63842fa15db4"
@@ -330,9 +303,9 @@
     "formula": "126 subjects x 2 tasks x 4 windows x 3 seeds x 4 cells"
   },
   "supersedes": {
-    "lock_hash": "aee2b79315385bd399d10da69163547b6ba7db7fbeefcb5a59f1123753cdd9c9",
-    "locked_at_utc": "2026-09-24T13:22:33Z",
-    "reason": "decision 17: external final-selection main-pool 3-fold (seed 20262000) fixed as derived artifact external_folds.json next to folds.json (added by scripts/h197/26, folds.json bytes unchanged, split_hash ace5f4a4 unchanged); lock records its sha256, external_split_hash, parent split_hash and recomputed invariants; resolve_fold_subjects(9, 0-2) reads it, (9,9) refused; no fit; main pool not consumed"
+    "lock_hash": "5ed00c69c41158ef69937e6cbe51b38d5166940a3f973efade3525426feda5ab",
+    "locked_at_utc": "2026-09-24T11:21:47Z",
+    "reason": "remaining-task 2-c: shared inner-fit input checks for select-ad and select-comparator (_load_inner_fit + _check_inner_hashes_uniform), behaviour unchanged (same order and messages; new guard tests also pass on the previous code); locked values unchanged; no real-data fit; windows, cohorts and splits unchanged; main pool not consumed"
   },
-  "lock_hash": "472bee47adcd7e0a48df76a572a024722a03a540d1b5b7abaad63014cd50e59e"
+  "lock_hash": "aee2b79315385bd399d10da69163547b6ba7db7fbeefcb5a59f1123753cdd9c9"
 }

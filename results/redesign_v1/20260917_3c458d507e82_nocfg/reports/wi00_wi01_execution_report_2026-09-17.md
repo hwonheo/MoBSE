@@ -4272,3 +4272,37 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 
 - 실자료 inner fit 으로 두 CLI 실행 (main OOF 승인 전). 돌연변이는 Mac 만 (h197 은 마감 5단계).
 - `select-s` 의 입력 검사는 입력 계약(`s_fit_report`)이 달라 이번 공통화 대상이 아니다.
+
+# 부록 AX — 결정 17: 외부 최종 선택 3-fold 를 별도 파생 산출물 `external_folds.json` 으로 고정 (rev50, 2026-09-25 10:14 예약 슬롯)
+
+선생님 원문 (09-25 07:2x KST 기록): 23:15 슬롯 선택지 중 **"(나) 별도 파생 산출물 external_folds.json을 두고 잠금 항목을 추가: split_hash가 그대로입니다. 이 방식을 권합니다."** 를 선택. 정한 것: 계획서 §4-3 external 최종 선택 seed 20262000 의 main pool 3-fold 경계를 `folds.json` 밖의 별도 파일로 두고 측정 잠금에 항목 추가, split_hash 불변. 정하지 않은 것: 분할 알고리즘·seed 변경, 외부 선택·외부 최종 fit 실행 (main OOF 착수 승인 전 금지), PIOP2 쪽 변경.
+
+## AX.1 구현 (파일 이름 외 스키마는 구현 선택)
+
+- `mobse/v2/splits.py`: `build_external_folds(groups, folds_manifest, *, n_folds=3, seed=EXTERNAL_SEED)` — 부모 manifest 의 pilot group 을 뺀 group 이 부모 `main_pool.subjects` 와 정확히 같아야 하고 (다르면 거부), `assign_to_folds(main pool, 3, 20262000)` 로 `inner` 0–2 = {inner_fold, seed, val_groups, val_subjects, train_subjects = main pool − val}. `verify_disjoint` 로 pilot 불교차. 기록: schema_version `external_folds_v1`, algorithm, numpy 버전, grouping_assumption (부모 그대로), `parent_split_hash`, seed, n_folds, main pool 수, pilot 수, 자체 `external_split_hash` (`split_hash` 와 같은 직렬화 — sort_keys JSON 의 sha256, 자기 자신만 제외). `external_invariants(ext, folds)` 11 불리언 (구조·스키마·부모 hash 일치·자체 hash 재계산·seed = 부모 `seeds.external`·inner seed·fold 번호 0..n−1·val 상호 불교차·val 합집합 = main pool·train = main pool − val·pilot 부재) + val 크기. **`build_folds` 는 바꾸지 않았다.** group 정보는 `split` 이 쓰는 subjects manifest 의 `group_id` 를 그대로 쓴다 (folds.json 에는 main pool 의 subject→group 대응이 없어서; 현 코호트는 1 subject = 1 group).
+- `mobse/v2/cli.py`: `split` 이 `folds.json` 옆에 `external_folds.json` 을 함께 쓴다 — 두 파일 중 하나라도 있으면 아무것도 쓰기 전에 거부. seed·fold 수는 config `splits.external_seed`·`splits.n_inner_folds` (대응표 `test_config_consumption` 에 소비 지점 추가). 기존 디렉터리용 `run_external_split` (하위 명령 아님 — CLI 10개 불변): 같은 subjects manifest (sha256 = folds.json 기록) 와 config 로 `build_folds` 를 다시 계산해 **기존 split_hash 재현을 확인**한 뒤 새 파일만 쓰고, 쓰기 전후 folds.json sha256 동일을 확인. 새 `scripts/h197/26_write_external_folds.py` 가 부른다.
+- `mobse/v2/fitting.py`: `resolve_fold_subjects(folds, outer, inner, external_folds=None)` — `outer == templates.EXTERNAL_OUTER_FOLD (9)` 이면 inner 0–2 를 `external_folds.json` 에서 (role inner, 평가 = val). 파일 없음·불변식 하나라도 실패 (부모 split_hash 불일치 포함)·없는 inner 번호는 `FitError`. **`(9, 9)` external final 은 PIOP2 평가 배선 전이라 거부.** outer 0–4 경로 불변 (pilot·겹침 검사는 `_checked_fold` 로 공유). 기존 호출자 4곳은 인자를 넘기지 않으므로 outer 9 는 여전히 거부된다 (외부 선택 CLI 는 다음 단위).
+- `mobse/v2/locks.py`·`scripts/h197/18_build_measurement_lock.py`: 분할이 있는 코호트는 `external_folds` 레코드 필수 (없으면 18번이 잠그지 않고 19번은 `missing`). 레코드 = 파일 sha256·`external_split_hash`·`parent_split_hash`·seed·n_folds·불변식. `verify_lock` 이 파일을 다시 읽어 불변식 재계산, 기록된 parent/external hash·불변식과 대조.
+
+## AX.2 시험·돌연변이
+
+- 새 `tests/v2/test_external_folds.py` **34** (157 subject 합성: 42/42/42·train 84·합집합 = main pool·pilot 부재·seed = `assign_to_folds(…, 20262000)` 와 동일·결정성·다른 seed 는 다른 경계·부모 dict 불변 + `build_folds` split_hash 재현·자체 hash 정의·다른 코호트 group 거부·부모 구조/hash 형식 거부·불변식 9종 각각의 변조 검출·hash 재계산 없는 수정 검출·구조 누락 = 실패·`resolve_fold_subjects(9, 0/1/2)`·파일 없음/(9,9)/부모 hash 불일치/변조/없는 inner 거부·outer 0–4 는 인자와 무관·잠금 검증/레코드 없음/불변식 재계산). `test_cli_split.py` 17 → **25** (외부 파일 위치·42/42/42·부모 hash, folds.json 키 = `build_folds` + CLI 3 키 (외부 블록 없음)·split_hash = `build_folds`, 외부 파일이 있으면 folds.json 도 안 씀, `run_external_split` 새 파일만 추가·folds.json 바이트 불변·`split` 과 같은 바이트, 덮어쓰기·split_hash 불일치·다른 subjects manifest·folds.json 없음 거부). `test_locks.py` 25 (fixture 에 외부 분할 추가, 수 불변). `test_config_consumption` 수 불변.
+- 돌연변이 `.backup/slot_1015/mut_d17.py` (`-B`·`PYTHONDONTWRITEBYTECODE=1`, count==1, 원본 복원): 첫 실행 **27/28** — 생존 1 = `resolve_fold_subjects` 의 "external_folds 없음" 가드 제거 (없어도 불변식 단계가 구조 실패로 거부하고, 시험이 두 문구에 공통인 "external_folds.json" 만 봄). 시험 문구를 "external_folds.json 이 필요하다" 로 좁혀 재실행 **28/28** (`mut_d17_r2.log`). 시작·rsync 전 Mac `*.pyc` 0.
+
+## AX.3 실제 산출물 (h197, 결정 17 명세 5 대조)
+
+- `scripts/h197/26_write_external_folds.py --config configs/redesign_v1/main.yaml --subjects $D/derivatives_v3/cohort_piop1/subjects.jsonl --splits-dir $D/derivatives_v3/splits_piop1_p7` (`-B`, rc=0): 재계산 split_hash `ace5f4a41446…` = 기록, **folds.json sha256 `242ba87d6101…` 전후 동일**, 새 `external_folds.json` sha256 `698f7436b17c…`, `external_split_hash` **`40e50350e97a…`**, val 42/42/42.
+- val subject 목록 (`"\n".join`) sha256 앞 12자 **`0df6870deca5` / `527f2effa569` / `60f3a21cde35`** — 23:15 슬롯 건식 계산과 **3/3 동일**.
+- 디렉터리에는 `folds.json` 과 새 파일 둘뿐 (기존 파일 덮어쓰기 없음).
+
+## AX.4 잠금·gate
+
+- 재잠금 `aee2b7931538` → **`472bee47adcd`** (2026-09-25T01:25:01Z), code_hash `06d4403d67ff` → `13a051a6a663`. 19번 **45/45** (43 + external_folds 파일 1 + 불변식 11건 1). 25번 창 4,728. split_hash `ace5f4a4…` 불변, config_hash main `2a7d7d7f`·pilot `6498596a`·external `576f6068` 불변. gate evidence **rev50** (`decision17_external_folds`).
+- fit 없음, main pool 미소비.
+
+## AX.5 확인하지 못한 것
+
+- 외부 선택 CLI (A–D `select-ad`·`select-comparator`·`select-s` 의 outer 9 경로) — 다음 단위 (결정 17 명세 7). 실자료 실행은 main OOF 승인 전 금지.
+- external final `(9, 9)` 의 PIOP2 평가 배선 — 거부로 막아 둠.
+- 가족/중복 group 이 있는 코호트에서의 실측 (합성 시험은 1 subject = 1 group 과 group 불일치 거부만 덮음).
+- 18번 스크립트의 external 거부 분기는 단위 시험이 아니라 이번 실행 (성공 경로) 으로만 확인.
