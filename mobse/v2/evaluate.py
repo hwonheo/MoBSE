@@ -88,7 +88,25 @@ def aggregate_runs(predictions: Sequence[WindowPrediction], *,
     Raises:
         EvaluationError: window×seed 격자가 채워지지 않았거나 truth 가 엇갈리면.
     """
-    buckets: Dict[Tuple[str, str, str], Dict[Tuple[int, int], WindowPrediction]] = \
+    for p in predictions:
+        if not isinstance(p, WindowPrediction):
+            raise EvaluationError(
+                "A–D 집계는 WindowPrediction 만 받는다 — 보조 비교 칸은 "
+                "aggregate_comparison_runs")
+    return _aggregate_grid(predictions, n_windows=n_windows,
+                           seeds_for=lambda _subject: None, n_seeds=n_seeds,
+                           threshold=threshold)
+
+
+def _aggregate_grid(predictions: Sequence, *, n_windows: int, seeds_for,
+                    n_seeds: Optional[int], threshold: float
+                    ) -> Dict[Tuple[str, str, str], Dict]:
+    """window×seed 격자를 run probability 로 접는 공통 본체.
+
+    ``seeds_for(subject)`` 가 None 이면 seed **개수** 만 ``n_seeds`` 와 맞춘다
+    (A–D, 기존 동작). 튜플이면 seed **집합** 이 그 튜플과 정확히 같아야 한다.
+    """
+    buckets: Dict[Tuple[str, str, str], Dict[Tuple[int, Optional[int]], object]] = \
         defaultdict(dict)
     for p in predictions:
         key = (p.cell, p.canonical_subject, p.task)
@@ -101,11 +119,21 @@ def aggregate_runs(predictions: Sequence[WindowPrediction], *,
     out: Dict[Tuple[str, str, str], Dict] = {}
     for key, slots in buckets.items():
         windows = sorted({w for w, _ in slots})
-        seeds = sorted({s for _, s in slots})
-        if len(windows) != n_windows or len(seeds) != n_seeds:
-            raise EvaluationError(
-                f"{key}: window {len(windows)}/{n_windows}, seed {len(seeds)}/{n_seeds}. "
-                "불완전한 격자로 평균하지 않는다")
+        want = seeds_for(key[1])
+        if want is None:
+            seeds = sorted({s for _, s in slots})
+            if len(windows) != n_windows or len(seeds) != n_seeds:
+                raise EvaluationError(
+                    f"{key}: window {len(windows)}/{n_windows}, seed {len(seeds)}/{n_seeds}. "
+                    "불완전한 격자로 평균하지 않는다")
+        else:
+            seeds = list(want)
+            got_seeds = {s for _, s in slots}
+            if len(windows) != n_windows or got_seeds != set(seeds):
+                raise EvaluationError(
+                    f"{key}: window {len(windows)}/{n_windows}, seed "
+                    f"{sorted(got_seeds, key=str)} ≠ 기대 {seeds}. "
+                    "불완전한 격자로 평균하지 않는다")
         missing = [(w, s) for w in windows for s in seeds if (w, s) not in slots]
         if missing:
             raise EvaluationError(f"{key}: 빠진 (window, seed) {missing[:3]}")
@@ -117,12 +145,12 @@ def aggregate_runs(predictions: Sequence[WindowPrediction], *,
             raise EvaluationError(f"{key}: group_id 가 엇갈린다 {groups}")
 
         grid = [[slots[(w, s)].p_class1 for s in seeds] for w in windows]
-        p = run_probability(grid, n_windows=n_windows, n_seeds=n_seeds)
+        p = run_probability(grid, n_windows=n_windows, n_seeds=len(seeds))
         truth = truths.pop()
         pred = classify(p, threshold)
         out[key] = {"p": p, "truth": truth, "prediction": pred,
                     "correct": pred == truth, "n_windows": n_windows,
-                    "n_seeds": n_seeds, "group_id": groups.pop()}
+                    "n_seeds": len(seeds), "group_id": groups.pop()}
     return out
 
 
@@ -212,3 +240,100 @@ def verify_checkpoint_integrity(used: Mapping[str, str],
     bad = sorted(k for k in expected if used[k] != expected[k])
     if bad:
         raise EvaluationError(f"checkpoint hash 불일치: {bad[:5]}")
+
+
+# ---------------------------------------------------------------------------
+# 보조 비교 칸 (S 후보·구조 비교) outer 예측 집계 — 남은 작업 2-c (09-25 13:15)
+#
+# 계획서 §8 의 run 집계 규칙(각 window 의 seed 평균 → task 의 네 window 평균,
+# threshold 0.5, 동일값 class 1, subject 당 b_i)을 A–D 와 같은 함수로 적용한다.
+# 보조 contrast 는 §8 이 이름으로 정한 **A−S 만** 계산한다. 구조 비교(NG·SG) 는
+# §9 가 보조 분석으로만 나열하고 contrast 를 정하지 않아 칸별 b_i·BA 만 낸다.
+#
+# 구현 선택 (표시함): S 는 outer fold 마다 후보가 다를 수 있어(logistic 은 seed 없음,
+# MLP 는 seed 3 개 — `baselines.s_outer_plan`) seed 집합을 **subject 별** 로 받는다.
+# ---------------------------------------------------------------------------
+
+#: 보조 비교 칸 이름. S = 선택된 S 후보, NG·SG = `baselines.COMPARATOR_ORDER`.
+COMPARISON_CELLS = ("S", "NG", "SG")
+#: 계획서 §8 이 이름으로 정한 보조 contrast (A−S). A−NG·A−SG 는 계획서에 없음.
+COMPARISON_CONTRASTS = ("A_minus_S",)
+
+
+@dataclass(frozen=True)
+class ComparisonWindowPrediction:
+    """보조 비교 칸 window 하나의 예측. logistic S 는 ``model_seed=None``."""
+
+    canonical_subject: str
+    group_id: str
+    task: str
+    window_index: int
+    model_seed: Optional[int]
+    cell: str
+    truth: int
+    p_class1: float
+
+    def __post_init__(self) -> None:
+        if self.cell not in COMPARISON_CELLS:
+            raise EvaluationError(f"알 수 없는 보조 비교 칸: {self.cell!r}")
+        if self.task not in CLASSIFICATION_TASKS:
+            raise EvaluationError(f"알 수 없는 task: {self.task!r}")
+        if not 0.0 <= self.p_class1 <= 1.0:
+            raise EvaluationError(f"확률이 [0,1] 밖이다: {self.p_class1}")
+        if self.truth not in (0, 1):
+            raise EvaluationError(f"truth 는 0|1 이어야 한다: {self.truth}")
+        if self.model_seed is None and self.cell != "S":
+            raise EvaluationError(f"{self.cell}: seed 없는 예측은 S(logistic) 만 허용")
+
+
+def aggregate_comparison_runs(
+        predictions: Sequence[ComparisonWindowPrediction], *, cell: str,
+        seeds_by_subject: Mapping[str, Sequence[Optional[int]]],
+        n_windows: int = N_WINDOWS, threshold: float = THRESHOLD
+) -> Dict[Tuple[str, str, str], Dict]:
+    """보조 비교 칸 하나의 window 예측을 run probability 로 집계한다.
+
+    Args:
+        cell: ``COMPARISON_CELLS`` 중 하나. 모든 행의 cell 이 같아야 한다.
+        seeds_by_subject: subject → 그 subject 의 outer fit seed 튜플 (outer 계획에서
+            만든다). 예측 subject 집합과 정확히 같아야 한다 (빠진 subject 거부).
+
+    Raises:
+        EvaluationError: 칸 섞임, subject 집합 불일치, seed 집합 불일치, 불완전 격자.
+    """
+    if cell not in COMPARISON_CELLS:
+        raise EvaluationError(f"알 수 없는 보조 비교 칸: {cell!r}")
+    for p in predictions:
+        if not isinstance(p, ComparisonWindowPrediction):
+            raise EvaluationError("보조 비교 집계는 ComparisonWindowPrediction 만 받는다")
+        if p.cell != cell:
+            raise EvaluationError(f"칸이 섞였다: {p.cell!r} ≠ {cell!r}")
+    seen = {p.canonical_subject for p in predictions}
+    if seen != set(seeds_by_subject):
+        extra = sorted(seen - set(seeds_by_subject))[:3]
+        missing = sorted(set(seeds_by_subject) - seen)[:3]
+        raise EvaluationError(f"{cell}: subject 불일치 — 추가 {extra}, 누락 {missing}")
+    for subject, seeds in seeds_by_subject.items():
+        seeds = tuple(seeds)
+        if not seeds or len(set(seeds)) != len(seeds):
+            raise EvaluationError(f"{cell}/{subject}: seed 목록이 비었거나 중복 {seeds}")
+        if None in seeds and (cell != "S" or len(seeds) != 1):
+            raise EvaluationError(f"{cell}/{subject}: seed 없음(None) 은 S logistic 단독만")
+    return _aggregate_grid(predictions, n_windows=n_windows,
+                           seeds_for=lambda s: tuple(seeds_by_subject[s]),
+                           n_seeds=None, threshold=threshold)
+
+
+def comparison_contrasts(ad_runs: Mapping[Tuple[str, str, str], Dict],
+                         s_runs: Mapping[Tuple[str, str, str], Dict]
+                         ) -> Dict[str, Dict[str, float]]:
+    """보조 contrast A−S 의 subject 별 b 차이 (계획서 §8, 95% 기술적 CI 대상).
+
+    Raises:
+        EvaluationError: A 와 S 의 subject 집합이 다르면 (paired 불가).
+    """
+    a = subject_scores(ad_runs, "A")
+    s = subject_scores(s_runs, "S")
+    if set(a) != set(s):
+        raise EvaluationError("S 의 subject 집합이 A 와 다르다 — paired 불가")
+    return {"A_minus_S": {k: a[k] - s[k] for k in a}}
