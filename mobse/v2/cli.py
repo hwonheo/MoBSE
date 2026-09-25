@@ -1916,6 +1916,194 @@ def run_evaluate(paths: Dict[str, Any], args: argparse.Namespace) -> Dict[str, A
             "output_dir": str(out_dir)}
 
 
+#: 구조 비교 outer fit 산출물을 읽는 helper 의 기록 이름 (남은 작업 2-c, 09-25 14:15).
+COMPARATOR_OUTER_NEIGHBOURS = ("fit_report.json", "window_predictions.jsonl", "checkpoint.pt")
+
+
+def _load_comparator_outer(manifest_paths: Sequence[str], *, structure: str,
+                           folds: Mapping[str, Any], cfg_hash: str,
+                           selections: Mapping[int, Mapping[str, Any]]
+                           ) -> Dict[str, Any]:
+    """구조 비교 한 칸(NG 또는 SG)의 main outer fit 산출물을 보조 비교 집계로 접는다.
+
+    입력은 outer fold 0–4 각각의 ``comparator_selection.json`` 기록(``selections``)과
+    그 계획대로 학습한 outer fit 의 ``fit_manifest.json`` 목록이다. 이웃
+    ``fit_report.json``·``window_predictions.jsonl``·``checkpoint.pt`` 는 manifest 옆
+    고정 이름이다 (U20). 창 예측은 ``evaluate.ComparisonWindowPrediction`` 으로 바꿔
+    ``evaluate.aggregate_comparison_runs`` 로 run 을 만든다 — subject 의 seed 집합은
+    그 subject 가 속한 outer fold 의 **선택 기록 outer 계획** 에서 온다.
+
+    구현 선택 (표시함): 하위 명령 없이 helper 만 둔다 — ``evaluate`` 확장인지 새 하위
+    명령인지는 다음 조각에서 정한다. 외부(outer 9) 선택 기록·fit 은 받지 않는다
+    ((9, 9) external final 은 결정 17 범위 밖). A−NG·A−SG contrast 는 만들지 않는다
+    (결정 요청 대기) — 칸별 run·b_i 까지만.
+
+    Returns:
+        ``{"runs", "predictions", "seeds_by_subject", "fits"}``.
+
+    Raises:
+        CLIError: 선택 기록·fit·예측의 경계·무결성이 어긋날 때.
+    """
+    from mobse.v2 import baselines as BL
+    from mobse.v2 import evaluate as EV
+    from mobse.v2 import fitting as FIT
+    from mobse.v2 import train as TR
+    from mobse.v2.manifests import read_jsonl, sha256_file
+
+    if structure not in BL.COMPARATOR_ORDER:
+        raise CLIError(f"{structure!r} 는 구조 비교가 아니다: {BL.COMPARATOR_ORDER}")
+    split_hash = folds["split_hash"]
+    test_of = {int(o["outer_fold"]): set(o["test_subjects"])
+               for o in folds.get("outer_folds") or []}
+    if not test_of:
+        raise CLIError("folds.json 에 outer fold 가 없다")
+    if set(int(k) for k in selections) != set(test_of):
+        raise CLIError(f"선택 기록 outer fold {sorted(int(k) for k in selections)} ≠ "
+                       f"folds.json outer fold {sorted(test_of)} — 빠진 fold 없이 모두 필요")
+
+    plan_of: Dict[int, Dict[str, Any]] = {}
+    for of, sel in selections.items():
+        of = int(of)
+        if sel.get("schema_version") != SELECTION_SCHEMA:
+            raise CLIError(f"outer {of}: 선택 기록 스키마 {sel.get('schema_version')!r} ≠ "
+                           f"{SELECTION_SCHEMA}")
+        if sel.get("structure") != structure:
+            raise CLIError(f"outer {of}: 선택 기록 구조 {sel.get('structure')!r} ≠ {structure}")
+        if int(sel.get("outer_fold", -1)) != of:
+            raise CLIError(f"outer {of}: 선택 기록 outer_fold {sel.get('outer_fold')!r} 가 다르다")
+        if sel.get("split_hash") != split_hash:
+            raise CLIError(f"outer {of}: 선택 기록 split_hash 가 --splits 와 다르다")
+        if sel.get("config_hash") != cfg_hash:
+            raise CLIError(f"outer {of}: 선택 기록 config_hash 가 --config 와 다르다")
+        if "external_split_hash" in sel:
+            raise CLIError(f"outer {of}: 외부 선택 기록 — main outer 집계에 섞지 않는다")
+        rows = sel.get("outer_plan") or []
+        seeds = [int(r["model_seed"]) for r in rows]
+        if not seeds or len(set(seeds)) != len(seeds):
+            raise CLIError(f"outer {of}: outer 계획 seed 가 비었거나 중복 {seeds}")
+        if tuple(sorted(seeds)) != tuple(sorted(int(x) for x in TR.MODEL_SEEDS)):
+            raise CLIError(f"outer {of}: outer 계획 seed {sorted(seeds)} 가 잠긴 "
+                           f"train.model_seeds {sorted(TR.MODEL_SEEDS)} 와 다르다 (계획서 §5)")
+        for r in rows:
+            if (int(r["config_id"]), int(r["epochs_exact"])) != \
+                    (int(sel["selected_config_id"]), int(sel["outer_epochs"])):
+                raise CLIError(f"outer {of}: outer 계획 행의 config/E 가 선택 기록과 다르다")
+        plan_of[of] = {"seeds": tuple(sorted(seeds)),
+                       "config_id": int(sel["selected_config_id"]),
+                       "epochs": int(sel["outer_epochs"])}
+
+    fits: Dict[str, Dict[str, Any]] = {}
+    slots: Dict[Tuple[int, int], str] = {}
+    preds: List[Any] = []
+    run_key_of: Dict[Tuple[str, str], set] = {}
+    for mp in _as_list(manifest_paths):
+        path = Path(mp)
+        man = json.loads(path.read_text(encoding="utf-8"))
+        try:
+            validate_record("fit_manifest", man)
+        except ManifestError as exc:
+            raise CLIError(f"{path}: fit_manifest 스키마 위반 — {exc}") from exc
+        fid = man["fit_id"]
+        if fid in fits:
+            raise CLIError(f"fit_id 중복: {fid}")
+        if man["cell"] != structure:
+            raise CLIError(f"{fid}: cell {man['cell']!r} — {structure} 집계에 다른 칸을 섞지 않는다")
+        if man["role"] != FIT.ROLE_OUTER or \
+                man["folds"].get("eval_role") != FIT.EVAL_ROLE[FIT.ROLE_OUTER]:
+            raise CLIError(f"{fid}: outer 최종 적합이 아니다 (role={man['role']!r})")
+        if "external_split_hash" in man or "external_folds_sha256" in man:
+            raise CLIError(f"{fid}: 외부 분할 기록이 있는 fit — main outer 집계에 섞지 않는다")
+        if man["split_hash"] != split_hash:
+            raise CLIError(f"{fid}: split_hash 가 --splits 와 다르다")
+        if man["config_hash"] != cfg_hash:
+            raise CLIError(f"{fid}: config_hash 가 --config 와 다르다")
+        of, seed = int(man["folds"]["outer_fold"]), int(man["model_seed"])
+        if of not in plan_of:
+            raise CLIError(f"{fid}: outer fold {of} 의 선택 기록이 없다")
+        plan = plan_of[of]
+        if seed not in plan["seeds"]:
+            raise CLIError(f"{fid}: seed {seed} 가 outer {of} 계획 {list(plan['seeds'])} 에 없다")
+        if (of, seed) in slots:
+            raise CLIError(f"같은 (outer, seed) {(of, seed)} 의 fit 이 둘이다: "
+                           f"{slots[(of, seed)]}, {fid}")
+        slots[(of, seed)] = fid
+        rep_path, pred_path, ckpt = (path.parent / n for n in COMPARATOR_OUTER_NEIGHBOURS)
+        for p in (rep_path, pred_path, ckpt):
+            if not p.is_file():
+                raise CLIError(f"{fid}: {p.name} 가 없다 {p}. 대체 탐색하지 않는다 (U20)")
+        rep = json.loads(rep_path.read_text(encoding="utf-8"))
+        if rep.get("fit_id") != fid:
+            raise CLIError(f"{fid}: fit_report 의 fit_id {rep.get('fit_id')!r} 가 다르다")
+        if int(rep["config_id"]) != plan["config_id"]:
+            raise CLIError(f"{fid}: config_id {rep['config_id']} ≠ 선택 {plan['config_id']}")
+        if int(rep["epochs_run"]) != plan["epochs"]:
+            raise CLIError(f"{fid}: epochs_run {rep['epochs_run']} ≠ outer E {plan['epochs']}")
+        ckpt_sha = sha256_file(ckpt)
+        if rep.get("checkpoint_sha256") != ckpt_sha:
+            raise CLIError(f"{fid}: checkpoint sha256 이 fit_report 와 다르다")
+        try:
+            rows = read_jsonl(pred_path, "window_predictions")
+        except ManifestError as exc:
+            raise CLIError(f"{pred_path}: window_predictions 스키마 위반 — {exc}") from exc
+        fit_subjects = set(man["fit_subjects"])
+        got_subjects = set()
+        for i, r in enumerate(rows):
+            where = f"{pred_path}:{i + 1}"
+            if r["fit_id"] != fid:
+                raise CLIError(f"{where}: fit_id {r['fit_id']!r} ≠ {fid}")
+            if (r["cell"], int(r["model_seed"])) != (structure, seed):
+                raise CLIError(f"{where}: cell/seed 가 fit_manifest 와 다르다")
+            if r["scope"] != FIT.EVAL_ROLE[FIT.ROLE_OUTER]:
+                raise CLIError(f"{where}: scope {r['scope']!r} — outer test 만 집계한다")
+            if r["checkpoint_sha256"] != ckpt_sha:
+                raise CLIError(f"{where}: checkpoint_sha256 이 checkpoint.pt 와 다르다")
+            subj = r["canonical_subject"]
+            if subj in fit_subjects:
+                raise CLIError(f"{where}: {subj} 가 {fid} 의 학습 subject 다 — test 누설")
+            if subj not in test_of[of]:
+                raise CLIError(f"{where}: {subj} 는 outer fold {of} 의 test subject 가 아니다")
+            got_subjects.add(subj)
+            task = FIT.task_of(r["run_key"])
+            run_key_of.setdefault((subj, task), set()).add(r["run_key"])
+            try:
+                preds.append(EV.ComparisonWindowPrediction(
+                    canonical_subject=subj, group_id=r["group_id"], task=task,
+                    window_index=_window_index(r["run_key"], r["window_key"]),
+                    model_seed=seed, cell=structure, truth=int(r["truth"]),
+                    p_class1=float(r["p_class1"])))
+            except EV.EvaluationError as exc:
+                raise CLIError(f"{where}: {exc}") from exc
+        if got_subjects != test_of[of]:
+            raise CLIError(f"{fid}: 예측 subject 가 outer fold {of} test 와 다르다 — 누락 "
+                           f"{sorted(test_of[of] - got_subjects)[:3]}")
+        fits[fid] = {"path": str(path), "outer_fold": of, "model_seed": seed,
+                     "manifest_sha256": sha256_file(path),
+                     "fit_report_sha256": sha256_file(rep_path),
+                     "window_predictions_sha256": sha256_file(pred_path),
+                     "checkpoint_sha256": ckpt_sha, "code_hash": man["code_hash"],
+                     "env_hash": man["env_hash"], "source_hash": man["source_hash"]}
+
+    missing = sorted((of, s) for of, p in plan_of.items() for s in p["seeds"]
+                     if (of, s) not in slots)
+    if missing:
+        raise CLIError(f"outer 계획의 fit 이 빠졌다 (outer, seed): {missing[:5]}")
+    for field in ("code_hash", "env_hash", "source_hash"):
+        values = sorted({f[field] for f in fits.values()})
+        if len(values) != 1:
+            raise CLIError(f"fit 사이에 {field} 가 다르다 {[v[:12] for v in values]}")
+    multi = sorted(k for k, v in run_key_of.items() if len(v) != 1)
+    if multi:
+        raise CLIError(f"subject·task 하나에 run 이 여럿이다: {multi[:3]}")
+    seeds_by_subject = {s: plan_of[of]["seeds"] for of, subs in test_of.items() for s in subs}
+    try:
+        runs = EV.aggregate_comparison_runs(preds, cell=structure,
+                                            seeds_by_subject=seeds_by_subject)
+    except EV.EvaluationError as exc:
+        raise CLIError(f"무결성 검사 실패: {exc}") from exc
+    return {"runs": runs, "predictions": preds, "seeds_by_subject": seeds_by_subject,
+            "fits": fits}
+
+
 REPORT_OUTPUTS = ("statistics.json",)
 REPORT_SCHEMA = "wi06-statistics-0.1"
 #: 주 contrast (97.5% family-wise CI) 와 보조 지표 (95% 기술적 CI). 계획서 §8.
