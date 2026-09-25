@@ -4553,3 +4553,42 @@ bmcws · RTX 3090 Ti · torch 2.10.0+cu128 · float32 (AMP 미사용) · batch 3
 
 - gate `gates[1].checks[7]` 의 `result` 는 **바꾸지 않았다** (`fail` 유지). 실패 사유 ("pilot fit 미구현") 는 해소됐으나 G1 판정 변경은 선생님 확인 사항으로 남긴다. rev58 는 측정 기록 블록 `resource_plan_pilot_rev58` 만 더한다.
 - 미측정: S 후보 fit 시간, main 규모 실자료 epoch 시간, 동시 실행 처리량, 반복 측정에 의한 칸 간 차이.
+
+# 부록 BG. 남은 작업 5 — 결합 설계 수치 안정성 (조건수) 전수 측정 (2026-09-25 19:15 슬롯, gate rev59)
+
+**새 결정 아님.** 부록 Z.7·AA.5 의 미확인 항목 "1,295 run 전체에서 동시 회귀의 수치 안정성(결합 설계 조건수)을 재지 않았다" 를 잰다. 코드·시험·잠금 불변.
+
+## BG.1 범위
+
+- 설계행렬만 다시 만든다: `10_wi02_extract.process_run` 과 같은 순서 (`read_confounds_tsv` → `select_acompcor` → `build_design` → `add_stopband` → `summarize_design`), 경로는 그 스크립트의 `run_paths` 를 importlib 로 불러 쓴다. frame 수는 confounds 행 수 (manifest `n_frames` 와 대조). **BOLD·창·라벨·분할을 읽지 않고 fit 하지 않는다** — 추출 때 이미 한 설계 계산의 재현이라 잠긴 분할 소비가 아니다.
+- 대상: v3 manifest 6개의 run 레코드 1,326 (skipped 31 제외 1,295). 틀 `.backup/slot_1915b/design_cond.py`·`summ_dc.py`·`probe_worst.py` (커밋 안 함), h197 HEAD `e8933dc` 사본, `python -B`, 약 19:16–19:26 KST (583 s). 산출물 h197 `$HOME/slot/dc_1915b/` (`design_cond.jsonl` sha256 `e4488380d43d…`, `summary.json` `1888b4a91a97…`; Mac `.backup/slot_1915b/out/` 사본).
+- 지표 (run 마다): 특이값 σ; numpy 절단값 τ = σ_max·max(n,p)·ε (`matrix_rank`·`lstsq(rcond=None)` 와 같은 규칙); rank = #(σ > τ); 유효 조건수 κ = σ_max/σ_rank (원 설계, 열 노름 1 로 정규화한 설계 각각); 절단 여유 σ_rank/τ; 잔차 대조 — 고정 seed 난수 Y (n × 100, seed = run_key sha256 앞 8자리) 에 대해 `extract.regress_out` 잔차와 SVD 직교 사영 잔차 `Y − U_r U_rᵀ Y` 의 상대 차이 ‖·‖_F/‖사영 잔차‖_F.
+
+## BG.2 결과
+
+- 측정 1,291 run (ok 1,182 + excluded 109). excluded 4 run 은 설계를 만들 수 없는 기존 data_condition 제외 (aCompCor 메타데이터 — manifest 사유와 같음). **rank 결손 0 run.** manifest 대조 1,289 run (PIOP2 rest excluded 2 run 은 manifest 에 design 기록 없음): `design_rank`·`nuisance_rank`·`residual_dof`·`n_frames` **불일치 0**.
+- ok run (분석에 들어가는 run):
+
+| 조합 | ok run | frame | 열 (최소/중앙/최대) | κ 원 설계 중앙 / 최대 | κ 열 정규화 중앙 / 최대 | 잔차 상대 차이 최대 |
+|---|---|---|---|---|---|---|
+| PIOP1 emomatching | 183 | 135 | 61 / 61 / 69 | 2.7e7 / 4.2e8 | 188 / 639 | 3.2e-8 |
+| PIOP1 workingmemory | 176 | 162 | 68 / 68 / 80 | 2.3e7 / 1.0e8 | 303 / 1.3e3 | 4.2e-9 |
+| PIOP1 restingstate | 202 | 480 | 371 / 371 / 400 | 3.9e7 / 1.4e8 | 319 / 4.6e6 | 1.2e-8 |
+| PIOP2 emomatching | 204 | 135 | 61 / 61 / 68 | 2.3e7 / 1.1e8 | 187 / 458 | 7.5e-9 |
+| PIOP2 workingmemory | 214 | 160 | 67 / 67 / 73 | 2.3e7 / 3.1e8 | 285 / 565 | 2.0e-8 |
+| PIOP2 restingstate | 203 | 240 | 85 / 85 / 95 | 2.2e7 / 1.2e8 | 375 / 658 | 7.1e-9 |
+
+- ok run 절단 여유 최소: 원 설계 7.0e4, 열 정규화 2.0e6 — rank 판정이 절단값 근처에 있는 ok run 은 없다. 열 정규화 설계에서 lstsq 잔차 차이 최대 5.5e-9. 열 노름 비 최대 1.6e8 — 원 설계 κ 가 큰 것은 주로 열 크기 차이 (motion `*_power2` 등) 때문이고 열 정규화 κ 는 ok run 1,182 중 1,000 초과 18, 10,000 초과 1.
+- 열 정규화 κ 최댓값 ok run: PIOP1 rest `ds002785/sub-0030` (392 열, spike 21, residual DOF 88) κ 4.6e6 (다음 값 8.9e3, `sub-0058`). 최소 특이 방향의 큰 계수는 연속 spike 열 (frame 337–341, 부호 교대) 과 고주파 차단대역 DCT 열 (k 468–478) — 11 frame 연속 spike 구간 (334–344) 의 부호 교대 조합이 0.75 s TR rest 의 넓은 차단대역 (0.2 Hz 초과) 기저와 거의 겹친다. 이 run 의 잔차 차이도 기준 안 (위 표 최댓값 이내).
+- excluded run 에서만 나온 값: PIOP1 rest `sub-0200` (465 열, spike 94, DOF 15) κ 원 7.5e12 · 정규화 2.1e11, 절단 여유 1.25 (원) / 45.9 (정규화), 잔차 차이 2.7e-4; `sub-0013` (443 열, spike 72, DOF 37) κ 4.4e12 · 2.0e11, 여유 47.2 (정규화), 잔차 차이 1.3e-4. 둘 다 manifest 에서 `mean_fd>0.2` 등으로 이미 제외 (판정 불변, rank 는 manifest 와 같음).
+
+## BG.3 읽는 법
+
+- 분석에 쓰는 1,182 run 에서 동시 회귀는 float64 에서 수치적으로 안정하다: rank 판정 여유 ≥7.0e4, lstsq 잔차가 직교 사영 잔차와 상대 3.2e-8 이내로 같다. 조건수 기준으로 설계 변경이나 추가 규칙이 필요한 근거는 없다.
+- 불안정에 가까운 설계 (κ ~1e12, 절단 여유 ~1) 는 spike 가 매우 많은 PIOP1 rest excluded 2 run 뿐이다. 현재 제외 규칙 (mean FD·spike 비율·DOF) 이 먼저 걸러낸다.
+- [해석 한계] 잔차 대조는 난수 Y 기준이다 — 실제 ROI 시계열에서의 오차 크기는 재지 않았다 (BOLD 를 읽지 않음). κ 가 큰 방향이 신호 성분과 겹치는지는 모른다.
+
+## BG.4 확인하지 못한 것
+
+- 재추출 창의 통과대역 밖 잔여 전력 (AA.5 두 번째 항목) — BOLD 또는 창 파일을 읽어야 하므로 이번 범위에서 뺐다.
+- 추출에 실제로 쓰인 잔차와의 대조 (창 `.npy` 재계산) — 하지 않았다.
