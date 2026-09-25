@@ -4460,3 +4460,33 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 
 - 하위 명령·산출물 (새 하위 명령 vs `evaluate` 확장), A−S 의 A–D run 입력 (`evaluate` 산출물 `run_predictions` 를 읽을지), §8 95% 기술적 CI 배선 없음. 실자료 outer 예측 없음.
 - 결정 요청 (부록 BA.4, A−NG·A−SG) 은 여전히 대기.
+
+
+# 부록 BD — 보조 비교 통계 하위 명령 `report-comparison` (rev56, 2026-09-25 16:15 예약 슬롯)
+
+남은 작업 2-c "CLI 배선" 의 세 번째 조각 (부록 BB·BC 의 helper 를 부르는 하위 명령 + A−S 95% 기술적 CI). 새 결정 아님 — 규칙은 계획서 §8 "A−S, interaction, … 는 보조이며 95% 기술적 CI로 표시한다", §6 구조 비교는 보고 대상. 합성 자료 시험만, 실자료 fit 없음, main pool 미소비.
+
+## BD.1 사전 확인 (grep, 16:1x)
+
+- (i) CLI 수 고정 시험: 없음 (`test_every_subcommand_has_a_body` 가 `main` 분기만 확인). (ii) A–D run 입력: `run_report` 가 `evaluation.json`·`run_predictions.jsonl` (`wi06-run-predictions-0.1`) sha256 대조 + `_recompute_subject_scores` 로 b_i 재계산 — 같은 경로를 쓴다. (iii) bootstrap: `run_report` 가 `stats.bootstrap_seed` (9001)·`stats.n_bootstrap` (10,000)·`stats.nominal_pct` (2.5, 97.5) 로 `statistics.bootstrap_indices` 를 한 번 만들고 `paired_bootstrap` 에 공유 — 같은 함수·같은 config 키를 재사용. (iv) 산출물은 새 이름, 덮어쓰기 거부.
+
+## BD.2 구현 (`mobse/v2/cli.py`)
+
+- **구현 선택 (표시함)**: `evaluate`·`report` 확장이 아니라 **새 하위 명령 `report-comparison`** (CLI 10 → **11**). A–D 산출물 계약을 바꾸지 않고, 세 칸 입력을 모두 필수로 받는다 (빠진 칸 → argparse 거부). 인자: `--config --splits --evaluation --predictions --subjects --s-selection ×5 --s-fit-report ×N --ng-selection ×5 --ng-fit-manifest ×15 --sg-selection ×5 --sg-fit-manifest ×15 --output-dir`.
+- `run_report` 앞부분 (evaluation config_hash·run_predictions sha256·스키마·b_i 재계산 대조·subjects group/적격/수) 을 **`_read_evaluated`** 로 옮겨 두 명령이 공유 — 검사 순서·문구 불변 (`test_cli_report.py` 새 2 시험을 HEAD 판 `cli.py` 에서도 통과).
+- `run_report_comparison`: evaluation `split_hash` = `--splits` 확인 → 선택 기록을 outer fold 로 묶음 (`_read_selections`: fold 중복·outer_fold 없음 거부) → S `_load_s_outer`, NG·SG `_load_comparator_outer` → 칸별 run 마다 A run 존재·**truth = A run**·**group_id = subjects.jsonl** → `evaluate.subject_scores` (complete-case) → subject 집합 = A → A−S = `evaluate.comparison_contrasts` (A run 은 run 행의 prediction/truth 에서) → bootstrap index 한 번 (report 와 같은 인자·같은 subject 순서) → 칸 BA (S·NG·SG)·A−S 95% 기술적 CI (`role: auxiliary`, `primary: false`, `statistics.interpret` 문자열).
+- 산출물 `comparison_statistics.json` (schema `d14-comparison-statistics-0.1`, 덮어쓰기 거부): bootstrap 설정·칸 BA·A−S·칸별 subject b_i·outer fold 별 S 선택 후보/설정/E·`not_reported` (A−NG·A−SG = 결정 요청 대기, parameter/비용 = 범위 밖)·입력 sha256 (folds·evaluation·run_predictions·subjects·선택 기록 15·fit 기록).
+- 첫 작성에서 넣었던 도달 불가 대조 3 개 (칸 목록 상수, contrast 목록 상수, BA = b_i 평균) 는 같은 값에서 계산돼 돌연변이가 생존할 조건이라 뺐다 (부록 BC 의 중복 조건 교훈).
+
+## BD.3 시험·돌연변이·잠금
+
+- 새 `tests/v2/test_cli_report_comparison.py` **23**: evaluate 시험 합성 release (A–D, 10명, outer 2) 를 evaluate 로 돌리고 같은 folds 로 S (outer 0 S1 logistic / outer 1 S2 MLP seed 3)·NG (전부 맞힘)·SG (짝수 EM 틀림) outer fit 합성. 손계산: BA S 0.75·NG 1.0·SG 0.75, A−S 점추정 0.25 와 95% 구간을 `statistics.py` 없이 독립 재계산 (PCG64 seed 9001) 과 대조; A 가 홀수 EM 을 틀리는 변형에서 A−S 0.0 과 구간 대조; report 의 B 칸 구간 = 여기 S 칸 구간 (같은 b 벡터, 같은 index); bootstrap index 호출 1 회·seed 9001·10,000·정렬 subject (spy). 가드: 덮어쓰기, 여섯 칸 입력 각각 필수, 선택 fold 중복·outer_fold 없음, NG 자리에 SG 기록, split_hash, run_predictions sha, truth ≠ A, group ≠ subjects, A 에 없는 run, subject 집합 ≠ A, complete-case.
+- `tests/v2/test_cli_report.py` 11 → **13**: evaluation.json b_i 만 고친 경우·counts 만 고친 경우 (이동한 `_read_evaluated` 의 두 가드가 기존 시험에서 생존 — 원래부터 시험 없음. b_i 가드는 뒤 subject 차이 대조와 같은 "evaluation.json 과 다르다" 문구라 가려졌음).
+- 돌연변이 `.backup/slot_1615b/mut_rc.py` (`-B`·`PYTHONDONTWRITEBYTECODE=1`, 구간 한정 count==1, 원본 복원): 첫 실행 **18/23** (`mut_rc_r1.log`) — 생존 `split` (시험 문구가 S helper 의 split_hash 오류와도 맞음 → 문구를 좁힘), `s_runs` (NG run 을 섞는 돌연변이는 `subject_scores(…, "S")` 가 걸러 동치 → 돌연변이를 S run 한 subject 제거로 교체), `boot_seed` (10명 이산 자료에서 seed+1 구간이 우연히 같음 → spy 시험), `ev_scores`·`ev_count` (위 report 시험 2) → 재실행 **23/23** (`mut_rc_r2.log`). Mac `*.pyc` 0 (돌연변이 뒤·rsync 전).
+- 관련 8 파일 Mac 261 passed.
+- 재잠금 `c96a74b297ec` → **`78ddd887253f`** (2026-09-25T07:23:32Z), code_hash `e7f27665a89f` → `fbd9fd7feee2`. 19번 45/45, 25번 창 4,728. split_hash `ace5f4a4…`·external_split_hash `40e50350…`·config_hash 불변. gate evidence **rev56** (`comparison_report_rev56`).
+
+## BD.4 확인하지 못한 것 · 다음
+
+- NG·SG parameter/비용 보고 (계획서 §6 "no-graph FC comparator와 실제 parameter/비용을 함께 보고한다") 없음. 실자료 outer 예측 없음 (main OOF 승인 전).
+- 결정 요청 (부록 BA.4, A−NG·A−SG) 은 여전히 대기 — 결정되면 `evaluate.COMPARISON_CONTRASTS`·`comparison_contrasts` 와 이 명령의 `auxiliary_contrasts` 에 더하면 된다.

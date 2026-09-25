@@ -1,7 +1,7 @@
 {
   "schema_version": "measurement_lock_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "locked_at_utc": "2026-09-25T07:23:32Z",
+  "locked_at_utc": "2026-09-25T06:23:32Z",
   "gate": "G1 Measurement lock",
   "work_instruction": "WI-03",
   "roots": {
@@ -269,11 +269,11 @@
       }
     },
     "code": {
-      "code_hash": "fbd9fd7feee2b12e0501bda6dd9b1db0e310486e57fe35df287592e2f421f7cb",
+      "code_hash": "e7f27665a89fe5defc5228fffadfd6e8aedce2af9c7658f9935ef9f727d7b538",
       "modules": {
         "__init__.py": "c884876e4717224c87d95b1fd4b3821863307e65f9146eac605bc9a96375c9ab",
         "baselines.py": "4dc480f05a2021d2133cf77826c6e1956a6fc01b55195a1172431958768a7748",
-        "cli.py": "79ad3273e75473144523cc5e9c9c0be5d052fe1c15208177f29f94b5beab752a",
+        "cli.py": "a52ab38a4edccd56bce079123e6bd20507660c710df8976377624c3f058d37ef",
         "cohort.py": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
         "config.py": "0a61104787f5664fa3fda0c860adb18e96590da97dcdd906a593564a54fa9746",
         "evaluate.py": "bde539b695a261512f5846afe2b812b377499fd024736a6518f829118f3848c6",
@@ -330,9 +330,9 @@
     "formula": "126 subjects x 2 tasks x 4 windows x 3 seeds x 4 cells"
   },
   "supersedes": {
-    "lock_hash": "c96a74b297eca9571ffb8f2f1b126bf974554d3eaa121022b73b5d8633f589a0",
-    "locked_at_utc": "2026-09-25T06:23:32Z",
-    "reason": "remaining work 2-c: new subcommand report-comparison reads the evaluate outputs (same checks as report, moved into _read_evaluated) plus the S, NG and SG outer selection records and outer fits via _load_s_outer and _load_comparator_outer, checks run truth and group against A, and writes comparison_statistics.json with cell BA for S, NG, SG and A minus S under the report bootstrap (seed 9001, 10000, nominal pct, one shared index); A minus NG and A minus SG not built (decision pending); no fit; main pool not consumed"
+    "lock_hash": "850e7fce7b0ad24a9144164ae11cb651b7dc8ae4011c712a3917f19c97f31abf",
+    "locked_at_utc": "2026-09-25T05:21:28Z",
+    "reason": "remaining work 2-c: cli gains _load_s_outer, which reads S main outer fits (s_fit_report plus fixed-name s_window_predictions and s_model) against the five s_selection outer plans (logistic one seedless fit or MLP locked seeds times outer E; seed taken from the report) and folds them with evaluate.aggregate_comparison_runs cell S; helper only, no new subcommand; no fit; main pool not consumed"
   },
-  "lock_hash": "78ddd887253f94db94ea061910b6a0760035fbf42f3a1137164476e1939cf0c2"
+  "lock_hash": "c96a74b297eca9571ffb8f2f1b126bf974554d3eaa121022b73b5d8633f589a0"
 }
