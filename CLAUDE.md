@@ -1,6 +1,6 @@
 # CLAUDE.md — MoBSE Project Context
 
-> 최종 갱신 2026-09-25 22:4x KST (HEAD `1e399ec` 위 작업트리, gate evidence rev61 기준 — rev60·rev61 은 부록 BH·BI 기록만, 판정 수는 rev59 와 같음). 모든 수치는 실측값이며 출처를 함께 적음.
+> 최종 갱신 2026-09-25 23:3x KST (HEAD `bf9f6d2` 위 작업트리, gate evidence rev62 기준 — rev60–rev62 는 부록 BH·BI·BJ 기록만, 판정 수는 rev59 와 같음). 모든 수치는 실측값이며 출처를 함께 적음.
 > 이전판(2026-09-18)은 `.backup/CLAUDE_20260925_201635.md` 에, 2026-04-17판은 `.backup/CLAUDE.md_20260918_*.md` 에 보존됨.
 > **현행 상태의 정본은 이 파일이 아님** — claude.ai Project "MoBSE" 의 인수인계 문서 `claude/mobse_redesign_g0_handoff_2026-09-17.md` (선생님 결정 원문·남은 작업·마감 절차) 와 가장 높은 revision 의 `gate_evidence.json`. 이 파일은 저장소에 들어온 사람을 위한 방향 안내다.
 
@@ -43,6 +43,7 @@ MoBSE (Mixture of Brain-State Experts): fMRI 시계열을 dFC 유래 전문가 �
 - 통과대역 **0.008–0.2 Hz** (개정 P9, 결정 원문 "통과대역 0.2 Hz로"), 차단대역 DCT 기저를 nuisance 와 **동시 회귀** (`mobse/v2/extract.py` `BANDPASS_LOW_HZ`·상한). 산출물은 `derivatives_v3*`. `derivatives_v2*` 는 대체됨 (단 `derivatives_v2/pilot_tech/splits/folds.json` 은 pilot 측정이 씀).
 - 동시 회귀 설계는 1,291 run 전수에서 rank 결손 0, 분석 run 수치적으로 안정 (보고서 부록 BG, rev59).
 - pilot 31명 창 372 에서 0.2–0.25 Hz 잔여 전력 비율 중앙 약 0.004 — 필터 적용 기대값 수준, 누락 기대값 (약 0.19) 과 겹치지 않음 (보고서 부록 BH, rev60).
+- pilot ok run 93 을 원 TR 로 재계산하면 저장 창과 바이트 동일 372/372, 결합 설계 잔차의 차단대역 (f<0.008·f>0.2 Hz) DCT 전력 비율 ≤3.1e-15 (nuisance 만이면 0.3–37%) (보고서 부록 BJ, rev62).
 
 ## Cohort·분할 (WI-03, 잠김)
 
@@ -55,7 +56,7 @@ MoBSE (Mixture of Brain-State Experts): fMRI 시계열을 dFC 유래 전문가 �
 - split_hash `ace5f4a4…` (불변). 외부 최종 선택용 main pool 3-fold (seed 20262000) 는 별도 `external_folds.json` (42/42/42, external_split_hash `40e50350…`, 결정 17).
 - h197 경로 (data root 상대): subjects `derivatives_v3/cohort_piop1/subjects.jsonl`, 분할 `derivatives_v3/splits_piop1_p7/{folds.json, external_folds.json}`.
 
-## Gate 현황 (gate_evidence.json revision 61 — 판정은 rev59 와 같음, 2026-09-25 재측정)
+## Gate 현황 (gate_evidence.json revision 62 — 판정은 rev59 와 같음, 2026-09-25 재측정)
 
 | Gate | 상태 |
 |---|---|
