@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "3e0a9a0debfe83e09a92180a9059e52de6ed8e89",
-  "timestamp_utc": "2026-09-25T03:22:45Z",
-  "revision": 52,
-  "supersedes_sha256": "c75894f74e09b6491f7d78d7ef80e45acdfcce46655b05318458115ad7427d62",
-  "revision_reason": "rev52 (2026-09-25): 결정 17 명세 7 (b) — select-ad·select-comparator·select-s 가 outer fold 9 에서 --splits 옆 external_folds.json 을 읽어 inner 경계를 꺼내고 (resolve_fold_subjects external_folds=), 입력 fit 의 external_split_hash·external_folds_sha256 을 그 파일과 대조 (구현 선택; outer 0–4 fit 에 외부 기록이 있으면 거부), outer 9 선택 기록에 외부 필드·outer_plan_status 추가 ((9,9) 계획은 기록만). outer 0–4 불변. 시험 +27 (select_ad 27→36, select_comparator 26→35, select_s 28→37), 돌연변이 13/13. 재잠금 edf57e93d6dd → 9afbfcff698e (code_hash a449af15ae36 → b7fc265aa500). fit 없음, main pool 미소비 (부록 AZ)",
+  "git_head": "71223a7ad3328215f87365c17139cef05ea53366",
+  "timestamp_utc": "2026-09-25T04:19:41Z",
+  "revision": 53,
+  "supersedes_sha256": "00f49f3823c887bf5597aec630d870a143caedb2bf81e1a5e0927d9cb82f70e4",
+  "revision_reason": "rev53 (2026-09-25): 남은 작업 2-c 첫 조각 — evaluate 에 보조 비교 칸 (S·NG·SG) outer 예측 집계 aggregate_comparison_runs (계획서 §8 run 규칙, subject 별 seed 집합 — 구현 선택: S logistic 은 seed 없음) 와 A−S contrast comparison_contrasts (§8 이 이름으로 정한 보조 contrast 만) 추가. aggregate_runs 본체를 공유 _aggregate_grid 로 옮김 (A–D 동작 불변) + WindowPrediction 아닌 행 거부. 새 시험 17, 돌연변이 15/15. 재잠금 9afbfcff698e → 2d2250119456 (code_hash b7fc265aa500 → 45d312b905dd). fit 없음, main pool 미소비 (부록 BA)",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -102,7 +102,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "36a9c45d0deef5f6d4e5ddfcce44a8cda2e58dbd847f2f5fdead3f2ac1a4cc38"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "f6a422c06e0d2e53ee2b10b94c8380782bc21363a4c05a62233258d0c7f40f3f"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -158,7 +158,7 @@
             "piop2_eligible": 189,
             "piop2_folds": null
           },
-          "note": "locks/measurement_lock.json (lock_hash 9afbfcff698e…) 로 잠갔고 검증 42/42 일치. 재생성 이력은 wi03_measurement_lock.chain"
+          "note": "locks/measurement_lock.json (lock_hash 2d2250119456…) 로 잠갔고 검증 42/42 일치. 재생성 이력은 wi03_measurement_lock.chain"
         },
         {
           "check": "pilot excluded from every main/final fit",
@@ -195,7 +195,7 @@
         "개정 P8 학습 예산 — 결정됐으나 구현 전"
       ],
       "artifact_hashes": {
-        "locks/measurement_lock.json": "f1832b670d63d79c6d44468f5f26fdeb9d8d7abdb4ac6a5cd0e1ad36e2653ff0",
+        "locks/measurement_lock.json": "e64481894c31530fede67cc1356ee5f05e52c09e536fdb2ca279afb2dd0a25de",
         "reports/precision_scenarios.md": "a5d576edeb89a1223d79f97067490b85ac16fe56d516b92b56b9b4e33724aa69",
         "reports/resource_budget.md": "155ee3e7379f53e034c457f481bb159b99b70f33ff4d78be0893acfc27862019",
         "provenance/wi03_precision/precision_scenarios.json": "67284e5991af25775ee569c32e2b51e75f8833ea9f0874d477b9d68d8ae7817e",
@@ -682,7 +682,7 @@
     "cli.py": "04de9062d1766f6e8af881af7b781d76106ffb59f08e9922b27be5de4e5ce64a",
     "cohort.py": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
     "config.py": "0a61104787f5664fa3fda0c860adb18e96590da97dcdd906a593564a54fa9746",
-    "evaluate.py": "a11a324f851603edb0e93b21c2cafe8b098529a485f17fe0321876825120e9b7",
+    "evaluate.py": "bde539b695a261512f5846afe2b812b377499fd024736a6518f829118f3848c6",
     "extract.py": "45425fc516cc790e45e911af11c03fe5937c573fbfed3985e4bc6e7d5e7316f9",
     "features.py": "f9c81ef8155776f3d1971304ef32baf99b94b5f7bf100c0067f82dd1600b8f10",
     "fitting.py": "12ad51ceed897ab656dbf345d4380847faf96e090657923563dadb7db11929bb",
@@ -714,6 +714,7 @@
     "test_config.py": "e69e5ab5976d19987369e565c8de4dc8afe17bcd97d21f0d4cfdc79fea86d72d",
     "test_config_consumption.py": "b851d8df62674349d715fc4c87489da645396421da2b031e4ae9db9d36b18e1a",
     "test_evaluate_cli.py": "6c9aa7aa3e708dd464cade7ca125cfbf04e9a581161933078dd5fb62100d9660",
+    "test_evaluate_comparison.py": "f726b191bbca73c5a3bde875e3c0007ce2599a67022337c9439b1fd8014d2b43",
     "test_external_folds.py": "2a9324606da646ffa03407cca5de9e63b1e7c2d9d418dbefb93fc0410c676060",
     "test_extract.py": "4c883b7202213aabedbbaef1665da18448986ffaac4fea9578bc2895e085904a",
     "test_features.py": "64f2c436fae1ec2be9430be94cac399819e398d09320d3aba32ddd09f90751a2",
@@ -1829,8 +1830,8 @@
   "wi03_measurement_lock": {
     "gate": "G1 Measurement lock",
     "artifact": "locks/measurement_lock.json",
-    "lock_hash": "9afbfcff698ec49c56dce8ce56dd73f46adf8217ce8eb3f26250c0f0aaa8033a",
-    "locked_at_utc": "2026-09-25T03:21:45Z",
+    "lock_hash": "2d22501194567ed4689e21dcee9f2602b33191d6c3815c8635441541c55ff658",
+    "locked_at_utc": "2026-09-25T04:18:29Z",
     "module": "mobse/v2/locks.py",
     "module_sha256": "4a3dae547c0744dbf58e24f2d53ec46c4c71577bc71a502f130bd70b1272a812",
     "builder": "scripts/h197/18_build_measurement_lock.py",
@@ -1846,7 +1847,7 @@
         "folds": null,
         "reason": "계획서 §9 — PIOP2 는 held-out 외부 코호트다. fold 를 만들지 않는다."
       },
-      "code_hash": "b7fc265aa500b0c0cd6a771aee82b1a128125f98d7a05a5f0fa8d1e2be0975ef",
+      "code_hash": "45d312b905ddb2e58a9f6cf283a3be334996eaa9839d0448b0adad1ec609bd7e",
       "configs": {
         "external": "7daa536b",
         "main": "85556f56",
@@ -1898,7 +1899,7 @@
     ],
     "tests": "tests/v2/test_locks.py (18건)",
     "artifacts": {
-      "locks/measurement_lock.json": "f1832b670d63d79c6d44468f5f26fdeb9d8d7abdb4ac6a5cd0e1ad36e2653ff0",
+      "locks/measurement_lock.json": "e64481894c31530fede67cc1356ee5f05e52c09e536fdb2ca279afb2dd0a25de",
       "locks/superseded/measurement_lock_2026-09-18T00:45:43Z.json": "abe6a9fc5e978274c8061ff90df7664140a24e55be85030abb3da4a97a8294f5",
       "locks/superseded/measurement_lock_2026-09-18T02:56:21Z.json": "b8a45c28e2fbece236f662fa993828733e5be4e2cb9980f4044514516243179e",
       "locks/superseded/measurement_lock_2026-09-18T02:57:01Z.json": "95d43ef2db9c8431c279aacfd4c6ffaf48792a3079bfadeea9a452789b2aef44",
@@ -1929,7 +1930,8 @@
       "locks/superseded/measurement_lock_2026-09-24T11:21:47Z.json": "e2f4af52cf1574bfaac91b4476257f06e74fd44296324f016cd6c549d1497aec",
       "locks/superseded/measurement_lock_2026-09-24T13:22:33Z.json": "50d6e8d8a9af1fe160703765c964380ebbfb39a9d146aff445910d218f462777",
       "locks/superseded/measurement_lock_2026-09-25T01:25:01Z.json": "5f1b70981dbe2c87beb9b48201abaef8c89414e3a19a5a12215558a268224dc5",
-      "locks/superseded/measurement_lock_2026-09-25T02:20:57Z.json": "9b9dedf6d8cfd23ce6d141e691c5b6840a1e748f3bf9d9ebe173c10dc867a13c"
+      "locks/superseded/measurement_lock_2026-09-25T02:20:57Z.json": "9b9dedf6d8cfd23ce6d141e691c5b6840a1e748f3bf9d9ebe173c10dc867a13c",
+      "locks/superseded/measurement_lock_2026-09-25T03:21:45Z.json": "f1832b670d63d79c6d44468f5f26fdeb9d8d7abdb4ac6a5cd0e1ad36e2653ff0"
     },
     "supersedes": {
       "lock_hash": "6e68eb939bebebc1eac27927f1b21a68e89d994c24d7b3b2aa35366f046c2d09",
@@ -1968,7 +1970,8 @@
       "aee2b7931538 (선택 CLI 입력 검사 공통화)",
       "472bee47adcd (결정 17 external_folds.json)",
       "edf57e93d6dd (결정 17 명세 7a fit·fit-s outer 9 배선)",
-      "9afbfcff698e (결정 17 명세 7b 선택 CLI 3종 outer 9 배선, 현행)"
+      "9afbfcff698e (결정 17 명세 7b 선택 CLI 3종 outer 9 배선)",
+      "2d2250119456 (보조 비교 칸 S·NG·SG outer 예측 집계 함수, 현행)"
     ],
     "chain_note": "가운데 항목은 --reason 없이 재생성한 것이다. 그 직후 builder 에 --reason 필수 검사를 넣고 다시 만들었다. 지우지 않고 사슬에 남긴다",
     "builder_now_requires_reason": "--overwrite 에 --reason 이 없으면 거부한다. 변경 정책이 '새 잠금에 supersedes 와 사유를 남긴다'고 정한다"
@@ -2549,7 +2552,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev52 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev53 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -3472,5 +3475,31 @@
       "mutation_check": "13/13 (.backup/slot_1215b/mut_sel_ext.py, -B, 공유 가드는 시험 파일 각각)",
       "report_appendix": "AZ"
     }
+  },
+  "comparison_aggregation_rev53": {
+    "what": "evaluate.aggregate_comparison_runs (S·NG·SG) + comparison_contrasts (A−S)",
+    "plan_basis": [
+      "§8 run 집계 규칙 (seed 평균 → window 평균, threshold 0.5, 동일값 class 1)",
+      "§8 보조 contrast 목록의 A−S (95% 기술적 CI)",
+      "§6·§9 구조 비교는 보고 대상으로만 — contrast 없음"
+    ],
+    "implementation_choices": [
+      "subject 별 seed 집합 (S 는 fold 마다 logistic/MLP 가 다를 수 있음), 집합 정확 일치",
+      "aggregate_runs 가 WindowPrediction 아닌 행 거부",
+      "NG·SG 는 칸별 b_i·BA 만 — A−NG·A−SG 는 결정 요청"
+    ],
+    "tests": {
+      "test_evaluate_comparison.py": [
+        0,
+        17
+      ]
+    },
+    "mutation_check": "15/15 (.backup/slot_1315b/mut_cmp.py, -B)",
+    "not_done": [
+      "CLI 배선 (s_window_predictions / NG·SG window_predictions → 집계 → 통계)",
+      "A−S CI 계산 배선",
+      "A−NG·A−SG contrast (계획서에 없음 — 결정 요청)"
+    ],
+    "report_appendix": "BA"
   }
 }

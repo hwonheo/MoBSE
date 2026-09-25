@@ -1,7 +1,7 @@
 {
   "schema_version": "measurement_lock_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "locked_at_utc": "2026-09-25T04:18:29Z",
+  "locked_at_utc": "2026-09-25T03:21:45Z",
   "gate": "G1 Measurement lock",
   "work_instruction": "WI-03",
   "roots": {
@@ -269,14 +269,14 @@
       }
     },
     "code": {
-      "code_hash": "45d312b905ddb2e58a9f6cf283a3be334996eaa9839d0448b0adad1ec609bd7e",
+      "code_hash": "b7fc265aa500b0c0cd6a771aee82b1a128125f98d7a05a5f0fa8d1e2be0975ef",
       "modules": {
         "__init__.py": "c884876e4717224c87d95b1fd4b3821863307e65f9146eac605bc9a96375c9ab",
         "baselines.py": "4dc480f05a2021d2133cf77826c6e1956a6fc01b55195a1172431958768a7748",
         "cli.py": "04de9062d1766f6e8af881af7b781d76106ffb59f08e9922b27be5de4e5ce64a",
         "cohort.py": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
         "config.py": "0a61104787f5664fa3fda0c860adb18e96590da97dcdd906a593564a54fa9746",
-        "evaluate.py": "bde539b695a261512f5846afe2b812b377499fd024736a6518f829118f3848c6",
+        "evaluate.py": "a11a324f851603edb0e93b21c2cafe8b098529a485f17fe0321876825120e9b7",
         "extract.py": "45425fc516cc790e45e911af11c03fe5937c573fbfed3985e4bc6e7d5e7316f9",
         "features.py": "f9c81ef8155776f3d1971304ef32baf99b94b5f7bf100c0067f82dd1600b8f10",
         "fitting.py": "12ad51ceed897ab656dbf345d4380847faf96e090657923563dadb7db11929bb",
@@ -330,9 +330,9 @@
     "formula": "126 subjects x 2 tasks x 4 windows x 3 seeds x 4 cells"
   },
   "supersedes": {
-    "lock_hash": "9afbfcff698ec49c56dce8ce56dd73f46adf8217ce8eb3f26250c0f0aaa8033a",
-    "locked_at_utc": "2026-09-25T03:21:45Z",
-    "reason": "remaining work 2-c: evaluate gains aggregate_comparison_runs for S, NG and SG outer predictions (plan section 8 run rule, subject-wise seed sets because S logistic has no seed) and comparison_contrasts for A minus S only; aggregate_runs now rejects non-A-D predictions; no fit; main pool not consumed"
+    "lock_hash": "edf57e93d6ddb2d30e20cf99bb132a141b5928abdecc21138c45cfa51d852795",
+    "locked_at_utc": "2026-09-25T02:20:57Z",
+    "reason": "decision 17 spec 7 (b): select-ad, select-comparator and select-s read external_folds.json next to --splits for outer fold 9, take inner boundaries from it and check the fits recorded external_split_hash and sha256 against it; outer 0-4 unchanged, (9,9) plan recorded only; no fit; main pool not consumed"
   },
-  "lock_hash": "2d22501194567ed4689e21dcee9f2602b33191d6c3815c8635441541c55ff658"
+  "lock_hash": "9afbfcff698ec49c56dce8ce56dd73f46adf8217ce8eb3f26250c0f0aaa8033a"
 }

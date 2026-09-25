@@ -4366,3 +4366,34 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 - 실자료 외부 inner fit·선택 (승인 전 금지) · 외부 inner 창 수·시간 실측 없음.
 - (9, 9) external final 의 PIOP2 평가 배선 — 여전히 거부. 결정 17 명세 7 은 이것으로 끝나고, external final 은 범위 밖으로 남는다.
 - `run_select_s` 의 입력 검사는 여전히 `_load_inner_fit` 과 따로 있다 (입력 계약이 달라 rev49 공통화 대상 아니었음) — 외부 대조는 같은 helper `_check_external_record` 를 쓴다.
+
+
+# 부록 BA — 보조 비교 칸 (S·NG·SG) outer 예측 집계 함수 (rev53, 2026-09-25 13:15 예약 슬롯)
+
+남은 작업 2-c 의 "구조 비교·S outer 예측 집계 경로" 중 **라이브러리 집계 함수** 조각이다. 새 결정 아님 — 계획서 §8 의 run 집계 규칙을 보조 비교 칸에 적용. 합성 자료 시험만, 실자료 fit 없음, main pool 미소비. CLI 배선 (`evaluate`/`report` 확장 또는 새 하위 명령) 은 하지 않았다.
+
+## BA.1 계획서 근거 (grep, 13:1x)
+
+- §8: "각 window의 세 seed 확률을 평균하고, 각 task의 네 window를 평균해 subject당 두 run probability를 얻는다. threshold=0.5이며 동일값은 class 1" · "A−S, interaction, macro-F1, AUROC, log loss, calibration, subgroup, routing diagnostics는 보조이며 95% 기술적 CI로 표시한다".
+- §6: "no-graph FC comparator와 실제 parameter/비용을 함께 보고한다". §9: 보조 분석 목록에 "no-graph/average graph".
+- 따라서 **A−S 는 계획서가 이름으로 정한 보조 contrast**, 구조 비교 (NG·SG) 는 보조 분석으로 나열만 되고 **A−NG·A−SG 같은 contrast 는 계획서에 없다** → 이번 조각은 NG·SG 의 칸별 b_i·BA 만 내고 contrast 는 만들지 않았다 (결정 요청 BA.4).
+
+## BA.2 구현 (`mobse/v2/evaluate.py`)
+
+- `aggregate_runs` 본체를 `_aggregate_grid(..., seeds_for, n_seeds)` 로 옮김. A–D 경로는 `seeds_for → None` 으로 **seed 개수만** 맞추는 기존 동작 그대로 (기존 시험 3 파일 evaluate_cli·cli_evaluate·cli_report 62 통과, seed 값 거부는 CLI 몫 — 시험으로 고정). 추가: `aggregate_runs` 는 `WindowPrediction` 이 아닌 행을 거부 (보조 비교 칸이 A–D 집계로 새지 않게).
+- 새 `COMPARISON_CELLS = ("S", "NG", "SG")` (= `("S",) + baselines.COMPARATOR_ORDER`, 시험 고정), `COMPARISON_CONTRASTS = ("A_minus_S",)`.
+- 새 `ComparisonWindowPrediction` (cell ∈ COMPARISON_CELLS, `model_seed=None` 은 S 만).
+- 새 `aggregate_comparison_runs(preds, *, cell, seeds_by_subject)`: **구현 선택 (표시함)** — S 는 outer fold 마다 선택 후보가 다를 수 있어 (logistic 은 seed 없이 한 번, MLP 는 `train.MODEL_SEEDS` 3 개 — `baselines.s_outer_plan`, 부록 AS) seed 를 **subject 별 집합** 으로 받고, 그 집합과 **정확히** 같아야 한다 (A–D 는 개수만). 칸 섞임·예측 subject ≠ 지도 subject·빈/중복 seed 목록·None 이 S logistic 단독 밖에 있는 경우를 거부. run 확률은 A–D 와 같은 `statistics.run_probability` (window 안 seed 평균 → window 평균), 기록 `n_seeds` 는 실제 seed 수.
+- 새 `comparison_contrasts(ad_runs, s_runs)`: A−S 의 subject 별 b 차이. subject 집합이 다르면 거부 (paired 불가). CI 계산 (§8 의 95% 기술적 CI) 은 기존 `statistics` 함수를 쓰면 되지만 이번에 배선하지 않았다.
+
+## BA.3 시험·돌연변이·잠금
+
+- 새 `tests/v2/test_evaluate_comparison.py` **17**: logistic·MLP subject 가 섞인 S 손계산 (run p·n_seeds·BA 2.5/3), 동일값 class 1, NG seed 3, seed 집합 ≠ (42,43,45), seed 누락, window 누락, (window, seed) 한 칸 누락, 중복, subject 추가/누락, 칸 섞임·모르는 칸, 두 예측 형식 교차 거부, seed 없음 규칙, 빈/중복 seed 목록, A−S 손계산 (+0.5/+1.0/−0.5), A−S subject 불일치, A–D 는 여전히 seed 개수만.
+- 돌연변이 `.backup/slot_1315b/mut_cmp.py` (`-B`·`PYTHONDONTWRITEBYTECODE=1`, count==1, 원본 복원): **15/15 검출**. 시작 전·끝·rsync 전 Mac `*.pyc` 0.
+- 관련 5 파일 (evaluate_cli·cli_evaluate·cli_report·config_consumption·evaluate_comparison) Mac 122 passed.
+- 재잠금 `9afbfcff698e` → **`2d2250119456`** (2026-09-25T04:18:29Z), code_hash `b7fc265aa500` → `45d312b905dd`. 19번 45/45, 25번 창 4,728. split_hash `ace5f4a4…`·external_split_hash `40e50350…`·config_hash 불변. gate evidence **rev53** (`comparison_aggregation_rev53`).
+
+## BA.4 결정 요청 · 확인하지 못한 것
+
+- **결정 요청**: 구조 비교 NG·SG 를 A 와 paired contrast (A−NG, A−SG, 95% 기술적 CI) 로 보고할지, 칸별 BA·비용만 보고할지. 계획서 §6·§9 는 보고 대상으로만 두고 contrast 를 정하지 않았다. 슬롯 권고: **A−NG·A−SG 를 A−S 와 같은 보조 contrast 로 추가** (같은 paired bootstrap seed 9001, 95% 기술적 CI; primary 가 아님을 표시) — 계산이 이미 있는 함수로 되고, 칸별 BA 만으로는 "graph prior 없이/단일 graph 로 얼마나 되는가" 를 subject 짝 없이 비교하게 된다. 결정 전에는 NG·SG contrast 를 만들지 않는다.
+- CLI 배선 (S·NG·SG outer 산출물 → `ComparisonWindowPrediction` → 집계 → 통계) 없음 — S 는 `s_window_predictions.jsonl`, NG·SG 는 fit `window_predictions.jsonl` 로 입력 계약이 달라 다음 조각. 실자료 outer 예측 없음.
