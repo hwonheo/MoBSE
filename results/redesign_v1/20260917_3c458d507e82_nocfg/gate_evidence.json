@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "ee0a4d219b24b736bc2eb310de76a0f90d5ba8bf",
-  "timestamp_utc": "2026-09-25T09:27:38Z",
-  "revision": 58,
-  "supersedes_sha256": "9be6e5930b8ff4a1cd7dc9f35e37babf0a53ffcce3fa3e2e68ee95a82427060a",
-  "revision_reason": "rev58 (2026-09-25): 남은 작업 6 — 계획서 §7 \"pilot에서 peak memory·시간을 측정해 자원 계획을 만든다\" 에 따라 pilot 기술 분할 (outer 0 · inner 0) 에서 A–D·NG·SG fit 비용을 5,000 update 로 실측하고 결정 15 값으로 예산 재계산 (resource_budget.md 9절, 부록 BF). G1 check 'resource plan from pilot measurement' 판정은 바꾸지 않음. 코드·시험·잠금 불변 (78ddd887). main pool 미소비. 새 결정 아님",
+  "git_head": "e8933dc30869967fc29a7b0b56c54b280fa42d9d",
+  "timestamp_utc": "2026-09-25T10:29:23Z",
+  "revision": 59,
+  "supersedes_sha256": "ea2b4ba2cc8b448d094998b59201346c76ed73dce89e148bcf845368a7dff252",
+  "revision_reason": "rev59 (2026-09-25): 남은 작업 5 — 부록 Z.7·AA.5 미확인 항목 '결합 설계 조건수' 를 v3 manifest 1,326 run 레코드 (측정 1,291) 에서 설계행렬만 재구성해 전수 측정 (부록 BG). rank 결손 0, manifest rank·DOF 불일치 0, ok run 절단 여유 ≥7.0e4. 코드·시험·잠금 불변 (78ddd887). BOLD·라벨·분할 미사용, fit 없음. 새 결정 아님",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -102,7 +102,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "de5423bac4b1e247dcc197196701881e2e92c9e04426a7ae5459d1f27f3f23ea"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "76579b98be9f16a69d1367b4bcecb1f2ca4815e178344de2658fed609574c5d3"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -2562,7 +2562,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev58 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev59 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -3742,5 +3742,114 @@
       "G1 check 판정 변경 여부 (선생님 확인)"
     ],
     "report_appendix": "BF"
+  },
+  "design_conditioning_rev59": {
+    "basis": [
+      "부록 Z.7: 1,295 run 전체에서 동시 회귀의 수치 안정성(결합 설계 조건수)을 재지 않았다",
+      "부록 AA.5: 결합 설계 조건수(수치 안정성)는 여전히 1,295 run 전체에서 재지 않았다"
+    ],
+    "method": "10_wi02_extract.process_run 과 같은 설계 함수 순서, confounds 만 읽음; kappa = sigma_max/sigma_rank (numpy 절단 규칙), 원 설계·열 정규화; lstsq 잔차 vs SVD 사영 잔차 (난수 Y n×100)",
+    "code": "h197 HEAD e8933dc 사본, python -B, 583 s",
+    "counts": {
+      "records": 1326,
+      "skipped": 31,
+      "measured": 1291,
+      "ok": 1182,
+      "design_build_excluded": 4,
+      "manifest_compared": 1289,
+      "manifest_mismatches": 0,
+      "rank_deficient": 0
+    },
+    "ok_runs": {
+      "ds002785/emomatching": {
+        "n": 183,
+        "cond_eff_median_max": [
+          27043000.0,
+          421498000.0
+        ],
+        "cond_eff_scaled_median_max": [
+          187.8,
+          639.3
+        ],
+        "cut_margin_min": 79146.2,
+        "resid_rel_diff_max": 3.165701589285972e-08
+      },
+      "ds002785/restingstate": {
+        "n": 202,
+        "cond_eff_median_max": [
+          38735000.0,
+          134649000.0
+        ],
+        "cond_eff_scaled_median_max": [
+          318.7,
+          4603649.5
+        ],
+        "cut_margin_min": 69681.1,
+        "resid_rel_diff_max": 1.2175554353457218e-08
+      },
+      "ds002785/workingmemory": {
+        "n": 176,
+        "cond_eff_median_max": [
+          23436000.0,
+          99725000.0
+        ],
+        "cond_eff_scaled_median_max": [
+          303.4,
+          1270.7
+        ],
+        "cut_margin_min": 278765.3,
+        "resid_rel_diff_max": 4.1888448931877025e-09
+      },
+      "ds002790/emomatching": {
+        "n": 204,
+        "cond_eff_median_max": [
+          22998000.0,
+          105253000.0
+        ],
+        "cond_eff_scaled_median_max": [
+          186.8,
+          458.1
+        ],
+        "cut_margin_min": 316949.2,
+        "resid_rel_diff_max": 7.513282666089208e-09
+      },
+      "ds002790/restingstate": {
+        "n": 203,
+        "cond_eff_median_max": [
+          21461000.0,
+          124085000.0
+        ],
+        "cond_eff_scaled_median_max": [
+          375.4,
+          658.1
+        ],
+        "cut_margin_min": 151226.6,
+        "resid_rel_diff_max": 7.083444632583479e-09
+      },
+      "ds002790/workingmemory": {
+        "n": 214,
+        "cond_eff_median_max": [
+          23280000.0,
+          310310000.0
+        ],
+        "cond_eff_scaled_median_max": [
+          284.8,
+          564.7
+        ],
+        "cut_margin_min": 90707.8,
+        "resid_rel_diff_max": 1.9781629203722646e-08
+      }
+    },
+    "outputs_sha256": {
+      "design_cond.jsonl": "e4488380d43d1fb442c45b060c426231ef78c6528da8cddaea5de2acbc6403d5",
+      "summary.json": "1888b4a91a97ff166bbb626d7626007c5fccbaf72538e7e17e087b5903bf7bb0",
+      "probe_worst.txt": "4117c9b18f01828afd38c9a3ad7df9531d6aa09910f1c93e20297075446c696e"
+    },
+    "output_location": "h197 $HOME/slot/dc_1915b/ (Mac .backup/slot_1915b/out/ 사본, 커밋 안 함)",
+    "not_done": [
+      "통과대역 밖 잔여 전력 (BOLD/창 필요)",
+      "실제 ROI 잔차와의 대조"
+    ],
+    "report_appendix": "BG"
   }
 }
