@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "bbb4e67c92de1392a6e95272eddae2f9fa3553e2",
-  "timestamp_utc": "2026-09-25T12:20:02Z",
-  "revision": 60,
-  "supersedes_sha256": "c9f1168082fdae687941283507e8396d4dab0ec904cc8d3f81d2f687289efd7d",
-  "revision_reason": "rev60 (2026-09-25): 남은 작업 5-b — 부록 AA.5 미확인 항목 '재추출 창의 통과대역 밖 잔여 전력' 을 pilot 31명 창 372 (계획서 §3.2 pilot 기술 검증) 에서 측정 (부록 BH). 0.2-0.25 Hz 전력 비율 중앙 0.004 (필터 기대값 0.006, 필터 누락 기대값 0.19). 코드·시험·잠금 불변 (78ddd887). main pool 창 미사용, 라벨·fold·fit 없음. 새 결정 아님",
+  "git_head": "1e399ec1f6e241dbcfe4fb5c32d77124296b1392",
+  "timestamp_utc": "2026-09-25T13:37:52Z",
+  "revision": 61,
+  "supersedes_sha256": "f954462957dd9c2907253e852bb9aa6a6a5df33f19cbb74a492e2069755e1839",
+  "revision_reason": "rev61 (2026-09-25): 남은 작업 6 잔여 — pilot 기술 분할 fit 비용 칸별 반복 (칸당 3회) 과 동시 실행 처리량 (칸 A, k=2·4) 측정 (부록 BI, resource_budget.md 9.1). 같은 인자 반복에서 A·C·D s/epoch 최대 2.7 배 변동 — rev58 A·C 차이는 칸 차이 아님. k=4 처리량 2.23 배 (pilot 규모). 순차 상한 33.5 → 34.0 h. G1 check 판정 불변. 코드·시험·잠금 불변 (78ddd887). main pool 미소비. 새 결정 아님",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -102,7 +102,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "ca6569ff1c116e0c1de092f09a10ff28dc36ace4c48eb748b1639866af91637d"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "4e621551edec9b9f45547243c20d971ffac90af924e69a206943b32e1dab7b3b"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -197,7 +197,7 @@
       "artifact_hashes": {
         "locks/measurement_lock.json": "dc0c9acaa14d646aff0006bd422347ef91ddacad63ecdbe7fe650adc2b5cd5d2",
         "reports/precision_scenarios.md": "a5d576edeb89a1223d79f97067490b85ac16fe56d516b92b56b9b4e33724aa69",
-        "reports/resource_budget.md": "5983bfc1d7966d1e954feab593aa79b9a36391f3fb6bbf84391e613460adb9fd",
+        "reports/resource_budget.md": "3050f05cf285e62b5b57ebb7693091942b9ea15d0f2cfadcb5f69cada450b6d7",
         "provenance/wi03_precision/precision_scenarios.json": "67284e5991af25775ee569c32e2b51e75f8833ea9f0874d477b9d68d8ae7817e",
         "provenance/wi03_resource/resource_benchmark.json": "3a6bc49aae468d8d8d3cd8c519007b0963bd19c27c7077e72c001b423780511a"
       },
@@ -2050,7 +2050,7 @@
     },
     "binding_constraint": "계산·메모리·저장공간이 아니다. 209.7 GiB 원본이 이중화 없는 디스크 한 장 위에 있고 그 디스크가 1,932 섹터를 읽지 못한다. 파생물이 54.7 MiB 뿐이라 WI-02 재추출 외에는 원본 없이 다른 기계에서 돌릴 수 있다",
     "artifacts": {
-      "reports/resource_budget.md": "5983bfc1d7966d1e954feab593aa79b9a36391f3fb6bbf84391e613460adb9fd",
+      "reports/resource_budget.md": "3050f05cf285e62b5b57ebb7693091942b9ea15d0f2cfadcb5f69cada450b6d7",
       "provenance/wi03_resource/resource_benchmark.json": "3a6bc49aae468d8d8d3cd8c519007b0963bd19c27c7077e72c001b423780511a"
     }
   },
@@ -2562,7 +2562,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev60 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev61 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -4003,5 +4003,82 @@
       "기준 seed 반복"
     ],
     "report_appendix": "BH"
+  },
+  "resource_plan_repeat_concurrency_rev61": {
+    "basis": [
+      "계획서 §7: pilot에서 peak memory·시간을 측정해 자원 계획을 만든다",
+      "부록 BF 미측정: 칸 간 차이 (반복 1회), 동시 실행 처리량"
+    ],
+    "split": "derivatives_v2/pilot_tech/splits/folds.json outer 0 · inner 0 (pilot 기술 분할, main pool 미사용)",
+    "code": "HEAD 1e399ec 사본 (git archive mobse), python -B",
+    "window_utc": "2026-09-25T13:16:08Z/13:34:55Z",
+    "per_cell_seconds_per_epoch": {
+      "A": {
+        "rev58": 0.06,
+        "rep1": 0.0604,
+        "rep2": 0.0458
+      },
+      "B": {
+        "rev58": 0.0542,
+        "rep1": 0.0541,
+        "rep2": 0.0538
+      },
+      "C": {
+        "rev58": 0.0339,
+        "rep1": 0.0583,
+        "rep2": 0.0608
+      },
+      "D": {
+        "rev58": 0.0539,
+        "rep1": 0.0442,
+        "rep2": 0.0201
+      },
+      "NG": {
+        "rev58": 0.0343,
+        "rep1": 0.0344,
+        "rep2": 0.0341
+      },
+      "SG": {
+        "rev58": 0.0481,
+        "rep1": 0.047,
+        "rep2": 0.048
+      }
+    },
+    "concurrency": {
+      "2": {
+        "wall_s": 131.9,
+        "fits_per_hour": 54.6,
+        "seconds_per_epoch": [
+          0.061,
+          0.0582
+        ]
+      },
+      "4": {
+        "wall_s": 154.7,
+        "fits_per_hour": 93.1,
+        "seconds_per_epoch": [
+          0.0404,
+          0.0367,
+          0.0584,
+          0.0427
+        ]
+      }
+    },
+    "sequential_A_fits_per_hour": 41.7,
+    "estimate_hours": {
+      "train_lower": 14.1,
+      "train_upper": 34.0,
+      "fixed_upper": 5.2
+    },
+    "summary_sha256": "33dc8a73d2971d309e6398aaeaf43112db4d40ba8450f98eb5530b96ae1c4fc0",
+    "output_location": "h197 $HOME/slot/pc_2215c/ (Mac .backup/slot_2215c/out/ 사본, 커밋 안 함)",
+    "g1_check_result_changed": false,
+    "not_done": [
+      "반복 변동 원인",
+      "main 규모 동시 실행",
+      "S 후보 fit 시간",
+      "G1 check 판정 변경 여부 (선생님 확인)"
+    ],
+    "report_appendix": "BI"
   }
 }
