@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "e8933dc30869967fc29a7b0b56c54b280fa42d9d",
-  "timestamp_utc": "2026-09-25T10:29:23Z",
-  "revision": 59,
-  "supersedes_sha256": "ea2b4ba2cc8b448d094998b59201346c76ed73dce89e148bcf845368a7dff252",
-  "revision_reason": "rev59 (2026-09-25): 남은 작업 5 — 부록 Z.7·AA.5 미확인 항목 '결합 설계 조건수' 를 v3 manifest 1,326 run 레코드 (측정 1,291) 에서 설계행렬만 재구성해 전수 측정 (부록 BG). rank 결손 0, manifest rank·DOF 불일치 0, ok run 절단 여유 ≥7.0e4. 코드·시험·잠금 불변 (78ddd887). BOLD·라벨·분할 미사용, fit 없음. 새 결정 아님",
+  "git_head": "bbb4e67c92de1392a6e95272eddae2f9fa3553e2",
+  "timestamp_utc": "2026-09-25T12:20:02Z",
+  "revision": 60,
+  "supersedes_sha256": "c9f1168082fdae687941283507e8396d4dab0ec904cc8d3f81d2f687289efd7d",
+  "revision_reason": "rev60 (2026-09-25): 남은 작업 5-b — 부록 AA.5 미확인 항목 '재추출 창의 통과대역 밖 잔여 전력' 을 pilot 31명 창 372 (계획서 §3.2 pilot 기술 검증) 에서 측정 (부록 BH). 0.2-0.25 Hz 전력 비율 중앙 0.004 (필터 기대값 0.006, 필터 누락 기대값 0.19). 코드·시험·잠금 불변 (78ddd887). main pool 창 미사용, 라벨·fold·fit 없음. 새 결정 아님",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -102,7 +102,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "76579b98be9f16a69d1367b4bcecb1f2ca4815e178344de2658fed609574c5d3"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "ca6569ff1c116e0c1de092f09a10ff28dc36ace4c48eb748b1639866af91637d"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -2562,7 +2562,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev59 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev60 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -3851,5 +3851,157 @@
       "실제 ROI 잔차와의 대조"
     ],
     "report_appendix": "BG"
+  },
+  "stopband_residual_power_rev60": {
+    "basis": [
+      "부록 AA.5: 재추출 창의 신호 수준 점검(통과대역 밖 잔여 전력)은 하지 않았다 — 합성 시험(Z.3)에만 근거",
+      "계획서 §3.2: filter 종류·차수·padding·regression 순서는 pilot 기술 검증에서 기록하고 main 전에 동결한다"
+    ],
+    "scope": "PIOP1 pilot 31명 (folds.json pilot.subjects), ok run 93, 창 372; main pool ok run 468 건너뜀",
+    "method": "창 30 frame (2 s 격자) rfft, 비-DC 전력 중 k13-15 (0.2-0.25 Hz) 비율 (직사각·Hann); 기준 ref_full (결합 설계) / ref_nuis (nuisance 만), 난수 Y n×100, 추출과 같은 함수 순서",
+    "code": "h197 HEAD bbb4e67 사본, python -B, 27 s",
+    "window_sha_match": "372/372",
+    "by_task": {
+      "restingstate": {
+        "n_win": 124,
+        "n_sub": 31,
+        "tr": 0.75,
+        "real_rect": [
+          0.0038,
+          0.0009,
+          0.0273,
+          0.1236
+        ],
+        "real_hann": [
+          0.0014,
+          0.0004,
+          0.0063,
+          0.0488
+        ],
+        "ref_full_rect": [
+          0.0057,
+          0.0027,
+          0.0112,
+          0.1432
+        ],
+        "ref_full_hann": [
+          0.0032,
+          0.0022,
+          0.0053,
+          0.0728
+        ],
+        "ref_nuis_rect": [
+          0.1848,
+          0.1462,
+          0.2299,
+          0.7018
+        ],
+        "ref_nuis_hann": [
+          0.1736,
+          0.1316,
+          0.2408,
+          0.809
+        ],
+        "real_gt_refnuis_med_rect": 0,
+        "real_gt_reffull_med_rect": 42
+      },
+      "emomatching": {
+        "n_win": 124,
+        "n_sub": 31,
+        "tr": 2.0,
+        "real_rect": [
+          0.0041,
+          0.0012,
+          0.0167,
+          0.1244
+        ],
+        "real_hann": [
+          0.0027,
+          0.0008,
+          0.0072,
+          0.0689
+        ],
+        "ref_full_rect": [
+          0.0063,
+          0.0032,
+          0.0103,
+          0.18
+        ],
+        "ref_full_hann": [
+          0.0037,
+          0.0021,
+          0.0061,
+          0.0664
+        ],
+        "ref_nuis_rect": [
+          0.1913,
+          0.1381,
+          0.24,
+          0.7342
+        ],
+        "ref_nuis_hann": [
+          0.1742,
+          0.1335,
+          0.2236,
+          0.8751
+        ],
+        "real_gt_refnuis_med_rect": 0,
+        "real_gt_reffull_med_rect": 28
+      },
+      "workingmemory": {
+        "n_win": 124,
+        "n_sub": 31,
+        "tr": 2.0,
+        "real_rect": [
+          0.0038,
+          0.0015,
+          0.0169,
+          0.138
+        ],
+        "real_hann": [
+          0.0015,
+          0.0007,
+          0.0048,
+          0.034
+        ],
+        "ref_full_rect": [
+          0.0059,
+          0.0037,
+          0.0107,
+          0.1832
+        ],
+        "ref_full_hann": [
+          0.003,
+          0.0015,
+          0.0045,
+          0.0835
+        ],
+        "ref_nuis_rect": [
+          0.187,
+          0.1445,
+          0.2258,
+          0.6951
+        ],
+        "ref_nuis_hann": [
+          0.1765,
+          0.1359,
+          0.2276,
+          0.8842
+        ],
+        "real_gt_refnuis_med_rect": 0,
+        "real_gt_reffull_med_rect": 22
+      }
+    },
+    "outputs_sha256": {
+      "stopband_power.jsonl": "e78828ff728c9f5ead29a2f0cad3d544f3ac07574cdc5469f15e0e10e9964af6",
+      "summary.json": "9833a505cb99a53d619ccbf2e9bab90821686d293e070a9535298e34e7de625a"
+    },
+    "output_location": "h197 $HOME/slot/sp_2115b/ (Mac .backup/slot_2115b/out/ 사본, 커밋 안 함)",
+    "not_done": [
+      "main pool·PIOP2 창",
+      "차단대역 하단 (<0.008 Hz) 과 rest 원 TR 0.25-0.67 Hz (창 격자에서 관측 불가)",
+      "기준 seed 반복"
+    ],
+    "report_appendix": "BH"
   }
 }
