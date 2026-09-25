@@ -101,11 +101,12 @@ def ws(tmp_path):
             "subjects": subj_path, "folds": folds_path}
 
 
-def _ns(ws, out, *, cand=S1, setting="C=1", inner=0, seed=None, epochs=None):
+def _ns(ws, out, *, cand=S1, setting="C=1", outer=0, inner=0, seed=None,
+        epochs=None):
     argv = ["fit-s", "--config", str(REPO / "configs/redesign_v1/main.yaml"),
             "--splits", str(ws["folds"]), "--subjects", str(ws["subjects"]),
             "--windows", str(ws["windows"]), "--output-dir", str(out),
-            "--candidate", cand, "--setting-id", setting, "--outer-fold", "0",
+            "--candidate", cand, "--setting-id", setting, "--outer-fold", str(outer),
             "--inner-fold", str(inner)]
     if seed is not None:
         argv += ["--model-seed", str(seed)]
@@ -310,3 +311,51 @@ def test_s_window_predictions_schema_checks_hash_and_key():
         M.validate_record("s_window_predictions", {**rec, "model_sha256": "nothex"})
     assert M._primary_key_fields("s_window_predictions") == (
         "candidate", "setting_id", "window_key")
+
+
+# ------------------------------------------------ 결정 17 명세 7 — outer 9 --
+
+
+def _with_external(ws):
+    """fixture folds.json 에 외부 분할 입력을 채우고 옆에 external_folds.json 을 쓴다."""
+    from mobse.v2.splits import build_external_folds, make_groups
+
+    folds = json.loads(ws["folds"].read_text())
+    subs = sorted(set(folds["pilot"]["subjects"]) | set(folds["main_pool"]["subjects"]))
+    groups = make_groups(subjects=subs)
+    pilot = set(folds["pilot"]["subjects"])
+    folds["pilot"]["groups"] = [g.group_id for g in groups if set(g.subjects) & pilot]
+    folds["seeds"] = {"external": 20262000}
+    ws["folds"].write_text(json.dumps(folds))
+    ext = build_external_folds(groups, folds)
+    path = ws["folds"].parent / "external_folds.json"
+    path.write_text(json.dumps(ext))
+    return ext, path
+
+
+@pytest.mark.parametrize("inner", [0, 1, 2])
+def test_external_inner_s_fit_takes_its_boundary_from_external_folds(ws, inner):
+    ext, path = _with_external(ws)
+    res, out = _run(ws, f"ext{inner}", outer=9, inner=inner)
+    assert res["role"] == "inner" and res["outer_fold"] == 9
+    rep = json.loads((out / "s_fit_report.json").read_text())
+    rec = ext["inner"][inner]
+    assert rep["fit_subjects"] == list(rec["train_subjects"])
+    assert rep["folds"]["n_eval_subjects"] == len(rec["val_subjects"])
+    assert rep["external_split_hash"] == ext["external_split_hash"]
+    assert rep["external_folds_sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
+    rows = [json.loads(l) for l in (out / "s_window_predictions.jsonl").read_text().splitlines()]
+    assert {r["canonical_subject"] for r in rows} == set(rec["val_subjects"])
+
+
+def test_external_s_fit_without_external_folds_file_is_refused(ws):
+    with pytest.raises(CLIError, match="--splits 옆 external_folds.json 가 필요하다"):
+        _run(ws, "ext_missing", outer=9, inner=0)
+
+
+def test_main_s_fit_ignores_external_folds(ws):
+    _with_external(ws)
+    _, out = _run(ws, "main_with_ext")
+    rep = json.loads((out / "s_fit_report.json").read_text())
+    assert "external_split_hash" not in rep and "external_folds_sha256" not in rep
+    assert rep["fit_subjects"] == list(_fold(ws, 0).train)

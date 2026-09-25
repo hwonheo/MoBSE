@@ -381,3 +381,81 @@ def test_ad_window_predictions_reproduce_inner_loss_and_ba(workspace, cell):
     assert abs(loss - rep["eval_loss"]) <= SELECTION_LOSS_TOL
     assert abs(FIT._balanced_accuracy_from_runs(rp) - rep["eval_balanced_accuracy"]) \
         <= SELECTION_LOSS_TOL
+
+
+# ------------------------------------------------ 결정 17 명세 7 — outer 9 --
+
+
+def _with_external(ws):
+    """fixture folds.json 에 외부 분할 입력을 채우고 옆에 external_folds.json 을 쓴다."""
+    from mobse.v2.splits import build_external_folds, make_groups
+
+    folds = json.loads(ws["folds"].read_text())
+    subs = sorted(set(folds["pilot"]["subjects"]) | set(folds["main_pool"]["subjects"]))
+    groups = make_groups(subjects=subs)
+    pilot = set(folds["pilot"]["subjects"])
+    folds["pilot"]["groups"] = [g.group_id for g in groups if set(g.subjects) & pilot]
+    folds["seeds"] = {"external": 20262000}
+    ws["folds"].write_text(json.dumps(folds))
+    ext = build_external_folds(groups, folds)
+    path = ws["folds"].parent / "external_folds.json"
+    path.write_text(json.dumps(ext))
+    return ext, path
+
+
+@pytest.mark.parametrize("inner", [0, 1, 2])
+def test_external_inner_fit_takes_its_boundary_from_external_folds(workspace, inner):
+    ext, path = _with_external(workspace)
+    out = workspace["tmp"] / f"ext{inner}"
+    ns = _args(workspace, out, outer=T.EXTERNAL_OUTER_FOLD, inner=inner)
+    res = run_fit(resolve_paths("fit", ns), ns)
+    assert res["role"] == "inner" and res["eval_role"] == "inner_validation"
+    assert res["bank_seed"] == T.bank_seed(9, inner)
+    man = json.loads((out / "fit_manifest.json").read_text())
+    rec = ext["inner"][inner]
+    assert man["fit_subjects"] == list(rec["train_subjects"])
+    assert man["folds"]["n_eval_subjects"] == len(rec["val_subjects"])
+    assert man["external_split_hash"] == ext["external_split_hash"]
+    assert man["external_folds_sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
+    rows = [json.loads(l) for l in (out / "window_predictions.jsonl").read_text().splitlines()]
+    assert {r["canonical_subject"] for r in rows} == set(rec["val_subjects"])
+
+
+def test_external_fit_without_external_folds_file_is_refused(workspace):
+    ns = _args(workspace, workspace["tmp"] / "ext_missing", outer=T.EXTERNAL_OUTER_FOLD)
+    with pytest.raises(CLIError, match="--splits 옆 external_folds.json 가 필요하다"):
+        run_fit(resolve_paths("fit", ns), ns)
+
+
+def test_external_final_fit_is_still_refused(workspace):
+    from mobse.v2.fitting import FitError
+
+    _with_external(workspace)
+    ns = _args(workspace, workspace["tmp"] / "ext_final", outer=T.EXTERNAL_OUTER_FOLD,
+               inner=T.OUTER_FIT_INNER_FOLD)
+    with pytest.raises(FitError, match="external final"):
+        run_fit(resolve_paths("fit", ns), ns)
+
+
+def test_tampered_external_folds_is_refused(workspace):
+    from mobse.v2.fitting import FitError
+
+    ext, path = _with_external(workspace)
+    bad = json.loads(path.read_text())
+    moved = bad["inner"][0]["val_subjects"].pop()
+    bad["inner"][1]["val_subjects"].append(moved)
+    path.write_text(json.dumps(bad))
+    ns = _args(workspace, workspace["tmp"] / "ext_bad", outer=T.EXTERNAL_OUTER_FOLD)
+    with pytest.raises(FitError, match="folds.json 과 맞지 않는다"):
+        run_fit(resolve_paths("fit", ns), ns)
+
+
+def test_main_outer_fit_ignores_external_folds(workspace):
+    _with_external(workspace)
+    out = workspace["tmp"] / "main_with_ext"
+    ns = _args(workspace, out)
+    run_fit(resolve_paths("fit", ns), ns)
+    man = json.loads((out / "fit_manifest.json").read_text())
+    assert "external_split_hash" not in man and "external_folds_sha256" not in man
+    assert man["fit_subjects"] == json.loads(workspace["folds"].read_text())[
+        "outer_folds"][0]["inner"][0]["train_subjects"]

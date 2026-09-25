@@ -454,6 +454,33 @@ def run_split(paths: Dict[str, str]) -> Dict[str, Any]:
 EXTERNAL_FOLDS_NAME = "external_folds.json"
 
 
+def _external_folds_for(splits_path: Path, outer_fold: int
+                        ) -> Optional[Tuple[Dict[str, Any], str]]:
+    """outer fold 9 (외부 최종 선택) 이면 ``--splits`` 옆 ``external_folds.json`` 을 읽는다.
+
+    결정 17 명세 7. 구현 선택 (결정 아님, 보고서에 표시): 별도 인자를 두지 않고
+    ``--splits`` 와 같은 디렉터리의 고정 이름으로 읽는다 (U20 — 선택 CLI 가 이웃
+    ``fit_report.json`` 을 읽는 것과 같은 규칙; `split` 이 두 파일을 같은 디렉터리에
+    쓴다). outer 0–4 에서는 읽지 않는다 — main outer fit 이 이 파일에 기대는 경로를
+    만들지 않는다. 불변식 검사는 `fitting.resolve_fold_subjects` 가 한다.
+
+    Returns:
+        outer 9 이면 (내용, 파일 sha256), 아니면 None.
+
+    Raises:
+        CLIError: outer 9 인데 파일이 없을 때.
+    """
+    from mobse.v2 import templates as TPL
+
+    if int(outer_fold) != TPL.EXTERNAL_OUTER_FOLD:
+        return None
+    path = Path(splits_path).parent / EXTERNAL_FOLDS_NAME
+    if not path.is_file():
+        raise CLIError(f"outer fold 9 (외부 최종 선택) 은 --splits 옆 {EXTERNAL_FOLDS_NAME} "
+                       f"가 필요하다: {path} 가 없다. 대체 탐색하지 않는다 (결정 17, U20)")
+    return json.loads(path.read_text(encoding="utf-8")), _sha256(path)
+
+
 def _build_folds_from_cfg(groups: Sequence[Any], cfg: Mapping[str, Any]) -> Dict[str, Any]:
     """config 의 잠긴 seed 로 `splits.build_folds` 를 부른다."""
     from mobse.v2.splits import build_folds
@@ -641,7 +668,9 @@ def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
                            "덮어쓰지 않는다 (지침서 §2)")
 
     folds = json.loads(Path(paths["splits"]).read_text(encoding="utf-8"))
-    fold = FIT.resolve_fold_subjects(folds, int(args.outer_fold), int(args.inner_fold))
+    ext = _external_folds_for(Path(paths["splits"]), int(args.outer_fold))
+    fold = FIT.resolve_fold_subjects(folds, int(args.outer_fold), int(args.inner_fold),
+                                     external_folds=None if ext is None else ext[0])
 
     group_of = {}
     for line in Path(paths["subjects"]).read_text(encoding="utf-8").splitlines():
@@ -739,6 +768,10 @@ def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
         # SG 의 graph 는 이 fit 의 training-rest 로 만든 것이다 — 출처를 manifest 에 남긴다.
         manifest["single_graph_id"] = transform.single.graph_id
         manifest["single_graph_fingerprint"] = transform.single.fingerprint()
+    if ext is not None:
+        # 외부 최종 선택 inner fit — 경계를 준 파일을 기록한다 (결정 17, 구현 선택).
+        manifest["external_split_hash"] = str(ext[0]["external_split_hash"])
+        manifest["external_folds_sha256"] = ext[1]
     validate_record("fit_manifest", manifest)
     (out_dir / "fit_manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -852,7 +885,9 @@ def run_fit_s(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]
 
     folds = json.loads(Path(paths["splits"]).read_text(encoding="utf-8"))
     outer_fold, inner_fold = int(args.outer_fold), int(args.inner_fold)
-    fold = FIT.resolve_fold_subjects(folds, outer_fold, inner_fold)
+    ext = _external_folds_for(Path(paths["splits"]), outer_fold)
+    fold = FIT.resolve_fold_subjects(folds, outer_fold, inner_fold,
+                                     external_folds=None if ext is None else ext[0])
     is_inner = fold.role == FIT.ROLE_INNER
     if not is_logistic:
         if is_inner and args.epochs is not None:
@@ -936,6 +971,9 @@ def run_fit_s(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]
         "split_hash": folds["split_hash"],
         "outer_fit_inner_fold": TPL.OUTER_FIT_INNER_FOLD,
     }
+    if ext is not None:
+        report["external_split_hash"] = str(ext[0]["external_split_hash"])
+        report["external_folds_sha256"] = ext[1]
     (out_dir / "s_fit_report.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     return {"verdict": "pass", "s_fit_id": sid, "candidate": candidate,
