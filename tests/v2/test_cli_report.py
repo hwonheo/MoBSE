@@ -172,6 +172,29 @@ def test_config_hash_mismatch_fails(evaluated):
         cli.main(_rargv(evaluated, evaluated["tmp"] / "rep"))
 
 
+def _edit_evaluation(e, fn):
+    p = e["ev"] / "evaluation.json"
+    ev = json.loads(p.read_text(encoding="utf-8"))
+    fn(ev)
+    p.write_text(json.dumps(ev), encoding="utf-8")
+
+
+def test_evaluation_subject_scores_crosschecked(evaluated):
+    """run 행은 그대로 두고 evaluation.json 의 b_i 만 고치면 b_i 대조가 잡는다 (09-25 16:15)."""
+    def fn(ev):
+        s = sorted(ev["subject_scores"]["A"])[0]
+        ev["subject_scores"]["A"][s] = 0.5
+    _edit_evaluation(evaluated, fn)
+    with pytest.raises(cli.CLIError, match="subject b_i 가 evaluation.json 과 다르다"):
+        cli.main(_rargv(evaluated, evaluated["tmp"] / "rep"))
+
+
+def test_evaluation_subject_count_crosschecked(evaluated):
+    _edit_evaluation(evaluated, lambda ev: ev["counts"].update(subjects=11))
+    with pytest.raises(cli.CLIError, match="counts 와 다르다"):
+        cli.main(_rargv(evaluated, evaluated["tmp"] / "rep"))
+
+
 def test_parser_requires_evaluation_and_subjects():
     assert set(cli.REQUIRED_PATHS["report"]) == {
         "config", "evaluation", "predictions", "subjects", "output_dir"}
