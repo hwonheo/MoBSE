@@ -2104,6 +2104,218 @@ def _load_comparator_outer(manifest_paths: Sequence[str], *, structure: str,
             "fits": fits}
 
 
+#: S outer fit 산출물을 읽는 helper 의 이웃 이름 (남은 작업 2-c, 09-25 15:15).
+S_OUTER_NEIGHBOURS = ("s_window_predictions.jsonl", "s_model.npz")
+
+
+def _load_s_outer(report_paths: Sequence[str], *, folds: Mapping[str, Any], cfg_hash: str,
+                  selections: Mapping[int, Mapping[str, Any]]) -> Dict[str, Any]:
+    """S 칸의 main outer fit 산출물을 보조 비교 집계로 접는다.
+
+    입력은 outer fold 0–4 각각의 ``s_selection.json`` 기록(``selections``)과 그 outer
+    계획대로 ``fit-s --inner-fold 9`` 로 학습한 ``s_fit_report.json`` 목록이다. 이웃
+    ``s_window_predictions.jsonl``·``s_model.npz`` 는 보고서 옆 고정 이름이다 (U20).
+    outer fold 마다 선택 후보가 다를 수 있다 — logistic (S1·S3) 은 seed 없이 fit 한 번,
+    MLP (S2·S4) 는 잠긴 ``train.MODEL_SEEDS`` × 정확히 outer E (`baselines.s_outer_plan`).
+
+    구현 선택 (표시함): ``s_window_predictions`` 행에는 seed 자리가 없으므로 행의
+    seed 는 **보고서의 ``model_seed``** 에서 온다 (logistic 은 None). outer logistic 의
+    수렴 여부는 거부하지 않고 ``fits`` 에 기록만 한다 (P11 은 inner 선택 규칙).
+    하위 명령·산출물 없음, 외부(outer 9) 기록 거부, A−S CI 는 다음 조각.
+
+    Returns:
+        ``{"runs", "predictions", "seeds_by_subject", "fits", "plans"}``.
+
+    Raises:
+        CLIError: 선택 기록·보고서·예측의 경계·무결성이 어긋날 때.
+    """
+    from mobse.v2 import baselines as BL
+    from mobse.v2 import evaluate as EV
+    from mobse.v2 import fitting as FIT
+    from mobse.v2 import templates as TPL
+    from mobse.v2 import train as TR
+    from mobse.v2.manifests import read_jsonl, s_fit_id, sha256_file
+
+    split_hash = folds["split_hash"]
+    test_of = {int(o["outer_fold"]): set(o["test_subjects"])
+               for o in folds.get("outer_folds") or []}
+    if not test_of:
+        raise CLIError("folds.json 에 outer fold 가 없다")
+    if set(int(k) for k in selections) != set(test_of):
+        raise CLIError(f"S 선택 기록 outer fold {sorted(int(k) for k in selections)} ≠ "
+                       f"folds.json outer fold {sorted(test_of)} — 빠진 fold 없이 모두 필요")
+
+    plan_of: Dict[int, Dict[str, Any]] = {}
+    for of, sel in selections.items():
+        of = int(of)
+        if sel.get("schema_version") != S_SELECTION_SCHEMA:
+            raise CLIError(f"outer {of}: S 선택 기록 스키마 {sel.get('schema_version')!r} ≠ "
+                           f"{S_SELECTION_SCHEMA}")
+        if int(sel.get("outer_fold", -1)) != of:
+            raise CLIError(f"outer {of}: S 선택 기록 outer_fold {sel.get('outer_fold')!r} 가 다르다")
+        if sel.get("split_hash") != split_hash:
+            raise CLIError(f"outer {of}: S 선택 기록 split_hash 가 --splits 와 다르다")
+        if sel.get("config_hash") != cfg_hash:
+            raise CLIError(f"outer {of}: S 선택 기록 config_hash 가 --config 와 다르다")
+        if "external_split_hash" in sel:
+            raise CLIError(f"outer {of}: 외부 S 선택 기록 — main outer 집계에 섞지 않는다")
+        cand, setting = sel.get("selected_candidate"), sel.get("selected_setting_id")
+        if cand not in BL.CANDIDATE_ORDER:
+            raise CLIError(f"outer {of}: 선택 후보 {cand!r} 는 S 후보가 아니다")
+        rows = sel.get("outer_plan") or []
+        for r in rows:
+            if (r.get("candidate"), r.get("setting_id")) != (cand, setting):
+                raise CLIError(f"outer {of}: outer 계획 행의 후보/설정이 선택 기록과 다르다")
+            if (int(r.get("outer_fold", -1)), int(r.get("inner_fold", -1))) != \
+                    (of, TPL.OUTER_FIT_INNER_FOLD):
+                raise CLIError(f"outer {of}: outer 계획 행의 fold 가 ({of}, "
+                               f"{TPL.OUTER_FIT_INNER_FOLD}) 가 아니다")
+        seeds = [r.get("model_seed") for r in rows]
+        if cand in BL.LOGISTIC_CANDIDATES:
+            # seeds == [None] 이면 행은 정확히 하나다 (seeds 는 행마다 하나).
+            if seeds != [None] or rows[0].get("epochs_exact") is not None \
+                    or sel.get("outer_epochs") is not None:
+                raise CLIError(f"outer {of}: logistic {cand} outer 계획은 seed·epoch 없는 "
+                               f"한 행이어야 한다: seeds {seeds}")
+            epochs = None
+            plan_seeds: Tuple[Optional[int], ...] = (None,)
+        else:
+            if any(s is None for s in seeds) or len(set(seeds)) != len(seeds) or not seeds:
+                raise CLIError(f"outer {of}: MLP outer 계획 seed 가 비었거나 중복·None {seeds}")
+            if tuple(sorted(int(s) for s in seeds)) != \
+                    tuple(sorted(int(x) for x in TR.MODEL_SEEDS)):
+                raise CLIError(f"outer {of}: MLP outer 계획 seed {sorted(seeds)} 가 잠긴 "
+                               f"train.model_seeds {sorted(TR.MODEL_SEEDS)} 와 다르다 (계획서 §5)")
+            epochs = sel.get("outer_epochs")
+            if epochs is None or not 1 <= int(epochs) <= TR.MAX_EPOCHS:
+                raise CLIError(f"outer {of}: MLP outer E {epochs!r} 가 1–{TR.MAX_EPOCHS} 밖이다")
+            epochs = int(epochs)
+            if any(r.get("epochs_exact") is None or int(r["epochs_exact"]) != epochs
+                   for r in rows):
+                raise CLIError(f"outer {of}: outer 계획 행의 E 가 선택 기록 outer E 와 다르다")
+            plan_seeds = tuple(sorted(int(s) for s in seeds))
+        plan_of[of] = {"candidate": cand, "setting_id": setting, "seeds": plan_seeds,
+                       "epochs": epochs}
+
+    fits: Dict[str, Dict[str, Any]] = {}
+    slots: Dict[Tuple[int, Optional[int]], str] = {}
+    preds: List[Any] = []
+    run_key_of: Dict[Tuple[str, str], set] = {}
+    for rp in _as_list(report_paths):
+        path = Path(rp)
+        rep = json.loads(path.read_text(encoding="utf-8"))
+        if rep.get("schema_version") != S_FIT_SCHEMA:
+            raise CLIError(f"{path}: 스키마 {rep.get('schema_version')!r} ≠ {S_FIT_SCHEMA}")
+        sid = rep["s_fit_id"]
+        if sid in fits:
+            raise CLIError(f"s_fit_id 중복: {sid}")
+        if rep["role"] != FIT.ROLE_OUTER or rep["eval_role"] != FIT.EVAL_ROLE[FIT.ROLE_OUTER]:
+            raise CLIError(f"{sid}: S outer 최종 적합이 아니다 (role={rep['role']!r})")
+        if "external_split_hash" in rep or "external_folds_sha256" in rep:
+            raise CLIError(f"{sid}: 외부 분할 기록이 있는 S fit — main outer 집계에 섞지 않는다")
+        if rep["split_hash"] != split_hash:
+            raise CLIError(f"{sid}: S fit split_hash 가 --splits 와 다르다")
+        if rep["config_hash"] != cfg_hash:
+            raise CLIError(f"{sid}: S fit config_hash 가 --config 와 다르다")
+        of, inner = int(rep["folds"]["outer_fold"]), int(rep["folds"]["inner_fold"])
+        if inner != TPL.OUTER_FIT_INNER_FOLD:
+            raise CLIError(f"{sid}: inner_fold {inner} ≠ {TPL.OUTER_FIT_INNER_FOLD} (outer fit)")
+        if of not in plan_of:
+            raise CLIError(f"{sid}: outer fold {of} 의 S 선택 기록이 없다")
+        plan = plan_of[of]
+        if (rep["candidate"], rep["setting_id"]) != (plan["candidate"], plan["setting_id"]):
+            raise CLIError(f"{sid}: 후보/설정 {(rep['candidate'], rep['setting_id'])} ≠ outer "
+                           f"{of} 선택 {(plan['candidate'], plan['setting_id'])}")
+        seed = rep["model_seed"]
+        seed = None if seed is None else int(seed)
+        if seed not in plan["seeds"]:
+            raise CLIError(f"{sid}: seed {seed} 가 outer {of} S 계획 {list(plan['seeds'])} 에 없다")
+        if (of, seed) in slots:
+            raise CLIError(f"같은 (outer, seed) {(of, seed)} 의 S fit 이 둘이다: "
+                           f"{slots[(of, seed)]}, {sid}")
+        slots[(of, seed)] = sid
+        want = s_fit_id(role=rep["role"], candidate=rep["candidate"],
+                        setting_id=rep["setting_id"], outer_fold=of, inner_fold=inner,
+                        model_seed=seed, split_hash=rep["split_hash"],
+                        config_hash=rep["config_hash"])
+        if want != sid:
+            raise CLIError(f"{sid}: 보고서 필드로 다시 만든 s_fit_id {want} 와 다르다")
+        if plan["epochs"] is not None:
+            got_e = (rep.get("fit") or {}).get("epochs_run")
+            if got_e is None or int(got_e) != plan["epochs"]:
+                raise CLIError(f"{sid}: S MLP epochs_run {got_e!r} ≠ outer E {plan['epochs']}")
+        pred_path, model_path = (path.parent / n for n in S_OUTER_NEIGHBOURS)
+        for p in (pred_path, model_path):
+            if not p.is_file():
+                raise CLIError(f"{sid}: {p.name} 가 없다 {p}. 대체 탐색하지 않는다 (U20)")
+        model_sha = sha256_file(model_path)
+        if rep.get("model_sha256") != model_sha:
+            raise CLIError(f"{sid}: s_model.npz sha256 이 보고서와 다르다")
+        pred_sha = sha256_file(pred_path)
+        if rep.get("window_predictions_sha256") != pred_sha:
+            raise CLIError(f"{sid}: s_window_predictions sha256 이 보고서와 다르다")
+        try:
+            rows = read_jsonl(pred_path, "s_window_predictions")
+        except ManifestError as exc:
+            raise CLIError(f"{pred_path}: s_window_predictions 스키마 위반 — {exc}") from exc
+        fit_subjects = set(rep["fit_subjects"])
+        got_subjects = set()
+        for i, r in enumerate(rows):
+            where = f"{pred_path}:{i + 1}"
+            if r["s_fit_id"] != sid:
+                raise CLIError(f"{where}: s_fit_id {r['s_fit_id']!r} ≠ {sid}")
+            if (r["candidate"], r["setting_id"]) != (rep["candidate"], rep["setting_id"]):
+                raise CLIError(f"{where}: 후보/설정이 보고서와 다르다")
+            if r["scope"] != FIT.EVAL_ROLE[FIT.ROLE_OUTER]:
+                raise CLIError(f"{where}: scope {r['scope']!r} — S outer test 만 집계한다")
+            if r["model_sha256"] != model_sha:
+                raise CLIError(f"{where}: model_sha256 이 s_model.npz 와 다르다")
+            subj = r["canonical_subject"]
+            if subj in fit_subjects:
+                raise CLIError(f"{where}: {subj} 가 {sid} 의 학습 subject 다 — test 누설")
+            if subj not in test_of[of]:
+                raise CLIError(f"{where}: {subj} 는 outer fold {of} 의 test subject 가 아니다")
+            got_subjects.add(subj)
+            task = FIT.task_of(r["run_key"])
+            run_key_of.setdefault((subj, task), set()).add(r["run_key"])
+            try:
+                preds.append(EV.ComparisonWindowPrediction(
+                    canonical_subject=subj, group_id=r["group_id"], task=task,
+                    window_index=_window_index(r["run_key"], r["window_key"]),
+                    model_seed=seed, cell="S", truth=int(r["truth"]),
+                    p_class1=float(r["p_class1"])))
+            except EV.EvaluationError as exc:
+                raise CLIError(f"{where}: {exc}") from exc
+        if got_subjects != test_of[of]:
+            raise CLIError(f"{sid}: S 예측 subject 가 outer fold {of} test 와 다르다 — 누락 "
+                           f"{sorted(test_of[of] - got_subjects)[:3]}")
+        fits[sid] = {"path": str(path), "outer_fold": of, "model_seed": seed,
+                     "candidate": rep["candidate"], "setting_id": rep["setting_id"],
+                     "converged": rep.get("converged"),
+                     "report_sha256": sha256_file(path), "model_sha256": model_sha,
+                     "window_predictions_sha256": pred_sha, "code_hash": rep["code_hash"],
+                     "env_hash": rep["env_hash"], "source_hash": rep["source_hash"]}
+
+    missing = sorted(((of, s) for of, p in plan_of.items() for s in p["seeds"]
+                      if (of, s) not in slots), key=lambda x: (x[0], -1 if x[1] is None else x[1]))
+    if missing:
+        raise CLIError(f"S outer 계획의 fit 이 빠졌다 (outer, seed): {missing[:5]}")
+    for field in ("code_hash", "env_hash", "source_hash"):
+        values = sorted({f[field] for f in fits.values()})
+        if len(values) != 1:
+            raise CLIError(f"S fit 사이에 {field} 가 다르다 {[v[:12] for v in values]}")
+    multi = sorted(k for k, v in run_key_of.items() if len(v) != 1)
+    if multi:
+        raise CLIError(f"S: subject·task 하나에 run 이 여럿이다: {multi[:3]}")
+    seeds_by_subject = {s: plan_of[of]["seeds"] for of, subs in test_of.items() for s in subs}
+    try:
+        runs = EV.aggregate_comparison_runs(preds, cell="S", seeds_by_subject=seeds_by_subject)
+    except EV.EvaluationError as exc:
+        raise CLIError(f"S 무결성 검사 실패: {exc}") from exc
+    return {"runs": runs, "predictions": preds, "seeds_by_subject": seeds_by_subject,
+            "fits": fits, "plans": plan_of}
+
+
 REPORT_OUTPUTS = ("statistics.json",)
 REPORT_SCHEMA = "wi06-statistics-0.1"
 #: 주 contrast (97.5% family-wise CI) 와 보조 지표 (95% 기술적 CI). 계획서 §8.
