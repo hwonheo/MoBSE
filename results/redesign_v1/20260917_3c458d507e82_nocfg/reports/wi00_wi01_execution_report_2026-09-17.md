@@ -4490,3 +4490,43 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 
 - NG·SG parameter/비용 보고 (계획서 §6 "no-graph FC comparator와 실제 parameter/비용을 함께 보고한다") 없음. 실자료 outer 예측 없음 (main OOF 승인 전).
 - 결정 요청 (부록 BA.4, A−NG·A−SG) 은 여전히 대기 — 결정되면 `evaluate.COMPARISON_CONTRASTS`·`comparison_contrasts` 와 이 명령의 `auxiliary_contrasts` 에 더하면 된다.
+
+# 부록 BE — 구조 비교 NG·SG parameter/비용 측정을 자원 벤치마크에 추가 (rev57, 2026-09-25 17:15 예약 슬롯)
+
+새 결정 아님. 계획서 §6 "no-graph FC comparator와 실제 parameter/비용을 함께 보고한다" 와 §9 "효율 측정은 동일 장비/batch/precision에서 FC·PCA 포함 end-to-end latency, 모델 latency, peak memory, parameter 수를 분리한다. 지원되지 않는 FLOPs는 NA다" 를 구조 비교 두 모델에 적용.
+
+## BE.1 사전 확인 (grep)
+
+- "parameter/비용" 의 정의: 계획서에 따로 없고 §9 효율 측정 문장이 가장 가깝다 (parameter 수·학습/추론 시간·peak memory 분리, FLOPs NA). 지침서 WI-09 "비용을 평가한다 … cost measurements", "실측 없는 FLOPs/latency 우위" 중단 조건.
+- parameter 수: `models.FusionMLPComparator`·`SingleGraphComparator` 에 `trainable_parameter_count()` 가 이미 있다 — fit 없이 합성 입력으로 셀 수 있다.
+- 비용 (시간·메모리): `fitting.train_fold` 가 이미 `timing` (`train_seconds`, `seconds_per_epoch`)·`memory` (`device`, CUDA 이면 `peak_gpu_bytes`) 를 내고 `fit_report.json` 에 쓴다 (NG·SG 도 같은 경로, rev41). 따라서 `fit` 산출물 계약 변경은 필요 없다.
+- 기존 자원 벤치마크 `scripts/h197/21_resource_benchmark.py` 는 **A–D 만** 쟀다 (`sorted(CELL_SPEC)`).
+
+## BE.2 변경
+
+- **구현 선택 (표시함)**: 실자료 fit 기록이 아니라 §9 의 "동일 장비/batch/precision" 조건을 지키는 기존 합성 벤치마크에 NG·SG 를 더했다. `BENCH_CELLS = A, B, C, D, NG, SG`; A–D 는 bank `[I, I, I]`, SG 는 graph `I`, NG 는 graph 없음. 칸 기록에 `structure_comparator` 추가, NG 의 `bank_is_frozen` 은 `null` (graph 없음). 출력 schema `resource_benchmark_v1` → `resource_benchmark_v2` (+ `cells`). `mobse/v2` 불변 — 재잠금 없음 (잠금 `78ddd887253f` 유지).
+- `report-comparison` 산출물에 parameter/비용을 넣는 일은 하지 않았다 (범위 밖 — 실자료 fit 의 `fit_report.json` timing 집계는 main OOF 뒤).
+- 시험 새 `tests/v2/test_resource_benchmark.py` **4** (칸 목록, 여섯 칸 모두 측정, bank 기록, parameter 수 손계산: NG = encoder + Linear(42→32) + Linear(32→2), SG = encoder + graph 층 2 + head, graph 는 buffer). `test_h197_scripts.py` 의 호출부 시그니처 bind 시험이 새 `build_comparator` 호출도 덮는다. 돌연변이 `.backup/slot_1715b/mut_bench.py` (`-B`) **5/5**.
+
+## BE.3 측정 (h197, 합성 자료, 2026-09-25 17:1x KST)
+
+bmcws · RTX 3090 Ti · torch 2.10.0+cu128 · float32 (AMP 미사용) · batch 32 · repeats 5 (첫 회 warm-up 제외, 중앙값). 크기: inner 학습 창 536, outer 학습 창 808. 산출물 `resource_v2.json` sha256 `3b260a9c0250…` (h197 `$HOME/slot/rb_1715b/`, Mac `.backup/slot_1715b/` — 커밋 안 함).
+
+| 칸 | 학습 parameter | inner 1 epoch (s) | outer 1 epoch (s) | inner 추론 전체 (s) | inner peak GPU (MB) |
+|---|---|---|---|---|---|
+| A | 6,469 | 0.149 | 0.226 | 0.0109 | 97.5 |
+| B | 6,021 | 0.136 | 0.207 | 0.0103 | 97.4 |
+| C | 6,469 | 0.148 | 0.226 | 0.0109 | 97.4 |
+| D | 6,021 | 0.136 | 0.208 | 0.0103 | 97.4 |
+| NG | 5,154 | 0.093 | 0.143 | 0.0061 | 94.7 |
+| SG | 6,018 | 0.120 | 0.184 | 0.0084 | 94.7 |
+
+- FC·PCA·bank 변환 한 번 (outer 규모 rest 창 404, CPU): 1.43 s (칸과 무관).
+- 읽는 법: NG 는 A 보다 parameter 1,315 개 적고 epoch 시간 약 63%. SG 는 B·D 보다 parameter 3 개 적다 — B·D 의 `gate.logits` (3) 만 SG 에 없고 나머지 이름·크기는 같다 (Mac 에서 named_parameters 대조). 이 표는 **합성 자료·단일 장비** 값이라 효율 우위 주장의 근거가 아니다 (WI-09 중단 조건). peak GPU 는 칸 사이에 남아 있는 입력 텐서를 포함한다 (칸마다 `reset_peak_memory_stats` 만 함).
+- GPU 0 에 다른 사용자의 sglang (약 19 GB, 측정 시작 시 사용률 0%) — 동시 부하 영향은 재지 않았다.
+
+## BE.4 확인하지 못한 것 · 다음
+
+- 실자료 fit 의 NG·SG `timing`·`memory` 집계 (main OOF 승인 전 없음). `report-comparison` 에 비용 칸을 넣을지는 그때 정한다.
+- S 후보 (logistic·MLP) 의 fit 시간 — `mobse/v2/baselines.py` 에 timing 기록이 없다 (grep `timing\|perf_counter` 0건; `cli.py` 의 `"timing"` 은 `run_fit` 두 곳뿐). 넣으려면 `fit-s` 산출물 계약 변경 (별도 조각).
+- 결정 요청 (부록 BA.4, A−NG·A−SG) 은 여전히 대기.

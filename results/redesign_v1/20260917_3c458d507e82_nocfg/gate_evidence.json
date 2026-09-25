@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "5dceb9985cd9956769c274223b36d53be45d06d2",
-  "timestamp_utc": "2026-09-25T07:25:01Z",
-  "revision": 56,
-  "supersedes_sha256": "7e8b34d3d3e5a129b5d1ab052f4f4ac077ffeb175c551b35994b6fc3e458f9bc",
-  "revision_reason": "rev56 (2026-09-25): 남은 작업 2-c CLI 배선 세 번째 조각 — 새 하위 명령 report-comparison (CLI 10 → 11): evaluate 산출물을 report 와 같은 검사 (_read_evaluated 로 이동, 동작 불변) 로 읽고, S·NG·SG outer 선택 기록·fit 을 _load_s_outer·_load_comparator_outer 로 접어 run truth·group 을 A 와 대조한 뒤, report 와 같은 bootstrap (seed 9001, 10,000, nominal 2.5/97.5, index 한 번 공유) 으로 칸 BA (S·NG·SG) 와 A−S 를 95% 기술적 CI (보조) 로 comparison_statistics.json 에 쓴다. A−NG·A−SG 없음 (결정 요청 대기), parameter/비용 없음. 새 시험 23 + test_cli_report 11 → 13, 돌연변이 18/23 → 시험 보강 → 23/23. 재잠금 c96a74b297ec → 78ddd887253f (code_hash e7f27665a89f → fbd9fd7feee2). fit 없음, main pool 미소비 (부록 BD)",
+  "git_head": "91e1e01867160062ed0791d900e7af4ba804cc41",
+  "timestamp_utc": "2026-09-25T08:20:26Z",
+  "revision": 57,
+  "supersedes_sha256": "660b70a90d8e69695660a2425ab5b069fae5d049392056a12e5122dd79f25dc6",
+  "revision_reason": "rev57 (2026-09-25): 계획서 §6 \"no-graph FC comparator와 실제 parameter/비용을 함께 보고한다\" + §9 효율 측정 — 자원 벤치마크 21번에 구조 비교 NG·SG 를 A–D 와 같은 장비/batch/precision 으로 추가 (schema resource_benchmark_v2), 합성 자료 h197 측정. 시험 test_resource_benchmark.py 4, 돌연변이 5/5 (부록 BE). mobse/v2 불변 — 잠금 78ddd887 유지. main pool 미소비. 새 결정 아님",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -102,7 +102,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "d09ac5483017bb1b9a786c2d6b8c3bd884e1c143cf461b9254a208554a2dcb0f"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "3d18064da05f14e91d90724611de3017c7a8e95c13b2517186759dfb65ce6aa0"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -536,7 +536,7 @@
     "18_build_measurement_lock.py": "f3a6ecf0f83659c1a0351481af1aac09f97e1604256659ebe42cb3f3dac4bdb0",
     "19_verify_measurement_lock.py": "31629435b7a39dc820c334a864f0873c8fb5edc60075f9886ffe5cd2404b891f",
     "20_precision_simulation.py": "583cdc13463999aff4f56c68bf85e5b82bc5e86cc14a36b4c479eb32650c92a1",
-    "21_resource_benchmark.py": "6dbb3eeb6b21e760179b512687eae266e2e0ba6dcad9383ae46464caa059427a",
+    "21_resource_benchmark.py": "9d71906dbdd5b02e5428cc8f71fedb112b079020acc2583ebcc383cbf02d371a",
     "22_crosscheck_reported_numbers.py": "4bc8f25f2adc8901253b183dd47346303c90f3fee8cbe2176bc257677c8599b6",
     "23_pilot_learnability_probe.py": "4fbc4ddd007cf4e9d5c7d99634b6b4db98f9c6103d05f30f6020934301346724",
     "24_encoder_representation_probe.py": "d6d83a3725a780ced58b1c082b76e37f4c8fa1071e31cba6ca1a31a33caa5a17",
@@ -731,6 +731,7 @@
     "test_precision_simulation.py": "b9ac5e32080266d0c992bbd8f1c582e49ec176549191a39beaa73911e03b8cb0",
     "test_preprocess.py": "648887cea08d75db3640e644f69f3c6de0a5f6d0b7726ee3ea9b58487dd5e255",
     "test_protocol_documents.py": "068a5074ee6ff93e52b7ab341c2e6403256f5e0fe3994c642aeef0a127212727",
+    "test_resource_benchmark.py": "08b3655da4e4df9c58b894d98f0afd50182cb6fad06473abd8ede74154add167",
     "test_splits.py": "4c6e87633a2bf7b3740d0bb342b208337554b1061807be72dfcde3693e3b7cfb",
     "test_statistics.py": "ce543dce60636f0dc9423bbdb0e2371183278967a1dd8071126c9f605d126967",
     "test_templates.py": "9e135a114b9d19eba4492fd048271398d30e40de212a08ddad48fcad811f91d8",
@@ -2561,7 +2562,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev56 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev57 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -3599,5 +3600,64 @@
       "실자료 outer 예측"
     ],
     "report_appendix": "BD"
+  },
+  "comparator_cost_rev57": {
+    "basis": [
+      "계획서 §6: no-graph FC comparator와 실제 parameter/비용을 함께 보고한다",
+      "계획서 §9: 동일 장비/batch/precision에서 … latency, peak memory, parameter 수를 분리한다. 지원되지 않는 FLOPs는 NA"
+    ],
+    "implementation_choice": "실자료 fit 기록이 아니라 기존 합성 벤치마크 (scripts/h197/21_resource_benchmark.py) 에 NG·SG 추가 — BENCH_CELLS A,B,C,D,NG,SG; SG graph I, NG graph 없음 (bank_is_frozen null)",
+    "synthetic": true,
+    "measurement": {
+      "host": "bmcws",
+      "gpu": "NVIDIA GeForce RTX 3090 Ti",
+      "torch": "2.10.0+cu128",
+      "precision": "float32 (AMP 미사용)",
+      "batch_size": 32,
+      "repeats": 5,
+      "inner_train_windows": 536,
+      "outer_train_windows": 808,
+      "output_sha256": "3b260a9c0250d315fad96355e637054969adfb4a6d999185c53f36fd69b26945",
+      "output_location": "h197 $HOME/slot/rb_1715b/resource_v2.json (커밋 안 함)",
+      "trainable_parameters": {
+        "A": 6469,
+        "B": 6021,
+        "C": 6469,
+        "D": 6021,
+        "NG": 5154,
+        "SG": 6018
+      },
+      "inner_epoch_median_s": {
+        "A": 0.1489,
+        "B": 0.1364,
+        "C": 0.1483,
+        "D": 0.1361,
+        "NG": 0.0934,
+        "SG": 0.1204
+      },
+      "outer_epoch_median_s": {
+        "A": 0.2259,
+        "B": 0.2074,
+        "C": 0.2258,
+        "D": 0.2075,
+        "NG": 0.1425,
+        "SG": 0.1838
+      },
+      "note": "합성·단일 장비 — 효율 우위 근거 아님 (WI-09). GPU 0 에 다른 사용자 sglang 약 19 GB"
+    },
+    "tests": {
+      "test_resource_benchmark.py": [
+        0,
+        4
+      ]
+    },
+    "mutation_check": "5/5 (.backup/slot_1715b/mut_bench.py, -B)",
+    "lock": "mobse/v2 불변 — 재잠금 없음",
+    "not_done": [
+      "실자료 fit NG·SG timing/memory 집계 (main OOF 뒤)",
+      "fit-s timing 기록 없음",
+      "A−NG·A−SG contrast (결정 요청)"
+    ],
+    "report_appendix": "BE"
   }
 }
