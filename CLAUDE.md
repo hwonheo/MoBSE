@@ -1,6 +1,6 @@
 # CLAUDE.md — MoBSE Project Context
 
-> 최종 갱신 2026-09-25 21:3x KST (HEAD `d46bc36`, gate evidence rev60 기준 — rev60 은 부록 BH 기록만, 판정 수는 rev59 와 같음). 모든 수치는 실측값이며 출처를 함께 적음.
+> 최종 갱신 2026-09-25 22:4x KST (HEAD `1e399ec` 위 작업트리, gate evidence rev61 기준 — rev60·rev61 은 부록 BH·BI 기록만, 판정 수는 rev59 와 같음). 모든 수치는 실측값이며 출처를 함께 적음.
 > 이전판(2026-09-18)은 `.backup/CLAUDE_20260925_201635.md` 에, 2026-04-17판은 `.backup/CLAUDE.md_20260918_*.md` 에 보존됨.
 > **현행 상태의 정본은 이 파일이 아님** — claude.ai Project "MoBSE" 의 인수인계 문서 `claude/mobse_redesign_g0_handoff_2026-09-17.md` (선생님 결정 원문·남은 작업·마감 절차) 와 가장 높은 revision 의 `gate_evidence.json`. 이 파일은 저장소에 들어온 사람을 위한 방향 안내다.
 
@@ -55,7 +55,7 @@ MoBSE (Mixture of Brain-State Experts): fMRI 시계열을 dFC 유래 전문가 �
 - split_hash `ace5f4a4…` (불변). 외부 최종 선택용 main pool 3-fold (seed 20262000) 는 별도 `external_folds.json` (42/42/42, external_split_hash `40e50350…`, 결정 17).
 - h197 경로 (data root 상대): subjects `derivatives_v3/cohort_piop1/subjects.jsonl`, 분할 `derivatives_v3/splits_piop1_p7/{folds.json, external_folds.json}`.
 
-## Gate 현황 (gate_evidence.json revision 60 — 판정은 rev59 와 같음, 2026-09-25 재측정)
+## Gate 현황 (gate_evidence.json revision 61 — 판정은 rev59 와 같음, 2026-09-25 재측정)
 
 | Gate | 상태 |
 |---|---|
@@ -65,7 +65,7 @@ MoBSE (Mixture of Brain-State Experts): fMRI 시계열을 dFC 유래 전문가 �
 | G3 Internal release · G4 External release | planned (검사 각 1건, pass) |
 
 - 정본은 `results/redesign_v1/20260917_3c458d507e82_nocfg/gate_evidence.json` 이며 **revision이 올라가면 이전 판정표를 인용하지 말 것.** 순서는 revision 번호로만 봄 (`timestamp_utc` 는 거꾸로 간 적 있음).
-- "pilot 측정 기반 자원 계획" 은 rev58 에서 pilot 실측 예산을 만들었으나 **판정은 fail 그대로** — 바꿀지는 선생님 결정 대기 (인수인계 문서).
+- "pilot 측정 기반 자원 계획" 은 rev58 에서 pilot 실측 예산을 만들었으나 **판정은 fail 그대로** — 바꿀지는 선생님 결정 대기 (인수인계 문서). rev61 (부록 BI): 칸당 3회 반복 — 같은 인자에서 s/epoch 최대 2.7 배 변동 (칸 차이 아님), pilot 규모 k=4 동시 실행 처리량 2.23 배, 순차 학습 상한 34.0 h.
 - 측정 잠금 현행 `78ddd887253f…` (locked_at 2026-09-25T07:23:32Z), 옛 판 35개는 `locks/superseded/` 에 보존. 잠금은 `mobse/v2/*.py` 를 해시한다 — **`mobse/v2` 를 바꾸면 잠금 재생성 + gate evidence 새 revision** (`scripts/h197/18_build_measurement_lock.py --overwrite --reason "..."`). `scripts/h197/`·`tests/v2` 만 바꾸면 잠금 재생성은 불요, gate evidence 해시만.
 
 ## 실행 호스트와 경로
