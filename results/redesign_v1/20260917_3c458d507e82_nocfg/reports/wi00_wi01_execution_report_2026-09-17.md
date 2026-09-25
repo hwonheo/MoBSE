@@ -4336,3 +4336,33 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 - (b) 선택 CLI 3종 (`select-ad`·`select-comparator`·`select-s`) 의 outer 9 경로 — `_load_inner_fit`·`run_select_s` 의 `resolve_fold_subjects` 호출은 아직 외부 파일을 넘기지 않아 outer 9 를 거부한다. 거기서 fit 기록의 `external_split_hash` 를 외부 파일과 대조할지, 외부 inner validation 수 (42) 가 `CellFoldResult.n_subjects` 로 들어가는지 확인.
 - 실자료 외부 inner fit (승인 전 금지) · 외부 inner 창 수·시간 실측 없음.
 - (9, 9) external final 의 PIOP2 평가 배선 — 여전히 거부.
+
+# 부록 AZ — 결정 17 명세 7 (b): 선택 CLI 3종 (`select-ad`·`select-comparator`·`select-s`) 의 outer 9 경로 배선 (rev52, 2026-09-25 12:14 예약 슬롯)
+
+부록 AY 의 다음 조각이다. 새 결정 아님 — 결정 17 범위 안의 배선. **외부 선택·외부 최종 fit 실행 승인 아님**: 합성 자료 시험만, 실자료 fit·선택 실행 없음, main pool 미소비.
+
+## AZ.1 구현
+
+- `mobse/v2/cli.py`: 세 선택 CLI 가 `_external_folds_for(--splits, outer_fold)` (rev51 과 같은 고정 이름 규칙, U20) 를 한 번 부르고, outer 9 이면 그 내용을 `resolve_fold_subjects(..., external_folds=…)` 에 넘긴다. `select-ad`·`select-comparator` 는 공유 helper `_load_inner_fit(..., external=)` (필수 키워드 인자 — 빠뜨리면 조용히 꺼지지 않고 TypeError), `select-s` 는 `run_select_s` 본문에서. outer 0–4 는 파일을 읽지 않는다.
+- 새 `_check_external_record(ident, record, outer_fold, external)` — **구현 선택 (결정 아님, 표시)**: outer 9 fit 의 `fit_manifest.json` / `s_fit_report.json` 에 기록된 `external_split_hash`·`external_folds_sha256` (rev51) 이 지금 읽은 외부 파일의 값·파일 sha256 과 같아야 한다 (fit 뒤 파일 교체 검출 — 경계가 같아도 바이트가 바뀌면 거부). 기록이 없어도 거부. outer 0–4 fit 에 두 키가 있으면 거부 (경계 혼입). 위치: split/config hash 대조 바로 뒤.
+- `select-ad` 의 `CellFoldResult.n_subjects` 는 원래부터 `resolve_fold_subjects` 가 준 `fold.evaluate` 수라, outer 9 에서는 외부 inner validation 수 (실자료 42/42/42) 가 된다 — 코드 변경 없이 성립, 시험으로 고정 (`inner_fold_n_subjects` = 외부 파일 val 수).
+- 선택 기록 (`selection.json`·`comparator_selection.json`·`s_selection.json`): outer 9 에서만 `external_split_hash`·`external_folds_sha256`·`outer_plan_status` 를 덧붙인다 (**구현 선택**; 기존 키 불변, outer 0–4 기록에는 없음 — 시험). outer 계획의 `(9, 9)` external final 인자는 **기록만** 하며, 그 fit 은 `resolve_fold_subjects` 가 계속 거부한다 (PIOP2 평가 배선 전, 결정 17 범위 밖).
+- `select-s` 의 grid 완비 96·`S_INNER_FOLDS = 3` 은 외부에서도 같다 (계획서 §6 "외부 S도 PIOP1 main pool의 inner 결과로만 고른다"). docstring 의 "외부 S 미구현" 문장 정정.
+
+## AZ.2 시험·돌연변이
+
+- 세 시험 파일의 합성 fit 생성기 `make_fit` 에 `outer` 인자 (기본 0) 와 `_inner_rec`·`_with_external` (rev51 `test_cli_fit.py` 방식: fixture folds.json 에 `pilot.groups`·`seeds.external`, `build_external_folds` 로 옆에 외부 파일) 추가. outer 9 fit 은 rev51 과 같은 두 기록 키를 가진다. `n_eval_subjects` 리터럴 4 → val 수 (outer 0 에서 같은 값).
+- 시험 수 (HEAD `3e0a9a0` 판 81 → 108): `test_cli_select_ad.py` 27 → **36**, `test_cli_select_comparator.py` 26 → **35**, `test_cli_select_s.py` 28 → **37**. 파일마다 같은 9 개: 외부 inner 경계로 선택·기록 필드 (`select-ad` 는 fold subject 수), outer 0 기록에 외부 필드 없음, 파일 없음 거부, 기록 split hash 다름·없음 거부, 기록 파일 sha 다름 거부, fit 뒤 외부 파일 교체 (같은 경계, 다른 바이트) 거부, outer 0 fit 에 외부 기록 거부, outer 9 fit 이 folds.json outer 0 inner 경계로 학습한 경우 거부.
+- 동작 확인: 새 시험 파일을 **HEAD 판 `cli.py`** 에 돌리면 기존 81 (`-k "not external"`) 통과 — fixture 변경이 outer 0 경로를 바꾸지 않음; 새 27 중 24 실패 (새 동작), 3 통과 (outer 0 기록에 외부 필드 없음 — HEAD 에서도 참).
+- 돌연변이 `.backup/slot_1215b/mut_sel_ext.py` (`-B`·`PYTHONDONTWRITEBYTECODE=1`, 출현 수 검사 + n 번째 출현 치환, 원본 복원, `-k external`; 공유 가드는 잡아야 할 시험 파일 **각각**이 rc≠0 이어야 검출 — `mut_2c.py` 방식): 첫 실행 12/13 (1 은 치환 원문이 `run_fit_s` 에도 있어 NOT-APPLICABLE → 뒤 문맥 추가), 재실행 **13/13 검출** — 공유 대조 가드 3 + 선택 기록 필드 (세 파일 각각), helper resolve·대조 호출 제거 (ad·comparator 각각), 호출자 전달 누락 2, `ext` 계산 제거 3, `select-s` 대조 호출·resolve 전달 제거 2. 시작 전·끝·rsync 전 Mac `*.pyc` 0.
+- 관련 시험 8 파일 (fit·fit-s·external_folds·config_consumption·split·select 3종) Mac 265 passed (238 + 27).
+
+## AZ.3 잠금·gate
+
+- 재잠금 `edf57e93d6dd` → **`9afbfcff698e`** (2026-09-25T03:21:45Z), code_hash `a449af15ae36` → `b7fc265aa500`. 19번 45/45, 25번 창 4,728. split_hash `ace5f4a4…`·external_split_hash `40e50350…` (val 42/42/42) 불변, config_hash main `2a7d7d7f`·pilot `6498596a`·external `576f6068` 불변. gate evidence **rev52** (`decision17_external_folds.spec7b_selection_wiring_rev52`).
+
+## AZ.4 확인하지 못한 것 · 다음
+
+- 실자료 외부 inner fit·선택 (승인 전 금지) · 외부 inner 창 수·시간 실측 없음.
+- (9, 9) external final 의 PIOP2 평가 배선 — 여전히 거부. 결정 17 명세 7 은 이것으로 끝나고, external final 은 범위 밖으로 남는다.
+- `run_select_s` 의 입력 검사는 여전히 `_load_inner_fit` 과 따로 있다 (입력 계약이 달라 rev49 공통화 대상 아니었음) — 외부 대조는 같은 helper `_check_external_record` 를 쓴다.
