@@ -385,7 +385,7 @@ def run_split(paths: Dict[str, str]) -> Dict[str, Any]:
         CLIError: config 위반, subjects 읽기 실패, 적격 subject 0명,
             분할 결과가 disjoint 하지 않을 때.
     """
-    from mobse.v2.splits import build_folds, make_groups, verify_disjoint
+    from mobse.v2.splits import verify_disjoint
 
     try:
         cfg = load_config(Path(paths["config"]))
@@ -393,6 +393,104 @@ def run_split(paths: Dict[str, str]) -> Dict[str, Any]:
         raise CLIError(f"config 검증 실패: {exc}") from exc
 
     subjects_path = Path(paths["subjects"])
+    records, eligible, groups = _read_split_groups(subjects_path)
+    folds = _build_folds_from_cfg(groups, cfg)
+
+    # pilot 은 main·final fit 에서도 제외된다 (계획서 §4-2). 실제로 겹치지
+    # 않는지 확인한다 — 문서로만 두지 않는다.
+    verify_disjoint({"pilot": folds["pilot"]["subjects"],
+                     "main_pool": folds["main_pool"]["subjects"]})
+    for outer in folds["outer_folds"]:
+        verify_disjoint({f"outer{outer['outer_fold']}_test": outer["test_subjects"],
+                         f"outer{outer['outer_fold']}_train": outer["train_subjects"]})
+        for inner in outer["inner"]:
+            verify_disjoint({
+                f"o{outer['outer_fold']}i{inner['inner_fold']}_val": inner["val_subjects"],
+                f"o{outer['outer_fold']}i{inner['inner_fold']}_train": inner["train_subjects"],
+                f"outer{outer['outer_fold']}_test": outer["test_subjects"]})
+
+    # 결정 17: 외부 최종 선택용 3-fold 는 folds.json 밖의 별도 파생 산출물이다.
+    # folds.json 을 쓰기 전에 만들고 검사해, 실패하면 아무것도 쓰지 않는다.
+    external = _build_external_from_cfg(groups, folds, cfg)
+
+    out_dir = Path(paths["output_dir"])
+    out_dir.mkdir(parents=True, exist_ok=True)
+    folds_path = out_dir / "folds.json"
+    external_path = out_dir / EXTERNAL_FOLDS_NAME
+    for p in (folds_path, external_path):
+        if p.exists():
+            raise CLIError(f"이미 존재한다: {p}. 같은 release 결과를 "
+                           "덮어쓰지 않는다 (지침서 §2)")
+    payload = dict(folds)
+    payload["config_hash"] = config_hash(cfg)
+    payload["subjects_manifest"] = str(subjects_path)
+    payload["subjects_manifest_sha256"] = _sha256(subjects_path)
+    folds_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2),
+                          encoding="utf-8")
+    external_path.write_text(json.dumps(external, ensure_ascii=False, indent=2),
+                             encoding="utf-8")
+
+    return {
+        "config_hash": payload["config_hash"],
+        "subjects_total": len(records),
+        "subjects_eligible": len(eligible),
+        "n_groups": folds["n_groups_total"],
+        "pilot_n": folds["pilot"]["n"],
+        "pilot_target": folds["pilot"]["target"],
+        "main_pool_n": folds["main_pool"]["n_subjects"],
+        "outer_test_sizes": [len(o["test_subjects"]) for o in folds["outer_folds"]],
+        "split_hash": folds["split_hash"],
+        "folds_path": str(folds_path),
+        "folds_sha256": _sha256(folds_path),
+        "external_split_hash": external["external_split_hash"],
+        "external_val_sizes": [len(i["val_subjects"]) for i in external["inner"]],
+        "external_folds_path": str(external_path),
+        "external_folds_sha256": _sha256(external_path),
+        "verdict": "pass",
+    }
+
+
+#: 외부 최종 선택용 분할 파일 이름 (결정 17). ``folds.json`` 옆에 둔다.
+EXTERNAL_FOLDS_NAME = "external_folds.json"
+
+
+def _build_folds_from_cfg(groups: Sequence[Any], cfg: Mapping[str, Any]) -> Dict[str, Any]:
+    """config 의 잠긴 seed 로 `splits.build_folds` 를 부른다."""
+    from mobse.v2.splits import build_folds
+
+    return build_folds(
+        groups,
+        n_outer=int(cfg["splits.n_outer_folds"]),
+        n_inner=int(cfg["splits.n_inner_folds"]),
+        pilot_seed=int(cfg["splits.pilot_seed"]),
+        outer_seed=int(cfg["splits.outer_seed"]),
+        inner_seed_base=int(cfg["splits.inner_seed_base"]),
+    )
+
+
+def _build_external_from_cfg(groups: Sequence[Any], folds: Mapping[str, Any],
+                             cfg: Mapping[str, Any]) -> Dict[str, Any]:
+    """외부 3-fold 를 만들고 부모 folds 와 대조한다 (결정 17)."""
+    from mobse.v2.splits import (SplitError, build_external_folds, external_invariants,
+                                 failed_external_invariants)
+
+    try:
+        external = build_external_folds(
+            groups, folds, n_folds=int(cfg["splits.n_inner_folds"]),
+            seed=int(cfg["splits.external_seed"]))
+    except SplitError as exc:
+        raise CLIError(f"외부 분할 실패: {exc}") from exc
+    bad = failed_external_invariants(external_invariants(external, folds))
+    if bad:                                                   # pragma: no cover
+        raise CLIError(f"외부 분할 불변식 실패: {bad}")
+    return external
+
+
+def _read_split_groups(subjects_path: Path) -> Tuple[List[Dict[str, Any]],
+                                                     List[Dict[str, Any]], List[Any]]:
+    """subjects manifest 를 읽어 (전체 레코드, 적격 레코드, Group 목록) 을 돌려준다."""
+    from mobse.v2.splits import make_groups
+
     if not subjects_path.is_file():
         raise CLIError(f"subjects manifest 가 없다: {subjects_path} "
                        "(자동 탐색하지 않는다 — U20)")
@@ -420,53 +518,59 @@ def run_split(paths: Dict[str, str]) -> Dict[str, Any]:
     # subject 와 같다 (개정 P4 / U10).
     subject_to_group = {r["canonical_subject"]: r["group_id"] for r in eligible}
     groups = make_groups(subject_to_group=subject_to_group)
-    folds = build_folds(
-        groups,
-        n_outer=int(cfg["splits.n_outer_folds"]),
-        n_inner=int(cfg["splits.n_inner_folds"]),
-        pilot_seed=int(cfg["splits.pilot_seed"]),
-        outer_seed=int(cfg["splits.outer_seed"]),
-        inner_seed_base=int(cfg["splits.inner_seed_base"]),
-    )
+    return records, eligible, groups
 
-    # pilot 은 main·final fit 에서도 제외된다 (계획서 §4-2). 실제로 겹치지
-    # 않는지 확인한다 — 문서로만 두지 않는다.
-    verify_disjoint({"pilot": folds["pilot"]["subjects"],
-                     "main_pool": folds["main_pool"]["subjects"]})
-    for outer in folds["outer_folds"]:
-        verify_disjoint({f"outer{outer['outer_fold']}_test": outer["test_subjects"],
-                         f"outer{outer['outer_fold']}_train": outer["train_subjects"]})
-        for inner in outer["inner"]:
-            verify_disjoint({
-                f"o{outer['outer_fold']}i{inner['inner_fold']}_val": inner["val_subjects"],
-                f"o{outer['outer_fold']}i{inner['inner_fold']}_train": inner["train_subjects"],
-                f"outer{outer['outer_fold']}_test": outer["test_subjects"]})
 
+def run_external_split(paths: Dict[str, str]) -> Dict[str, Any]:
+    """이미 있는 ``folds.json`` 옆에 ``external_folds.json`` 만 추가한다 (결정 17).
+
+    잠긴 release 의 분할 디렉터리는 `split` 을 다시 돌릴 수 없다 (folds.json
+    덮어쓰기 거부). 그래서 같은 subjects manifest·config 로 `build_folds` 를 다시
+    계산해 **기존 folds.json 의 split_hash 를 재현**하는지 확인한 뒤, 기존 파일은
+    건드리지 않고 새 파일만 쓴다. 하위 명령이 아니라 `scripts/h197/26_…` 가 부른다.
+
+    Args:
+        paths: config / subjects / output_dir (folds.json 이 있는 디렉터리).
+
+    Raises:
+        CLIError: folds.json 이 없거나, 재계산 split_hash 가 다르거나, subjects
+            manifest sha256 이 folds.json 기록과 다르거나, external_folds.json 이
+            이미 있으면.
+    """
+    try:
+        cfg = load_config(Path(paths["config"]))
+    except ConfigError as exc:
+        raise CLIError(f"config 검증 실패: {exc}") from exc
     out_dir = Path(paths["output_dir"])
-    out_dir.mkdir(parents=True, exist_ok=True)
     folds_path = out_dir / "folds.json"
-    if folds_path.exists():
-        raise CLIError(f"이미 존재한다: {folds_path}. 같은 release 결과를 "
+    external_path = out_dir / EXTERNAL_FOLDS_NAME
+    if not folds_path.is_file():
+        raise CLIError(f"folds.json 이 없다: {folds_path}")
+    if external_path.exists():
+        raise CLIError(f"이미 존재한다: {external_path}. 같은 release 결과를 "
                        "덮어쓰지 않는다 (지침서 §2)")
-    payload = dict(folds)
-    payload["config_hash"] = config_hash(cfg)
-    payload["subjects_manifest"] = str(subjects_path)
-    payload["subjects_manifest_sha256"] = _sha256(subjects_path)
-    folds_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2),
-                          encoding="utf-8")
-
+    recorded = json.loads(folds_path.read_text(encoding="utf-8"))
+    subjects_path = Path(paths["subjects"])
+    _, _, groups = _read_split_groups(subjects_path)
+    if _sha256(subjects_path) != recorded.get("subjects_manifest_sha256"):
+        raise CLIError("subjects manifest sha256 이 folds.json 기록과 다르다")
+    rebuilt = _build_folds_from_cfg(groups, cfg)
+    if rebuilt["split_hash"] != recorded.get("split_hash"):
+        raise CLIError(f"재계산 split_hash {rebuilt['split_hash'][:12]} 가 folds.json "
+                       f"{str(recorded.get('split_hash'))[:12]} 와 다르다")
+    before = _sha256(folds_path)
+    external = _build_external_from_cfg(groups, recorded, cfg)
+    external_path.write_text(json.dumps(external, ensure_ascii=False, indent=2),
+                             encoding="utf-8")
+    if _sha256(folds_path) != before:                          # pragma: no cover
+        raise CLIError("folds.json 이 바뀌었다 — 있어서는 안 되는 일")
     return {
-        "config_hash": payload["config_hash"],
-        "subjects_total": len(records),
-        "subjects_eligible": len(eligible),
-        "n_groups": folds["n_groups_total"],
-        "pilot_n": folds["pilot"]["n"],
-        "pilot_target": folds["pilot"]["target"],
-        "main_pool_n": folds["main_pool"]["n_subjects"],
-        "outer_test_sizes": [len(o["test_subjects"]) for o in folds["outer_folds"]],
-        "split_hash": folds["split_hash"],
-        "folds_path": str(folds_path),
-        "folds_sha256": _sha256(folds_path),
+        "split_hash": recorded["split_hash"],
+        "folds_sha256": before,
+        "external_split_hash": external["external_split_hash"],
+        "external_val_sizes": [len(i["val_subjects"]) for i in external["inner"]],
+        "external_folds_path": str(external_path),
+        "external_folds_sha256": _sha256(external_path),
         "verdict": "pass",
     }
 

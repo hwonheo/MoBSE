@@ -317,6 +317,143 @@ def build_folds(
     return manifest
 
 
+# --------------------------------------------------------------------------- #
+# 외부 최종 선택용 main pool 3-fold — 결정 17 (별도 파생 산출물)
+# --------------------------------------------------------------------------- #
+
+EXTERNAL_SCHEMA_VERSION = "external_folds_v1"
+
+#: `external_split_hash` 계산에서 본문에서 빼는 필드.
+_EXTERNAL_HASH_EXCLUDED = ("external_split_hash",)
+
+
+def external_split_hash(manifest: Mapping[str, object]) -> str:
+    """`external_folds.json` 본문의 sha256 — `split_hash` 와 같은 직렬화 방식."""
+    payload = {k: v for k, v in manifest.items() if k not in _EXTERNAL_HASH_EXCLUDED}
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    ).hexdigest()
+
+
+def build_external_folds(
+    groups: Sequence[Group],
+    folds_manifest: Mapping[str, object],
+    *,
+    n_folds: int = 3,
+    seed: int = EXTERNAL_SEED,
+) -> Dict[str, object]:
+    """외부 최종 선택용 main pool 분할을 만든다 (계획서 §4-3·§9, 결정 17).
+
+    `build_folds` 는 건드리지 않는다 — 이 산출물은 ``folds.json`` 밖의 별도 파일이고
+    부모 `split_hash` 를 기록만 한다. main pool 은 부모 manifest 의 pilot group 을 뺀
+    group 이며, 그 subject 가 부모 ``main_pool.subjects`` 와 정확히 같아야 한다.
+
+    Args:
+        groups: `build_folds` 에 넣은 것과 같은 Group 목록.
+        folds_manifest: 부모 ``folds.json`` 내용.
+        n_folds: fold 수 (계획서 §9 "같은 3-fold selection 규칙").
+        seed: 계획서 §4-3 external 최종 선택 seed.
+
+    Returns:
+        ``external_folds.json`` 으로 직렬화할 dict. ``inner_fold`` j 의 학습 =
+        main pool − val.
+
+    Raises:
+        SplitError: 부모 manifest 와 group 이 맞지 않거나 경계가 겹칠 때.
+    """
+    try:
+        parent_hash = str(folds_manifest["split_hash"])
+        pilot_group_ids = set(folds_manifest["pilot"]["groups"])        # type: ignore[index]
+        pilot_subjects = list(folds_manifest["pilot"]["subjects"])      # type: ignore[index]
+        pool_subjects = list(folds_manifest["main_pool"]["subjects"])   # type: ignore[index]
+    except (KeyError, TypeError) as exc:
+        raise SplitError(f"부모 folds manifest 구조가 기대와 다르다: {exc}") from exc
+    if len(parent_hash) != 64:
+        raise SplitError(f"부모 split_hash 형식이 아니다: {parent_hash!r}")
+
+    main_groups = [g for g in groups if g.group_id not in pilot_group_ids]
+    got_pool = sorted(s for g in main_groups for s in g.subjects)
+    if got_pool != sorted(pool_subjects):
+        raise SplitError(
+            f"group 에서 만든 main pool({len(got_pool)}명)이 부모 main_pool.subjects"
+            f"({len(pool_subjects)}명)와 다르다 — 다른 코호트의 group 이다")
+
+    assignment = assign_to_folds(main_groups, n_folds, seed)
+    pool = set(got_pool)
+    inner = []
+    for j in range(n_folds):
+        val = list(assignment.fold_subjects[j])
+        train = sorted(pool - set(val))
+        verify_disjoint({"external_val": val, "external_train": train,
+                         "pilot": pilot_subjects})
+        inner.append({"inner_fold": j, "seed": seed,
+                      "val_groups": list(assignment.fold_groups[j]),
+                      "val_subjects": val, "train_subjects": train})
+
+    manifest: Dict[str, object] = {
+        "schema_version": EXTERNAL_SCHEMA_VERSION,
+        "algorithm": ("PCG64 tie-break order; groups by size desc (ties by that order); "
+                      "assign to fold with fewest subjects; fold ties to smallest index"),
+        "library": {"numpy": np.__version__},
+        "grouping_assumption": folds_manifest.get("grouping_assumption"),
+        "parent_split_hash": parent_hash,
+        "seed": seed,
+        "n_folds": n_folds,
+        "main_pool": {"n_subjects": len(got_pool), "n_groups": len(main_groups)},
+        "pilot_n": len(pilot_subjects),
+        "inner": inner,
+        "note": ("외부 최종 선택 (계획서 §4-3 seed 20262000, §9). outer_fold 9 · "
+                 "inner_fold 0–2. 학습 = main pool − val. pilot 제외. 결정 17"),
+    }
+    manifest["external_split_hash"] = external_split_hash(manifest)
+    return manifest
+
+
+def external_invariants(external: Mapping[str, object],
+                        folds_manifest: Mapping[str, object]) -> Dict[str, object]:
+    """``external_folds.json`` 의 불변식을 부모 ``folds.json`` 과 대조해 **계산한다**.
+
+    Returns:
+        불변식 이름 → 결과. 불리언은 모두 True 여야 한다.
+    """
+    inv: Dict[str, object] = {}
+    try:
+        inner = list(external["inner"])                                 # type: ignore[arg-type]
+        pool = set(folds_manifest["main_pool"]["subjects"])             # type: ignore[index]
+        pilot = set(folds_manifest["pilot"]["subjects"])                # type: ignore[index]
+        vals = [set(i["val_subjects"]) for i in inner]
+        trains = [set(i["train_subjects"]) for i in inner]
+        ids = [int(i["inner_fold"]) for i in inner]
+        seeds_ok = all(int(i["seed"]) == int(external["seed"]) for i in inner)  # type: ignore[arg-type]
+        n_folds = int(external["n_folds"])                              # type: ignore[arg-type]
+        parent_seed = int(folds_manifest["seeds"]["external"])          # type: ignore[index]
+    except (KeyError, TypeError, ValueError) as exc:
+        return {"structure_valid": False, "error": str(exc)}
+
+    inv["structure_valid"] = True
+    inv["schema_version_valid"] = external.get("schema_version") == EXTERNAL_SCHEMA_VERSION
+    inv["parent_split_hash_matches"] = (
+        external.get("parent_split_hash") == folds_manifest.get("split_hash"))
+    inv["external_split_hash_recomputes"] = (
+        external.get("external_split_hash") == external_split_hash(external))
+    inv["seed_is_parent_external_seed"] = int(external["seed"]) == parent_seed  # type: ignore[arg-type]
+    inv["inner_seeds_match"] = bool(seeds_ok)
+    inv["inner_fold_ids_are_0_to_n"] = ids == list(range(n_folds)) and n_folds >= 2
+    inv["val_mutually_disjoint"] = all(
+        not (a & b) for k, a in enumerate(vals) for b in vals[k + 1:])
+    inv["val_union_is_main_pool"] = (set().union(*vals) == pool) if vals else False
+    inv["train_is_main_pool_minus_val"] = all(
+        t == pool - v for t, v in zip(trains, vals))
+    inv["pilot_absent"] = not any(pilot & (t | v) for t, v in zip(trains, vals))
+    inv["val_sizes"] = [len(v) for v in vals]
+    return inv
+
+
+def failed_external_invariants(inv: Mapping[str, object]) -> List[str]:
+    """`external_invariants` 결과에서 거짓인 불리언 불변식 이름."""
+    return sorted(k for k, v in inv.items() if isinstance(v, bool) and not v)
+
+
 def assert_fit_scope(allowed: Iterable[str], used: Iterable[str]) -> None:
     """fit 에 쓰인 subject 가 허용 집합 안에 있는지 확인한다 (T03).
 

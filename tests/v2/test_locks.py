@@ -7,6 +7,8 @@ from pathlib import Path
 import pytest
 
 from mobse.v2 import locks as L
+from mobse.v2.splits import (EXTERNAL_SCHEMA_VERSION, external_invariants,
+                              external_split_hash)
 
 
 # --------------------------------------------------------------------------- #
@@ -36,7 +38,7 @@ def _folds(pilot, pool, n_outer=2, n_inner=2):
         "main_pool": {"subjects": pool, "n_subjects": len(pool)},
         "outer_folds": outer,
         "split_hash": "a" * 64, "config_hash": "85556f56",
-        "seeds": {"pilot": 20260917, "outer": 20260918},
+        "seeds": {"pilot": 20260917, "outer": 20260918, "external": 20262000},
         "subjects_manifest_sha256": "b" * 64,
     }
 
@@ -130,6 +132,21 @@ def test_lock_hash_changes_with_content():
 # --------------------------------------------------------------------------- #
 
 
+def _external(folds, n=2):
+    """결정 17 — 손으로 만든 작은 외부 분할 (자체 hash 포함)."""
+    pool = folds["main_pool"]["subjects"]
+    inner = []
+    for j in range(n):
+        val = pool[j::n]
+        inner.append({"inner_fold": j, "seed": 20262000, "val_subjects": val,
+                      "train_subjects": [s for s in pool if s not in val]})
+    ext = {"schema_version": EXTERNAL_SCHEMA_VERSION,
+           "parent_split_hash": folds["split_hash"], "seed": 20262000,
+           "n_folds": n, "inner": inner}
+    ext["external_split_hash"] = external_split_hash(ext)
+    return ext
+
+
 def _write_lock(tmp_path, good, *, tamper_body=None):
     pilot, pool, folds = good
     data = tmp_path / "data"
@@ -139,6 +156,9 @@ def _write_lock(tmp_path, good, *, tamper_body=None):
 
     folds_p = data / "co" / "folds.json"
     folds_p.write_text(json.dumps(folds), encoding="utf-8")
+    ext = _external(folds)
+    ext_p = data / "co" / "external_folds.json"
+    ext_p.write_text(json.dumps(ext), encoding="utf-8")
     subj_p = data / "co" / "subjects.jsonl"
     subj_p.write_text("".join(
         json.dumps({"canonical_subject": s, "eligible": True}) + "\n"
@@ -152,6 +172,10 @@ def _write_lock(tmp_path, good, *, tamper_body=None):
             "subjects": L.file_record(subj_p, base=data),
             "folds": L.file_record(folds_p, base=data,
                                    invariants=L.fold_invariants(folds, pilot + pool)),
+            "external_folds": L.file_record(
+                ext_p, base=data, external_split_hash=ext["external_split_hash"],
+                parent_split_hash=ext["parent_split_hash"],
+                invariants=external_invariants(ext, folds)),
         }},
         "environment": {"protocol": L.file_record(doc_p, base=repo)},
     }

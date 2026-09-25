@@ -28,6 +28,7 @@ from typing import Any, Dict, List
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from mobse.v2 import locks as L                                    # noqa: E402
+from mobse.v2 import splits as S                                    # noqa: E402
 from mobse.v2.config import config_hash, load_config               # noqa: E402
 from mobse.v2.manifests import code_hash, sha256_file              # noqa: E402
 
@@ -137,6 +138,21 @@ def build_cohort(data_root: Path, name: str, spec: Dict[str, Any]) -> Dict[str, 
         split_hash=folds["split_hash"], config_hash=folds["config_hash"],
         seeds=folds["seeds"], invariants=inv,
         subjects_manifest_sha256=folds["subjects_manifest_sha256"])
+
+    # 결정 17 — 외부 최종 선택 3-fold (folds.json 옆 별도 파생 산출물).
+    ext_path = folds_path.parent / "external_folds.json"
+    if not ext_path.is_file():
+        raise SystemExit(f"{name}: 잠글 수 없다 — {ext_path} 가 없다 (결정 17)")
+    ext = json.loads(ext_path.read_text(encoding="utf-8"))
+    einv = S.external_invariants(ext, folds)
+    ebad = S.failed_external_invariants(einv)
+    if ebad:
+        raise SystemExit(f"{name}: 잠글 수 없다 — 외부 분할 불변식 실패 {ebad}")
+    out["external_folds"] = L.file_record(
+        ext_path, base=data_root,
+        external_split_hash=ext["external_split_hash"],
+        parent_split_hash=ext["parent_split_hash"],
+        seed=ext["seed"], n_folds=ext["n_folds"], invariants=einv)
     return out
 
 
@@ -263,6 +279,8 @@ def main(argv: List[str]) -> int:
         "n_primary_oof": body["endpoint"]["n_primary_oof"],
         "n_external": body["endpoint"]["n_external"],
         "split_hash": p1["folds"]["split_hash"],
+        "external_split_hash": p1["external_folds"]["external_split_hash"],
+        "external_val_sizes": p1["external_folds"]["invariants"]["val_sizes"],
         "code_hash": body["environment"]["code"]["code_hash"][:16],
     }, ensure_ascii=False, indent=2))
     return 0

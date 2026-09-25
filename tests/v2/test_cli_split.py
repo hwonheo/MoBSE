@@ -200,3 +200,104 @@ def test_main_split_dry_run_writes_nothing(tmp_path):
                    "--output-dir", str(out), "--dry-run"])
     assert rc == 0
     assert not (out / "folds.json").exists()
+
+
+# --- 결정 17: external_folds.json ----------------------------------------------
+
+def _load(p):
+    return json.loads(pathlib.Path(p).read_text(encoding="utf-8"))
+
+
+def test_split_writes_external_folds_next_to_folds(tmp_path):
+    from mobse.v2.splits import external_invariants, failed_external_invariants
+
+    result = cli.run_split(_paths(tmp_path, _records(157)))
+    ext_p = pathlib.Path(result["external_folds_path"])
+    assert ext_p.name == cli.EXTERNAL_FOLDS_NAME == "external_folds.json"
+    assert ext_p.parent == pathlib.Path(result["folds_path"]).parent
+    ext, folds = _load(ext_p), _load(result["folds_path"])
+    assert result["external_val_sizes"] == [42, 42, 42]
+    assert ext["parent_split_hash"] == folds["split_hash"] == result["split_hash"]
+    assert ext["seed"] == 20262000
+    assert failed_external_invariants(external_invariants(ext, folds)) == []
+
+
+def test_folds_json_content_is_unchanged_by_decision_17(tmp_path):
+    """folds.json 에 외부 블록이 들어가지 않고 split_hash 가 build_folds 그대로다."""
+    from mobse.v2.splits import build_folds, make_groups
+
+    records = _records(157)
+    result = cli.run_split(_paths(tmp_path, records))
+    folds = _load(result["folds_path"])
+    groups = make_groups(subject_to_group={r["canonical_subject"]: r["group_id"]
+                                           for r in records if r["eligible"]})
+    ref = build_folds(groups)
+    assert folds["split_hash"] == ref["split_hash"]
+    assert set(folds) == set(ref) | {"config_hash", "subjects_manifest",
+                                     "subjects_manifest_sha256"}
+
+
+def test_existing_external_folds_blocks_split_before_any_write(tmp_path):
+    paths = _paths(tmp_path, _records(60))
+    out = pathlib.Path(paths["output_dir"])
+    out.mkdir()
+    (out / "external_folds.json").write_text("{}", encoding="utf-8")
+    with pytest.raises(cli.CLIError, match="덮어쓰지 않는다"):
+        cli.run_split(paths)
+    assert not (out / "folds.json").exists()
+    assert (out / "external_folds.json").read_text(encoding="utf-8") == "{}"
+
+
+def _split_then_drop_external(tmp_path, n=157):
+    paths = _paths(tmp_path, _records(n))
+    result = cli.run_split(paths)
+    ext_p = pathlib.Path(result["external_folds_path"])
+    first = ext_p.read_bytes()
+    ext_p.unlink()
+    return paths, result, first
+
+
+def test_external_split_adds_only_the_new_file(tmp_path):
+    paths, result, first = _split_then_drop_external(tmp_path)
+    folds_p = pathlib.Path(result["folds_path"])
+    before = folds_p.read_bytes()
+    listing = sorted(p.name for p in folds_p.parent.iterdir())
+    res = cli.run_external_split(paths)
+    assert folds_p.read_bytes() == before
+    assert sorted(p.name for p in folds_p.parent.iterdir()) == sorted(
+        listing + ["external_folds.json"])
+    assert pathlib.Path(res["external_folds_path"]).read_bytes() == first
+    assert res["split_hash"] == result["split_hash"]
+    assert res["external_val_sizes"] == [42, 42, 42]
+
+
+def test_external_split_refuses_existing_file(tmp_path):
+    paths = _paths(tmp_path, _records(60))
+    cli.run_split(paths)
+    with pytest.raises(cli.CLIError, match="덮어쓰지 않는다"):
+        cli.run_external_split(paths)
+
+
+def test_external_split_refuses_split_hash_mismatch(tmp_path):
+    paths, result, _ = _split_then_drop_external(tmp_path)
+    folds_p = pathlib.Path(result["folds_path"])
+    folds = _load(folds_p)
+    folds["split_hash"] = "e" * 64
+    folds_p.write_text(json.dumps(folds), encoding="utf-8")
+    with pytest.raises(cli.CLIError, match="split_hash"):
+        cli.run_external_split(paths)
+    assert not (folds_p.parent / "external_folds.json").exists()
+
+
+def test_external_split_refuses_other_subjects_manifest(tmp_path):
+    paths, result, _ = _split_then_drop_external(tmp_path)
+    other = dict(paths, subjects=str(_write(tmp_path, _records(158), name="other.jsonl")))
+    with pytest.raises(cli.CLIError, match="sha256"):
+        cli.run_external_split(other)
+
+
+def test_external_split_refuses_missing_folds(tmp_path):
+    paths = _paths(tmp_path, _records(60))
+    pathlib.Path(paths["output_dir"]).mkdir()
+    with pytest.raises(cli.CLIError, match="folds.json 이 없다"):
+        cli.run_external_split(paths)

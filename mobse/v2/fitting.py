@@ -30,6 +30,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 import numpy as np
 
 from . import features as F
+from . import splits as splits_mod
 from . import templates as T
 from .labels import CLASS_LABELS, class_index, window_key
 from .train import (BATCH_SIZE, CELLS, GRAD_CLIP, MAX_EPOCHS, MIN_DELTA, MIN_UPDATES,
@@ -181,21 +182,50 @@ class FoldSubjects:
 
 
 def resolve_fold_subjects(folds: Mapping[str, Any], outer_fold: int,
-                          inner_fold: int) -> FoldSubjects:
+                          inner_fold: int,
+                          external_folds: Optional[Mapping[str, Any]] = None
+                          ) -> FoldSubjects:
     """``folds.json`` 에서 이 fit 의 학습·평가 subject 를 꺼낸다.
 
     ``inner_fold == templates.OUTER_FIT_INNER_FOLD`` 이면 outer 최종 적합이다 —
     outer train 전체로 학습하고 outer test 로 평가한다.
 
+    ``outer_fold == templates.EXTERNAL_OUTER_FOLD`` (9) 는 외부 최종 선택이다
+    (결정 17). inner 0–2 는 ``external_folds.json`` 에서 학습 = main pool − val,
+    평가 = val 을 꺼낸다. 부모 split_hash·자체 hash·분할 불변식이 하나라도 어긋나면
+    거부한다. ``(9, 9)`` external final 은 PIOP2 평가 배선 전이라 거부한다.
+
     Raises:
-        FitError: fold 번호가 없거나 pilot 이 섞여 있으면.
+        FitError: fold 번호가 없거나 pilot 이 섞여 있거나 외부 분할이 맞지 않으면.
     """
+    pilot = set(folds.get("pilot", {}).get("subjects") or [])
+
+    if outer_fold == T.EXTERNAL_OUTER_FOLD:
+        if inner_fold == T.OUTER_FIT_INNER_FOLD:
+            raise FitError("external final (outer 9, inner 9) 은 아직 배선되지 않았다 — "
+                           "PIOP2 평가 경로 전이라 거부한다 (결정 17 범위 밖)")
+        if external_folds is None:
+            raise FitError("outer fold 9 (외부 최종 선택) 은 external_folds.json 이 "
+                           "필요하다 (결정 17)")
+        inv = splits_mod.external_invariants(external_folds, folds)
+        bad = splits_mod.failed_external_invariants(inv)
+        if bad:
+            raise FitError(f"external_folds.json 이 folds.json 과 맞지 않는다: {bad}")
+        ext_list = [i for i in external_folds["inner"]
+                    if int(i["inner_fold"]) == inner_fold]
+        if not ext_list:
+            raise FitError(f"inner fold {inner_fold} 가 external_folds.json 에 없다")
+        train = tuple(ext_list[0]["train_subjects"])
+        evaluate = tuple(ext_list[0]["val_subjects"])
+        role, eval_role = ROLE_INNER, EVAL_ROLE[ROLE_INNER]
+        return _checked_fold(pilot, role, outer_fold, inner_fold, train, evaluate,
+                             eval_role)
+
     outer_list = folds.get("outer_folds") or []
     match = [o for o in outer_list if int(o["outer_fold"]) == outer_fold]
     if not match:
         raise FitError(f"outer fold {outer_fold} 가 folds.json 에 없다")
     outer = match[0]
-    pilot = set(folds.get("pilot", {}).get("subjects") or [])
 
     if inner_fold == T.OUTER_FIT_INNER_FOLD:
         train = tuple(outer["train_subjects"])
@@ -210,7 +240,13 @@ def resolve_fold_subjects(folds: Mapping[str, Any], outer_fold: int,
         train = tuple(inner["train_subjects"])
         evaluate = tuple(inner["val_subjects"])
         role, eval_role = ROLE_INNER, EVAL_ROLE[ROLE_INNER]
+    return _checked_fold(pilot, role, outer_fold, inner_fold, train, evaluate, eval_role)
 
+
+def _checked_fold(pilot: set, role: str, outer_fold: int, inner_fold: int,
+                  train: Tuple[str, ...], evaluate: Tuple[str, ...],
+                  eval_role: str) -> FoldSubjects:
+    """pilot 누출·train/평가 겹침을 거부하고 `FoldSubjects` 를 만든다."""
     leaked = sorted(pilot & (set(train) | set(evaluate)))
     if leaked:
         raise FitError(f"pilot 이 fit 에 섞였다: {leaked[:5]} — 계획서 §4-2")

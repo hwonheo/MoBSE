@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from .manifests import ManifestError, code_hash, sha256_file
+from .splits import external_invariants, failed_external_invariants
 
 SCHEMA_VERSION = "measurement_lock_v1"
 
@@ -254,6 +255,34 @@ def verify_lock(lock: Mapping[str, Any], *, roots: Mapping[str, Path],
                        if k in inv and inv[k] != v)
         if drift:
             out["mismatch"].append(f"cohorts/{name}: 기록된 불변식과 재계산이 다르다 {drift}")
+
+        # 결정 17 — 외부 최종 선택 3-fold. folds 가 있는 코호트는 반드시 가진다.
+        ext_rec = cohort.get("external_folds")
+        if not ext_rec:
+            out["missing"].append(f"cohorts/{name}/external_folds: 잠금에 기록이 없다 (결정 17)")
+            continue
+        try:
+            ext = reader(Path(data_root) / ext_rec["path"])
+        except (OSError, KeyError, json.JSONDecodeError) as exc:
+            out["missing"].append(f"cohorts/{name}/external_folds: 불변식 재확인 불가 — {exc}")
+            continue
+        einv = external_invariants(ext, folds)
+        ebad = failed_external_invariants(einv)
+        if ebad:
+            out["invariant"].append(f"cohorts/{name}/external_folds: {ebad}")
+        else:
+            out["ok"].append(f"cohorts/{name}/external_folds: 불변식 "
+                             f"{len([k for k, v in einv.items() if isinstance(v, bool)])}건")
+        if ext_rec.get("parent_split_hash") != folds.get("split_hash"):
+            out["mismatch"].append(f"cohorts/{name}/external_folds: 기록된 parent_split_hash 가 "
+                                   "folds 의 split_hash 와 다르다")
+        if ext_rec.get("external_split_hash") != ext.get("external_split_hash"):
+            out["mismatch"].append(f"cohorts/{name}/external_folds: 기록된 external_split_hash 가 "
+                                   "파일과 다르다")
+        edrift = sorted(k for k, v in (ext_rec.get("invariants") or {}).items()
+                        if k in einv and einv[k] != v)
+        if edrift:
+            out["mismatch"].append(f"cohorts/{name}/external_folds: 기록된 불변식과 재계산이 다르다 {edrift}")
 
     return out
 

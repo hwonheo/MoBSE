@@ -39,7 +39,7 @@ CONSUMERS: Dict[str, Tuple[str, ...]] = {
     "splits.pilot_seed": ("splits.select_pilot",),
     "splits.outer_seed": ("splits.build_folds",),
     "splits.inner_seed_base": ("splits.build_folds",),
-    "splits.external_seed": ("splits.build_folds",),
+    "splits.external_seed": ("splits.build_folds", "cli._build_external_from_cfg"),
     "splits.pilot_cap": ("splits.select_pilot",),
     "splits.pilot_fraction": ("splits.select_pilot",),
     "bank.k": ("templates.cluster_rest", "cli.run_fit"),
