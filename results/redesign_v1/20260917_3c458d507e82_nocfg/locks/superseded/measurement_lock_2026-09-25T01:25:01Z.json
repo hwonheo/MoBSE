@@ -1,7 +1,7 @@
 {
   "schema_version": "measurement_lock_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "locked_at_utc": "2026-09-25T02:20:57Z",
+  "locked_at_utc": "2026-09-25T01:25:01Z",
   "gate": "G1 Measurement lock",
   "work_instruction": "WI-03",
   "roots": {
@@ -269,11 +269,11 @@
       }
     },
     "code": {
-      "code_hash": "a449af15ae3689f85bb83c28dad363cbd63ca56258df7095cee1d5beb3c38f6c",
+      "code_hash": "13a051a6a663911234a19dbdb4f24d48cbe0dc16f3dcf65acbf1c992699ac34f",
       "modules": {
         "__init__.py": "c884876e4717224c87d95b1fd4b3821863307e65f9146eac605bc9a96375c9ab",
         "baselines.py": "4dc480f05a2021d2133cf77826c6e1956a6fc01b55195a1172431958768a7748",
-        "cli.py": "1e1338f0aef6a00908b749345cc152139595f4933042f6c7ec05c04264353c87",
+        "cli.py": "38428ab644b39e63e4702e1391155fd4ca869534a8af274b1891d18e0c20cbb1",
         "cohort.py": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
         "config.py": "0a61104787f5664fa3fda0c860adb18e96590da97dcdd906a593564a54fa9746",
         "evaluate.py": "a11a324f851603edb0e93b21c2cafe8b098529a485f17fe0321876825120e9b7",
@@ -330,9 +330,9 @@
     "formula": "126 subjects x 2 tasks x 4 windows x 3 seeds x 4 cells"
   },
   "supersedes": {
-    "lock_hash": "472bee47adcd7e0a48df76a572a024722a03a540d1b5b7abaad63014cd50e59e",
-    "locked_at_utc": "2026-09-25T01:25:01Z",
-    "reason": "decision 17 spec 7 (a): fit and fit-s read external_folds.json next to --splits for outer fold 9 (inner 0-2) and record its external_split_hash and sha256; outer 0-4 unchanged, (9,9) still refused; no fit; main pool not consumed"
+    "lock_hash": "aee2b79315385bd399d10da69163547b6ba7db7fbeefcb5a59f1123753cdd9c9",
+    "locked_at_utc": "2026-09-24T13:22:33Z",
+    "reason": "decision 17: external final-selection main-pool 3-fold (seed 20262000) fixed as derived artifact external_folds.json next to folds.json (added by scripts/h197/26, folds.json bytes unchanged, split_hash ace5f4a4 unchanged); lock records its sha256, external_split_hash, parent split_hash and recomputed invariants; resolve_fold_subjects(9, 0-2) reads it, (9,9) refused; no fit; main pool not consumed"
   },
-  "lock_hash": "edf57e93d6ddb2d30e20cf99bb132a141b5928abdecc21138c45cfa51d852795"
+  "lock_hash": "472bee47adcd7e0a48df76a572a024722a03a540d1b5b7abaad63014cd50e59e"
 }

@@ -4306,3 +4306,33 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 - external final `(9, 9)` 의 PIOP2 평가 배선 — 거부로 막아 둠.
 - 가족/중복 group 이 있는 코호트에서의 실측 (합성 시험은 1 subject = 1 group 과 group 불일치 거부만 덮음).
 - 18번 스크립트의 external 거부 분기는 단위 시험이 아니라 이번 실행 (성공 경로) 으로만 확인.
+
+# 부록 AY — 결정 17 명세 7 (a): `fit`·`fit-s` 의 outer 9 (외부 최종 선택 inner) 경로 배선 (rev51, 2026-09-25 11:15 예약 슬롯)
+
+결정 17 (부록 AX) 의 남은 명세 7 을 둘로 나눈 첫 조각이다. 새 결정 아님 — 결정 17 범위 안의 배선. **외부 선택·외부 최종 fit 실행 승인 아님**: 합성 자료 시험만, 실자료 fit 없음, main pool 미소비.
+
+## AY.1 구현
+
+- `mobse/v2/cli.py` 새 `_external_folds_for(splits_path, outer_fold)`: outer fold 가 `templates.EXTERNAL_OUTER_FOLD` (9) 일 때만 `--splits` 와 같은 디렉터리의 `external_folds.json` 을 읽어 (내용, 파일 sha256) 을 돌려준다. 파일이 없으면 `CLIError` (대체 탐색 없음). outer 0–4 에서는 읽지 않는다 (None).
+- **구현 선택 (결정 아님, 표시)**: 별도 `--external-splits` 인자 대신 `--splits` 옆 고정 이름 (U20 — 선택 CLI 가 이웃 `fit_report.json` 을 고정 이름으로 읽는 것과 같은 규칙; `split` 이 두 파일을 같은 디렉터리에 쓴다). 따라서 `fit`·`fit-s` 인자 목록·`REQUIRED_PATHS` 는 불변.
+- `run_fit`·`run_fit_s`: `resolve_fold_subjects(folds, outer, inner, external_folds=…)` 로 넘긴다. 불변식 검사 (부모 split_hash·자체 hash·val 불교차 등 11종) 와 `(9, 9)` external final 거부는 `fitting.resolve_fold_subjects` (rev50) 가 그대로 한다.
+- 기록 (**구현 선택**): outer 9 fit 은 `fit_manifest.json` (fit) / `s_fit_report.json` (fit-s) 에 `external_split_hash` 와 `external_folds_sha256` 을 덧붙인다. 기존 키 불변, outer 0–4 산출물에는 두 키가 없다. `fit_id`·`s_fit_id` payload 는 바꾸지 않았다 (outer_fold=9 가 이미 payload 에 있어 main fit 과 식별자가 갈린다).
+- bank seed 는 기존 `templates.bank_seed(9, j)` = 30900 + j (0–9 범위 규칙 그대로).
+
+## AY.2 시험·돌연변이
+
+- `tests/v2/test_cli_fit.py` 26 → **33** (HEAD `a9fa70e` 판을 `--collect-only` 로 잰 값 26; 인수인계 문서 rev47 행의 "28" 과 다르다 — 이전 기록의 수를 이번에 정정하지는 않음): 외부 inner 0/1/2 fit 이 `external_folds.json` 의 train/val 을 쓰고 (fit_subjects·평가 subject·n_eval), 두 기록 키 값·bank seed 를 확인 (3), 파일 없음 거부, `(9, 9)` 거부, val subject 를 옮긴 변조 파일 거부, 파일이 있어도 outer 0 fit 은 folds.json 경계를 쓰고 두 키가 없음.
+- `tests/v2/test_cli_fit_s.py` 17 → **22**: S1 logistic 으로 같은 구성 (외부 inner 0/1/2 · 파일 없음 · outer 0 은 무시). `_ns` 에 `outer` 인자 추가 (기본 0).
+- 합성 fixture: 기존 folds.json 에 `pilot.groups`·`seeds.external` 을 채우고 `splits.build_external_folds` 로 외부 파일을 만든다 (main pool 16 명).
+- 돌연변이 `.backup/slot_1115b/mut_ext_fit.py` (`slot_1015/mut_d17.py` 틀, `-B`·`PYTHONDONTWRITEBYTECODE=1`, count==1, 원본 복원, `-k external`): **13/13 검출** — 게이트 반전 2, 파일 없음 가드, 경로, sha 대상, fit·fit-s 전달 누락 2, 기록 게이트 2, 기록 키 제거 4. 시작 전·끝·rsync 전 Mac `*.pyc` 0.
+- 관련 시험 8 파일 (fit·fit-s·external_folds·config_consumption·split·select 3종) Mac 238 passed.
+
+## AY.3 잠금·gate
+
+- 재잠금 `472bee47adcd` → **`edf57e93d6dd`** (2026-09-25T02:20:57Z), code_hash `13a051a6a663` → `a449af15ae36`. 19번 45/45, 25번 창 4,728. split_hash `ace5f4a4…`·external_split_hash `40e50350…` 불변, config_hash main `2a7d7d7f`·pilot `6498596a`·external `576f6068` 불변. gate evidence **rev51** (`decision17_external_folds.spec7a_fit_wiring_rev51`).
+
+## AY.4 확인하지 못한 것 · 다음
+
+- (b) 선택 CLI 3종 (`select-ad`·`select-comparator`·`select-s`) 의 outer 9 경로 — `_load_inner_fit`·`run_select_s` 의 `resolve_fold_subjects` 호출은 아직 외부 파일을 넘기지 않아 outer 9 를 거부한다. 거기서 fit 기록의 `external_split_hash` 를 외부 파일과 대조할지, 외부 inner validation 수 (42) 가 `CellFoldResult.n_subjects` 로 들어가는지 확인.
+- 실자료 외부 inner fit (승인 전 금지) · 외부 inner 창 수·시간 실측 없음.
+- (9, 9) external final 의 PIOP2 평가 배선 — 여전히 거부.
