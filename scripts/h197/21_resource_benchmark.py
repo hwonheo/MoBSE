@@ -31,11 +31,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from mobse.v2 import features as F                                    # noqa: E402
 from mobse.v2 import templates as T                                   # noqa: E402
-from mobse.v2.models import CELL_SPEC, ModelConfig, build_cell        # noqa: E402
+from mobse.v2.models import (CELL_SPEC, COMPARATOR_SPEC, ModelConfig,  # noqa: E402
+                             build_cell, build_comparator)
 from mobse.v2.train import BATCH_SIZE, MAX_EPOCHS, fit_budget         # noqa: E402
 
 N_ROI = 100
 N_SAMPLES = 30
+
+# 계획서 §6 "no-graph FC comparator와 실제 parameter/비용을 함께 보고한다" —
+# A–D 와 같은 장비·batch·precision 으로 구조 비교 NG·SG 도 잰다 (§9).
+BENCH_CELLS = tuple(sorted(CELL_SPEC)) + tuple(sorted(COMPARATOR_SPEC))
 
 
 def _sync(device: torch.device) -> None:
@@ -95,7 +100,11 @@ def bench_transform(rng: np.random.Generator, n_rest: int,
 
 def bench_cells(rng: np.random.Generator, n_train: int, device: torch.device,
                 repeats: int) -> Dict[str, Any]:
-    """cell 별 parameter 수, 1 epoch 학습 시간, 추론 latency, peak memory."""
+    """cell 별 parameter 수, 1 epoch 학습 시간, 추론 latency, peak memory.
+
+    A–D 는 bank ``[I, I, I]``, SG 는 graph ``I`` (합성). NG 는 graph 가 없다.
+    graph·bank 는 buffer 라 parameter 수에 들어가지 않는다.
+    """
     cfg = ModelConfig()
     brain = torch.as_tensor(
         np.stack([np.eye(N_ROI) for _ in range(cfg.n_experts)]), dtype=torch.float32)
@@ -107,8 +116,13 @@ def bench_cells(rng: np.random.Generator, n_train: int, device: torch.device,
     x, pca, y = x.to(device), pca.to(device), y.to(device)
 
     out: Dict[str, Any] = {}
-    for cell in sorted(CELL_SPEC):
-        model = build_cell(cell, cfg, brain, null).to(device)
+    for cell in BENCH_CELLS:
+        if cell in CELL_SPEC:
+            model = build_cell(cell, cfg, brain, null).to(device)
+        elif cell == "NG":
+            model = build_comparator("NG", cfg).to(device)
+        else:
+            model = build_comparator(cell, cfg, brain[0]).to(device)
         opt = torch.optim.AdamW(model.parameters())
         lossf = torch.nn.CrossEntropyLoss()
         if device.type == "cuda":
@@ -137,7 +151,9 @@ def bench_cells(rng: np.random.Generator, n_train: int, device: torch.device,
         inference = time_it(infer, repeats, device)
         rec: Dict[str, Any] = {
             "trainable_parameters": model.trainable_parameter_count(),
-            "bank_is_frozen": model.bank_is_frozen(),
+            "bank_is_frozen": (model.bank_is_frozen()
+                               if hasattr(model, "bank_is_frozen") else None),
+            "structure_comparator": cell in COMPARATOR_SPEC,
             "epoch": epoch,
             "inference_full_pass": inference,
             "flops": "NA (미지원 — 계획서 §9)",
@@ -179,7 +195,8 @@ def main(argv: List[str]) -> int:
     }
 
     payload: Dict[str, Any] = {
-        "schema_version": "resource_benchmark_v1",
+        "schema_version": "resource_benchmark_v2",
+        "cells": list(BENCH_CELLS),
         "synthetic": True,
         "does_not_replace": "계획서 §7 — pilot 에서 peak memory·시간을 측정한다",
         "machine": {
@@ -205,7 +222,7 @@ def main(argv: List[str]) -> int:
                       "fit_budget": payload["fit_budget"],
                       "inner_epoch_median_s": {
                           c: payload["cells_inner_scale"][c]["epoch"]["median_s"]
-                          for c in sorted(CELL_SPEC)},
+                          for c in BENCH_CELLS},
                       "transform_total_s": payload["transform_per_fit"]["total_median_s"]},
                      ensure_ascii=False, indent=2))
     return 0
