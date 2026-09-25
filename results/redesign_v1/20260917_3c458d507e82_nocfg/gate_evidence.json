@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "91e1e01867160062ed0791d900e7af4ba804cc41",
-  "timestamp_utc": "2026-09-25T08:20:26Z",
-  "revision": 57,
-  "supersedes_sha256": "660b70a90d8e69695660a2425ab5b069fae5d049392056a12e5122dd79f25dc6",
-  "revision_reason": "rev57 (2026-09-25): 계획서 §6 \"no-graph FC comparator와 실제 parameter/비용을 함께 보고한다\" + §9 효율 측정 — 자원 벤치마크 21번에 구조 비교 NG·SG 를 A–D 와 같은 장비/batch/precision 으로 추가 (schema resource_benchmark_v2), 합성 자료 h197 측정. 시험 test_resource_benchmark.py 4, 돌연변이 5/5 (부록 BE). mobse/v2 불변 — 잠금 78ddd887 유지. main pool 미소비. 새 결정 아님",
+  "git_head": "ee0a4d219b24b736bc2eb310de76a0f90d5ba8bf",
+  "timestamp_utc": "2026-09-25T09:27:38Z",
+  "revision": 58,
+  "supersedes_sha256": "9be6e5930b8ff4a1cd7dc9f35e37babf0a53ffcce3fa3e2e68ee95a82427060a",
+  "revision_reason": "rev58 (2026-09-25): 남은 작업 6 — 계획서 §7 \"pilot에서 peak memory·시간을 측정해 자원 계획을 만든다\" 에 따라 pilot 기술 분할 (outer 0 · inner 0) 에서 A–D·NG·SG fit 비용을 5,000 update 로 실측하고 결정 15 값으로 예산 재계산 (resource_budget.md 9절, 부록 BF). G1 check 'resource plan from pilot measurement' 판정은 바꾸지 않음. 코드·시험·잠금 불변 (78ddd887). main pool 미소비. 새 결정 아님",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -102,7 +102,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "3d18064da05f14e91d90724611de3017c7a8e95c13b2517186759dfb65ce6aa0"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "de5423bac4b1e247dcc197196701881e2e92c9e04426a7ae5459d1f27f3f23ea"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -197,7 +197,7 @@
       "artifact_hashes": {
         "locks/measurement_lock.json": "dc0c9acaa14d646aff0006bd422347ef91ddacad63ecdbe7fe650adc2b5cd5d2",
         "reports/precision_scenarios.md": "a5d576edeb89a1223d79f97067490b85ac16fe56d516b92b56b9b4e33724aa69",
-        "reports/resource_budget.md": "155ee3e7379f53e034c457f481bb159b99b70f33ff4d78be0893acfc27862019",
+        "reports/resource_budget.md": "5983bfc1d7966d1e954feab593aa79b9a36391f3fb6bbf84391e613460adb9fd",
         "provenance/wi03_precision/precision_scenarios.json": "67284e5991af25775ee569c32e2b51e75f8833ea9f0874d477b9d68d8ae7817e",
         "provenance/wi03_resource/resource_benchmark.json": "3a6bc49aae468d8d8d3cd8c519007b0963bd19c27c7077e72c001b423780511a"
       },
@@ -2050,7 +2050,7 @@
     },
     "binding_constraint": "계산·메모리·저장공간이 아니다. 209.7 GiB 원본이 이중화 없는 디스크 한 장 위에 있고 그 디스크가 1,932 섹터를 읽지 못한다. 파생물이 54.7 MiB 뿐이라 WI-02 재추출 외에는 원본 없이 다른 기계에서 돌릴 수 있다",
     "artifacts": {
-      "reports/resource_budget.md": "155ee3e7379f53e034c457f481bb159b99b70f33ff4d78be0893acfc27862019",
+      "reports/resource_budget.md": "5983bfc1d7966d1e954feab593aa79b9a36391f3fb6bbf84391e613460adb9fd",
       "provenance/wi03_resource/resource_benchmark.json": "3a6bc49aae468d8d8d3cd8c519007b0963bd19c27c7077e72c001b423780511a"
     }
   },
@@ -2562,7 +2562,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev57 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev58 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -3659,5 +3659,88 @@
       "A−NG·A−SG contrast (결정 요청)"
     ],
     "report_appendix": "BE"
+  },
+  "resource_plan_pilot_rev58": {
+    "basis": [
+      "계획서 §7: 표는 실행 횟수 계획이고 소요시간 보장이 아니다. pilot에서 peak memory·시간을 측정해 자원 계획을 만든다",
+      "계획서 §10 G1: 정밀도·자원 계획"
+    ],
+    "split": "derivatives_v2/pilot_tech/splits/folds.json outer 0 · inner 0 (pilot 기술 분할, main pool 미사용)",
+    "code": "HEAD ee0a4d2 사본 (git archive mobse), python -B",
+    "conditions": {
+      "config_id": 0,
+      "model_seed": 42,
+      "min_updates": 5000,
+      "epochs": 1250,
+      "updates_per_epoch": 4,
+      "train_windows": 104,
+      "eval_windows": 56,
+      "verify_hashes": true,
+      "repeats_per_cell": 1,
+      "max_epochs_override": "측정 프로세스 안에서만 fitting.MAX_EPOCHS=2000 (d12 와 같은 우회)",
+      "window_utc": "2026-09-25T09:16:39Z/09:23:50Z",
+      "host": "bmcws RTX 3090 Ti, torch 2.10.0+cu128, float32, batch 32"
+    },
+    "measured": {
+      "A": {
+        "seconds_per_epoch": 0.06,
+        "end_to_end_s": 86.89,
+        "peak_gpu_bytes": 142925824,
+        "peak_rss_kib": 1560944,
+        "output_sha256": "e56da1bfe9cdf7cafa7e4dbd6026e00b6dcfbee81b5a55bc8131fa2771579556"
+      },
+      "B": {
+        "seconds_per_epoch": 0.0542,
+        "end_to_end_s": 85.79,
+        "peak_gpu_bytes": 142908416,
+        "peak_rss_kib": 1559232,
+        "output_sha256": "e98941f2f547bd7c67654a09389b0c637ef9b384bc089aa8e9487eccb42f8f0e"
+      },
+      "C": {
+        "seconds_per_epoch": 0.0339,
+        "end_to_end_s": 52.21,
+        "peak_gpu_bytes": 143046144,
+        "peak_rss_kib": 1557996,
+        "output_sha256": "7d8c9d45cfbd413f80445b71bf731f53626bc166ab509adbb29514152c1c28ea"
+      },
+      "D": {
+        "seconds_per_epoch": 0.0539,
+        "end_to_end_s": 76.16,
+        "peak_gpu_bytes": 143028736,
+        "peak_rss_kib": 1557952,
+        "output_sha256": "81f9ff676498c208aa35f0d8cf47534efea27f08ac8adf007ec9e4b8e3a201f8"
+      },
+      "NG": {
+        "seconds_per_epoch": 0.0343,
+        "end_to_end_s": 55.88,
+        "peak_gpu_bytes": 139902464,
+        "peak_rss_kib": 1546688,
+        "output_sha256": "8be66d8765f6562bd79c74572edba3508cec2d982558307311319db82fb72c7d"
+      },
+      "SG": {
+        "seconds_per_epoch": 0.0481,
+        "end_to_end_s": 68.66,
+        "peak_gpu_bytes": 139953152,
+        "peak_rss_kib": 1557788,
+        "output_sha256": "33d9fcd91399a8efdef1440bd18ec9d18a48f74c41e41a84bca1ffd053d63130"
+      }
+    },
+    "estimate_hours": {
+      "train_lower": 14.1,
+      "train_upper": 33.5,
+      "fixed_upper": 5.2,
+      "fits": 1038,
+      "note": "순차 1 프로세스. 하한 = 최소 epoch × rev57 합성 main 규모 epoch 시간, 상한 = 400 epoch × pilot 실측 update 당 최대 시간. 동시 실행 처리량 미측정"
+    },
+    "output_location": "h197 $HOME/slot/pc_1815b/ (Mac .backup/slot_1815b/ 사본, 커밋 안 함)",
+    "g1_check_result_changed": false,
+    "not_done": [
+      "S 후보 fit 시간",
+      "main 규모 실자료 epoch 시간 (main OOF 승인 전 금지)",
+      "동시 실행 처리량",
+      "칸 간 차이 (반복 1회)",
+      "G1 check 판정 변경 여부 (선생님 확인)"
+    ],
+    "report_appendix": "BF"
   }
 }
