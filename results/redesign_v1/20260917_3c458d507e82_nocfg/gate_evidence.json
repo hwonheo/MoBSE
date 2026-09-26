@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "381ebeb5ed9a9b51e58036a5fd8c34fb07a17b34",
-  "timestamp_utc": "2026-09-26T03:18:34Z",
-  "revision": 66,
-  "supersedes_sha256": "311ee765edf5337e86e5b4f3bd77f9b0d0791fad25a9ebf263fc3a71fd0c5147",
-  "revision_reason": "rev66 (2026-09-26): 선생님 결정 22 — 낡은 gate 표기 정리. G0 checks[2]·[7]·[8], G1 checks[1] -> pass (note 근거, G0[7] observed 교체), G1 unresolved 에서 해소 항목 3 개 제거 (부록 BN). gate status·G1[0]·[6]·G0 unresolved·status_note·blocked 표기 불변. 코드·시험·잠금 불변 (9564cadb). 보고서 sha 치환",
+  "git_head": "5fa5df2f3f229b40accc668bf92b550595cf2192",
+  "timestamp_utc": "2026-09-26T04:19:25Z",
+  "revision": 67,
+  "supersedes_sha256": "b7e09e7e5f73508b2db708992e3c35b7fff4750d7013b2315115276f496624db",
+  "revision_reason": "rev67 (2026-09-26): 선생님 결정 21 명세 1 — T01–T16 수용 시험 ↔ tests/v2 대응표 (부록 BO, release reports/acceptance_map_t01_t16.json). 읽기·기록만: 판정·status 변경 없음, G2 check 미작성, 코드·시험·잠금 불변 (9564cadb). 보고서 sha 치환 + 새 산출물 해시",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -108,7 +108,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "a6a9328aaa5ad0496a6755855bf39f73bc5fc51f18aba799b003bb429620f8d4"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "ad0ac00636669c4b853293c0e108c509557c6fd4138758a61bbfe8a42916f426"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -2567,7 +2567,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev66 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev67 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -4555,5 +4555,50 @@
       "main OOF 착수 승인"
     ],
     "report_appendix": "BN"
+  },
+  "decision21_acceptance_map_rev67": {
+    "decision_quote": "(가) `implementation_lock.json`을 만들고 G2 check를 채운 뒤 main OOF로 갑니다. 담을 내용은 환경, code/config hash, acceptance 결과, pilot end-to-end입니다. 먼저 T01–T16 acceptance 항목과 `tests/v2` 시험의 대응표가 필요합니다. main pool을 쓰지 않으니 되돌릴 수 있습니다.",
+    "decision_recorded": "2026-09-26 11:1x KST",
+    "spec_step": 1,
+    "artifacts": {
+      "reports/acceptance_map_t01_t16.json": "a67a23dec9c6ad27074ef9241ac7ac9701a3112cfaae3afde0cbb8eb2620312a"
+    },
+    "summary": {
+      "full": [
+        "T01",
+        "T02",
+        "T05",
+        "T06",
+        "T07",
+        "T08",
+        "T09",
+        "T10",
+        "T12",
+        "T13",
+        "T14",
+        "T15",
+        "T16"
+      ],
+      "partial": [
+        "T03",
+        "T04",
+        "T11"
+      ],
+      "none": []
+    },
+    "n_tests_named": 83,
+    "gaps": {
+      "T03": "bank fit 에 금지 subject 를 넣어 '실패' 하는 시험 없음 — `templates.build_bank` 에 허용 subject 검사가 없고, `fitting.fit_fold_transform` 은 허용 밖 창을 걸러 낸다 (실패가 아니라 제외). PCA 쪽만 실패로 검증됨",
+      "T04": "val/test transform (또는 평가 forward) 전후 bank hash 를 비교하는 시험 없음 — bank 쪽 불변은 buffer 성질·content-bound id 로 간접 확인만",
+      "T11": "single class fold 거부가 A–D·NG·SG 학습 경로 (`fitting.train_fold`/`encode_windows`) 에 없음 — 한 class 만 있는 training 집합을 넣어 실패하는 시험 없음"
+    },
+    "not_done": [
+      "명세 2 빈틈 보강 (시험·코드)",
+      "명세 3 pilot end-to-end",
+      "명세 4 implementation_lock.json",
+      "명세 5 G2 check — gates[2] 는 check 0건 그대로"
+    ],
+    "judgment_changed": false,
+    "report_appendix": "BO"
   }
 }
