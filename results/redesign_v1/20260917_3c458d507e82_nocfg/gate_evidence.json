@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "bfa453de80bfa8e71d0b9098677db73bfbf8fffa",
-  "timestamp_utc": "2026-09-26T02:20:15Z",
-  "revision": 65,
-  "supersedes_sha256": "36f433b2286ed7d2660e913908681a7fd91379a23ac3dc468ff3cca2f5253f99",
-  "revision_reason": "rev65 (2026-09-26): 결정 18 반영 — 계획서 §8 [개정 P12] (§11 P12 행, main OOF 전 사전 등록) 후 evaluate.COMPARISON_CONTRASTS 에 A_minus_NG·A_minus_SG 추가, comparison_contrasts 가 S·NG·SG run 을 필수 키워드로 받음, report-comparison 이 세 보조 contrast 를 같은 bootstrap index (seed 9001, 10,000, 2.5/97.5) 로 95% 기술적 CI, role auxiliary·primary false; not_reported 에서 A−NG·A−SG 제거. 시험 test_evaluate_comparison 17 → 20, test_cli_report_comparison 23 → 25, 돌연변이 12/12. 재잠금 78ddd887253f → 9564cadb238b (code_hash fbd9fd7feee2 → 58c7152122a5). 판정·status 변경 없음. fit 없음, main pool 미소비 (부록 BM)",
+  "git_head": "381ebeb5ed9a9b51e58036a5fd8c34fb07a17b34",
+  "timestamp_utc": "2026-09-26T03:18:34Z",
+  "revision": 66,
+  "supersedes_sha256": "311ee765edf5337e86e5b4f3bd77f9b0d0791fad25a9ebf263fc3a71fd0c5147",
+  "revision_reason": "rev66 (2026-09-26): 선생님 결정 22 — 낡은 gate 표기 정리. G0 checks[2]·[7]·[8], G1 checks[1] -> pass (note 근거, G0[7] observed 교체), G1 unresolved 에서 해소 항목 3 개 제거 (부록 BN). gate status·G1[0]·[6]·G0 unresolved·status_note·blocked 표기 불변. 코드·시험·잠금 불변 (9564cadb). 보고서 sha 치환",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -35,8 +35,8 @@
         },
         {
           "check": "existing extraction TR correctness",
-          "result": "fail",
-          "note": "모든 run 에 0.75 적용. PIOP1 restingstate 만 우연히 정답이고 두 primary target 은 2.67배 잘못된 rate 로 필터링됨 → 기존 파생물 주분석 재사용 불가 확정"
+          "result": "pass",
+          "note": "결정 22 (09-26) 로 pass. 옛 파생물 (모든 run 0.75 적용) 은 쓰지 않았다 — P9 재추출 (부록 AA, rev28, derivatives_v3·derivatives_v3_piop2) 은 dataset×task 별 native TR 을 받는다 (10_wi02_extract.process_run 의 native_tr, manifest header native_tr). 2026-09-26 12:1x KST h197 에서 여섯 v3 manifest header 재확인: ds002785 emo 2.0·rest 0.75·wm 2.0, ds002790 emo 2.0·rest 2.0·wm 2.0 = checks [0]·[1] observed 6/6 일치. 이전 fail 원문은 decision22_gate_record_refresh.previous. 부록 BN"
         },
         {
           "check": "[12,252) s supported",
@@ -70,14 +70,20 @@
         },
         {
           "check": "BOLD present for the primary targets",
-          "result": "fail",
-          "observed": 0,
-          "note": "Wave 2 대상. Wave 1 은 메타데이터만 받았다"
+          "result": "pass",
+          "observed": {
+            "ds002785/emomatching": 208,
+            "ds002785/workingmemory": 207,
+            "ds002790/emomatching": 222,
+            "ds002790/workingmemory": 224,
+            "source": "h197 aomic_wave2/<ds>/fmriprep/*/func/*task-<t>*desc-preproc_bold.nii.gz 수, 2026-09-26 12:1x KST"
+          },
+          "note": "결정 22 (09-26) 로 pass. Wave 2 수령 (부록 T.1, wave2_complete.fail_count 0). observed 는 2026-09-26 12:1x KST h197 aomic_wave2 fmriprep desc-preproc_bold 파일 수 — 부록 F.1 raw sidecar run 수·v3 추출 ok+excluded 와 같다. 이전 값 (observed 0, 'Wave 2 대상') 은 decision22_gate_record_refresh.previous. 부록 BN"
         },
         {
           "check": "dummy volumes removed before archiving",
-          "result": "undetermined",
-          "note": "confounds 길이는 보관본 전체 길이다. 보관 전 제거 여부는 이 파일들로 판정 불가(U3)"
+          "result": "pass",
+          "note": "결정 22 (09-26) 로 pass. 부록 F.1: raw sidecar 1,295 개 전수, 6 조합 모두 NumberOfVolumesDiscardedByScanner=2·ByUser 없음·조합 내 분산 0 — 스캐너가 보관 전에 앞 2 volumes 를 버렸다 (u3_discarded_volumes.status resolved). derivative_start_sec = 2 × native_TR 로 추출에 반영. 부록 BN"
         },
         {
           "check": "Wave 2 download volume",
@@ -102,7 +108,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "7c0a16f61e9f00df65f8117d6a9559cf055777e0a50db6b2aecf4d55931dfda0"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "a6a9328aaa5ad0496a6755855bf39f73bc5fc51f18aba799b003bb429620f8d4"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -117,8 +123,8 @@
         },
         {
           "check": "PIOP1/PIOP2 subject ID namespace",
-          "result": "fail",
-          "note": "두 cohort 가 같은 sub-0001… 네임스페이스를 쓴다. 문자적 교집합 216, demographic 전체 일치 0/216 -> canonical_subject 에 dataset prefix 필수"
+          "result": "pass",
+          "note": "결정 22 (09-26) 로 pass. 관측 (같은 sub-0001… 네임스페이스, 문자 교집합 216, demographic 일치 0/216) 에 대한 대응 완료: 계획서 §3.1 [개정 P5] + mobse/v2/manifests.validate_canonical_subject() 가 prefix 없는 canonical_subject 를 명시적 실패로 거부, cohort 도 거부 (wi03_cohort.rejects_subject_without_dataset_prefix true, 부록 BK.2). PIOP1/PIOP2 실제 동일인 여부는 U17 로 남음. 부록 BN"
         },
         {
           "check": "execution host and environment lock",
@@ -189,10 +195,7 @@
       "unresolved": [
         "U10",
         "U17(완화: dataset prefix 적용)",
-        "pilot fit 미실행 — §7 의 peak memory·시간 실측 없음",
-        "δ=0.02 정밀도 부족 — 차단이 아니라 명시 항목 (§8)",
-        "band-pass 통과대역 상한 미결정 — 순서는 개정 P9(동시 회귀)로 결정됐으나 0.1 Hz 에서 target run 전부가 residual DOF 30 이하 (부록 X.7)",
-        "개정 P8 학습 예산 — 결정됐으나 구현 전"
+        "δ=0.02 정밀도 부족 — 차단이 아니라 명시 항목 (§8)"
       ],
       "artifact_hashes": {
         "locks/measurement_lock.json": "3ee36db0f80a0a9a9a2b763bb98b4638e0f53a6f09d86b39a8cdfddf4f5dc706",
@@ -2564,7 +2567,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev65 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev66 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -4439,5 +4442,118 @@
     ],
     "verdicts_changed": false,
     "report_appendix": "BM"
+  },
+  "decision22_gate_record_refresh": {
+    "decision_quote": "권고: 원인이 해소된 항목을 근거와 함께 갱신합니다. • G0 [2]·[7]·[8]과 G1 [1]을 pass로 바꾸고 note에 근거를 적습니다. • G1 `unresolved`에서 해결된 항목을 뺍니다.",
+    "decision_recorded": "2026-09-26 11:1x KST",
+    "changed_checks": [
+      {
+        "gate": "G0",
+        "index": 2,
+        "check": "existing extraction TR correctness",
+        "previous_result": "fail",
+        "new_result": "pass"
+      },
+      {
+        "gate": "G0",
+        "index": 7,
+        "check": "BOLD present for the primary targets",
+        "previous_result": "fail",
+        "new_result": "pass"
+      },
+      {
+        "gate": "G0",
+        "index": 8,
+        "check": "dummy volumes removed before archiving",
+        "previous_result": "undetermined",
+        "new_result": "pass"
+      },
+      {
+        "gate": "G1",
+        "index": 1,
+        "check": "PIOP1/PIOP2 subject ID namespace",
+        "previous_result": "fail",
+        "new_result": "pass"
+      }
+    ],
+    "previous": {
+      "G0[2]": {
+        "check": "existing extraction TR correctness",
+        "result": "fail",
+        "note": "모든 run 에 0.75 적용. PIOP1 restingstate 만 우연히 정답이고 두 primary target 은 2.67배 잘못된 rate 로 필터링됨 → 기존 파생물 주분석 재사용 불가 확정"
+      },
+      "G0[7]": {
+        "check": "BOLD present for the primary targets",
+        "result": "fail",
+        "observed": 0,
+        "note": "Wave 2 대상. Wave 1 은 메타데이터만 받았다"
+      },
+      "G0[8]": {
+        "check": "dummy volumes removed before archiving",
+        "result": "undetermined",
+        "note": "confounds 길이는 보관본 전체 길이다. 보관 전 제거 여부는 이 파일들로 판정 불가(U3)"
+      },
+      "G1[1]": {
+        "check": "PIOP1/PIOP2 subject ID namespace",
+        "result": "fail",
+        "note": "두 cohort 가 같은 sub-0001… 네임스페이스를 쓴다. 문자적 교집합 216, demographic 전체 일치 0/216 -> canonical_subject 에 dataset prefix 필수"
+      }
+    },
+    "g0_7_observed_replaced": "구현 선택 — pass 와 observed 0 이 모순이라 12:1x 실측 수로 교체",
+    "g1_unresolved_removed": [
+      "pilot fit 미실행 — §7 의 peak memory·시간 실측 없음",
+      "band-pass 통과대역 상한 미결정 — 순서는 개정 P9(동시 회귀)로 결정됐으나 0.1 Hz 에서 target run 전부가 residual DOF 30 이하 (부록 X.7)",
+      "개정 P8 학습 예산 — 결정됐으나 구현 전"
+    ],
+    "g1_unresolved_kept": [
+      "U10",
+      "U17(완화: dataset prefix 적용)",
+      "δ=0.02 정밀도 부족 — 차단이 아니라 명시 항목 (§8)"
+    ],
+    "u17_kept_reason": "네임스페이스는 P5 로 해소, '실제 overlap 은 공식 문서로만 판정' 은 해소 근거 없음",
+    "counts_after": {
+      "G0": {
+        "pass": 10,
+        "fail": 0,
+        "undetermined": 0
+      },
+      "G1": {
+        "pass": 6,
+        "fail": 2,
+        "undetermined": 0
+      }
+    },
+    "status_unchanged": {
+      "G0 Provenance": "conditionally_cleared",
+      "G1 Measurement lock": "in_progress",
+      "G2 Implementation lock": "planned",
+      "G3 Internal release": "planned",
+      "G4 External release": "planned",
+      "G5 Interpretation": "planned"
+    },
+    "blocked_by_records_unchanged": {
+      "G0 Provenance": [],
+      "G1 Measurement lock": [],
+      "G2 Implementation lock": [
+        "blocked by G0"
+      ],
+      "G3 Internal release": [
+        "blocked by G0"
+      ],
+      "G4 External release": [
+        "blocked by G0/G1"
+      ],
+      "G5 Interpretation": [
+        "blocked by G0"
+      ]
+    },
+    "not_decided": [
+      "G1[0]·[6] 판정·note",
+      "gate status 값 (G0 cleared 여부 포함)",
+      "G2·G3·G4·G5 blocked 표기",
+      "G0 unresolved·status_note, G1 status_note",
+      "main OOF 착수 승인"
+    ],
+    "report_appendix": "BN"
   }
 }
