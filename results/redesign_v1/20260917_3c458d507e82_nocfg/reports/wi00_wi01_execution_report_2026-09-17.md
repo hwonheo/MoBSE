@@ -5059,3 +5059,37 @@ G1 `unresolved` 6 → **3** (U10 · U17 · δ 정밀도).
 - T10 GPU 재로드 근거 (구현 선택으로 뺌).
 - `--help` 텍스트가 python 판에 따라 바뀌는지 (h197 3.11.5 에서만 잼).
 - G2 check (명세 5) — 아직 0 건. 판정 변경 없음.
+
+# 부록 BS — 결정 21 명세 5: G2 check 채우기 (rev72, 2026-09-26 23:15 예약 슬롯)
+
+## BS.1 근거 원문
+
+- 계획서 §10 G2 행: "G2 Implementation lock | acceptance tests, config/code/environment hashes | leakage·연산·endpoint 검증 통과".
+- 작업 지침서 WI-06: "출력: runnable CLI와 실제 `--help`, acceptance 결과, 환경 lock, code/config hashes, `locks/implementation_lock.json`. 완료 기준: T01–T16 및 pilot end-to-end 통과. … 이 gate 전에는 main 학습을 시작하지 않는다."
+- 결정 21 (09-26 11:1x KST 기록) 이 정한 범위는 구현 잠금을 만들고 G2 check 를 채우는 것까지다. main OOF 착수 승인이 아니다.
+
+## BS.2 추가한 check 5 개 (`gates[2].checks`)
+
+| # | check | 근거 원문 | result | 근거 |
+|---|---|---|---|---|
+| 0 | acceptance tests T01–T16 | §10 필수 산출물 · WI-06 완료 기준 | pass | 대응표 v2 (`reports/acceptance_map_t01_t16_v2.json`, 부록 BP) 전부 16 · 부분 0 · 없음 0. 구현 잠금 `acceptance`: 명명 시험 89 개가 T-ID 16 개 전부에서 통과 (junit 1183 passed / 12 skipped / 0 failed, 부록 BR.2) |
+| 1 | config/code/environment hashes | §10 필수 산출물 · WI-06 출력 | pass | 구현 잠금 lock_hash `bcf1fec22676` (code_hash `804d6ee17625`, config_hash main `2a7d7d7f` · pilot `6498596a` · external `576f6068`, 환경 python 3.11.5 · torch 2.10.0+cu128 · CUDA 12.8 · pip freeze 61 줄 sha). 이번 슬롯 h197 (HEAD `89fd941`, 2026-09-26T14:15Z) `--verify` 38/38 |
+| 2 | runnable CLI and actual --help | WI-06 출력 | pass | 구현 잠금 `cli`: 최상위 + 하위 명령 11 = `--help` 12 개 텍스트·sha. 실행 가능성은 pilot end-to-end (check 3) 가 CLI 하위 명령으로 돈 것으로 봄 |
+| 3 | pilot end-to-end | WI-06 완료 기준 | pass | 부록 BQ: prepare → split → fit 540 → select-ad 5 → evaluate → report, `ALL_RC=0`, 실패 0. 구현 잠금 `pilot_end_to_end.outputs_match_gate` true (gate rev69 sha 7 개 재측정 — `--verify` 가 매번 다시 잰다) |
+| 4 | leakage·연산·endpoint verification | §10 다음 단계 조건 | pass | 아래 BS.3 묶음의 T-ID 가 check 0 에서 전부 통과 |
+
+## BS.3 구현 선택 (표시)
+
+- check 를 원문 문구 단위로 나눴다 (§10 두 칸 + WI-06 출력·완료 기준). 하나로 묶지 않은 이유: 근거 산출물이 서로 다르다.
+- "leakage·연산·endpoint" 를 지침서 §4 T-ID 에 대응시킨 것은 슬롯의 해석이다: leakage = T03 (subject isolation) · T04 (frozen transform) · T12 (selection boundary), 연산 = T05–T10 (graph/null · ROI alignment · FC information · routing · mixture · backend/checkpoint), endpoint = T13 (endpoint) · T14 (statistical unit). 나머지 T01 · T02 · T11 · T15 · T16 도 check 0 에서 통과한다. 선생님이 다른 묶음을 원하시면 check 4 의 note 만 바뀐다 (판정 근거는 같은 junit).
+- G2 `status` (`planned`) 와 `unresolved` ("blocked by G0") 는 바꾸지 않았다 — 결정 21 범위가 check 채우기까지다. G2 `artifact_hashes` 도 비워 둔다 (구현 잠금 sha 는 rev71 블록 `artifacts` 에 있다).
+
+## BS.4 한계
+
+- T10: 지침서 §4 문단 "GPU 저장/재로드는 해당 backend의 근거를 기록한다" 의 근거는 없다 (구현 잠금 `t10_gpu_reload: not_done`). T10 기대 결과 자체는 CPU 시험으로 충족.
+- pilot end-to-end 는 A–D 경로만 (S · NG · SG · `report-comparison` 제외, 부록 BQ.1). pilot 규모에서는 CLI 상한을 프로세스 안에서 덮어야 돌았다 (CLI 인자로는 불가 — 부록 BQ.1).
+- 수용 시험 대응은 시험 이름·존재·통과를 기계로 확인한 것이고, 시험이 기대 결과를 실제로 검사하는지는 읽어서 판단한 것이다.
+
+## BS.5 정정
+
+부록 BR.5 의 "7 함수" 는 오기다 — `tests/v2/test_implementation_lock_script.py` 는 6 함수 7 경우 (parametrize 포함) 다.
