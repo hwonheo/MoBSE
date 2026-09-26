@@ -82,3 +82,13 @@ def test_mixed_passed_and_failed_cases_are_not_passed(mod, tmp_path):
     j = mod.parse_junit(p)
     r = mod.named_test_results(_map("tests/v2/test_a.py::test_x"), j["outcomes"])
     assert r["not_passed"] == ["tests/v2/test_a.py::test_x"]
+
+
+def test_freeze_lines_drop_the_repository_package_and_sort(mod):
+    """PYTHONPATH=. 로 부르면 pip 가 mobse 한 줄을 더 낸다 — 호출 방식이 sha 를 바꾸면 안 된다."""
+    a = "torch==2.10.0\nnumpy==2.1.0\n"
+    b = "numpy==2.1.0\nmobse==0.1.0\ntorch==2.10.0\n\n"
+    c = "numpy==2.1.0\nmobse @ file:///repo\ntorch==2.10.0\n"
+    assert mod.freeze_lines(a) == mod.freeze_lines(b) == mod.freeze_lines(c) \
+        == ["numpy==2.1.0", "torch==2.10.0"]
+    assert mod.freeze_lines("mobse-extra==1.0\n") == ["mobse-extra==1.0"]

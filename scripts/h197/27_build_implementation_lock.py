@@ -124,12 +124,31 @@ def cli_help(repo_root: Path) -> Dict[str, Any]:
     return {"columns": int(HELP_COLUMNS), "subcommands": list(SUBCOMMANDS), "help": out}
 
 
+def freeze_lines(freeze: str) -> List[str]:
+    """``pip freeze`` 출력을 정렬된 줄 목록으로. 저장소 자신 (``mobse``) 은 뺀다.
+
+    ``PYTHONPATH=.`` 로 부르면 pip 가 저장소의 ``mobse`` 메타데이터를 보고 한 줄을
+    더 낸다 (09-26 22:2x h197 에서 61 대 62 줄). 저장소 코드는 ``code`` 절이 기록하므로
+    환경 절에서는 빼서, 호출 방식에 따라 sha 가 달라지지 않게 한다.
+    """
+    keep = []
+    for ln in freeze.splitlines():
+        s = ln.strip()
+        if not s:
+            continue
+        name = s.split("==", 1)[0].split(" @ ", 1)[0].strip().lower()
+        if name == "mobse":
+            continue
+        keep.append(s)
+    return sorted(keep)
+
+
 def environment() -> Dict[str, Any]:
     """실행 환경. torch 가 없으면 실패한다 (구현 잠금은 학습 환경을 기록해야 한다)."""
     import torch  # noqa: PLC0415
     freeze = subprocess.run([sys.executable, "-m", "pip", "freeze", "--all"],
                             capture_output=True, text=True, check=True).stdout
-    lines = sorted(ln for ln in freeze.splitlines() if ln.strip())
+    lines = freeze_lines(freeze)
     gpus = ([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]
             if torch.cuda.is_available() else [])
     return {
