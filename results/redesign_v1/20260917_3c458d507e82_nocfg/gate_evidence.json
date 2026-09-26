@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "8032a027629d517b021e503b919e09dcac887828",
-  "timestamp_utc": "2026-09-26T05:22:56Z",
-  "revision": 68,
-  "supersedes_sha256": "8d80ed857bd8f276b661fd398e02232b14b31866a3da20264161dc0e9996420a",
-  "revision_reason": "rev68 (2026-09-26): 선생님 결정 21 명세 2 — acceptance 빈틈 보강 (부록 BP). T03 templates.build_bank allowed_subjects 검사 + fit_fold_transform 전달, T11 train_fold training 라벨 두 class 검사, T04 평가 변환·forward 전후 bank hash 시험. 시험 test_templates +2, test_fitting +12 (parametrize 전개), 돌연변이 8/8. 재잠금 9564cadb238b → 9b7b11cf8576 (code_hash 58c7152122a5 → 804d6ee17625). 대응표 갱신 판 reports/acceptance_map_t01_t16_v2.json (전부 16). 판정·status 변경 없음, G2 check 미작성. fit 없음, main pool 미소비",
+  "git_head": "72cc1b3deec7533283f205f33205a4a04362ffb0",
+  "timestamp_utc": "2026-09-26T12:17:16Z",
+  "revision": 69,
+  "supersedes_sha256": "39b3ae24270660b273ee7637369355bfb585101f6985ef384c78b8dd49285abd",
+  "revision_reason": "rev69 (2026-09-26): 선생님 결정 21 명세 3 — pilot end-to-end (CLI prepare → split → fit 540 → select-ad 5 → evaluate → report, pilot 기술 분할, ALL_RC=0) 기록 (부록 BQ). 판정·status 변경 없음, G2 check 미작성, 코드·시험·잠금 불변 (9b7b11cf). 보고서 sha 치환 + 기록 블록",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -108,7 +108,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "bf6a64bca0b2a8e086c8f5195398c77cd73ad0cd55ab31ac50acd93eda3351da"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "b5f61e58d50f6447e23b70c65e79355c036f01577dd9d58f0ff0193da4213353"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -2569,7 +2569,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev68 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev69 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -4661,5 +4661,92 @@
     ],
     "judgment_changed": false,
     "report_appendix": "BP"
+  },
+  "decision21_pilot_e2e_rev69": {
+    "decision_quote": "(가) `implementation_lock.json`을 만들고 G2 check를 채운 뒤 main OOF로 갑니다. 담을 내용은 환경, code/config hash, acceptance 결과, pilot end-to-end입니다. 먼저 T01–T16 acceptance 항목과 `tests/v2` 시험의 대응표가 필요합니다. main pool을 쓰지 않으니 되돌릴 수 있습니다.",
+    "decision_recorded": "2026-09-26 11:1x KST",
+    "spec_step": 3,
+    "code_head": "72cc1b3deec7533283f205f33205a4a04362ffb0",
+    "environment": {
+      "host": "h197",
+      "python": "3.11.5",
+      "torch": "2.10.0+cu128",
+      "cuda": "12.8",
+      "device": "cuda"
+    },
+    "scope": {
+      "subjects": "pilot 31 (pilot 기술 분할)",
+      "split_hash_prefix": "8bfd4ab54f52",
+      "main_pool_overlap": 0,
+      "cells": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "not_included": [
+        "S",
+        "NG",
+        "SG",
+        "report-comparison"
+      ]
+    },
+    "method": "감싸개가 mobse.v2.cli 를 먼저 import 한 뒤 프로세스 안에서만 train.MAX_EPOCHS·fitting.MAX_EPOCHS 를 2000 으로 덮음 (CLI 상한 인자 없음, pilot 최소 epoch 1,250 > 400). config 400/5000 불변",
+    "stages": {
+      "prep": "06:21:22Z rc=0",
+      "inner_fits": {
+        "n": 480,
+        "failed": 0,
+        "wall": "06:22:44Z-10:49:34Z"
+      },
+      "select_ad": {
+        "n": 5,
+        "rc": 0
+      },
+      "outer_fits": {
+        "n": 60,
+        "failed": 0,
+        "wall": "10:49:36Z-11:31:05Z"
+      },
+      "evaluate": "rc=0 n_fits=60",
+      "report": "rc=0 11:31:06Z",
+      "all_rc": 0
+    },
+    "data_root_outputs": {
+      "pilot_e2e/20260926_1515c/summary/e2e_summary.json": "c639b1fb8cbc89a174a00dbaef6b05e48e5aa50d917b89a0828126f21cbc4e06",
+      "pilot_e2e/20260926_1515c/summary/fit_list.json": "8eba4d23e1e20a4a7e19508a0dace717e1094278f1a8d79398ff1d081d8b1a71",
+      "pilot_e2e/20260926_1515c/summary/best_epochs.json": "85af06b396199f2650de0d667d6ead0b2b02aeacfddcc109b574e5411a5292f7",
+      "pilot_e2e/20260926_1515c/split/folds.json": "06b64ab0afe7b5d1a2d4826bbf9fdd18f6308cd60a3d970a6fb12b5c73552695",
+      "pilot_e2e/20260926_1515c/evaluate/evaluation.json": "e5e9c1ae605a38cca3063ff82743f858d527a96ad202454ca2457477a86b0e2b",
+      "pilot_e2e/20260926_1515c/evaluate/run_predictions.jsonl": "d2259b79a237c149b9a72bb24bed48b1dbc4a5de1f70dfd4a43f671391d292c7",
+      "pilot_e2e/20260926_1515c/report/statistics.json": "4832b102b8d63a9818980ee3891823ab6bea2b1e0117e5877b8d621ca486e36c"
+    },
+    "data_root_outputs_note": "h197 data root 기준 상대 경로. 17번 검사 대상 아님 (구현 선택, 부록 BQ.4). 명세 4 에서 다시 잼",
+    "selection_record_only": {
+      "selected_config": {
+        "o0": 1,
+        "o1": 1,
+        "o2": 0,
+        "o3": 1,
+        "o4": 4
+      },
+      "common_epochs": {
+        "o0": 1252,
+        "o1": 1252,
+        "o2": 1256,
+        "o3": 1252,
+        "o4": 1252
+      },
+      "performance_interpreted": false
+    },
+    "known_summary_error": "e2e_summary.json selection.*.best_epoch_min=0 은 틀 오류 (inner_fold 섞임) — best_epochs.json 사용",
+    "t11_guard_triggered": 0,
+    "t10_note": "CLI evaluate 는 checkpoint 를 재로드하지 않음 — 재로드 대조는 명세 4 구현 선택",
+    "not_done": [
+      "명세 4 implementation_lock.json",
+      "명세 5 G2 check — gates[2] 는 check 0건 그대로"
+    ],
+    "judgment_changed": false,
+    "report_appendix": "BQ"
   }
 }
