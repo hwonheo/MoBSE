@@ -1,0 +1,310 @@
+{
+  "schema": "acceptance_map_v1",
+  "decision": "21 (명세 2 — 빈틈 보강)",
+  "source": "docs/experiments/mobse_redesign_work_instructions_2026-09-17.md §4",
+  "source_sha256": "6007cfb8d9b186aeb03deece7cecb17042da95e3aba476851e635973567dde90",
+  "coverage_levels": {
+    "full": "기대 결과 전부를 시험이 직접 검사",
+    "partial": "일부만 — gap 에 빠진 부분",
+    "none": "대응 시험 없음"
+  },
+  "method": "읽기·기록만. 시험 이름은 AST 로 존재 확인. 통과 여부는 이 표가 아니라 같은 회차 마감 1단계 결과로 본다",
+  "items": [
+    {
+      "id": "T01",
+      "name": "Timing",
+      "input": "TR 0.75/2초와 알려진 discarded volumes fixture",
+      "expected": "원래 [12,252) 범위 보존, 120 target samples, guard 중복 없음",
+      "coverage": "full",
+      "tests": [
+        "tests/v2/test_preprocess.py::test_target_grid_is_always_120_samples",
+        "tests/v2/test_preprocess.py::test_discarded_volumes_shift_the_clock_not_the_guard",
+        "tests/v2/test_preprocess.py::test_source_frame_range_matches_original_times_for_both_tr",
+        "tests/v2/test_preprocess.py::test_four_windows_each_30_samples_and_contiguous",
+        "tests/v2/test_preprocess.py::test_window_before_derivative_start_fails",
+        "tests/v2/test_preprocess.py::test_negative_start_and_bad_tr_fail"
+      ],
+      "basis": "TR 2.0/0.75 와 폐기 volume 2·4 fixture, 창 [12,72,132,192]→252 초·120 sample, derivative 시작점에 guard 재가산 안 함 (첫 창 12 s)",
+      "gap": null
+    },
+    {
+      "id": "T02",
+      "name": "Provenance",
+      "input": "TR 충돌·누락 confounds·중복 run key",
+      "expected": "명시적 실패; 조용한 default 없음",
+      "coverage": "full",
+      "tests": [
+        "tests/v2/test_evaluate_cli.py::test_validate_detects_tr_conflict_within_task",
+        "tests/v2/test_evaluate_cli.py::test_validate_rejects_null_without_reason",
+        "tests/v2/test_extract.py::test_read_confounds_tsv_missing_file",
+        "tests/v2/test_extract.py::test_missing_column_is_a_failure",
+        "tests/v2/test_manifests.py::test_duplicate_run_key_fails",
+        "tests/v2/test_manifests.py::test_missing_field_fails_explicitly",
+        "tests/v2/test_manifests.py::test_none_value_fails_rather_than_defaulting",
+        "tests/v2/test_config.py::test_missing_key_is_rejected"
+      ],
+      "basis": "TR 충돌·confounds 파일/열 누락·중복 run key 각각 명시적 예외, None·누락 필드·이유 없는 null 을 default 로 채우지 않음",
+      "gap": null
+    },
+    {
+      "id": "T03",
+      "name": "Subject isolation",
+      "input": "금지 subject를 bank/PCA fit에 삽입",
+      "expected": "실패; 모든 fit IDs⊆허용 train, val/test 교집합 0",
+      "coverage": "full",
+      "tests": [
+        "tests/v2/test_features.py::test_fit_rejects_forbidden_subjects",
+        "tests/v2/test_fitting.py::test_transform_is_fit_only_on_training_subjects",
+        "tests/v2/test_fitting.py::test_allowed_subjects_is_actually_passed_through",
+        "tests/v2/test_fitting.py::test_pilot_leaking_into_a_fold_is_rejected",
+        "tests/v2/test_splits.py::test_build_folds_boundaries_are_all_disjoint",
+        "tests/v2/test_splits.py::test_assert_fit_scope_rejects_forbidden_subject",
+        "tests/v2/test_splits.py::test_verify_disjoint_raises_on_overlap",
+        "tests/v2/test_cli_split.py::test_outer_test_never_appears_in_its_train_or_inner",
+        "tests/v2/test_cli_split.py::test_pilot_and_main_pool_are_disjoint",
+        "tests/v2/test_templates.py::test_build_bank_rejects_a_forbidden_subject",
+        "tests/v2/test_templates.py::test_build_bank_accepts_fit_subjects_within_the_allowed_set",
+        "tests/v2/test_fitting.py::test_bank_allowed_subjects_is_actually_passed_through"
+      ],
+      "basis": "PCA·bank fit 모두 금지 subject 삽입 → 실패 (FeatureError·TemplateError), fit_fold_transform 이 두 fit 에 training subject 집합을 넘김 (spy), fit_subjects ⊆ fold train, 분할 경계 교집합 0",
+      "gap": null,
+      "previous_gap": "bank fit 에 금지 subject 를 넣어 '실패' 하는 시험 없음 — `templates.build_bank` 에 허용 subject 검사가 없고, `fitting.fit_fold_transform` 은 허용 밖 창을 걸러 낸다 (실패가 아니라 제외). PCA 쪽만 실패로 검증됨"
+    },
+    {
+      "id": "T04",
+      "name": "Frozen transform",
+      "input": "val/test transform 전후 artifact 비교",
+      "expected": "PCA/bank hash·parameters 불변",
+      "coverage": "full",
+      "tests": [
+        "tests/v2/test_features.py::test_transform_does_not_change_fitted_parameters",
+        "tests/v2/test_features.py::test_transform_output_shape_and_determinism",
+        "tests/v2/test_features.py::test_refitting_on_more_data_changes_artifact_id",
+        "tests/v2/test_fitting.py::test_transform_fingerprint_is_stable_across_transforms",
+        "tests/v2/test_models.py::test_bank_is_buffer_not_parameter",
+        "tests/v2/test_templates.py::test_bank_id_is_content_bound",
+        "tests/v2/test_fitting.py::test_bank_hash_is_unchanged_by_eval_transform_and_fit"
+      ],
+      "basis": "PCA/scaler parameter·fingerprint 불변 + 평가 창 인코딩·학습·평가 forward 전후 brain/null bank fingerprint·bank_id·PCA fingerprint 동일, 모델 bank buffer = 변환 bank (parameter 아님)",
+      "gap": null,
+      "previous_gap": "val/test transform (또는 평가 forward) 전후 bank hash 를 비교하는 시험 없음 — bank 쪽 불변은 buffer 성질·content-bound id 로 간접 확인만"
+    },
+    {
+      "id": "T05",
+      "name": "Graph/null",
+      "input": "손계산 소형 bank와 joint permutation",
+      "expected": "대칭·finite·nonnegative, self-loop/정규화 일치; spectrum와 bank 거리 보존",
+      "coverage": "full",
+      "tests": [
+        "tests/v2/test_templates.py::test_normalize_with_self_loop_hand_computed",
+        "tests/v2/test_templates.py::test_isolated_node_survives_via_self_loop",
+        "tests/v2/test_templates.py::test_sparsify_keeps_largest_positive_edges_only",
+        "tests/v2/test_templates.py::test_bank_templates_are_symmetric_finite_nonnegative",
+        "tests/v2/test_templates.py::test_null_preserves_spectrum_and_between_bank_distance",
+        "tests/v2/test_templates.py::test_null_uses_one_permutation_for_every_template",
+        "tests/v2/test_templates.py::test_invalid_permutation_is_rejected",
+        "tests/v2/test_h197_scripts.py::test_bank_demo_properties_report"
+      ],
+      "basis": "손계산 self-loop 정규화, 대칭·유한·비음수, joint permutation 하나로 spectrum·bank 간 거리 보존",
+      "gap": null
+    },
+    {
+      "id": "T06",
+      "name": "ROI alignment",
+      "input": "graph 전 한 ROI만 바꾸기",
+      "expected": "다른 ROI encoder 결과 불변(eval mode)",
+      "coverage": "full",
+      "tests": [
+        "tests/v2/test_models.py::test_changing_one_roi_leaves_other_roi_encodings_untouched",
+        "tests/v2/test_models.py::test_encoder_is_shared_across_roi"
+      ],
+      "basis": "eval 모드에서 한 ROI 입력만 바꾸면 다른 ROI encoder 출력 불변",
+      "gap": null
+    },
+    {
+      "id": "T07",
+      "name": "FC information",
+      "input": "같은 평균·다른 correlation fixture",
+      "expected": "FC features 차이; 출력 차이를 강요하지 않음",
+      "coverage": "full",
+      "tests": [
+        "tests/v2/test_features.py::test_same_mean_different_correlation_gives_different_features"
+      ],
+      "basis": "평균 같고 correlation 다른 fixture 에서 FC feature 가 다름 (출력 차이 강요 없음)",
+      "gap": null
+    },
+    {
+      "id": "T08",
+      "name": "Routing",
+      "input": "fixed/dynamic 입력 바꾸기 및 backward",
+      "expected": "fixed weights 동일, dynamic finite·합1, 유한 gradient",
+      "coverage": "full",
+      "tests": [
+        "tests/v2/test_models.py::test_fixed_gate_ignores_input_and_dynamic_does_not",
+        "tests/v2/test_models.py::test_routing_weights_are_finite_and_sum_to_one",
+        "tests/v2/test_models.py::test_gradients_are_finite_for_every_cell"
+      ],
+      "basis": "fixed gate 입력 무관, dynamic 유한·합 1, 모든 cell 유한 gradient",
+      "gap": null
+    },
+    {
+      "id": "T09",
+      "name": "Mixture",
+      "input": "one-hot/uniform/original override",
+      "expected": "직접 template/평균 bank/원 logits와 각각 일치",
+      "coverage": "full",
+      "tests": [
+        "tests/v2/test_models.py::test_one_hot_override_equals_single_template",
+        "tests/v2/test_models.py::test_uniform_override_equals_bank_mean_without_renormalisation",
+        "tests/v2/test_models.py::test_override_reproduces_original_gate_output",
+        "tests/v2/test_templates.py::test_mixture_one_hot_equals_template",
+        "tests/v2/test_templates.py::test_mixture_uniform_equals_mean_and_is_not_renormalised"
+      ],
+      "basis": "one-hot = template, uniform = bank 평균 (재정규화 없음), 원 logits override = 원 출력",
+      "gap": null
+    },
+    {
+      "id": "T10",
+      "name": "Backend/checkpoint",
+      "input": "save/reload, PyG 없는 환경",
+      "expected": "동일 명시 backend; eval logits 허용오차 내 동일",
+      "coverage": "full",
+      "tests": [
+        "tests/v2/test_models.py::test_checkpoint_roundtrip_preserves_eval_logits",
+        "tests/v2/test_models.py::test_checkpoint_rejects_foreign_backend",
+        "tests/v2/test_models.py::test_checkpoint_rejects_wrong_cell",
+        "tests/v2/test_models.py::test_pyg_is_not_imported"
+      ],
+      "basis": "CPU save/reload eval logits 동일, backend 'dense' 명시·다른 backend 거부, PyG 미사용",
+      "gap": "§4 문단 'GPU 저장/재로드는 해당 backend의 근거를 기록한다' — GPU checkpoint 재로드 시험·기록 없음 (test_models 에 cuda 경로 없음). T10 기대 결과 자체는 CPU 로 충족"
+    },
+    {
+      "id": "T11",
+      "name": "Target",
+      "input": "cluster ID를 label로 넣거나 single class fold",
+      "expected": "거부; label_source는 task metadata",
+      "coverage": "full",
+      "tests": [
+        "tests/v2/test_manifests.py::test_label_source_must_be_task_metadata",
+        "tests/v2/test_labels.py::test_cluster_id_can_never_become_a_label_source",
+        "tests/v2/test_labels.py::test_label_source_is_the_only_allowed_one",
+        "tests/v2/test_labels.py::test_unknown_task_is_rejected_not_defaulted",
+        "tests/v2/test_baselines.py::test_fit_logistic_guards",
+        "tests/v2/test_baselines.py::test_fit_mlp_guards",
+        "tests/v2/test_fitting.py::test_single_class_training_set_is_refused",
+        "tests/v2/test_fitting.py::test_single_class_outer_training_set_is_refused"
+      ],
+      "basis": "cluster ID label_source 거부, label_source = task metadata; 한 class training 라벨 거부가 S 후보와 A–D·NG·SG (`train_fold`, inner·outer) 모두에",
+      "gap": null,
+      "previous_gap": "single class fold 거부가 A–D·NG·SG 학습 경로 (`fitting.train_fold`/`encode_windows`) 에 없음 — 한 class 만 있는 training 집합을 넣어 실패하는 시험 없음"
+    },
+    {
+      "id": "T12",
+      "name": "Selection boundary",
+      "input": "test metric 접근 감지·정해진 inner scores",
+      "expected": "test 선택 금지; tie rule와 ceil median E 정확",
+      "coverage": "full",
+      "tests": [
+        "tests/v2/test_train.py::test_leakage_guard_rejects_outer_test_scores",
+        "tests/v2/test_train.py::test_tie_broken_by_joint_ba_then_smallest_id",
+        "tests/v2/test_train.py::test_common_epoch_is_ceil_of_median_over_12_values",
+        "tests/v2/test_train.py::test_baseline_epoch_is_ceil_median_of_three",
+        "tests/v2/test_train.py::test_incomplete_grid_is_rejected"
+      ],
+      "basis": "outer test 점수로 선택 거부, 동률 → 공동 BA → 작은 config_id, 공통 E = 12 best epoch 중앙값 올림, baseline = 3 개 중앙값 올림",
+      "gap": null
+    },
+    {
+      "id": "T13",
+      "name": "Endpoint",
+      "input": "손계산 2-subject·2-task·4-window·3-seed fixture",
+      "expected": "aggregation, threshold tie, BA, paired 차이 일치",
+      "coverage": "full",
+      "tests": [
+        "tests/v2/test_statistics.py::test_full_endpoint_chain_two_subjects",
+        "tests/v2/test_statistics.py::test_run_probability_averages_seeds_then_windows",
+        "tests/v2/test_statistics.py::test_threshold_tie_goes_to_class_one",
+        "tests/v2/test_statistics.py::test_subject_score_and_ba_hand_computed",
+        "tests/v2/test_statistics.py::test_paired_difference_is_within_subject"
+      ],
+      "basis": "2 subject × 2 task × 4 window × 3 seed 손계산 체인, 0.5 동률 → class 1, BA·paired 차이 일치",
+      "gap": null
+    },
+    {
+      "id": "T14",
+      "name": "Statistical unit",
+      "input": "family fixture와 bootstrap index 검사",
+      "expected": "group 재표집·pair 유지; seed/window를 독립 N으로 쓰지 않음",
+      "coverage": "full",
+      "tests": [
+        "tests/v2/test_statistics.py::test_bootstrap_resamples_groups_not_subjects",
+        "tests/v2/test_statistics.py::test_same_indices_applied_to_all_cells_preserves_pairing",
+        "tests/v2/test_statistics.py::test_n_is_subjects_never_windows_or_seeds",
+        "tests/v2/test_statistics.py::test_bootstrap_draw_size_equals_subject_count_for_equal_groups"
+      ],
+      "basis": "가족 fixture 에서 group 단위 재표집, 같은 index 로 pair 유지, N = subject",
+      "gap": null
+    },
+    {
+      "id": "T15",
+      "name": "Integrity",
+      "input": "checkpoint/config hash 변경, 누락 seed/window",
+      "expected": "실패; glob fallback·불완전 평균 없음",
+      "coverage": "full",
+      "tests": [
+        "tests/v2/test_cli_evaluate.py::test_changed_checkpoint_fails",
+        "tests/v2/test_cli_evaluate.py::test_missing_checkpoint_file_fails_without_search",
+        "tests/v2/test_cli_evaluate.py::test_boundary_hash_mismatch_fails",
+        "tests/v2/test_cli_evaluate.py::test_dropped_window_fails_rather_than_partial_mean",
+        "tests/v2/test_evaluate_cli.py::test_missing_seed_fails_rather_than_averaging_partially",
+        "tests/v2/test_evaluate_cli.py::test_checkpoint_integrity_rejects_missing_and_mismatched",
+        "tests/v2/test_statistics.py::test_run_probability_rejects_incomplete_input",
+        "tests/v2/test_manifests.py::test_assert_no_glob_fallback"
+      ],
+      "basis": "checkpoint 변경·파일 없음 (탐색 없이) 실패, config_hash/split_hash 불일치 실패, 창·seed 누락 시 부분 평균 대신 실패, glob fallback 금지",
+      "gap": null
+    },
+    {
+      "id": "T16",
+      "name": "Scope",
+      "input": "classification-only train/evaluate",
+      "expected": "ETTh1 등 미학습 task 자동 평가 없음",
+      "coverage": "full",
+      "tests": [
+        "tests/v2/test_evaluate_cli.py::test_only_trained_classification_tasks_are_evaluated",
+        "tests/v2/test_evaluate_cli.py::test_window_prediction_rejects_unknown_task_and_cell",
+        "tests/v2/test_models.py::test_model_has_no_forecasting_head"
+      ],
+      "basis": "평가 대상은 학습한 분류 task 두 개뿐, 알 수 없는 task 거부, forecasting head 없음",
+      "gap": null
+    }
+  ],
+  "summary": {
+    "full": [
+      "T01",
+      "T02",
+      "T03",
+      "T04",
+      "T05",
+      "T06",
+      "T07",
+      "T08",
+      "T09",
+      "T10",
+      "T11",
+      "T12",
+      "T13",
+      "T14",
+      "T15",
+      "T16"
+    ],
+    "partial": [],
+    "none": []
+  },
+  "supersedes": {
+    "path": "reports/acceptance_map_t01_t16.json",
+    "sha256": "a67a23dec9c6ad27074ef9241ac7ac9701a3112cfaae3afde0cbb8eb2620312a",
+    "note": "v1 은 명세 1 기록으로 보존. T03·T04·T11 만 바뀜"
+  },
+  "n_tests_named": 89
+}

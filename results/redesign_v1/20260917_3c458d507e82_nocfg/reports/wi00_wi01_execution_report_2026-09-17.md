@@ -4922,3 +4922,36 @@ G1 `unresolved` 6 → **3** (U10 · U17 · δ 정밀도).
 - 대응 정도는 시험 이름·docstring·본문 일부를 읽고 정했다. 83 개 시험 본문을 모두 줄 단위로 대조하지는 않았다 (T01·T03·T04·T11·T15 는 본문 확인).
 - `tests/v2/test_acceptance_coverage.py` 는 T-ID 참조만 검사한다 — 이 대응표와 묶는 시험은 아직 없다 (명세 4·5 에서 정할 구현 선택).
 - 산출물: 이 부록, release `reports/acceptance_map_t01_t16.json`, gate rev67 (틀 `.backup/slot_1315c/rev67_update.py`). 코드·시험·잠금 불변 (9564cadb).
+
+
+# 부록 BP — 결정 21 명세 2: acceptance 빈틈 보강 T03·T04·T11 (rev68, 2026-09-26 14:14 예약 슬롯)
+
+선생님 결정 21 (09-26 11:1x KST 기록) — 선택지 "(가) `implementation_lock.json`을 만들고 G2 check를 채운 뒤 main OOF로 갑니다. … 먼저 T01–T16 acceptance 항목과 `tests/v2` 시험의 대응표가 필요합니다. main pool을 쓰지 않으니 되돌릴 수 있습니다." 의 명세 2 (부록 BO.4 보강안). **바꾸지 않은 것**: T01–T16 항목 정의, 계획서·지침서, 학습·선택 규칙과 값, gate 판정·status, G2 check (여전히 0건). fit 없음, main pool 미소비. main OOF 착수 승인 아님.
+
+## BP.1 코드 (`mobse/v2`)
+
+- **T03** `templates.build_bank(..., allowed_subjects=None)`: 주면 `fit_subjects` 가 그 부분집합인지 확인하고 아니면 `TemplateError` ("허용되지 않은 subject 가 bank fit 에 들어갔다"). PCA 쪽 `features.fit_transform_on_training_rest` 와 같은 규칙. `fitting.fit_fold_transform` 이 `allowed_subjects=sorted(train_subjects)` 를 넘긴다. 이 경로는 허용 밖 창을 먼저 걸러 내므로 실자료 결과는 바뀌지 않는다 (같은 입력에서 bank_id 동일 — 시험).
+- **T11** `fitting.train_fold`: training 라벨 집합이 정확히 {0, 1} 가 아니면 `FitError` ("training 라벨이 두 class 가 아니다 … single class fold 거부, T11"). 위치는 role·공통 E 검사 뒤, P8 계산 앞 — inner·outer, A–D·NG·SG 모두 같은 경로. **구현 선택 (표시함)**: `encode_windows` 가 아니라 `train_fold` 에 두고 training 집합만 검사 (평가 집합은 subject 마다 두 task).
+- **T04**: 코드 변경 없음 (시험만).
+
+## BP.2 시험
+
+- `test_templates.py` +2: `test_build_bank_rejects_a_forbidden_subject`, `test_build_bank_accepts_fit_subjects_within_the_allowed_set` (허용 집합이 fit subject 를 담으면 bank_id = 검사 없이 만든 bank).
+- `test_fitting.py` +5 함수 (parametrize 전개 12): `test_bank_allowed_subjects_is_actually_passed_through` (spy), `test_bank_hash_is_unchanged_by_eval_transform_and_fit` [A, C] (평가 창 인코딩·학습·평가 forward 전후 brain/null fingerprint·bank_id·PCA fingerprint 동일, 모델 `template_bank` buffer = 변환 bank float32, parameter 아님), `test_single_class_training_set_is_refused` [A·D·NG·SG × 라벨 0·1], `test_single_class_outer_training_set_is_refused`.
+- HEAD 판 `templates.py`·`fitting.py` 에 새 시험을 돌리면 12 실패 · 2 통과 (T04 두 개 — 시험만 추가한 항목이라 기대대로). 관련 7 파일 Mac `-B` 302 passed / 13 skipped.
+- 돌연변이 `.backup/slot_1415c/mut_gap.py` (`-B`, `PYTHONDONTWRITEBYTECODE=1`) **8/8**: build_bank 가드 끔·None 분기 끔, fit_fold_transform 전달 뺌·None 전달, train_fold 가드 끔·약화 (`len > 2`), bank 를 parameter 로 등록, 평가 인코딩이 bank 를 건드림.
+
+## BP.3 대응표 갱신 판
+
+- release `reports/acceptance_map_t01_t16_v2.json` (**구현 선택: v1 은 명세 1 기록으로 보존, 새 파일** — 같은 release 결과 덮어쓰기 금지). `supersedes` 에 v1 경로·sha256, T03·T04·T11 은 `coverage: full`, 새 시험 추가, `previous_gap` 에 옛 gap. 요약 **전부 16 · 부분 0 · 없음 0**, 명명 시험 89 (83 + 6), 전부 AST 존재 확인. 틀 `.backup/slot_1415c/build_map_v2.py` (덮어쓰기 거부).
+- 부록 BO.4 의 T10 정보 항목 (GPU 저장/재로드 근거 기록) 은 그대로 — 명세 3 때 기록.
+
+## BP.4 재잠금·gate
+
+- 재잠금 `9564cadb238b` → **`9b7b11cf8576`** (2026-09-26T05:22:16Z), code_hash `58c7152122a5` → `804d6ee17625` (h197 `$HOME/slot/t_rc_1415c.sh`). 19번 45/45, 25번 창 4,728. split_hash `ace5f4a4…`·external_split_hash `40e50350…`·config_hash (main `2a7d7d7f`·pilot `6498596a`·external `576f6068`) 불변.
+- gate **rev68** (`decision21_acceptance_gaps_rev68`, 틀 `.backup/slot_1415c/rev68_update.py` — rev65 재잠금 틀 + rev67 새 산출물 `artifacts`; 판정·status·check 수 [10,8,0,1,1,0] 불변 assert).
+
+## BP.5 확인하지 못한 것
+
+- 실자료 fit 에서 T11 가드가 걸리는 경우가 있는지 (main pool fit 금지 — pilot end-to-end (명세 3) 에서 pilot 분할로 확인 가능).
+- 명세 3–5 (pilot end-to-end, `implementation_lock.json`, G2 check) 는 다음 슬롯.
