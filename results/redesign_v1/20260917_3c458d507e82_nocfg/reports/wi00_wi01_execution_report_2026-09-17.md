@@ -4770,3 +4770,23 @@ rev62 `gates[1]` (G1 Measurement lock, `status: in_progress`) check **8건: pass
 - T01–T16 acceptance 시험이 `tests/v2` 의 어느 시험과 대응하는지 (대응표 없음 — 이번에 만들지 않음).
 - G0·G1 gate 수준 기록 (`status`·`unresolved`·`status_note`) 이 어느 revision 부터 낡았는지.
 - 산출물: 이 부록과 gate rev63 (이 부록 sha 만 반영, 판정 변경 없음). 조사 명령은 `.backup/slot_0915b/` 에 없음 (대화형 python 한 줄) — 수치는 gate evidence 에서 다시 셀 수 있다.
+
+# 부록 BL. 결정 19 — G1 check "resource plan from pilot measurement" 판정 `fail` → `pass` (2026-09-26 10:14 슬롯, gate rev64)
+
+**판정 한 필드만 바꾼다.** 선생님 결정 19 (09-26 02:2x KST 기록) — 결정 요청 (09-25 18:15 슬롯) 에 대한 대화 권고 문장 "권고: (가). 계획서 §7 문장("pilot에서 peak memory·시간을 측정해 자원 계획을 만든다")은 채웠습니다. S 후보는 입력 차원이 작은 logistic과 32-hidden MLP라서, 예산을 좌우하는 A–D·NG·SG fit(1,038개)에 비하면 비중이 작습니다. 다만 이것은 추정이고 실측은 아닙니다." 를 회신 — 선택지 (가) "`pass` 로 바꾸고, note 에 실측 내용과 한계(S 후보 시간 미측정, 반복 변동 최대 2.7배)를 적습니다" 채택. main OOF 착수 승인 아님. 코드·시험·잠금 불변 (78ddd887).
+
+## BL.1 바뀐 필드
+
+- `gates[1].checks[7]` (이름 "resource plan from pilot measurement" 로 확인, 인덱스 7): `result` `fail` → **`pass`**, `note` 교체 (아래). 이전 값은 gate 블록 `decision19_g1_resource_plan_rev64.previous` 에 원문 그대로 보존.
+- 그 밖의 check 판정·gate `status` 는 불변 (갱신 틀이 assert 로 확인). G1 은 fail 3건 ([0] group_id · [1] 네임스페이스 · [6] δ=0.02 정밀도) 이 남아 `status: in_progress` 그대로. G1 `unresolved`·`status_note` 의 낡은 항목 (부록 BK.2) 도 결정 19 범위 밖이라 그대로.
+
+## BL.2 새 note 의 근거 (그 자리에서 gate 블록을 다시 읽어 옮김)
+
+- rev58 (부록 BF, `resource_budget.md` 9절): pilot 기술 분할 outer 0·inner 0, 칸 A·B·C·D·NG·SG 각 5,000 update 실측 — s/epoch 0.0339–0.0600, peak GPU ≤136.4 MiB, peak RSS ≤1.49 GiB. 예산 순차 학습 14.1–33.5 h + 고정비 ≤5.2 h (1,038 fit).
+- rev61 (부록 BI, 9.1절): 칸당 3회 반복 — 같은 인자에서 s/epoch 최대 2.7 배 변동 (A·C·D), 칸 A 동시 실행 k=4 처리량 2.23 배, 순차 학습 상한 34.0 h.
+- 한계 (note 에 그대로 적음): S 후보 fit 시간 미측정 (비중이 작다는 것은 추정), 반복 변동 원인 미확인, main 규모 실자료 시간·동시 실행 미측정 (main OOF 승인 전 금지).
+
+## BL.3 확인하지 못한 것
+
+- S 후보 fit 시간 (`fit-s` timing 기록 없음 — 선택 항목 그대로).
+- 이 판정 변경이 G1 gate 전체 판정에 주는 영향은 없음 (다른 fail 3건 잔존) — G1 을 어떻게 닫을지는 결정 범위 밖.
