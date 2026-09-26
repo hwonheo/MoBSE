@@ -5011,3 +5011,51 @@ G1 `unresolved` 6 → **3** (U10 · U17 · δ 정밀도).
 
 - `evaluation.json`·`statistics.json` 내용 (sha 만 — 성능 해석 금지 범위와 별개로 필드 검토도 안 함), 선택 config 밖 칸별 best epoch 분포, fit 별 GPU peak 집계 (fit_report 에 있음), T10 재로드 대조.
 - CLI 가 상한을 덮지 않고 pilot 규모를 돌 방법은 만들지 않았다 (CLI 계약 변경 — 범위 밖). main 규모에서는 최소 epoch 295 ≤ 400 이라 덮기가 필요 없다 (결정 15 절 5 계산).
+
+
+# 부록 BR — 결정 21 명세 4: 구현 잠금 `locks/implementation_lock.json` (rev70–rev71, 2026-09-26 22:15 예약 슬롯)
+
+선생님 결정 21 원문 (09-26 11:1x 기록): "(가) `implementation_lock.json`을 만들고 G2 check를 채운 뒤 main OOF로 갑니다. 담을 내용은 환경, code/config hash, acceptance 결과, pilot end-to-end입니다. …" 이 부록은 명세 4 (잠금 파일) 만 다룬다. G2 check 채우기 (명세 5) 와 main OOF 착수 승인은 아니다.
+
+## BR.1 근거와 필드
+
+지침서 WI-06 출력 문장: "runnable CLI와 실제 `--help`, acceptance 결과, 환경 lock, code/config hashes, `locks/implementation_lock.json`". 이것을 새 스크립트 `scripts/h197/27_build_implementation_lock.py` 의 필드로 옮겼다.
+
+| 필드 | 내용 |
+|---|---|
+| `environment` | python 3.11.5 · torch 2.10.0+cu128 · CUDA 12.8 · cuda 사용 가능 · GPU NVIDIA GeForce RTX 3090 Ti · `pip freeze --all` 61 줄 전체와 sha256 (저장소 자신 `mobse` 는 뺌 — BR.3) |
+| `code` | `mobse/v2/*.py` code_hash `804d6ee17625…` (측정 잠금과 같은 정의) + 모듈별 sha256 |
+| `configs` | main `2a7d7d7f` · pilot `6498596a` · external `576f6068` (config_hash) + 파일 sha256 |
+| `cli` | 최상위 + 하위 명령 11 개의 실제 `--help` 텍스트와 sha256 (COLUMNS=100 고정, 12 개) |
+| `acceptance` | 대응표 v2 (`reports/acceptance_map_t01_t16_v2.json`, 전부 16 · 부분 0 · 없음 0) + pytest junit (data root `impl_lock/20260926_2215d/pytest_junit.xml`) 합계 1183 passed · 12 skipped · failed 0, 대응표 명명 시험 전부 통과 |
+| `pilot_end_to_end` | gate rev69 `data_root_outputs` 7 개를 data root 에서 다시 재어 전부 일치, `run_all.log` `ALL_RC=0`, 로그 3 개 sha256 |
+| `measurement_lock` | lock_hash `9b7b11cf8576` 과 파일 sha256 (참조) |
+| `t10_gpu_reload` | `not_done` (구현 선택 — CLI evaluate 는 checkpoint 를 재로드하지 않는다) |
+
+## BR.2 생성 결과 (h197, 2026-09-26T13:28:53Z)
+
+- HEAD `ccb5587` (rev70 커밋), 작업트리 깨끗. 구현 잠금 lock_hash `bcf1fec22676`, 파일 sha256 `f2abd2735164…`, 143,250 bytes.
+- junit 은 마감 1단계 (13:18:59Z–13:27:42Z) 를 `--junitxml` 로 돌려 얻었다. 그 실행은 rev70 커밋 직전 작업트리 (내용이 `82d767e`·`ccb5587` 과 같음) 에서 돌았다. sha256 `6aa7023543a6…`.
+- `--verify` 38/38 일치 (13:29:01Z). 스크립트 정정 (BR.3) 뒤 `PYTHONPATH=.` 없이·있이 두 번 다시 돌려 38/38 (13:30:46Z 전후).
+
+## BR.3 정정: pip freeze 가 호출 방식에 따라 한 줄 달라짐
+
+건식 점검 (`PYTHONPATH=.`) 과 생성 (없이) 의 `pip freeze` sha 가 달랐다. h197 에서 두 방식을 diff 하니 `PYTHONPATH=.` 판에만 `mobse==0.1.0` 한 줄이 있었다 (61 대 62). 저장소 코드는 `code` 절이 기록하므로 `freeze_lines` 가 이름이 `mobse` 인 줄을 빼도록 고쳤다 (rev71). 잠금 파일은 생성 때 이미 61 줄이라 다시 만들지 않았다 — 정정 뒤 두 방식 모두 38/38. 시험 1 개 추가 (`test_freeze_lines_drop_the_repository_package_and_sort`). 따라서 잠금의 `acceptance.pytest_counts` (1183 passed) 는 이 시험 추가 전 수다 — T01–T16 명명 시험과 `mobse/v2` 는 그 사이 바뀌지 않았다. rev71 마감의 시험 수는 커밋 메시지와 인수인계 문서에 적는다 (보고서에 두면 gate 의 보고서 sha 와 어긋난다).
+
+## BR.4 구현 선택 (표시)
+
+- 생성과 검증을 한 스크립트에 둠 (`--verify`). 검증은 git HEAD 를 대조하지 않는다 (잠금을 커밋하면 HEAD 가 바뀐다 — 기록만).
+- pytest 는 스크립트가 돌리지 않고 마감 1단계 junit 을 받는다. junit 은 data root 아래만 허용 (`/tmp` 거부).
+- 깨끗한 작업트리에서만 생성, 덮어쓰기 거부 (`--overwrite` 없음). 대응표에 부분·없음이 있거나 실패 1 건·명명 시험 누락·skip 이 있으면 생성 거부. pilot e2e sha 가 하나라도 다르면 생성 거부.
+- T10 GPU 재로드 대조는 넣지 않았다.
+- 마감 5단계에 27 `--verify` 를 넣을지는 명세 6 — 이번에는 넣지 않음.
+
+## BR.5 시험·돌연변이
+
+`tests/v2/test_implementation_lock_script.py` 7 함수 (junit 합계·parametrize 괄호·skip/실패/error·누락·섞인 결과·freeze 필터). 돌연변이 `.backup/slot_2215d/mut27.py` (`-B`) **7/7** 검출.
+
+## BR.6 확인하지 못한 것
+
+- T10 GPU 재로드 근거 (구현 선택으로 뺌).
+- `--help` 텍스트가 python 판에 따라 바뀌는지 (h197 3.11.5 에서만 잼).
+- G2 check (명세 5) — 아직 0 건. 판정 변경 없음.
