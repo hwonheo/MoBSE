@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "ccb558732f2ebb5b7d1b563662b872ec08e83eb9",
-  "timestamp_utc": "2026-09-26T13:31:56Z",
-  "revision": 71,
-  "supersedes_sha256": "72ca9d3b369cadd7484ceb892c200fc781a9637462463df9cee8028c56eb3222",
-  "revision_reason": "rev71 (2026-09-26): 결정 21 명세 4 (b) — h197 에서 만든 locks/implementation_lock.json (lock_hash bcf1fec22676, HEAD ccb5587, --verify 38/38) 을 artifacts 로 기록, 27번 스크립트 정정 (pip freeze 의 저장소 자신 mobse 줄 제외 — PYTHONPATH 에 따라 sha 가 달라졌음) + 시험 1, 보고서 부록 BR. 판정·status·check 수 불변 (G2 check 는 명세 5). mobse/v2 불변 — 측정 잠금 9b7b11cf 유지. main pool 미소비",
+  "git_head": "89fd9415c240c766aa319fee306cd326727c3b8a",
+  "timestamp_utc": "2026-09-26T14:16:54Z",
+  "revision": 72,
+  "supersedes_sha256": "a891ee447091526a32fe71552d1f4ae2b912d826bae4001bfe36bc00263ae0f3",
+  "revision_reason": "rev72 (2026-09-26): 결정 21 명세 5 — G2 check 5 개 추가 (acceptance T01–T16 · config/code/environment hashes · runnable CLI --help · pilot end-to-end · leakage/연산/endpoint), 모두 pass (근거: 구현 잠금 bcf1fec22676, 부록 BP·BQ·BR), 보고서 부록 BS (BR.5 오기 정정 포함). G2 status·unresolved·artifact_hashes 와 G2 밖 gate 불변. 측정 잠금 9b7b11cf 유지. main pool 미소비",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -108,7 +108,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "998a5a71a4a6bd45f44b78aa63cea177d92a405a0601be50b633c2c05d016494"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "c68f465bfe6d50947b5eb469e353a308d7b6331cf5d2855c6e3a2d47776b41f5"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -209,7 +209,142 @@
     {
       "gate": "G2 Implementation lock",
       "status": "planned",
-      "checks": [],
+      "checks": [
+        {
+          "check": "acceptance tests T01-T16",
+          "result": "pass",
+          "source": "계획서 §10 G2 필수 산출물 'acceptance tests' · 지침서 WI-06 완료 기준 'T01–T16 … 통과'",
+          "observed": {
+            "acceptance_map_v2": {
+              "full": 16,
+              "none": 0,
+              "partial": 0
+            },
+            "map_sha256": "bde944713859f5c3c676d2a1dd2d339108b0918b922a65cce9a9fae224c5331b",
+            "named_tests": 89,
+            "named_tests_all_passed": true,
+            "junit_counts": {
+              "failed": 0,
+              "passed": 1183,
+              "skipped": 12
+            },
+            "junit_sha256": "6aa7023543a6ed49e709a60b7771676d24d701d39f28add57d5b39f63c4e8d0a"
+          },
+          "note": "부록 BP (대응표 v2) · BR (구현 잠금 acceptance) · BS. 한계: T10 의 GPU 저장/재로드 근거 기록 없음 (t10_gpu_reload not_done) — T10 기대 결과는 CPU 시험으로 충족. 시험이 기대 결과를 검사하는지는 읽어서 판단"
+        },
+        {
+          "check": "config/code/environment hashes",
+          "result": "pass",
+          "source": "계획서 §10 G2 필수 산출물 'config/code/environment hashes' · 지침서 WI-06 출력 '환경 lock, code/config hashes, locks/implementation_lock.json'",
+          "observed": {
+            "implementation_lock_hash": "bcf1fec226764798b86889ea3afe35baaab1d9a884a1bab5ef22f53c2515f2de",
+            "code_hash": "804d6ee176251aec3a1f9dac1ea82040261c4ac318b9d251a112d156bc98814b",
+            "config_hash": {
+              "external": "576f6068",
+              "main": "2a7d7d7f",
+              "pilot": "6498596a"
+            },
+            "environment": {
+              "python": "3.11.5",
+              "torch": "2.10.0+cu128",
+              "cuda": "12.8"
+            },
+            "pip_freeze_sha256": "2dac48b472240e7bf1789f8f8474d42c8fde9f232e5c157ffa01edd66e005c47",
+            "measurement_lock_ref": "9b7b11cf85766eb6766e568a6bb22490f061e99dce3fc44c0e099bb734a1648f",
+            "verify": "h197 HEAD 89fd941, 2026-09-26T14:15:11Z, 27 --verify 38/38 (이번 슬롯)"
+          },
+          "note": "부록 BR · BS. 검증은 h197 환경에서만 의미 (Mac 은 CUDA·pip 환경이 달라 불일치가 정상)"
+        },
+        {
+          "check": "runnable CLI and actual --help",
+          "result": "pass",
+          "source": "지침서 WI-06 출력 'runnable CLI와 실제 --help'",
+          "observed": {
+            "subcommands": [
+              "validate",
+              "prepare",
+              "split",
+              "fit",
+              "fit-s",
+              "select-ad",
+              "select-comparator",
+              "select-s",
+              "evaluate",
+              "report",
+              "report-comparison"
+            ],
+            "help_texts": 12,
+            "columns": 100
+          },
+          "note": "--help 텍스트·sha 는 구현 잠금 cli 절 (h197 python 3.11.5 에서만 잼). 실행 가능성 근거는 check 3 (CLI 하위 명령으로 pilot end-to-end)"
+        },
+        {
+          "check": "pilot end-to-end",
+          "result": "pass",
+          "source": "지침서 WI-06 완료 기준 '… pilot end-to-end 통과'",
+          "observed": {
+            "run_dir": "pilot_e2e/20260926_1515c",
+            "all_rc_0": true,
+            "fits": 540,
+            "failed_fits": 0,
+            "stages": "prepare → split → fit 540 → select-ad 5 → evaluate → report",
+            "outputs_match_gate_rev69": true,
+            "scope": {
+              "cells": [
+                "A",
+                "B",
+                "C",
+                "D"
+              ],
+              "main_pool_overlap": 0,
+              "not_included": [
+                "S",
+                "NG",
+                "SG",
+                "report-comparison"
+              ],
+              "split_hash_prefix": "8bfd4ab54f52",
+              "subjects": "pilot 31 (pilot 기술 분할)"
+            }
+          },
+          "note": "부록 BQ · BS. 한계: A–D 경로만 (S·NG·SG·report-comparison 제외), pilot 규모에서 CLI 상한을 프로세스 안에서 덮어야 돎 (부록 BQ.1). 성능 해석 안 함"
+        },
+        {
+          "check": "leakage/computation/endpoint verification",
+          "result": "pass",
+          "source": "계획서 §10 G2 다음 단계 조건 'leakage·연산·endpoint 검증 통과'",
+          "observed": {
+            "t_id_groups": {
+              "leakage": [
+                "T03",
+                "T04",
+                "T12"
+              ],
+              "computation": [
+                "T05",
+                "T06",
+                "T07",
+                "T08",
+                "T09",
+                "T10"
+              ],
+              "endpoint": [
+                "T13",
+                "T14"
+              ],
+              "other_passed": [
+                "T01",
+                "T02",
+                "T11",
+                "T15",
+                "T16"
+              ]
+            },
+            "all_groups_passed_in_check_0": true
+          },
+          "note": "구현 선택 (부록 BS.3): 문구를 지침서 §4 T-ID 에 대응시킨 것은 슬롯 해석 — 다른 묶음이면 이 note 만 바뀜 (근거는 같은 junit)"
+        }
+      ],
       "unresolved": [
         "blocked by G0"
       ],
@@ -2571,7 +2706,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev71 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev72 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -4845,5 +4980,41 @@
     ],
     "judgment_changed": false,
     "report_appendix": "BR"
+  },
+  "decision21_g2_checks_rev72": {
+    "decision_quote": "결정 21 (09-26 11:1x KST 기록) 선택지 \"(가) `implementation_lock.json`을 만들고 G2 check를 채운 뒤 main OOF로 갑니다. 담을 내용은 환경, code/config hash, acceptance 결과, pilot end-to-end입니다. …\"",
+    "spec_step": 5,
+    "checks_added": [
+      "acceptance tests T01-T16",
+      "config/code/environment hashes",
+      "runnable CLI and actual --help",
+      "pilot end-to-end",
+      "leakage/computation/endpoint verification"
+    ],
+    "results": [
+      "pass",
+      "pass",
+      "pass",
+      "pass",
+      "pass"
+    ],
+    "implementation_choice": "원문 문구 단위 분할 + leakage·연산·endpoint ↔ T-ID 묶음 (부록 BS.3)",
+    "unchanged": [
+      "G2 status planned",
+      "G2 unresolved 'blocked by G0'",
+      "G2 artifact_hashes",
+      "G0·G1·G3·G4·G5 전부"
+    ],
+    "not_decided": [
+      "G2 status 변경",
+      "blocked by G0 표기",
+      "main OOF 착수 승인"
+    ],
+    "not_done": [
+      "명세 6 마감 5단계에 27 --verify 추가 여부",
+      "T10 GPU 재로드 대조"
+    ],
+    "judgment_changed": "G2 check 0 → 5 (pass 5); 다른 gate 판정 불변",
+    "report_appendix": "BS"
   }
 }
