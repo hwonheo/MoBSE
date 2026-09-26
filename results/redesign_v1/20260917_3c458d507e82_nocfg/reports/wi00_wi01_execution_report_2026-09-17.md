@@ -4790,3 +4790,37 @@ rev62 `gates[1]` (G1 Measurement lock, `status: in_progress`) check **8건: pass
 
 - S 후보 fit 시간 (`fit-s` timing 기록 없음 — 선택 항목 그대로).
 - 이 판정 변경이 G1 gate 전체 판정에 주는 영향은 없음 (다른 fail 3건 잔존) — G1 을 어떻게 닫을지는 결정 범위 밖.
+
+
+# 부록 BM — 결정 18: 구조 비교 A−NG·A−SG 를 A−S 와 같은 보조 contrast 로 (rev65, 2026-09-26 11:14 예약 슬롯)
+
+선생님 결정 원문 (2026-09-26 02:2x KST 기록, 결정 요청 09-25 13:15 슬롯의 선택지): **"(가) A−NG·A−SG를 A−S와 같은 보조 contrast로 추가합니다. 같은 subject끼리 짝지은 bootstrap(seed 9001, 10,000회)과 95% 기술적 CI를 쓰고, primary가 아니라고 표시합니다."**
+정하지 않은 것 (넓히지 않음): primary endpoint 변경, 다중비교 보정 (A−S 와 같이 없음), NG−SG 등 다른 contrast, 해석 문구 규칙, 실자료 실행 (main OOF 승인 전 금지). 합성 자료 시험만, fit 없음, main pool 미소비.
+
+## BM.1 계획서 먼저 (사전 등록)
+
+- `docs/experiments/mobse_redesign_protocol_2026-09-17.md` §8 보조 목록 문장 뒤에 `[개정 P12]` 표시 — "구조 비교 A−NG·A−SG 도 A−S 와 같은 보조 contrast 로 보고한다 — 같은 subject 짝 paired bootstrap(A−S 와 같은 seed·반복 수, 같은 index), 95% 기술적 CI, primary 아님 (§11)".
+- §11 개정 표에 **P12** 행 (P11 뒤): 개정 전 문장·결정 원문·바꾸지 않은 것·근거·"main 결과를 보기 전의 사전 등록 — main OOF 미착수 (실자료 outer 예측 없음)" 명시. 날짜 2026-09-26.
+
+## BM.2 구현 (`mobse/v2/evaluate.py`, `mobse/v2/cli.py`)
+
+- `evaluate.COMPARISON_CONTRASTS = ("A_minus_S", "A_minus_NG", "A_minus_SG")` (순서 고정), 새 `CONTRAST_CELL` (contrast → 비교 칸).
+- `comparison_contrasts(ad_runs, *, s_runs, ng_runs, sg_runs)` — **구현 선택 (표시함)**: 세 칸을 필수 키워드 인자로 받는다 (위치 인자로 칸을 넘기면 `TypeError`; `report-comparison` 이 세 칸을 이미 필수로 받으므로 같은 계약). 칸마다 `subject_scores` 의 subject 집합이 A 와 다르면 `"<칸> 의 subject 집합이 A 와 다르다 — paired 불가"` 로 거부 (A−S 와 같은 규칙).
+- `run_report_comparison`: 세 칸 run 을 넘기고, `auxiliary_contrasts` 를 `COMPARISON_CONTRASTS` 순서로 만든다 — 모두 같은 `_ci` (같은 `ST.bootstrap_indices` index 한 번, `stats.bootstrap_seed` 9001·`stats.n_bootstrap` 10,000·`stats.nominal_pct` (2.5, 97.5), `role: auxiliary`·`primary: false`). `not_reported` 에서 A−NG·A−SG 제거 (parameter/비용만 남음). 반환 요약에 세 contrast 의 [점, 하한, 상한]. 산출물 schema 이름 `d14-comparison-statistics-0.1` 은 바꾸지 않음 (키 추가만).
+- bootstrap index 공유 (결정 18 명세 2): 세 contrast 와 칸 BA 3 개가 **같은 index 객체** 를 쓴다 — spy 시험으로 고정 (아래). 새 구현 선택 아님 (rev56 부터 한 번 만든 index 를 공유).
+
+## BM.3 시험·돌연변이
+
+- `tests/v2/test_evaluate_comparison.py` 17 → **20**: 이름 시험에 계획서 `[개정 P12]` 본문 문자열과 `| P12 | §8 |` 행 1 개를 묶음; 손계산 (A: s1 1·s2 1·s3 0.5 / NG: 0.5·1·1 / SG: 1·1·0 → A−NG +0.5·0·−0.5, A−SG 0·0·+0.5, A−S 기존 값 그대로); NG·SG 각각 unpaired 거부 (parametrize 2); 칸 위치 인자 거부 1.
+- `tests/v2/test_cli_report_comparison.py` 23 → **25**: 기존 손계산 시험에 A−NG (NG 모두 맞힘 → 0, 구간 (0, 0))·A−SG (SG 짝수 EM 틀림 → 0.25, 독립 재계산 구간 = A−S 구간)·세 contrast `primary: false`·`role: auxiliary`·키 순서·`not_reported` = parameter/비용만 추가. 새 시험 2: (i) SG 가 모든 EM 을 틀리는 변형에서 A−S 0.25·A−NG 0·A−SG 0.5 — 기존 fixture 에서는 S·SG 의 b 벡터가 같아 칸을 바꿔 끼워도 안 보이므로 가르는 자료를 둠; (ii) `paired_bootstrap` spy — 호출 6 회 (칸 BA 3 + contrast 3), index 객체 하나, 정렬 subject 순서, 9001·10,000·(2.5, 97.5).
+- 돌연변이 `.backup/slot_1115c/mut_d18.py` (`-B`·`PYTHONDONTWRITEBYTECODE=1`, 원본 복원) **11/12** + NOT-APPLICABLE 1 (`indices=idx,` 가 `run_report` 에도 있음) → 구간 한정 `mut_d18_idx.py` (`run_report_comparison` 안에서만) 검출 → **12/12**. 대상: 상수에서 A−NG 제거, contrast→칸 대응 2 종, 차이 부호, pairing 가드 제거, 칸 인자 바꿔 끼우기 (라이브러리 1·CLI 2), A−S 만 CI, 칸마다 새 index, `not_reported` 에 A−NG 재삽입, `primary: true`. Mac `*.pyc` 0 (돌연변이 뒤·rsync 전).
+- 관련 4 파일 (위 둘 + `test_cli_report.py`·`test_config_consumption.py`) Mac 101 passed.
+
+## BM.4 잠금·gate
+
+- `mobse/v2` 변경 → 재잠금 `78ddd887253f` → **`9564cadb238b`** (2026-09-26T02:19:05Z), code_hash `fbd9fd7feee2` → `58c7152122a5`. 19번 45/45, 25번 창 4,728. split_hash `ace5f4a4…`·external_split_hash `40e50350…`·config_hash (main `2a7d7d7f`·pilot `6498596a`·external `576f6068`) 불변. 계획서 sha 도 바뀜 (gate 인용 치환).
+- gate evidence **rev65** (`decision18_structure_contrasts_rev65`). 판정·gate status 변경 없음.
+
+## BM.5 확인하지 못한 것
+
+- 실자료 A−NG·A−SG (main OOF 승인 전 금지). 산출물 schema 판 번호를 올릴지 (키만 늘었음) — 이번엔 올리지 않음 (소비자 없음, 구현 선택).
