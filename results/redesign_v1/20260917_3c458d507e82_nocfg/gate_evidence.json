@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "5fa5df2f3f229b40accc668bf92b550595cf2192",
-  "timestamp_utc": "2026-09-26T04:19:25Z",
-  "revision": 67,
-  "supersedes_sha256": "b7e09e7e5f73508b2db708992e3c35b7fff4750d7013b2315115276f496624db",
-  "revision_reason": "rev67 (2026-09-26): 선생님 결정 21 명세 1 — T01–T16 수용 시험 ↔ tests/v2 대응표 (부록 BO, release reports/acceptance_map_t01_t16.json). 읽기·기록만: 판정·status 변경 없음, G2 check 미작성, 코드·시험·잠금 불변 (9564cadb). 보고서 sha 치환 + 새 산출물 해시",
+  "git_head": "8032a027629d517b021e503b919e09dcac887828",
+  "timestamp_utc": "2026-09-26T05:22:56Z",
+  "revision": 68,
+  "supersedes_sha256": "8d80ed857bd8f276b661fd398e02232b14b31866a3da20264161dc0e9996420a",
+  "revision_reason": "rev68 (2026-09-26): 선생님 결정 21 명세 2 — acceptance 빈틈 보강 (부록 BP). T03 templates.build_bank allowed_subjects 검사 + fit_fold_transform 전달, T11 train_fold training 라벨 두 class 검사, T04 평가 변환·forward 전후 bank hash 시험. 시험 test_templates +2, test_fitting +12 (parametrize 전개), 돌연변이 8/8. 재잠금 9564cadb238b → 9b7b11cf8576 (code_hash 58c7152122a5 → 804d6ee17625). 대응표 갱신 판 reports/acceptance_map_t01_t16_v2.json (전부 16). 판정·status 변경 없음, G2 check 미작성. fit 없음, main pool 미소비",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -108,7 +108,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "ad0ac00636669c4b853293c0e108c509557c6fd4138758a61bbfe8a42916f426"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "bf6a64bca0b2a8e086c8f5195398c77cd73ad0cd55ab31ac50acd93eda3351da"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -164,7 +164,7 @@
             "piop2_eligible": 189,
             "piop2_folds": null
           },
-          "note": "locks/measurement_lock.json (lock_hash 9564cadb238b…) 로 잠갔고 검증 42/42 일치. 재생성 이력은 wi03_measurement_lock.chain"
+          "note": "locks/measurement_lock.json (lock_hash 9b7b11cf8576…) 로 잠갔고 검증 42/42 일치. 재생성 이력은 wi03_measurement_lock.chain"
         },
         {
           "check": "pilot excluded from every main/final fit",
@@ -198,7 +198,7 @@
         "δ=0.02 정밀도 부족 — 차단이 아니라 명시 항목 (§8)"
       ],
       "artifact_hashes": {
-        "locks/measurement_lock.json": "3ee36db0f80a0a9a9a2b763bb98b4638e0f53a6f09d86b39a8cdfddf4f5dc706",
+        "locks/measurement_lock.json": "ca809fd80c2e002d25a89cd0f2021cb82e32313403097124d839974a7957028c",
         "reports/precision_scenarios.md": "a5d576edeb89a1223d79f97067490b85ac16fe56d516b92b56b9b4e33724aa69",
         "reports/resource_budget.md": "3050f05cf285e62b5b57ebb7693091942b9ea15d0f2cfadcb5f69cada450b6d7",
         "provenance/wi03_precision/precision_scenarios.json": "67284e5991af25775ee569c32e2b51e75f8833ea9f0874d477b9d68d8ae7817e",
@@ -688,7 +688,7 @@
     "evaluate.py": "1e10969e7d1c0814b738067d06a8a7fb9a5efa67b32d145e315ddc72d6e0493f",
     "extract.py": "45425fc516cc790e45e911af11c03fe5937c573fbfed3985e4bc6e7d5e7316f9",
     "features.py": "f9c81ef8155776f3d1971304ef32baf99b94b5f7bf100c0067f82dd1600b8f10",
-    "fitting.py": "12ad51ceed897ab656dbf345d4380847faf96e090657923563dadb7db11929bb",
+    "fitting.py": "282ba6173b9a96b9ccf57199436b1f00791a2a69c9aaef65689b600b2eacf93d",
     "labels.py": "89610e87315f7e1e6a1ac85130c89d69f197f47824262389a4eae5571397b3dc",
     "locks.py": "4fbe5691d76c9037d2c2b590d37ac5a9c6fa0184bd375f6fea4335f2627d322b",
     "manifests.py": "23a84d38b56bebd001e8d768e616e3cb898458ab4ced506c4d7cf35c7e91aaa0",
@@ -696,7 +696,7 @@
     "preprocess.py": "689ed2d8dbf186b12fd3ae4e58ab153693b31f8d59f047efee32d067f9bea7de",
     "splits.py": "26d404acf1d111a5306d7f46f025ba3881e879aca3d712a041bfef0db907dbcd",
     "statistics.py": "99028ff3042b396a6bb6ac9516af3d700a3939bb0cd5d5aa908e61573ad207b1",
-    "templates.py": "ec4d56f9e7b8ed9065f5f2b131c541c3e48f7360dc01696662c13465d0b58b78",
+    "templates.py": "3c2c1517d0a9b27cd1ffdaf153179638d64a4353dea397837a2f10752d8968b0",
     "train.py": "e7aa911fdfd5b8d18253191cd8305b5766d6742029aaba68437a63842fa15db4"
   },
   "v2_test_hashes": {
@@ -724,7 +724,7 @@
     "test_external_folds.py": "2a9324606da646ffa03407cca5de9e63b1e7c2d9d418dbefb93fc0410c676060",
     "test_extract.py": "4c883b7202213aabedbbaef1665da18448986ffaac4fea9578bc2895e085904a",
     "test_features.py": "64f2c436fae1ec2be9430be94cac399819e398d09320d3aba32ddd09f90751a2",
-    "test_fitting.py": "30dcae0df919698bf064c39dd7747d778a0b94a68c5edfee1e553b129c1d6ea8",
+    "test_fitting.py": "3788747b7a1049c984738d6edf4b2203c1cf9e77f9094f2970fbeedf52fe2eda",
     "test_h197_scripts.py": "3f06ce1dbf1f58448309f36a0294bf0ac7daca7422f59fb709f08cca725b328e",
     "test_import_closure.py": "a6c9ff480644409af7d48cbc1b8446c5d1ea6e59a57e99269ad2409510123fba",
     "test_labels.py": "648ff806bf259fd4f05d704f3fc38afc0a267ea8407c67c6b8252f472ee80e91",
@@ -737,7 +737,7 @@
     "test_resource_benchmark.py": "08b3655da4e4df9c58b894d98f0afd50182cb6fad06473abd8ede74154add167",
     "test_splits.py": "4c6e87633a2bf7b3740d0bb342b208337554b1061807be72dfcde3693e3b7cfb",
     "test_statistics.py": "ce543dce60636f0dc9423bbdb0e2371183278967a1dd8071126c9f605d126967",
-    "test_templates.py": "9e135a114b9d19eba4492fd048271398d30e40de212a08ddad48fcad811f91d8",
+    "test_templates.py": "586ced1cbf9c6bad130d49d5c4968ddd4c05a8c14480cd44432f238001433c47",
     "test_train.py": "b9c42217f685016c1a6d641527dc1762aa035893120f2674411b492d5084d2f6",
     "test_wi02_driver.py": "2b8a545cf4ea92a205395fadafeacf7c1b81046ba98985afd07f798c9d8b75ec",
     "test_window_files_guard.py": "1d3dfe5188de2155bc1bd50d8a72d1586eced249fb89a9f08bd7fe71a26da18b"
@@ -1837,8 +1837,8 @@
   "wi03_measurement_lock": {
     "gate": "G1 Measurement lock",
     "artifact": "locks/measurement_lock.json",
-    "lock_hash": "9564cadb238bc782797570094aa46dd775a27b6e07703403de47a739f8796b91",
-    "locked_at_utc": "2026-09-26T02:19:05Z",
+    "lock_hash": "9b7b11cf85766eb6766e568a6bb22490f061e99dce3fc44c0e099bb734a1648f",
+    "locked_at_utc": "2026-09-26T05:22:16Z",
     "module": "mobse/v2/locks.py",
     "module_sha256": "4a3dae547c0744dbf58e24f2d53ec46c4c71577bc71a502f130bd70b1272a812",
     "builder": "scripts/h197/18_build_measurement_lock.py",
@@ -1854,7 +1854,7 @@
         "folds": null,
         "reason": "계획서 §9 — PIOP2 는 held-out 외부 코호트다. fold 를 만들지 않는다."
       },
-      "code_hash": "58c7152122a5ed126ffe24206f2d7491f069ee744fa2c98ed702cd794244efe0",
+      "code_hash": "804d6ee176251aec3a1f9dac1ea82040261c4ac318b9d251a112d156bc98814b",
       "configs": {
         "external": "7daa536b",
         "main": "85556f56",
@@ -1906,7 +1906,7 @@
     ],
     "tests": "tests/v2/test_locks.py (18건)",
     "artifacts": {
-      "locks/measurement_lock.json": "3ee36db0f80a0a9a9a2b763bb98b4638e0f53a6f09d86b39a8cdfddf4f5dc706",
+      "locks/measurement_lock.json": "ca809fd80c2e002d25a89cd0f2021cb82e32313403097124d839974a7957028c",
       "locks/superseded/measurement_lock_2026-09-18T00:45:43Z.json": "abe6a9fc5e978274c8061ff90df7664140a24e55be85030abb3da4a97a8294f5",
       "locks/superseded/measurement_lock_2026-09-18T02:56:21Z.json": "b8a45c28e2fbece236f662fa993828733e5be4e2cb9980f4044514516243179e",
       "locks/superseded/measurement_lock_2026-09-18T02:57:01Z.json": "95d43ef2db9c8431c279aacfd4c6ffaf48792a3079bfadeea9a452789b2aef44",
@@ -1942,7 +1942,8 @@
       "locks/superseded/measurement_lock_2026-09-25T04:18:29Z.json": "e64481894c31530fede67cc1356ee5f05e52c09e536fdb2ca279afb2dd0a25de",
       "locks/superseded/measurement_lock_2026-09-25T05:21:28Z.json": "4eedcd29f1558b45f7abca95fb78287e222ce3c54fa865255fd3f11e9ed4040a",
       "locks/superseded/measurement_lock_2026-09-25T06:23:32Z.json": "83cc57c248b7373f5042045492c0142d568dfa4b00d850bf894dac0ae3ed2c51",
-      "locks/superseded/measurement_lock_2026-09-25T07:23:32Z.json": "dc0c9acaa14d646aff0006bd422347ef91ddacad63ecdbe7fe650adc2b5cd5d2"
+      "locks/superseded/measurement_lock_2026-09-25T07:23:32Z.json": "dc0c9acaa14d646aff0006bd422347ef91ddacad63ecdbe7fe650adc2b5cd5d2",
+      "locks/superseded/measurement_lock_2026-09-26T02:19:05Z.json": "3ee36db0f80a0a9a9a2b763bb98b4638e0f53a6f09d86b39a8cdfddf4f5dc706"
     },
     "supersedes": {
       "lock_hash": "6e68eb939bebebc1eac27927f1b21a68e89d994c24d7b3b2aa35366f046c2d09",
@@ -1986,7 +1987,8 @@
       "850e7fce7b0a (구조 비교 outer fit 집계 helper)",
       "c96a74b297ec (S outer fit 집계 helper)",
       "78ddd887253f (보조 비교 통계 하위 명령 report-comparison)",
-      "9564cadb238b (결정 18 A−NG·A−SG 보조 contrast, 현행)"
+      "9564cadb238b (결정 18 A−NG·A−SG 보조 contrast)",
+      "9b7b11cf8576 (결정 21 명세 2 T03·T11 가드, 현행)"
     ],
     "chain_note": "가운데 항목은 --reason 없이 재생성한 것이다. 그 직후 builder 에 --reason 필수 검사를 넣고 다시 만들었다. 지우지 않고 사슬에 남긴다",
     "builder_now_requires_reason": "--overwrite 에 --reason 이 없으면 거부한다. 변경 정책이 '새 잠금에 supersedes 와 사유를 남긴다'고 정한다"
@@ -2213,7 +2215,7 @@
   },
   "wi05_fit_implementation": {
     "module": "mobse/v2/fitting.py",
-    "module_sha256": "12ad51ceed897ab656dbf345d4380847faf96e090657923563dadb7db11929bb",
+    "module_sha256": "282ba6173b9a96b9ccf57199436b1f00791a2a69c9aaef65689b600b2eacf93d",
     "cli": "mobse/v2/cli.py run_fit()",
     "unit": "한 번의 호출 = (role, cell, outer, inner, config, seed) 하나 = §7 비용표의 한 칸",
     "required_paths": [
@@ -2567,7 +2569,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev67 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev68 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -4600,5 +4602,64 @@
     ],
     "judgment_changed": false,
     "report_appendix": "BO"
+  },
+  "decision21_acceptance_gaps_rev68": {
+    "decision_quote": "(가) `implementation_lock.json`을 만들고 G2 check를 채운 뒤 main OOF로 갑니다. 담을 내용은 환경, code/config hash, acceptance 결과, pilot end-to-end입니다. 먼저 T01–T16 acceptance 항목과 `tests/v2` 시험의 대응표가 필요합니다. main pool을 쓰지 않으니 되돌릴 수 있습니다.",
+    "spec_step": 2,
+    "artifacts": {
+      "reports/acceptance_map_t01_t16_v2.json": "bde944713859f5c3c676d2a1dd2d339108b0918b922a65cce9a9fae224c5331b"
+    },
+    "summary": {
+      "full": [
+        "T01",
+        "T02",
+        "T03",
+        "T04",
+        "T05",
+        "T06",
+        "T07",
+        "T08",
+        "T09",
+        "T10",
+        "T11",
+        "T12",
+        "T13",
+        "T14",
+        "T15",
+        "T16"
+      ],
+      "partial": [],
+      "none": []
+    },
+    "closed_gaps": {
+      "T03": "bank fit 에 금지 subject 를 넣어 '실패' 하는 시험 없음 — `templates.build_bank` 에 허용 subject 검사가 없고, `fitting.fit_fold_transform` 은 허용 밖 창을 걸러 낸다 (실패가 아니라 제외). PCA 쪽만 실패로 검증됨",
+      "T04": "val/test transform (또는 평가 forward) 전후 bank hash 를 비교하는 시험 없음 — bank 쪽 불변은 buffer 성질·content-bound id 로 간접 확인만",
+      "T11": "single class fold 거부가 A–D·NG·SG 학습 경로 (`fitting.train_fold`/`encode_windows`) 에 없음 — 한 class 만 있는 training 집합을 넣어 실패하는 시험 없음"
+    },
+    "code": [
+      "templates.build_bank(allowed_subjects=) → TemplateError (T03)",
+      "fitting.fit_fold_transform 가 build_bank 에 allowed_subjects=sorted(train) 전달 (T03)",
+      "fitting.train_fold training 라벨 {0,1} 아니면 FitError (T11, inner·outer, A–D·NG·SG)"
+    ],
+    "tests_added": [
+      "test_templates::test_build_bank_rejects_a_forbidden_subject",
+      "test_templates::test_build_bank_accepts_fit_subjects_within_the_allowed_set",
+      "test_fitting::test_bank_allowed_subjects_is_actually_passed_through",
+      "test_fitting::test_bank_hash_is_unchanged_by_eval_transform_and_fit [A, C]",
+      "test_fitting::test_single_class_training_set_is_refused [A,D,NG,SG × 0,1]",
+      "test_fitting::test_single_class_outer_training_set_is_refused"
+    ],
+    "mutation_check": "8/8 (.backup/slot_1415c/mut_gap.py, -B)",
+    "implementation_choices": [
+      "대응표 v1 보존 + 갱신 판 새 파일 acceptance_map_t01_t16_v2.json",
+      "T11 검사 위치: train_fold (encode_windows 아님), training 집합만"
+    ],
+    "not_done": [
+      "명세 3 pilot end-to-end",
+      "명세 4 implementation_lock.json",
+      "명세 5 G2 check — gates[2] 는 check 0건 그대로"
+    ],
+    "judgment_changed": false,
+    "report_appendix": "BP"
   }
 }
