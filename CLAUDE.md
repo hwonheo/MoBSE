@@ -1,6 +1,6 @@
 # CLAUDE.md — MoBSE Project Context
 
-> 최종 갱신 2026-09-26 13:2x KST (HEAD `5fa5df2` 위 작업트리, gate evidence rev67 기준 — rev60–rev63 는 부록 BH·BI·BJ·BK 기록만, rev64 는 결정 19 로 G1 check 1건 fail→pass, 부록 BL, rev65 는 결정 18 A−NG·A−SG 보조 contrast (계획서 P12, 재잠금 9564cadb, 판정 불변), 부록 BM, rev66 은 결정 22 낡은 gate 표기 정리 (G0 [2]·[7]·[8]·G1 [1] pass, G1 unresolved 3개 제거), 부록 BN, rev67 은 결정 21 명세 1 T01–T16 대응표 (판정 불변), 부록 BO). 모든 수치는 실측값이며 출처를 함께 적음.
+> 최종 갱신 2026-09-26 14:3x KST (HEAD `8032a02` 위 작업트리, gate evidence rev68 기준 — rev60–rev63 는 부록 BH·BI·BJ·BK 기록만, rev64 는 결정 19 로 G1 check 1건 fail→pass, 부록 BL, rev65 는 결정 18 A−NG·A−SG 보조 contrast (계획서 P12, 재잠금 9564cadb, 판정 불변), 부록 BM, rev66 은 결정 22 낡은 gate 표기 정리 (G0 [2]·[7]·[8]·G1 [1] pass, G1 unresolved 3개 제거), 부록 BN, rev67 은 결정 21 명세 1 T01–T16 대응표 (판정 불변), 부록 BO, rev68 은 결정 21 명세 2 빈틈 보강 T03·T04·T11 (재잠금 9b7b11cf, 판정 불변), 부록 BP). 모든 수치는 실측값이며 출처를 함께 적음.
 > 이전판(2026-09-18)은 `.backup/CLAUDE_20260925_201635.md` 에, 2026-04-17판은 `.backup/CLAUDE.md_20260918_*.md` 에 보존됨.
 > **현행 상태의 정본은 이 파일이 아님** — claude.ai Project "MoBSE" 의 인수인계 문서 `claude/mobse_redesign_g0_handoff_2026-09-17.md` (선생님 결정 원문·남은 작업·마감 절차) 와 가장 높은 revision 의 `gate_evidence.json`. 이 파일은 저장소에 들어온 사람을 위한 방향 안내다.
 
@@ -56,7 +56,7 @@ MoBSE (Mixture of Brain-State Experts): fMRI 시계열을 dFC 유래 전문가 �
 - split_hash `ace5f4a4…` (불변). 외부 최종 선택용 main pool 3-fold (seed 20262000) 는 별도 `external_folds.json` (42/42/42, external_split_hash `40e50350…`, 결정 17).
 - h197 경로 (data root 상대): subjects `derivatives_v3/cohort_piop1/subjects.jsonl`, 분할 `derivatives_v3/splits_piop1_p7/{folds.json, external_folds.json}`.
 
-## Gate 현황 (gate_evidence.json revision 67 — 판정은 rev66 과 같음, 2026-09-26 재측정)
+## Gate 현황 (gate_evidence.json revision 68 — 판정은 rev66 과 같음, 2026-09-26 재측정)
 
 | Gate | 상태 |
 |---|---|
@@ -70,7 +70,8 @@ MoBSE (Mixture of Brain-State Experts): fMRI 시계열을 dFC 유래 전문가 �
 - 결정 20 보고 (부록 BK, rev63): G1 fail 4건 중 group_id·네임스페이스는 개정 P4·P5 로 처리된 관측 기록, δ=0.02 정밀도는 §8 명시 항목. 작업 지침서 WI-06 "이 gate 전에는 main 학습을 시작하지 않는다" — G2 는 check 0건, `locks/implementation_lock.json` 없음 (선생님 판단 대기 → 결정 21 로 구현 잠금 작성).
 - 결정 22 (부록 BN, rev66): G0 [2]·[7]·[8]·G1 [1] pass, G1 `unresolved` 에서 pilot fit·band-pass 상한·P8 구현 항목 제거. G0 `status` 와 G2·G3·G5 "blocked by G0"·G4 "blocked by G0/G1" 표기는 그대로 (범위 밖).
 - 결정 21 명세 1 (부록 BO, rev67): T01–T16 ↔ `tests/v2` 대응표 `reports/acceptance_map_t01_t16.json` — 전부 13, 부분 3 (T03 bank 금지 subject 실패·T04 bank hash 전후·T11 single class fold), 없음 0. G2 check 는 아직 0건.
-- 측정 잠금 현행 `9564cadb238b…` (locked_at 2026-09-26T02:19:05Z, 결정 18), 옛 판 36개는 `locks/superseded/` 에 보존. 잠금은 `mobse/v2/*.py` 를 해시한다 — **`mobse/v2` 를 바꾸면 잠금 재생성 + gate evidence 새 revision** (`scripts/h197/18_build_measurement_lock.py --overwrite --reason "..."`). `scripts/h197/`·`tests/v2` 만 바꾸면 잠금 재생성은 불요, gate evidence 해시만.
+- 결정 21 명세 2 (부록 BP, rev68): `templates.build_bank(allowed_subjects=)` (T03)·`train_fold` 두 class 검사 (T11)·bank hash 전후 시험 (T04), 돌연변이 8/8. 갱신 판 `reports/acceptance_map_t01_t16_v2.json` — 전부 16. G2 check 는 아직 0건.
+- 측정 잠금 현행 `9b7b11cf8576…` (locked_at 2026-09-26T05:22:16Z, 결정 21 명세 2), 옛 판 37개는 `locks/superseded/` 에 보존. 잠금은 `mobse/v2/*.py` 를 해시한다 — **`mobse/v2` 를 바꾸면 잠금 재생성 + gate evidence 새 revision** (`scripts/h197/18_build_measurement_lock.py --overwrite --reason "..."`). `scripts/h197/`·`tests/v2` 만 바꾸면 잠금 재생성은 불요, gate evidence 해시만.
 
 ## 실행 호스트와 경로
 
@@ -151,7 +152,7 @@ python scripts/h197/25_verify_window_files.py --data-root $D --lock $R/locks/mea
 
 ## Next Steps
 정본은 인수인계 문서 "남은 작업". 2026-09-25 20:1x 기준 요지:
-1. 결정 18 (A−NG·A−SG 보조 contrast, 계획서 P12) 은 rev65 반영 완료 · 결정 19 는 rev64 반영 완료 · 결정 22 는 rev66 반영 완료 · 다음: **결정 21** (G2 구현 잠금 — 대응표 rev67 완료 → 빈틈 보강 T03·T04·T11 → pilot end-to-end → `implementation_lock.json` → G2 check, 지침서 WI-06).
+1. 결정 18 (A−NG·A−SG 보조 contrast, 계획서 P12) 은 rev65 반영 완료 · 결정 19 는 rev64 반영 완료 · 결정 22 는 rev66 반영 완료 · 다음: **결정 21** (G2 구현 잠금 — 대응표 rev67 완료 → 빈틈 보강 rev68 완료 → pilot end-to-end → `implementation_lock.json` → G2 check, 지침서 WI-06).
 2. **main OOF 착수 승인 대기** — 승인 전에는 합성 시험·pilot 창 측정만.
 3. 결정 불요 후보: 재추출 창의 통과대역 밖 잔여 전력 점검 (범위 확인 먼저), h197 정리 (삭제는 선생님 확인 뒤).
 
