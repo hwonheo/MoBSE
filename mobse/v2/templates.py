@@ -177,7 +177,8 @@ class GraphBank:
 
 def build_bank(correlations: np.ndarray, pca_features: np.ndarray,
                fit_subjects: Sequence[str], *, seed: int,
-               k: int = K_DEFAULT, density: float = EDGE_DENSITY) -> GraphBank:
+               k: int = K_DEFAULT, density: float = EDGE_DENSITY,
+               allowed_subjects: Optional[Sequence[str]] = None) -> GraphBank:
     """training-rest 에서 bank 를 만든다.
 
     Args:
@@ -185,7 +186,18 @@ def build_bank(correlations: np.ndarray, pca_features: np.ndarray,
         pca_features: ``(n_windows, n_components)`` — clustering 입력.
         fit_subjects: 이 window 를 제공한 subject (감사 흔적).
         seed: `bank_seed()` 가 만든 값.
+        allowed_subjects: 주면 `fit_subjects` 가 이 집합의 부분집합인지 확인한다
+            (T03 — PCA 쪽 `fit_transform_on_training_rest` 와 같은 규칙).
+
+    Raises:
+        TemplateError: 허용되지 않은 subject 가 bank fit 에 섞였을 때 (T03).
     """
+    if allowed_subjects is not None:
+        illegal = sorted(set(fit_subjects) - set(allowed_subjects))
+        if illegal:
+            raise TemplateError(
+                f"허용되지 않은 subject 가 bank fit 에 들어갔다: {illegal[:5]} "
+                f"(총 {len(illegal)}명). 프로토콜 §4-4 (T03)")
     labels, _ = cluster_rest(pca_features, seed=seed, k=k)
     centroids = raw_centroids(correlations, labels, k=k)
     sparse, stats = [], []

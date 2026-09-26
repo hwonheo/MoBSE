@@ -717,3 +717,84 @@ def test_a_to_d_library_path_keeps_accepting_other_seeds(synthetic):
     res, _ = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
                             model_seed=7, fold=fold, min_updates=0, max_epochs=1)
     assert res.model_seed == 7
+
+
+# --------------------------------------------------------------------------- #
+# 결정 21 명세 2 — acceptance 빈틈 보강 (T03·T04·T11)
+# --------------------------------------------------------------------------- #
+
+# T03 — bank fit 에도 허용 집합이 넘어간다
+
+def test_bank_allowed_subjects_is_actually_passed_through(synthetic, monkeypatch):
+    """T03 — fit_fold_transform 은 bank fit 에 training subject 집합을 넘긴다."""
+    seen = {}
+    real = T.build_bank
+
+    def spy(correlations, pca_features, fit_subjects, **kw):
+        seen.update(kw)
+        return real(correlations, pca_features, fit_subjects, **kw)
+
+    monkeypatch.setattr(FIT.T, "build_bank", spy)
+    fold = FIT.resolve_fold_subjects(synthetic["folds"], 0, 0)
+    rest = FIT.refs_from_extract_manifest(synthetic["rest_path"], labelled=False)
+    FIT.fit_fold_transform(rest, fold.train, bank_seed=T.bank_seed(0, 0))
+    assert set(seen["allowed_subjects"]) == set(fold.train)
+
+
+# T04 — val/test 변환·평가 forward 전후 bank hash·parameters 불변
+
+def _bank_buffers(model):
+    return {n: b.detach().cpu().numpy().copy() for n, b in model.named_buffers()
+            if n.endswith("template_bank")}
+
+
+@pytest.mark.parametrize("cell", ["A", "C"])
+def test_bank_hash_is_unchanged_by_eval_transform_and_fit(synthetic, cell):
+    """T04 — 평가 창 인코딩과 학습·평가 forward 전후 bank·null·PCA hash 가 같다."""
+    fold = FIT.resolve_fold_subjects(synthetic["folds"], 0, 0)
+    rest = FIT.refs_from_extract_manifest(synthetic["rest_path"], labelled=False)
+    tr = FIT.fit_fold_transform(rest, fold.train, bank_seed=T.bank_seed(0, 0))
+    before = (tr.brain.fingerprint(), tr.brain.bank_id, tr.null.fingerprint(),
+              tr.null.bank_id, tr.frozen.fingerprint())
+    brain32 = np.asarray(tr.brain.templates, dtype=np.float32).copy()
+    null32 = np.asarray(tr.null.templates, dtype=np.float32).copy()
+    task_refs = []
+    for tp in synthetic["task_paths"]:
+        task_refs += FIT.refs_from_extract_manifest(tp, labelled=True)
+    train_set = FIT.encode_windows(FIT.select_refs(task_refs, fold.train), tr)
+    eval_set = FIT.encode_windows(FIT.select_refs(task_refs, fold.evaluate), tr)
+    _, model = FIT.train_fold(train_set, eval_set, tr, cell=cell, config_id=0,
+                              model_seed=42, fold=fold, min_updates=0, max_epochs=3)
+    after = (tr.brain.fingerprint(), tr.brain.bank_id, tr.null.fingerprint(),
+             tr.null.bank_id, tr.frozen.fingerprint())
+    assert after == before
+    assert tr.brain.fingerprint()[:16] == tr.brain.bank_id
+    bufs = _bank_buffers(model)
+    assert bufs, "bank buffer 가 없다"
+    assert "template_bank" not in dict(model.named_parameters())
+    for name, b in bufs.items():
+        assert (np.array_equal(b, brain32) or np.array_equal(b, null32)), name
+
+
+# T11 — single class fold 거부 (A–D·NG·SG 학습 경로)
+
+@pytest.mark.parametrize("label", [0, 1])
+@pytest.mark.parametrize("cell", ["A", "D", "NG", "SG"])
+def test_single_class_training_set_is_refused(synthetic, cell, label):
+    """T11 — training 라벨이 한 class 뿐이면 train_fold 가 거부한다."""
+    import dataclasses
+    fold, tr, train_set, eval_set, _ = _sets_sg(synthetic)
+    one = dataclasses.replace(train_set, y=np.full_like(train_set.y, label))
+    with pytest.raises(FIT.FitError, match="두 class 가 아니다"):
+        FIT.train_fold(one, eval_set, tr, cell=cell, config_id=0, model_seed=42,
+                       fold=fold, min_updates=0, max_epochs=1)
+
+
+def test_single_class_outer_training_set_is_refused(synthetic):
+    """T11 — outer fit 도 같은 거부 (early stopping 여부와 무관)."""
+    import dataclasses
+    fold, tr, train_set, eval_set = _sets(synthetic, inner=T.OUTER_FIT_INNER_FOLD)
+    one = dataclasses.replace(train_set, y=np.zeros_like(train_set.y))
+    with pytest.raises(FIT.FitError, match="두 class 가 아니다"):
+        FIT.train_fold(one, eval_set, tr, cell="B", config_id=0, model_seed=42,
+                       fold=fold, min_updates=0, epochs_exact=1)

@@ -287,3 +287,40 @@ def test_single_graph_rejects_bad_input():
     bad[0, 0, 1] = np.nan
     with pytest.raises(TemplateError):
         build_single_graph(bad, ["s"])
+
+
+# --------------------------------------------------------------------------- #
+# T03 — 금지 subject 를 bank fit 에 넣으면 실패 (결정 21 명세 2)
+# --------------------------------------------------------------------------- #
+
+def _toy_inputs(n_roi=12, k=3, seed=11):
+    rng = np.random.default_rng(seed)
+    corrs, feats = [], []
+    for c in range(k):
+        for _ in range(6):
+            base = rng.normal(size=(n_roi, n_roi)) * 0.1 + (c + 1) * 0.15
+            m = (base + base.T) / 2
+            np.fill_diagonal(m, 1.0)
+            corrs.append(m)
+            feats.append(np.concatenate([[c * 10.0], rng.normal(size=9) * 0.01]))
+    subs = [f"ds:sub-{i:04d}" for i in range(len(corrs))]
+    return np.stack(corrs), np.stack(feats), subs
+
+
+def test_build_bank_rejects_a_forbidden_subject():
+    """T03 — 허용 집합 밖 subject 의 창이 하나라도 있으면 bank fit 이 실패한다."""
+    corrs, feats, subs = _toy_inputs()
+    allowed = subs[1:]                       # subs[0] 은 금지
+    with pytest.raises(TemplateError, match="허용되지 않은 subject 가 bank fit"):
+        build_bank(corrs, feats, subs, seed=bank_seed(0, 0), k=3,
+                   allowed_subjects=allowed)
+
+
+def test_build_bank_accepts_fit_subjects_within_the_allowed_set():
+    """허용 집합이 fit subject 를 모두 담으면 결과는 검사 없이 만든 bank 와 같다."""
+    corrs, feats, subs = _toy_inputs()
+    plain = build_bank(corrs, feats, subs, seed=bank_seed(0, 0), k=3)
+    checked = build_bank(corrs, feats, subs, seed=bank_seed(0, 0), k=3,
+                         allowed_subjects=subs + ["ds:sub-9999"])
+    assert checked.bank_id == plain.bank_id
+    assert checked.fit_subjects == plain.fit_subjects

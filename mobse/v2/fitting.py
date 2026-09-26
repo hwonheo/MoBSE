@@ -325,7 +325,8 @@ def fit_fold_transform(rest_refs: Sequence[WindowRef], train_subjects: Sequence[
         allowed_subjects=sorted(allowed))
     pca = frozen.transform(z)
     brain = T.build_bank(correlations, pca, fit_subjects,
-                         seed=bank_seed, k=k, density=density)
+                         seed=bank_seed, k=k, density=density,
+                         allowed_subjects=sorted(allowed))
     null = T.make_null_bank(brain, seed=null_seed)
     single = (T.build_single_graph(correlations, fit_subjects, density=density)
               if single_graph else None)
@@ -574,7 +575,8 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
 
     Raises:
         FitError: outer fit 에 early stopping 을 요구하거나 epoch 수가 없을 때,
-            또는 epoch 상한·공통 E 가 최소 update 를 채우지 못할 때 (P8).
+            또는 epoch 상한·공통 E 가 최소 update 를 채우지 못할 때 (P8),
+            또는 training 라벨이 두 class (0·1) 가 아닐 때 (T11).
         TrainError: 선택 점수의 출처가 inner validation 이 아닐 때 (T12).
     """
     import time
@@ -603,6 +605,10 @@ def train_fold(train_set: EncodedSet, eval_set: EncodedSet,
             f"{fold.eval_role} 이고 그것으로 멈추면 leakage 다 (계획서 §7)")
     if not is_inner and not epochs_exact:
         raise FitError("outer/external fit 은 공통 E 를 정확히 받아야 한다 (계획서 §7)")
+    train_classes = sorted({int(v) for v in np.asarray(train_set.y).ravel().tolist()})
+    if train_classes != [0, 1]:
+        raise FitError(f"training 라벨이 두 class 가 아니다: {train_classes} "
+                       "(single class fold 거부, T11)")
     upe = updates_per_epoch(len(train_set), batch_size)
     min_epoch = min_epochs_for(len(train_set), batch_size=batch_size,
                                min_updates=min_updates)
