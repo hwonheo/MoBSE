@@ -4824,3 +4824,46 @@ rev62 `gates[1]` (G1 Measurement lock, `status: in_progress`) check **8건: pass
 ## BM.5 확인하지 못한 것
 
 - 실자료 A−NG·A−SG (main OOF 승인 전 금지). 산출물 schema 판 번호를 올릴지 (키만 늘었음) — 이번엔 올리지 않음 (소비자 없음, 구현 선택).
+
+# 부록 BN — 결정 22: 낡은 gate 표기 정리 — G0 [2]·[7]·[8]·G1 [1] `pass`, G1 `unresolved` 정리 (rev66, 2026-09-26 12:14 예약 슬롯)
+
+**gate 표기만 바꾼다.** 선생님 결정 22 (09-26 11:1x KST 기록) — 대화 권고 "권고: 원인이 해소된 항목을 근거와 함께 갱신합니다. • G0 [2]·[7]·[8]과 G1 [1]을 pass로 바꾸고 note에 근거를 적습니다. • G1 `unresolved`에서 해결된 항목을 뺍니다." 를 회신. **바꾸지 않은 것**: G1 [0] (group_id)·[6] (δ 정밀도) 는 `fail` 그대로 (note 도 불변), 모든 gate 의 `status`, G0 `unresolved`·두 gate 의 `status_note`, G2·G3·G5 의 "blocked by G0" 표기. main OOF 착수 승인 아님. 코드·시험·잠금 불변 (9564cadb).
+
+## BN.1 바뀐 check (이름·이전 값으로 대상 확인, 인덱스는 12:1x 에 확인)
+
+| gate [i] | check | 이전 | 이후 | 근거 (이 슬롯에서 다시 잰 것 포함) |
+|---|---|---|---|---|
+| G0 [2] | existing extraction TR correctness | fail — "모든 run 에 0.75 적용 … 기존 파생물 주분석 재사용 불가 확정" | **pass** | 옛 파생물은 쓰지 않았다. P9 재추출 (부록 AA, rev28, `derivatives_v3*`) 은 dataset×task 별 native TR 을 받는다 (`10_wi02_extract.process_run(paths, native_tr, …)`, manifest header `native_tr`). 12:1x h197 에서 여섯 v3 manifest header 를 다시 읽음: ds002785 emo 2.0 · rest 0.75 · wm 2.0, ds002790 emo 2.0 · rest 2.0 · wm 2.0 — G0 [0]·[1] observed 와 6/6 일치 |
+| G0 [7] | BOLD present for the primary targets | fail, observed 0 — "Wave 2 대상. Wave 1 은 메타데이터만 받았다" | **pass**, observed 교체 | Wave 2 수령 (부록 T.1 "ds002785 1,250 파일 + ds002790 1,340 파일 = FAIL 0", gate `wave2_complete.fail_count: 0`). 12:1x h197 `aomic_wave2/<ds>/fmriprep/*/func/*task-<t>*desc-preproc_bold.nii.gz` 수: ds002785 emo **208** · wm **207**, ds002790 emo **222** · wm **224** — 부록 F.1 raw sidecar run 수와 같고, v3 추출 ok+excluded (183+25 · 176+31 · 204+18 · 214+10) 와 같다 |
+| G0 [8] | dummy volumes removed before archiving | undetermined — "… 이 파일들로 판정 불가(U3)" | **pass** | 부록 F.1: raw sidecar 1,295 개 전수, 6 조합 모두 `NumberOfVolumesDiscardedByScanner=2`, `ByUser` 없음, 조합 내 분산 0 — 스캐너가 보관 전에 앞 2 volumes 를 버렸다. gate `u3_discarded_volumes.status: resolved`, `derivative_start_sec = 2 × native_TR` 가 추출에 반영 (`DISCARDED_BY_SCANNER * native_tr`) |
+| G1 [1] | PIOP1/PIOP2 subject ID namespace | fail — "… canonical_subject 에 dataset prefix 필수" | **pass** | 계획서 §3.1 [개정 P5] + `mobse/v2/manifests.validate_canonical_subject()` (prefix 없는 값은 명시적 실패), cohort 가 prefix 없는 subject 거부 (gate `wi03_cohort.rejects_subject_without_dataset_prefix: true`) — 부록 BK.2 |
+
+- 새 note 에는 위 근거와 "결정 22" 를 적었고, 이전 check 원문 4 개는 gate 블록 `decision22_gate_record_refresh.previous` 에 그대로 보존했다.
+- G0 [7] `observed` 는 0 → 위 네 수 (dict) 로 바꿨다 — pass 와 observed 0 이 한 check 에 함께 있으면 모순이라서. 구현 선택으로 표시한다.
+
+## BN.2 G1 `unresolved` 정리
+
+| 이전 항목 | 처리 | 근거 |
+|---|---|---|
+| U10 | 남김 | G1 [0] fail 그대로 (관계 metadata 부재) |
+| U17(완화: dataset prefix 적용) | **남김** | 네임스페이스 쪽은 P5 로 해소됐지만 U17 의 나머지 "실제 overlap 은 공식 문서로만 판정" (부록 표 U17, G4 `unresolved`) 은 해소 근거가 없다 — 판단하지 않고 그대로 둠 |
+| pilot fit 미실행 — §7 의 peak memory·시간 실측 없음 | **뺌** | rev58 (부록 BF)·rev61 (부록 BI) pilot 기술 분할 실측, 결정 19 로 G1 [7] pass (rev64, 부록 BL) |
+| δ=0.02 정밀도 부족 — 차단이 아니라 명시 항목 (§8) | 남김 | G1 [6] fail 그대로 |
+| band-pass 통과대역 상한 미결정 — … | **뺌** | 결정 9 "통과대역 0.2 Hz로" → P9 구현 (부록 Z, rev27)·재추출 (부록 AA, rev28), `BANDPASS_HIGH_HZ = 0.200` |
+| 개정 P8 학습 예산 — 결정됐으나 구현 전 | **뺌** | P8 구현 (부록 AB, rev29), 값은 결정 15 로 5,000 / 400 (계획서 P8-b, 부록 AR, rev44) |
+
+G1 `unresolved` 6 → **3** (U10 · U17 · δ 정밀도).
+
+## BN.3 갱신 뒤 판정 (rev66, 다시 셈)
+
+- G0 `conditionally_cleared` 10: **pass 10** (이전 7 · fail 2 · undetermined 1). `status` 그대로.
+- G1 `in_progress` 8: **pass 6 · fail 2** ([0] group_id · [6] δ 정밀도). `status` 그대로.
+- G2 planned 0 · G3 planned 1 pass · G4 planned 1 pass · G5 planned 0 — 불변.
+- **"blocked by G0" (보고만, 바꾸지 않음)**: G2·G3·G5 의 `unresolved` 는 여전히 "blocked by G0" 이고 G4 는 "blocked by G0/G1". G0 check 는 이제 전부 pass 이지만 G0 `status` 는 `conditionally_cleared` 이고, G0 `unresolved` 에는 U3·"U6(targets, Wave 2)"·U10 이, `status_note` 에는 "남은 것은 재추출 입력(BOLD)뿐 … 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다" 가 남아 있다. G0 `status` 를 `cleared` 로 올릴지, 그에 따라 "blocked by G0" 표기를 뺄지는 결정 22 범위 밖이라 선생님 판단 사항으로 남긴다.
+
+## BN.4 확인하지 못한 것
+
+- G0 `unresolved` 의 U3·U6 과 두 gate 의 `status_note` 가 해소 상태를 반영하는지 (범위 밖 — 바꾸지 않음. U3 은 F.1·`u3_discarded_volumes` 에서 resolved, U6 (targets) 는 Wave 2 수령으로 풀린 것으로 보이나 U6 원문을 이번에 다시 대조하지 않음).
+- G1 [4] note 의 "검증 42/42" 는 현재 19번 45 건과 다르다 (rev50 이후 낡음) — 판정 아님, 범위 밖이라 그대로.
+- gate `wave2_fetch.status` "running" (옛 기록) — 그대로.
+- 산출물: 이 부록과 gate rev66 (틀 `.backup/slot_1215c/rev66_update.py`). h197 측정은 명령 출력만 (파일 없음) — 위 수는 같은 명령으로 다시 셀 수 있다.
