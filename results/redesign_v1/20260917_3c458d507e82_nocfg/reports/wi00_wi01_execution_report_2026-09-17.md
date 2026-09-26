@@ -4724,3 +4724,49 @@ bmcws · RTX 3090 Ti · torch 2.10.0+cu128 · float32 (AMP 미사용) · batch 3
 - main pool·PIOP2 run (범위 밖 — §3.2 는 pilot 기술 검증).
 - 독립 구현 (다른 라이브러리의 필터·회귀) 과의 대조.
 - 산출물: h197 `$HOME/slot/rc_2315c/resid_check.jsonl` (sha256 `e0310fc59e06…`), 요약 `.backup/slot_2315c/out/summary.json` (`6497f1791bd0…`), 로그 `rc_full.log` — Mac `.backup/slot_2315c/out/` 사본, 커밋 안 함.
+
+# 부록 BK. 결정 20 — main OOF 착수 승인 전 G1 fail 나머지 확인과 다른 gate 목록 (2026-09-26 09:15 슬롯, gate rev63)
+
+**읽기·보고만.** 선생님 결정 20 (09-26 02:2x KST 기록) 원문: "판단 전에 확인할 것: rev59 기준 G1에 fail이 4건 있습니다. 위 2번 외의 3건이 무엇인지는 이번에 확인하지 못했습니다. 지금 이 세션에서 선생님 컴퓨터에 연결되지 않아 gate evidence를 직접 열 수 없었습니다. 승인 전에 그 3건을 확인해 보고하도록 할 것". **판정 변경 없음**, 해소 작업 없음, main OOF 착수 승인 아님. 코드·시험·잠금 불변 (78ddd887).
+
+## BK.1 방법
+
+- 현행 gate evidence (rev62, Mac HEAD `a95d27d`, 작업트리 깨끗) 의 `gates[*].checks[*]` 를 파이썬으로 세고, `result != "pass"` 인 check 의 `check`·`result`·`note` (·`observed`) 원문을 읽었다 (09-26 09:15 KST).
+- 근거 grep: 계획서 `docs/experiments/mobse_redesign_protocol_2026-09-17.md` (§4-1 개정 P4, §3.1 개정 P5, §8, §10), 작업 지침서 `docs/experiments/mobse_redesign_work_instructions_2026-09-17.md` (WI-03, WI-06, WI-07), 이 보고서 부록 F, gate evidence 의 다른 블록.
+
+## BK.2 G1 check 수
+
+rev62 `gates[1]` (G1 Measurement lock, `status: in_progress`) check **8건: pass 4 · fail 4** — 대화 세션이 옮긴 "rev59 기준 4건" 과 같다 (rev59–rev62 는 판정 변경 없음).
+
+| # | check | result | note / observed (원문 요약 아님 — 핵심 구절 인용) | 무엇에 막혀 있나 | 계획서 근거 | 결정 없이 가역적으로 해소? | main OOF 전에 풀려야? |
+|---|---|---|---|---|---|---|---|
+| 0 | group_id constructible from local metadata | fail | "participants.tsv(piop1 13열/216행, piop2 12열/226행, id1000 31열/928행)에 가족·쌍둥이·중복 식별 열 없음" | **자료** (관계 metadata 부재, U10) | §4-1 [개정 P4] "`group_id`는 1 subject = 1 group 으로 퇴화시키고, 그 사실과 다음 미검증 범위를 결과에 함께 적는다 … 관계 metadata 를 공식 경로로 확보하면 새 탐색 버전으로 다시 분할한다" | 아니오 — 자료가 없으면 fail 은 관측 사실. 코드 쪽 대응 (P4) 은 이미 구현 (`cohort.py` `group_id = canonical_subject`, gate `wi03_cohort.group_id_policy`) | 계획서상 **아님** — P4 가 퇴화를 명시 항목으로 두고 진행하도록 정함. 판정을 `pass`/다른 값으로 바꿀지는 선생님 판단 |
+| 1 | PIOP1/PIOP2 subject ID namespace | fail | "두 cohort 가 같은 sub-0001… 네임스페이스를 쓴다. 문자적 교집합 216, demographic 전체 일치 0/216 -> canonical_subject 에 dataset prefix 필수" | 관측 사실 (대응은 **코드로 완료**) | §3.1 [개정 P5] "`canonical_subject`는 dataset prefix 를 반드시 포함한다 … `validate_canonical_subject()` 가 이 규칙을 실행 시점에 강제한다" | 대응은 이미 됨 (`manifests.validate_canonical_subject`, cohort 가 prefix 없는 subject 거부 — `wi03_cohort.rejects_subject_without_dataset_prefix: true`). check 는 "문제가 있었다" 를 기록한 것이라 남은 작업은 판정 표기뿐 | 계획서상 **아님** (P5 로 처리). PIOP1/PIOP2 동일인 여부 판정 불가는 P4 (b) 의 제한으로 남음. 판정 변경은 선생님 판단 |
+| 6 | precision for delta=0.02 | fail | observed `p_lower_gt_0_at_delta_0.02_N126` [0.048, 0.191], `delta80_N126` [0.041, 0.125]; "계획서 §8 의 'inconclusive 가능성을 명시한다'에 해당. 실행 gate 가 아니므로 계획대로 진행하되 불확실 결과를 보고할 준비를 하고 시작한다. δ·N 을 바꾸지 않는다" | **설계** (N 126 에서 δ=0.02 정밀도 부족) | §8 "목표δ를 검출할 정밀도가 부족하면 inconclusive 가능성을 명시한다. main OOF 후 δ나 분석 N을 유리하게 바꾸지 않는다"; WI-03 "단지 작은 N이면 임의 증원 대신 제한을 보고한다" | 아니오 — 해소하려면 δ·N 변경이 필요하고 계획서가 막음. fail 은 명시 항목 | 계획서상 **아님** — note 자체가 "실행 gate 가 아니므로 계획대로 진행" |
+| 7 | resource plan from pilot measurement | fail | "pilot fit 미구현으로 합성 측정으로 대체했다 … §7 요구는 미충족" | 사유는 rev58·rev61 로 해소 | §7 "pilot에서 peak memory·시간을 측정해 자원 계획을 만든다" | **결정 19 로 `pass` 확정** (다음 단계에서 반영) | — |
+
+- 요약: 결정 19 대상 (#7) 외 3건 중 **#0·#1 은 개정 P4·P5 로 계획서가 처리 방식을 정한 관측 기록**, **#6 은 계획서 §8 이 "명시하고 진행" 으로 정한 정밀도 한계**다. 셋 모두 코드·측정으로 더 할 일이 없고, 판정 표기 (`fail` 유지 / 다른 값) 는 선생님 판단 사항이다.
+- G1 gate 수준 기록도 낡아 있다 (판정 아님, 정보): `status: in_progress`, `unresolved` 에 "band-pass 통과대역 상한 미결정" (결정 9 로 0.2 Hz, rev27–rev28 반영), "개정 P8 학습 예산 — 결정됐으나 구현 전" (rev29·rev44 반영), "pilot fit 미실행 — §7 의 peak memory·시간 실측 없음" (rev58·rev61 로 측정) 이 남아 있고, `status_note` 도 같은 시점 서술이다. 이 목록을 고칠지는 gate 표기이므로 이번에 건드리지 않았다.
+
+## BK.3 다른 gate (판단용 참고, 해소 작업 아님)
+
+| gate | status | check (pass/fail/기타) | pass 아닌 항목 · 기록 |
+|---|---|---|---|
+| G0 Provenance | conditionally_cleared | 10 (7/2/1) | [2] existing extraction TR correctness **fail** — "모든 run 에 0.75 적용 … 기존 파생물 주분석 재사용 불가 확정" (옛 파생물에 대한 관측; 재추출은 run 별 native TR); [7] BOLD present for the primary targets **fail**, observed 0 — "Wave 2 대상. Wave 1 은 메타데이터만 받았다" (기록 시점 값; 이후 Wave 2 받고 재추출함 — gate `wave2_fetch.status` 는 아직 "running"); [8] dummy volumes removed before archiving **undetermined** — U3 (부록 F.1·gate `u3_discarded_volumes.status: resolved` 에서 해소됐으나 check 는 그대로). `unresolved` U3·U6(targets, Wave 2)·U10, `status_note` "남은 것은 재추출 입력(BOLD)뿐" |
+| G2 Implementation lock | planned | **0** | `unresolved` "blocked by G0". **`locks/implementation_lock.json` 없음** (release `locks/` 에는 `measurement_lock.json`·`superseded/` 만; 저장소에서 이 파일을 만드는 코드 grep 0건 — 지침서에만 등장) |
+| G3 Internal release | planned | 1 (1/0/0) | [0] section 7 fit budget arithmetic pass. `unresolved` "blocked by G0" |
+| G4 External release | planned | 1 (1/0/0) | [0] PIOP2 paired emomatching+workingmemory cohort pass. `unresolved` U17 (실제 overlap 은 공식 문서로만 판정), "blocked by G0/G1" |
+| G5 Interpretation | planned | 0 | `unresolved` "blocked by G0" |
+
+## BK.4 main OOF 착수와 관련해 새로 드러난 것 (판단 재료)
+
+- 작업 지침서 WI-06 (G2) 완료 기준 "T01–T16 및 pilot end-to-end 통과", 출력 "`locks/implementation_lock.json`", 그리고 "**이 gate 전에는 main 학습을 시작하지 않는다**". WI-07 입력 "**G1/G2 잠금 artifact**". 계획서 §10 G2 행 "acceptance tests, config/code/environment hashes | leakage·연산·endpoint 검증 통과".
+- 현재 gate evidence 에서 G2 는 check 0건·`planned` 이고 구현 잠금 파일이 없다. 측정 잠금 (`measurement_lock.json`, 78ddd887) 이 code_hash·config_hash 를 기록하지만, 그것이 G2 의 구현 잠금을 대신하는지는 **계획서·지침서에 문장이 없다** — 이 슬롯은 판단하지 않았다.
+- 따라서 지침서 문장대로라면 main OOF 전에 **G2 (구현 잠금) 를 어떻게 다룰지** 가 G1 fail 3건보다 앞선 선결 사항일 수 있다. 어느 쪽으로 할지 (구현 잠금 산출물을 만들고 G2 check 를 채움 / 측정 잠금으로 갈음한다고 기록 / 다른 방식) 는 선생님 결정 사항으로 올린다.
+- G0 는 `conditionally_cleared` 이고 G2·G3·G5 가 "blocked by G0" 로 적혀 있다. G0 의 pass 아닌 3건은 모두 기록 시점 이후 사정이 바뀐 것 (옛 파생물 관측·Wave 2 전 관측·부록 F 에서 해소된 U3) 이지만 gate 판정은 갱신되지 않았다.
+
+## BK.5 확인하지 못한 것
+
+- T01–T16 acceptance 시험이 `tests/v2` 의 어느 시험과 대응하는지 (대응표 없음 — 이번에 만들지 않음).
+- G0·G1 gate 수준 기록 (`status`·`unresolved`·`status_note`) 이 어느 revision 부터 낡았는지.
+- 산출물: 이 부록과 gate rev63 (이 부록 sha 만 반영, 판정 변경 없음). 조사 명령은 `.backup/slot_0915b/` 에 없음 (대화형 python 한 줄) — 수치는 gate evidence 에서 다시 셀 수 있다.
