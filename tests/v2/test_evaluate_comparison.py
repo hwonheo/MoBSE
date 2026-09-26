@@ -1,7 +1,8 @@
 """보조 비교 칸(S·NG·SG) outer 예측 집계 — 남은 작업 2-c (09-25 13:15).
 
 계획서 §8: 각 window 의 seed 평균 → task 의 네 window 평균, threshold 0.5 (동일값
-class 1), subject b_i. 보조 contrast 는 §8 이 이름으로 정한 A−S 만.
+class 1), subject b_i. 보조 contrast 는 §8 이 이름으로 정한 A−S 와 [개정 P12] (결정 18)
+A−NG·A−SG.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ from mobse.v2 import train as TR
 from mobse.v2.evaluate import (
     CELLS, COMPARISON_CELLS, COMPARISON_CONTRASTS, ComparisonWindowPrediction,
     EvaluationError, WindowPrediction, aggregate_comparison_runs, aggregate_runs,
-    cell_balanced_accuracy, comparison_contrasts,
+    cell_balanced_accuracy, comparison_contrasts, CONTRAST_CELL,
 )
 
 TASKS = ("emomatching", "workingmemory")
@@ -60,8 +61,13 @@ MIXED = {"s1": (None,), "s2": TR.MODEL_SEEDS, "s3": (None,)}
 
 def test_names_match_baselines_and_plan():
     assert COMPARISON_CELLS == ("S",) + tuple(BL.COMPARATOR_ORDER)
-    assert COMPARISON_CONTRASTS == ("A_minus_S",)
-    assert "A−S" in PLAN.read_text(encoding="utf-8")
+    assert COMPARISON_CONTRASTS == ("A_minus_S", "A_minus_NG", "A_minus_SG")
+    assert CONTRAST_CELL == {"A_minus_S": "S", "A_minus_NG": "NG", "A_minus_SG": "SG"}
+    plan = PLAN.read_text(encoding="utf-8")
+    assert "A−S" in plan
+    # [개정 P12] 본문 표시와 §11 행이 함께 있어야 상수가 계획서와 묶인다.
+    assert "**[개정 P12]** 구조 비교 A−NG·A−SG 도 A−S 와 같은 보조 contrast" in plan
+    assert sum(1 for line in plan.splitlines() if line.startswith("| P12 | §8 |")) == 1
 
 
 def test_mixed_logistic_and_mlp_subjects_hand_computed():
@@ -188,10 +194,21 @@ def test_a_minus_s_is_within_subject_hand_computed():
                                ("s2", "emomatching"): 0.2,
                                ("s2", "workingmemory"): 0.2}),
         cell="S", seeds_by_subject=MIXED)
-    got = comparison_contrasts(ad_runs, s_runs)
-    assert set(got) == set(COMPARISON_CONTRASTS)
+    seeds = {s: TR.MODEL_SEEDS for s in subs}
+    ng_runs = aggregate_comparison_runs(
+        _cmp("NG", seeds, p_by={("s1", "workingmemory"): 0.2}), cell="NG",
+        seeds_by_subject=seeds)
+    sg_runs = aggregate_comparison_runs(
+        _cmp("SG", seeds, p_by={("s3", "emomatching"): 0.2,
+                                ("s3", "workingmemory"): 0.2}), cell="SG",
+        seeds_by_subject=seeds)
+    got = comparison_contrasts(ad_runs, s_runs=s_runs, ng_runs=ng_runs, sg_runs=sg_runs)
+    assert tuple(got) == COMPARISON_CONTRASTS
     # A: s1 1, s2 1, s3 0.5 / S: s1 0.5, s2 0, s3 1
     assert got["A_minus_S"] == pytest.approx({"s1": 0.5, "s2": 1.0, "s3": -0.5})
+    # NG: s1 0.5, s2 1, s3 1 / SG: s1 1, s2 1, s3 0
+    assert got["A_minus_NG"] == pytest.approx({"s1": 0.5, "s2": 0.0, "s3": -0.5})
+    assert got["A_minus_SG"] == pytest.approx({"s1": 0.0, "s2": 0.0, "s3": 0.5})
 
 
 def test_a_minus_s_rejects_unpaired_subjects():
@@ -199,8 +216,34 @@ def test_a_minus_s_rejects_unpaired_subjects():
     seeds = {"s1": (None,), "s3": (None,)}
     s_runs = aggregate_comparison_runs(_cmp("S", seeds), cell="S",
                                        seeds_by_subject=seeds)
-    with pytest.raises(EvaluationError, match="paired 불가"):
-        comparison_contrasts(ad_runs, s_runs)
+    full = {"s1": (42,), "s2": (42,)}
+    ok_runs = {c: aggregate_comparison_runs(_cmp(c, full), cell=c, seeds_by_subject=full)
+               for c in ("NG", "SG")}
+    with pytest.raises(EvaluationError, match="S 의 subject 집합이 A 와 다르다"):
+        comparison_contrasts(ad_runs, s_runs=s_runs, ng_runs=ok_runs["NG"],
+                             sg_runs=ok_runs["SG"])
+
+
+@pytest.mark.parametrize("bad", ["NG", "SG"])
+def test_a_minus_structure_rejects_unpaired_subjects(bad):
+    ad_runs = aggregate_runs(_ad(["s1", "s2"]))
+    full = {"s1": (42,), "s2": (42,)}
+    part = {"s1": (42,), "s3": (42,)}
+    runs = {c: aggregate_comparison_runs(_cmp(c, part if c == bad else full), cell=c,
+                                         seeds_by_subject=part if c == bad else full)
+            for c in ("NG", "SG")}
+    s_seeds = {"s1": (None,), "s2": (None,)}
+    s_runs = aggregate_comparison_runs(_cmp("S", s_seeds), cell="S",
+                                       seeds_by_subject=s_seeds)
+    with pytest.raises(EvaluationError, match=f"{bad} 의 subject 집합이 A 와 다르다"):
+        comparison_contrasts(ad_runs, s_runs=s_runs, ng_runs=runs["NG"],
+                             sg_runs=runs["SG"])
+
+
+def test_contrast_cells_are_keyword_only():
+    ad_runs = aggregate_runs(_ad(["s1"]))
+    with pytest.raises(TypeError):
+        comparison_contrasts(ad_runs, {})  # noqa — 위치 인자로 칸을 넘기면 거부
 
 
 def test_ad_aggregation_still_counts_seeds_only():

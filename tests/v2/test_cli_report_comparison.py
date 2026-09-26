@@ -198,8 +198,20 @@ def test_hand_checked(rc):
     assert (ams["ci_lo"], ams["ci_hi"]) == pytest.approx(_hand_ci(vec, 10, (2.5, 97.5)))
     assert ams["percentiles"] == [2.5, 97.5]
     assert ams["primary"] is False and ams["role"] == "auxiliary"
-    assert set(st["auxiliary_contrasts"]) == {"A_minus_S"}
-    assert set(st["not_reported"]) >= {"A_minus_NG", "A_minus_SG", "parameter_and_cost"}
+    # [개정 P12] (결정 18): NG 는 모두 맞힘 → A−NG = 0; SG 짝수 EM 틀림 → A−SG = A−S 벡터.
+    amng = st["auxiliary_contrasts"]["A_minus_NG"]
+    assert amng["point_estimate"] == pytest.approx(0.0)
+    assert (amng["ci_lo"], amng["ci_hi"]) == pytest.approx((0.0, 0.0))
+    amsg = st["auxiliary_contrasts"]["A_minus_SG"]
+    assert amsg["point_estimate"] == pytest.approx(0.25)
+    assert (amsg["ci_lo"], amsg["ci_hi"]) == pytest.approx(_hand_ci(vec, 10, (2.5, 97.5)))
+    for name in ("A_minus_NG", "A_minus_SG"):
+        c = st["auxiliary_contrasts"][name]
+        assert c["primary"] is False and c["role"] == "auxiliary"
+        assert c["percentiles"] == [2.5, 97.5]
+    assert list(st["auxiliary_contrasts"]) == ["A_minus_S", "A_minus_NG", "A_minus_SG"]
+    assert st["not_reported"] == {
+        "parameter_and_cost": "이 명령 범위 밖 (계획서 §6 — 별도 조각)"}
     assert st["bootstrap"]["seed"] == 9001 and st["bootstrap"]["n_boot"] == 10_000
     assert st["bootstrap"]["n_subjects"] == 10
     assert st["s_selected_by_outer_fold"]["0"]["candidate"] == _so.LOGI
@@ -372,6 +384,51 @@ def test_a_minus_s_uses_s_runs_not_other_cell(rc, monkeypatch):
     st = json.loads((out / "comparison_statistics.json").read_text(encoding="utf-8"))
     assert st["auxiliary_contrasts"]["A_minus_S"]["point_estimate"] == pytest.approx(0.25)
     assert st["cell_balanced_accuracy"]["SG"]["ci_lo"] < 1.0
+
+
+@pytest.fixture()
+def sg_all_em_wrong(monkeypatch):
+    """SG 가 모든 subject 의 EM 을 틀리게 (rc 를 만들기 전에 적용) — S·SG 벡터를 가른다."""
+    real = _cmp_prob
+
+    def prob(structure, subject, task, window, seed):
+        if structure == "SG" and task == "emomatching":
+            return round(0.8 + 0.01 * (window - 1.5) + 0.005 * (seed - 43), 6)  # EM truth 0 → 틀림
+        return real(structure, subject, task, window, seed)
+
+    monkeypatch.setitem(globals(), "_cmp_prob", prob)
+
+
+def test_each_structure_contrast_uses_its_own_cell(sg_all_em_wrong, rc):
+    out = rc["tmp"] / "rc"
+    assert cli.main(_cargv(rc, out)) == 0
+    st = json.loads((out / "comparison_statistics.json").read_text(encoding="utf-8"))
+    aux = st["auxiliary_contrasts"]
+    # A b=1 / S 짝수 0.5 / NG 1 / SG 전부 0.5
+    assert aux["A_minus_S"]["point_estimate"] == pytest.approx(0.25)
+    assert aux["A_minus_NG"]["point_estimate"] == pytest.approx(0.0)
+    assert aux["A_minus_SG"]["point_estimate"] == pytest.approx(0.5)
+    assert (aux["A_minus_SG"]["ci_lo"], aux["A_minus_SG"]["ci_hi"]) == pytest.approx(
+        (0.5, 0.5))
+    assert set(st["subject_scores"]["SG"].values()) == {0.5}
+
+
+def test_all_cells_and_contrasts_share_one_index(rc, monkeypatch):
+    from mobse.v2 import statistics as ST
+    seen = []
+    real = ST.paired_bootstrap
+
+    def spy(values, group_of, *, indices, seed, n_boot, pct):
+        seen.append((id(indices), list(values), seed, n_boot, tuple(pct)))
+        return real(values, group_of, indices=indices, seed=seed, n_boot=n_boot, pct=pct)
+
+    monkeypatch.setattr(ST, "paired_bootstrap", spy)
+    assert cli.main(_cargv(rc, rc["tmp"] / "rc")) == 0
+    # 칸 BA 3 + contrast 3 (A−S·A−NG·A−SG) = 6 호출, 모두 같은 index 객체·같은 subject 순서
+    assert len(seen) == 6
+    assert len({s[0] for s in seen}) == 1
+    assert all(s[1] == sorted(rc["pool"]) and s[2:] == (9001, 10_000, (2.5, 97.5))
+               for s in seen)
 
 
 def test_bootstrap_indices_built_once_from_locked_config(rc, monkeypatch):

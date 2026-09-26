@@ -247,8 +247,8 @@ def verify_checkpoint_integrity(used: Mapping[str, str],
 #
 # 계획서 §8 의 run 집계 규칙(각 window 의 seed 평균 → task 의 네 window 평균,
 # threshold 0.5, 동일값 class 1, subject 당 b_i)을 A–D 와 같은 함수로 적용한다.
-# 보조 contrast 는 §8 이 이름으로 정한 **A−S 만** 계산한다. 구조 비교(NG·SG) 는
-# §9 가 보조 분석으로만 나열하고 contrast 를 정하지 않아 칸별 b_i·BA 만 낸다.
+# 보조 contrast 는 §8 이 이름으로 정한 **A−S** 와 [개정 P12] (결정 18) 로 더한 구조
+# 비교 **A−NG·A−SG** 다. 셋 다 같은 subject 짝 차이 (primary 아님).
 #
 # 구현 선택 (표시함): S 는 outer fold 마다 후보가 다를 수 있어(logistic 은 seed 없음,
 # MLP 는 seed 3 개 — `baselines.s_outer_plan`) seed 집합을 **subject 별** 로 받는다.
@@ -256,8 +256,10 @@ def verify_checkpoint_integrity(used: Mapping[str, str],
 
 #: 보조 비교 칸 이름. S = 선택된 S 후보, NG·SG = `baselines.COMPARATOR_ORDER`.
 COMPARISON_CELLS = ("S", "NG", "SG")
-#: 계획서 §8 이 이름으로 정한 보조 contrast (A−S). A−NG·A−SG 는 계획서에 없음.
-COMPARISON_CONTRASTS = ("A_minus_S",)
+#: 계획서 §8 보조 contrast: A−S + [개정 P12] A−NG·A−SG (결정 18). 순서 고정.
+COMPARISON_CONTRASTS = ("A_minus_S", "A_minus_NG", "A_minus_SG")
+#: contrast 이름 → 비교 칸.
+CONTRAST_CELL = {"A_minus_S": "S", "A_minus_NG": "NG", "A_minus_SG": "SG"}
 
 
 @dataclass(frozen=True)
@@ -324,16 +326,25 @@ def aggregate_comparison_runs(
                            n_seeds=None, threshold=threshold)
 
 
-def comparison_contrasts(ad_runs: Mapping[Tuple[str, str, str], Dict],
-                         s_runs: Mapping[Tuple[str, str, str], Dict]
+def comparison_contrasts(ad_runs: Mapping[Tuple[str, str, str], Dict], *,
+                         s_runs: Mapping[Tuple[str, str, str], Dict],
+                         ng_runs: Mapping[Tuple[str, str, str], Dict],
+                         sg_runs: Mapping[Tuple[str, str, str], Dict]
                          ) -> Dict[str, Dict[str, float]]:
-    """보조 contrast A−S 의 subject 별 b 차이 (계획서 §8, 95% 기술적 CI 대상).
+    """보조 contrast A−S·A−NG·A−SG 의 subject 별 b 차이 (계획서 §8 [개정 P12]).
+
+    세 칸 모두 필수 (키워드). 각 칸의 subject 집합이 A 와 같아야 한다.
 
     Raises:
-        EvaluationError: A 와 S 의 subject 집합이 다르면 (paired 불가).
+        EvaluationError: 어느 칸이든 subject 집합이 A 와 다르면 (paired 불가).
     """
     a = subject_scores(ad_runs, "A")
-    s = subject_scores(s_runs, "S")
-    if set(a) != set(s):
-        raise EvaluationError("S 의 subject 집합이 A 와 다르다 — paired 불가")
-    return {"A_minus_S": {k: a[k] - s[k] for k in a}}
+    by_cell = {"S": s_runs, "NG": ng_runs, "SG": sg_runs}
+    out: Dict[str, Dict[str, float]] = {}
+    for name in COMPARISON_CONTRASTS:
+        cell = CONTRAST_CELL[name]
+        other = subject_scores(by_cell[cell], cell)
+        if set(a) != set(other):
+            raise EvaluationError(f"{cell} 의 subject 집합이 A 와 다르다 — paired 불가")
+        out[name] = {k: a[k] - other[k] for k in a}
+    return out

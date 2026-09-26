@@ -1954,8 +1954,8 @@ def _load_comparator_outer(manifest_paths: Sequence[str], *, structure: str,
 
     구현 선택 (표시함): 하위 명령 없이 helper 만 둔다 — ``evaluate`` 확장인지 새 하위
     명령인지는 다음 조각에서 정한다. 외부(outer 9) 선택 기록·fit 은 받지 않는다
-    ((9, 9) external final 은 결정 17 범위 밖). A−NG·A−SG contrast 는 만들지 않는다
-    (결정 요청 대기) — 칸별 run·b_i 까지만.
+    ((9, 9) external final 은 결정 17 범위 밖). contrast (A−NG·A−SG, 결정 18) 는 여기서
+    만들지 않는다 — 칸별 run·b_i 까지만 (`run_report_comparison` 이 만든다).
 
     Returns:
         ``{"runs", "predictions", "seeds_by_subject", "fits"}``.
@@ -2584,7 +2584,8 @@ def run_report_comparison(paths: Dict[str, Any]) -> Dict[str, Any]:
 
     구현 선택 (표시함): ``evaluate``·``report`` 확장이 아니라 새 하위 명령 — A–D 산출물
     계약을 바꾸지 않고, 세 칸 입력을 모두 필수로 받는다 (빠진 칸은 거부).
-    A−NG·A−SG 는 만들지 않는다 (결정 요청 대기, `evaluate.COMPARISON_CONTRASTS`).
+    보조 contrast 는 A−S 와 [개정 P12] (결정 18) A−NG·A−SG — `evaluate.COMPARISON_CONTRASTS`,
+    셋 다 위의 같은 index (primary 아님).
     NG·SG 의 parameter/비용 보고는 이 명령 범위 밖이다.
 
     Raises:
@@ -2655,10 +2656,11 @@ def run_report_comparison(paths: Dict[str, Any]) -> Dict[str, Any]:
             if r["cell"] == "A":
                 ad_runs[("A", r["canonical_subject"], FIT.task_of(r["run_key"]))] = {
                     "correct": int(r["prediction"]) == int(r["truth"])}
-        contrasts = EV.comparison_contrasts(ad_runs, cells["S"]["runs"])
+        contrasts = EV.comparison_contrasts(
+            ad_runs, s_runs=cells["S"]["runs"], ng_runs=cells["NG"]["runs"],
+            sg_runs=cells["SG"]["runs"])
     except EV.EvaluationError as exc:
-        raise CLIError(f"A−S: {exc}") from exc
-    a_minus_s = contrasts["A_minus_S"]
+        raise CLIError(f"보조 contrast: {exc}") from exc
 
     seed, n_boot = int(cfg["stats.bootstrap_seed"]), int(cfg["stats.n_bootstrap"])
     nom = tuple(float(x) for x in cfg["stats.nominal_pct"])
@@ -2673,7 +2675,7 @@ def run_report_comparison(paths: Dict[str, Any]) -> Dict[str, Any]:
                 "role": "auxiliary", "primary": False}
 
     cell_ba = {c: _ci(comp_scores[c]) for c in EV.COMPARISON_CELLS}
-    auxiliary = {"A_minus_S": _ci(a_minus_s)}
+    auxiliary = {name: _ci(contrasts[name]) for name in EV.COMPARISON_CONTRASTS}
 
     def _sel_inputs(argname: str) -> List[Dict[str, Any]]:
         return [{"path": p, "sha256": sha256_file(Path(p))} for p in paths[argname]]
@@ -2697,8 +2699,6 @@ def run_report_comparison(paths: Dict[str, Any]) -> Dict[str, Any]:
                       "outer_epochs": sel.get("outer_epochs")}
             for of, sel in sorted(s_sel.items())},
         "not_reported": {
-            "A_minus_NG": "결정 요청 대기 (09-25 13:15 슬롯)",
-            "A_minus_SG": "결정 요청 대기 (09-25 13:15 슬롯)",
             "parameter_and_cost": "이 명령 범위 밖 (계획서 §6 — 별도 조각)"},
         "inputs": {"config": str(paths["config"]),
                    "splits": {"path": str(folds_path), "sha256": sha256_file(folds_path)},
@@ -2721,8 +2721,8 @@ def run_report_comparison(paths: Dict[str, Any]) -> Dict[str, Any]:
     return {"verdict": "pass", "n_subjects": len(subjects),
             "cell_balanced_accuracy": {c: [v["point_estimate"], v["ci_lo"], v["ci_hi"]]
                                        for c, v in cell_ba.items()},
-            "A_minus_S": [auxiliary["A_minus_S"]["point_estimate"],
-                          auxiliary["A_minus_S"]["ci_lo"], auxiliary["A_minus_S"]["ci_hi"]],
+            **{name: [auxiliary[name]["point_estimate"], auxiliary[name]["ci_lo"],
+                      auxiliary[name]["ci_hi"]] for name in EV.COMPARISON_CONTRASTS},
             "output_dir": str(out_dir)}
 
 
