@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "72cc1b3deec7533283f205f33205a4a04362ffb0",
-  "timestamp_utc": "2026-09-26T12:17:16Z",
-  "revision": 69,
-  "supersedes_sha256": "39b3ae24270660b273ee7637369355bfb585101f6985ef384c78b8dd49285abd",
-  "revision_reason": "rev69 (2026-09-26): 선생님 결정 21 명세 3 — pilot end-to-end (CLI prepare → split → fit 540 → select-ad 5 → evaluate → report, pilot 기술 분할, ALL_RC=0) 기록 (부록 BQ). 판정·status 변경 없음, G2 check 미작성, 코드·시험·잠금 불변 (9b7b11cf). 보고서 sha 치환 + 기록 블록",
+  "git_head": "44b17bd8b65cf008f24895472e84037429e5e3f0",
+  "timestamp_utc": "2026-09-26T13:18:43Z",
+  "revision": 70,
+  "supersedes_sha256": "e177c6bfa93a669fe4997b030f94a27b104c0edb005e340d70b7259ed77d5d46",
+  "revision_reason": "rev70 (2026-09-26): 결정 21 명세 4 (a) — 구현 잠금 생성·검증 스크립트 scripts/h197/27_build_implementation_lock.py 와 순수 함수 시험 tests/v2/test_implementation_lock_script.py 추가 (해시 기록). locks/implementation_lock.json 은 아직 만들지 않음 (스크립트가 깨끗한 작업트리를 요구 — 커밋 뒤 생성, 다음 revision). 판정·status·check 수 불변. mobse/v2 불변 — 잠금 9b7b11cf 유지. main pool 미소비",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -545,6 +545,7 @@
     "24_encoder_representation_probe.py": "d6d83a3725a780ced58b1c082b76e37f4c8fa1071e31cba6ca1a31a33caa5a17",
     "25_verify_window_files.py": "22f676808cb88558a34e330b37b1b4f01a701a9d7839a5d7d5c56a539f763e2f",
     "26_write_external_folds.py": "aaf8ee3897479d6ed08609f6c94783f49ada9ac106650e9afe7c6606ff8b528f",
+    "27_build_implementation_lock.py": "86bab05c913bbbce02de0a01fb06f908d9ef3db6af6b36fecbfa839ba057713b",
     "README.md": "f6c57f6701854c45d2654d3a336da6a3be344816a8bd6cc1ab92da74488b0127",
     "requirements-legacy-extra.txt": "c63f8787641608e926c0cc2260e0de1583d53a049d0be793c944669ef9972824",
     "requirements-v2.txt": "8b60c83238593f7430085093b83effbe321956be0cb3f8b0d6372e47c0ceec01"
@@ -726,6 +727,7 @@
     "test_features.py": "64f2c436fae1ec2be9430be94cac399819e398d09320d3aba32ddd09f90751a2",
     "test_fitting.py": "3788747b7a1049c984738d6edf4b2203c1cf9e77f9094f2970fbeedf52fe2eda",
     "test_h197_scripts.py": "3f06ce1dbf1f58448309f36a0294bf0ac7daca7422f59fb709f08cca725b328e",
+    "test_implementation_lock_script.py": "6cd37a8545ea25a560252a91807e5adf633ff2c478d4f6f4254d5be467025f31",
     "test_import_closure.py": "a6c9ff480644409af7d48cbc1b8446c5d1ea6e59a57e99269ad2409510123fba",
     "test_labels.py": "648ff806bf259fd4f05d704f3fc38afc0a267ea8407c67c6b8252f472ee80e91",
     "test_locks.py": "aec62e74dc2afcd4d836d961290dfc07a37ec9c9428a80c7e7ff3c3324174c63",
@@ -2569,7 +2571,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev69 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev70 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -4748,5 +4750,40 @@
     ],
     "judgment_changed": false,
     "report_appendix": "BQ"
+  },
+  "decision21_implementation_lock_script_rev70": {
+    "decision_quote": "(가) `implementation_lock.json`을 만들고 G2 check를 채운 뒤 main OOF로 갑니다. 담을 내용은 환경, code/config hash, acceptance 결과, pilot end-to-end입니다. …",
+    "spec_step": "4 (a) — 스크립트",
+    "basis": "지침서 WI-06 출력: runnable CLI와 실제 `--help`, acceptance 결과, 환경 lock, code/config hashes, `locks/implementation_lock.json`",
+    "script": "scripts/h197/27_build_implementation_lock.py",
+    "fields": [
+      "environment (python·platform·torch·CUDA·GPU·pip freeze 전체+sha256)",
+      "code (mobse/v2 code_hash — 측정 잠금과 같은 정의 + 모듈 sha256)",
+      "configs (configs/redesign_v1/*.yaml sha256 + config_hash)",
+      "cli (최상위 + 하위 명령 11 개 실제 --help, COLUMNS=100, 텍스트+sha256)",
+      "acceptance (대응표 v2 sha + pytest junit 합계 + 대응표 명명 시험 전부 통과 — 아니면 생성 거부)",
+      "pilot_end_to_end (rev69 data_root_outputs 7 개를 data root 에서 다시 재어 대조 — 다르면 생성 거부, run_all.log ALL_RC=0)",
+      "measurement_lock (lock_hash·파일 sha 참조)",
+      "t10_gpu_reload: not_done (구현 선택)",
+      "lock_hash"
+    ],
+    "implementation_choices": [
+      "생성·검증 한 스크립트 (--verify)",
+      "검증은 git HEAD 를 대조하지 않음 (잠금 커밋이 HEAD 를 바꿈)",
+      "pytest 는 스크립트가 돌리지 않고 마감 1단계 --junitxml 결과를 받음 (data root 아래만)",
+      "깨끗한 작업트리에서만 생성",
+      "덮어쓰기 거부 (--overwrite 없음)",
+      "T10 GPU 재로드 대조는 넣지 않음"
+    ],
+    "tests": {
+      "test_implementation_lock_script.py": "junit 합계·parametrize 괄호·skip/실패/누락 명명 시험 판정 (7 경우)"
+    },
+    "not_done": [
+      "locks/implementation_lock.json 생성 (다음 revision)",
+      "명세 5 G2 check",
+      "마감 5단계에 27 --verify 추가 여부 (명세 6)",
+      "27번 돌연변이 시험"
+    ],
+    "judgment_changed": false
   }
 }
