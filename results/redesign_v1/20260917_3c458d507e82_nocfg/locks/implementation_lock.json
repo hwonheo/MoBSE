@@ -1,0 +1,353 @@
+{
+  "acceptance": {
+    "all_named_tests_passed": true,
+    "junit": {
+      "bytes": 143250,
+      "path": "impl_lock/20260926_2215d/pytest_junit.xml",
+      "sha256": "6aa7023543a6ed49e709a60b7771676d24d701d39f28add57d5b39f63c4e8d0a"
+    },
+    "map": {
+      "bytes": 16031,
+      "path": "reports/acceptance_map_t01_t16_v2.json",
+      "sha256": "bde944713859f5c3c676d2a1dd2d339108b0918b922a65cce9a9fae224c5331b"
+    },
+    "map_summary": {
+      "full": 16,
+      "none": 0,
+      "partial": 0
+    },
+    "named_tests": {
+      "T01": {
+        "all_passed": true,
+        "coverage": "full",
+        "n_tests": 6
+      },
+      "T02": {
+        "all_passed": true,
+        "coverage": "full",
+        "n_tests": 8
+      },
+      "T03": {
+        "all_passed": true,
+        "coverage": "full",
+        "n_tests": 12
+      },
+      "T04": {
+        "all_passed": true,
+        "coverage": "full",
+        "n_tests": 7
+      },
+      "T05": {
+        "all_passed": true,
+        "coverage": "full",
+        "n_tests": 8
+      },
+      "T06": {
+        "all_passed": true,
+        "coverage": "full",
+        "n_tests": 2
+      },
+      "T07": {
+        "all_passed": true,
+        "coverage": "full",
+        "n_tests": 1
+      },
+      "T08": {
+        "all_passed": true,
+        "coverage": "full",
+        "n_tests": 3
+      },
+      "T09": {
+        "all_passed": true,
+        "coverage": "full",
+        "n_tests": 5
+      },
+      "T10": {
+        "all_passed": true,
+        "coverage": "full",
+        "n_tests": 4
+      },
+      "T11": {
+        "all_passed": true,
+        "coverage": "full",
+        "n_tests": 8
+      },
+      "T12": {
+        "all_passed": true,
+        "coverage": "full",
+        "n_tests": 5
+      },
+      "T13": {
+        "all_passed": true,
+        "coverage": "full",
+        "n_tests": 5
+      },
+      "T14": {
+        "all_passed": true,
+        "coverage": "full",
+        "n_tests": 4
+      },
+      "T15": {
+        "all_passed": true,
+        "coverage": "full",
+        "n_tests": 8
+      },
+      "T16": {
+        "all_passed": true,
+        "coverage": "full",
+        "n_tests": 3
+      }
+    },
+    "pytest_counts": {
+      "failed": 0,
+      "passed": 1183,
+      "skipped": 12
+    }
+  },
+  "cli": {
+    "columns": 100,
+    "help": {
+      "<top>": {
+        "sha256": "792348e64e75644964762793016b5cce95a9306fc87a071e55fe9b0d98d1deb4",
+        "text": "usage: mobse-v2 [-h]\n                {validate,prepare,split,fit,fit-s,select-ad,select-comparator,select-s,evaluate,report,report-comparison}\n                ...\n\nMoBSE 재설계 v2 — 경로를 모두 명시해야 한다 (glob fallback 없음)\n\npositional arguments:\n  {validate,prepare,split,fit,fit-s,select-ad,select-comparator,select-s,evaluate,report,report-comparison}\n    validate            validate 단계\n    prepare             prepare 단계\n    split               split 단계\n    fit                 fit 단계\n    fit-s               fit-s 단계\n    select-ad           select-ad 단계\n    select-comparator   select-comparator 단계\n    select-s            select-s 단계\n    evaluate            evaluate 단계\n    report              report 단계\n    report-comparison   report-comparison 단계\n\noptions:\n  -h, --help            show this help message and exit\n"
+      },
+      "evaluate": {
+        "sha256": "21c7bd84bd8038adc22b19d8b82bc2f956c92ced655e247c9f3c00e266caaf41",
+        "text": "usage: mobse-v2 evaluate [-h] --config CONFIG --splits SPLITS --predictions PREDICTIONS\n                         [PREDICTIONS ...] --fit-manifest FIT_MANIFEST [FIT_MANIFEST ...]\n                         --output-dir OUTPUT_DIR --tasks TASKS [TASKS ...] [--dry-run]\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG       runtime config YAML 경로\n  --splits SPLITS       folds.json 경로\n  --predictions PREDICTIONS [PREDICTIONS ...]\n                        예측 JSONL 경로 (evaluate: window_predictions, report: run_predictions) (fit\n                        마다 하나, 여러 개)\n  --fit-manifest FIT_MANIFEST [FIT_MANIFEST ...]\n                        fit_manifest.json 경로 (fit 마다 하나, 여러 개)\n  --output-dir OUTPUT_DIR\n                        산출 디렉터리\n  --tasks TASKS [TASKS ...]\n                        평가할 분류 task. 학습하지 않은 task 는 거부된다\n  --dry-run             경로와 스키마만 검사하고 실행하지 않는다\n"
+      },
+      "fit": {
+        "sha256": "b0d0de83d24828837f4736c37b059b3ffe3d57a0b025d97dd0341d107c1d5554",
+        "text": "usage: mobse-v2 fit [-h] --config CONFIG --splits SPLITS --subjects SUBJECTS --windows WINDOWS\n                    --rest-manifest REST_MANIFEST --output-dir OUTPUT_DIR --cell {A,B,C,D,NG,SG}\n                    --outer-fold OUTER_FOLD --inner-fold INNER_FOLD --model-seed MODEL_SEED\n                    --config-id CONFIG_ID --epochs EPOCHS --task-manifests TASK_MANIFESTS\n                    [TASK_MANIFESTS ...] [--device DEVICE] [--skip-hash-verify] [--dry-run]\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG       runtime config YAML 경로\n  --splits SPLITS       folds.json 경로\n  --subjects SUBJECTS   subjects.jsonl 경로\n  --windows WINDOWS     windows.jsonl 경로\n  --rest-manifest REST_MANIFEST\n                        WI-02 restingstate 추출 manifest 경로 (bank 적합용)\n  --output-dir OUTPUT_DIR\n                        산출 디렉터리\n  --cell {A,B,C,D,NG,SG}\n                        A–D (2×2) 또는 §6 구조 비교 NG·SG\n  --outer-fold OUTER_FOLD\n  --inner-fold INNER_FOLD\n                        inner fold 번호. 9 는 outer 최종 적합이다\n  --model-seed MODEL_SEED\n  --config-id CONFIG_ID\n                        공통 grid 의 config 번호 0–7 (계획서 §7)\n  --epochs EPOCHS       inner 은 최대 epoch, outer 은 공통 E 로 정확히 이만큼\n  --task-manifests TASK_MANIFESTS [TASK_MANIFESTS ...]\n                        WI-02 target task 추출 manifest. 창 경로의 유일한 출처다\n  --device DEVICE\n  --skip-hash-verify    창 sha256 대조를 건너뛴다. 기본은 대조한다\n  --dry-run             경로와 스키마만 검사하고 실행하지 않는다\n"
+      },
+      "fit-s": {
+        "sha256": "94db4a88e1fa04e7c7f3037c1a2019a9f273b322c64746946ec55588f8457417",
+        "text": "usage: mobse-v2 fit-s [-h] --config CONFIG --splits SPLITS --subjects SUBJECTS --windows WINDOWS\n                      --output-dir OUTPUT_DIR --candidate\n                      {S1_roi_mean_var_logreg,S2_roi_mean_var_mlp,S3_fc_fisher_z_logreg,S4_fc_fisher_z_mlp}\n                      --setting-id SETTING_ID --outer-fold OUTER_FOLD --inner-fold INNER_FOLD\n                      [--model-seed MODEL_SEED] [--epochs EPOCHS] --task-manifests TASK_MANIFESTS\n                      [TASK_MANIFESTS ...] [--device DEVICE] [--skip-hash-verify] [--dry-run]\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG       runtime config YAML 경로\n  --splits SPLITS       folds.json 경로\n  --subjects SUBJECTS   subjects.jsonl 경로\n  --windows WINDOWS     windows.jsonl 경로\n  --output-dir OUTPUT_DIR\n                        산출 디렉터리\n  --candidate {S1_roi_mean_var_logreg,S2_roi_mean_var_mlp,S3_fc_fisher_z_logreg,S4_fc_fisher_z_mlp}\n                        S 후보 (계획서 §6 표)\n  --setting-id SETTING_ID\n                        logistic 은 'C=<값>', MLP 는 'config=<0–7>'\n  --outer-fold OUTER_FOLD\n  --inner-fold INNER_FOLD\n                        inner fold 번호. 9 는 outer 최종 적합이다\n  --model-seed MODEL_SEED\n                        MLP 만. logistic 에 주면 거부한다\n  --epochs EPOCHS       MLP outer 만 — 정확히 이만큼. inner·logistic 에 주면 거부\n  --task-manifests TASK_MANIFESTS [TASK_MANIFESTS ...]\n                        WI-02 target task 추출 manifest. 창 경로의 유일한 출처다\n  --device DEVICE\n  --skip-hash-verify    창 sha256 대조를 건너뛴다. 기본은 대조한다\n  --dry-run             경로와 스키마만 검사하고 실행하지 않는다\n"
+      },
+      "prepare": {
+        "sha256": "605d87641db4822d727f4894a87505e95498e8c4822cd47ce1b7f3c1a24ff589",
+        "text": "usage: mobse-v2 prepare [-h] --config CONFIG --extract-manifests EXTRACT_MANIFESTS\n                        [EXTRACT_MANIFESTS ...] --output-dir OUTPUT_DIR [--dry-run]\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG       runtime config YAML 경로\n  --extract-manifests EXTRACT_MANIFESTS [EXTRACT_MANIFESTS ...]\n                        WI-02 추출 manifest (한 dataset 의 emomatching·workingmemory·restingstate 셋)\n                        (fit 마다 하나, 여러 개)\n  --output-dir OUTPUT_DIR\n                        산출 디렉터리\n  --dry-run             경로와 스키마만 검사하고 실행하지 않는다\n"
+      },
+      "report": {
+        "sha256": "738f06511a4141989585ca72a43e713d24e2b52cf41f5c3229c7db6402d8e551",
+        "text": "usage: mobse-v2 report [-h] --config CONFIG --evaluation EVALUATION --predictions PREDICTIONS\n                       --subjects SUBJECTS --output-dir OUTPUT_DIR [--dry-run]\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG       runtime config YAML 경로\n  --evaluation EVALUATION\n                        evaluate 가 쓴 evaluation.json 경로\n  --predictions PREDICTIONS\n                        예측 JSONL 경로 (evaluate: window_predictions, report: run_predictions)\n  --subjects SUBJECTS   subjects.jsonl 경로\n  --output-dir OUTPUT_DIR\n                        산출 디렉터리\n  --dry-run             경로와 스키마만 검사하고 실행하지 않는다\n"
+      },
+      "report-comparison": {
+        "sha256": "064fa2e2898fcacfdc0dd654dbe632d3d10a0523a17cf25b1d6b4fe0b41e01fc",
+        "text": "usage: mobse-v2 report-comparison [-h] --config CONFIG --splits SPLITS --evaluation EVALUATION\n                                  --predictions PREDICTIONS --subjects SUBJECTS --s-selection\n                                  S_SELECTION [S_SELECTION ...] --s-fit-report S_FIT_REPORT\n                                  [S_FIT_REPORT ...] --ng-selection NG_SELECTION\n                                  [NG_SELECTION ...] --ng-fit-manifest NG_FIT_MANIFEST\n                                  [NG_FIT_MANIFEST ...] --sg-selection SG_SELECTION\n                                  [SG_SELECTION ...] --sg-fit-manifest SG_FIT_MANIFEST\n                                  [SG_FIT_MANIFEST ...] --output-dir OUTPUT_DIR [--dry-run]\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG       runtime config YAML 경로\n  --splits SPLITS       folds.json 경로\n  --evaluation EVALUATION\n                        evaluate 가 쓴 evaluation.json 경로\n  --predictions PREDICTIONS\n                        예측 JSONL 경로 (evaluate: window_predictions, report: run_predictions)\n  --subjects SUBJECTS   subjects.jsonl 경로\n  --s-selection S_SELECTION [S_SELECTION ...]\n                        select-s 가 쓴 s_selection.json (main outer fold 마다 하나) (fit 마다 하나, 여러 개)\n  --s-fit-report S_FIT_REPORT [S_FIT_REPORT ...]\n                        fit-s --inner-fold 9 가 쓴 s_fit_report.json (fit 마다 하나, 여러 개)\n  --ng-selection NG_SELECTION [NG_SELECTION ...]\n                        select-comparator --structure NG 의 comparator_selection.json (fit 마다 하나,\n                        여러 개)\n  --ng-fit-manifest NG_FIT_MANIFEST [NG_FIT_MANIFEST ...]\n                        fit --cell NG --inner-fold 9 의 fit_manifest.json (fit 마다 하나, 여러 개)\n  --sg-selection SG_SELECTION [SG_SELECTION ...]\n                        select-comparator --structure SG 의 comparator_selection.json (fit 마다 하나,\n                        여러 개)\n  --sg-fit-manifest SG_FIT_MANIFEST [SG_FIT_MANIFEST ...]\n                        fit --cell SG --inner-fold 9 의 fit_manifest.json (fit 마다 하나, 여러 개)\n  --output-dir OUTPUT_DIR\n                        산출 디렉터리\n  --dry-run             경로와 스키마만 검사하고 실행하지 않는다\n"
+      },
+      "select-ad": {
+        "sha256": "8d28a827812e97185c37be1bdb0deb8e2c4d4cba66f7c93e8f120f2132984d3d",
+        "text": "usage: mobse-v2 select-ad [-h] --config CONFIG --splits SPLITS --fit-manifest FIT_MANIFEST\n                          [FIT_MANIFEST ...] --output-dir OUTPUT_DIR --outer-fold OUTER_FOLD\n                          [--dry-run]\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG       runtime config YAML 경로\n  --splits SPLITS       folds.json 경로\n  --fit-manifest FIT_MANIFEST [FIT_MANIFEST ...]\n                        fit_manifest.json 경로 (fit 마다 하나, 여러 개)\n  --output-dir OUTPUT_DIR\n                        산출 디렉터리\n  --outer-fold OUTER_FOLD\n                        main outer fold 0–4\n  --dry-run             경로와 스키마만 검사하고 실행하지 않는다\n"
+      },
+      "select-comparator": {
+        "sha256": "a588a91a81150b9d58910de13dee0dd36519063f717e01700f894e470f8e73e7",
+        "text": "usage: mobse-v2 select-comparator [-h] --config CONFIG --splits SPLITS --fit-manifest FIT_MANIFEST\n                                  [FIT_MANIFEST ...] --output-dir OUTPUT_DIR --structure {NG,SG}\n                                  --outer-fold OUTER_FOLD [--dry-run]\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG       runtime config YAML 경로\n  --splits SPLITS       folds.json 경로\n  --fit-manifest FIT_MANIFEST [FIT_MANIFEST ...]\n                        fit_manifest.json 경로 (fit 마다 하나, 여러 개)\n  --output-dir OUTPUT_DIR\n                        산출 디렉터리\n  --structure {NG,SG}   §6 구조 비교 NG 또는 SG — 구조별 독립 선택 (결정 14 (가))\n  --outer-fold OUTER_FOLD\n  --dry-run             경로와 스키마만 검사하고 실행하지 않는다\n"
+      },
+      "select-s": {
+        "sha256": "d2008537a3b40d505a3d1f07ac401c9babfea26c1c1fa3282f76b803b205dade",
+        "text": "usage: mobse-v2 select-s [-h] --config CONFIG --splits SPLITS --fit-report FIT_REPORT\n                         [FIT_REPORT ...] --output-dir OUTPUT_DIR --outer-fold OUTER_FOLD\n                         [--dry-run]\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG       runtime config YAML 경로\n  --splits SPLITS       folds.json 경로\n  --fit-report FIT_REPORT [FIT_REPORT ...]\n                        fit-s 가 쓴 s_fit_report.json 경로 (fit 마다 하나, 여러 개)\n  --output-dir OUTPUT_DIR\n                        산출 디렉터리\n  --outer-fold OUTER_FOLD\n                        main outer fold 0–4. 외부 S(outer 9) 는 아직 미구현\n  --dry-run             경로와 스키마만 검사하고 실행하지 않는다\n"
+      },
+      "split": {
+        "sha256": "06aff8f78480f0076fdabd760c7e4b42acbda0d967f2ea9609feb16bacc55de8",
+        "text": "usage: mobse-v2 split [-h] --config CONFIG --subjects SUBJECTS --output-dir OUTPUT_DIR [--dry-run]\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG       runtime config YAML 경로\n  --subjects SUBJECTS   subjects.jsonl 경로\n  --output-dir OUTPUT_DIR\n                        산출 디렉터리\n  --dry-run             경로와 스키마만 검사하고 실행하지 않는다\n"
+      },
+      "validate": {
+        "sha256": "9b3db7ecb88d93aed8da022290ed4562e4769f8846fbb8ee022aa5e35196c40c",
+        "text": "usage: mobse-v2 validate [-h] --config CONFIG --source-runs SOURCE_RUNS [--dry-run]\n\noptions:\n  -h, --help            show this help message and exit\n  --config CONFIG       runtime config YAML 경로\n  --source-runs SOURCE_RUNS\n                        source_runs.jsonl 경로\n  --dry-run             경로와 스키마만 검사하고 실행하지 않는다\n"
+      }
+    },
+    "subcommands": [
+      "validate",
+      "prepare",
+      "split",
+      "fit",
+      "fit-s",
+      "select-ad",
+      "select-comparator",
+      "select-s",
+      "evaluate",
+      "report",
+      "report-comparison"
+    ]
+  },
+  "code": {
+    "code_hash": "804d6ee176251aec3a1f9dac1ea82040261c4ac318b9d251a112d156bc98814b",
+    "modules": {
+      "__init__.py": "c884876e4717224c87d95b1fd4b3821863307e65f9146eac605bc9a96375c9ab",
+      "baselines.py": "4dc480f05a2021d2133cf77826c6e1956a6fc01b55195a1172431958768a7748",
+      "cli.py": "588edd94fdc7802df195dbdd84d154940eba54fec577229fb33b18ead1bc2d7c",
+      "cohort.py": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
+      "config.py": "0a61104787f5664fa3fda0c860adb18e96590da97dcdd906a593564a54fa9746",
+      "evaluate.py": "1e10969e7d1c0814b738067d06a8a7fb9a5efa67b32d145e315ddc72d6e0493f",
+      "extract.py": "45425fc516cc790e45e911af11c03fe5937c573fbfed3985e4bc6e7d5e7316f9",
+      "features.py": "f9c81ef8155776f3d1971304ef32baf99b94b5f7bf100c0067f82dd1600b8f10",
+      "fitting.py": "282ba6173b9a96b9ccf57199436b1f00791a2a69c9aaef65689b600b2eacf93d",
+      "labels.py": "89610e87315f7e1e6a1ac85130c89d69f197f47824262389a4eae5571397b3dc",
+      "locks.py": "4fbe5691d76c9037d2c2b590d37ac5a9c6fa0184bd375f6fea4335f2627d322b",
+      "manifests.py": "23a84d38b56bebd001e8d768e616e3cb898458ab4ced506c4d7cf35c7e91aaa0",
+      "models.py": "1378ac7080b7480e24b1c8c7359d86c5effe66b36221adf279899a7a76f90e2f",
+      "preprocess.py": "689ed2d8dbf186b12fd3ae4e58ab153693b31f8d59f047efee32d067f9bea7de",
+      "splits.py": "26d404acf1d111a5306d7f46f025ba3881e879aca3d712a041bfef0db907dbcd",
+      "statistics.py": "99028ff3042b396a6bb6ac9516af3d700a3939bb0cd5d5aa908e61573ad207b1",
+      "templates.py": "3c2c1517d0a9b27cd1ffdaf153179638d64a4353dea397837a2f10752d8968b0",
+      "train.py": "e7aa911fdfd5b8d18253191cd8305b5766d6742029aaba68437a63842fa15db4"
+    }
+  },
+  "configs": {
+    "external": {
+      "bytes": 2164,
+      "config_hash": "576f6068",
+      "path": "configs/redesign_v1/external.yaml",
+      "sha256": "92c10a99dcf9a310a836b43c2a1eee4758c390deafc0d3ad8d044bd938fc2e00"
+    },
+    "main": {
+      "bytes": 2136,
+      "config_hash": "2a7d7d7f",
+      "path": "configs/redesign_v1/main.yaml",
+      "sha256": "ef4b16509f2da80cd7800f63418bab6a878a0be688dc2bd055f8b5133eb5bc44"
+    },
+    "pilot": {
+      "bytes": 2140,
+      "config_hash": "6498596a",
+      "path": "configs/redesign_v1/pilot.yaml",
+      "sha256": "ccba21ef3a35982f72bd3c743727590702c136126cb08d85cfa0c304e1b44a29"
+    }
+  },
+  "created_at_utc": "2026-09-26T13:28:53Z",
+  "decision": "결정 21 (가) — 명세 4",
+  "environment": {
+    "cuda": "12.8",
+    "cuda_available": true,
+    "cudnn": 91002,
+    "gpus": [
+      "NVIDIA GeForce RTX 3090 Ti"
+    ],
+    "implementation": "CPython",
+    "pip_freeze": {
+      "lines": [
+        "Jinja2==3.1.6",
+        "MarkupSafe==3.0.3",
+        "PyYAML==6.0.3",
+        "Pygments==2.21.0",
+        "certifi==2026.7.22",
+        "charset-normalizer==3.5.1",
+        "cloudpickle==3.1.2",
+        "contourpy==1.3.3",
+        "cuda-bindings==12.9.4",
+        "cuda-pathfinder==1.8.1",
+        "cycler==0.12.1",
+        "filelock==4.0.0",
+        "fonttools==4.65.0",
+        "fsspec==2026.7.0",
+        "idna==3.19",
+        "importlib_resources==7.1.0",
+        "iniconfig==2.3.0",
+        "joblib==1.6.0",
+        "kiwisolver==1.5.1",
+        "matplotlib==3.10.9",
+        "mpmath==1.3.0",
+        "networkx==3.6.1",
+        "nibabel==5.4.2",
+        "nilearn==0.13.1",
+        "numpy==2.4.3",
+        "nvidia-cublas-cu12==12.8.4.1",
+        "nvidia-cuda-cupti-cu12==12.8.90",
+        "nvidia-cuda-nvrtc-cu12==12.8.93",
+        "nvidia-cuda-runtime-cu12==12.8.90",
+        "nvidia-cudnn-cu12==9.10.2.21",
+        "nvidia-cufft-cu12==11.3.3.83",
+        "nvidia-cufile-cu12==1.13.1.3",
+        "nvidia-curand-cu12==10.3.9.90",
+        "nvidia-cusolver-cu12==11.7.3.90",
+        "nvidia-cusparse-cu12==12.5.8.93",
+        "nvidia-cusparselt-cu12==0.7.1",
+        "nvidia-nccl-cu12==2.27.5",
+        "nvidia-nvjitlink-cu12==12.8.93",
+        "nvidia-nvshmem-cu12==3.4.5",
+        "nvidia-nvtx-cu12==12.8.90",
+        "packaging==26.3",
+        "pandas==3.0.1",
+        "pillow==12.3.0",
+        "pip==26.2.1",
+        "pluggy==1.6.0",
+        "pyparsing==3.3.2",
+        "pytest==9.0.2",
+        "python-dateutil==2.9.0.post0",
+        "requests==2.34.2",
+        "scikit-learn==1.8.0",
+        "scipy==1.17.1",
+        "seaborn==0.13.2",
+        "setuptools==84.0.0",
+        "six==1.17.0",
+        "sympy==1.14.0",
+        "threadpoolctl==3.7.0",
+        "torch==2.10.0",
+        "triton==3.6.0",
+        "typing_extensions==4.16.0",
+        "urllib3==2.8.0",
+        "wheel==0.48.0"
+      ],
+      "n": 61,
+      "sha256": "2dac48b472240e7bf1789f8f8474d42c8fde9f232e5c157ffa01edd66e005c47"
+    },
+    "platform": "Linux-5.15.0-139-generic-x86_64-with-glibc2.31",
+    "python": "3.11.5",
+    "torch": "2.10.0+cu128"
+  },
+  "gate_revision_at_build": 70,
+  "git": {
+    "clean": true,
+    "head": "ccb558732f2ebb5b7d1b563662b872ec08e83eb9"
+  },
+  "lock_hash": "bcf1fec226764798b86889ea3afe35baaab1d9a884a1bab5ef22f53c2515f2de",
+  "measurement_lock": {
+    "bytes": 13847,
+    "lock_hash": "9b7b11cf85766eb6766e568a6bb22490f061e99dce3fc44c0e099bb734a1648f",
+    "path": "locks/measurement_lock.json",
+    "sha256": "ca809fd80c2e002d25a89cd0f2021cb82e32313403097124d839974a7957028c"
+  },
+  "pilot_end_to_end": {
+    "all_rc_0": true,
+    "gate_block": "decision21_pilot_e2e_rev69",
+    "log_sha256": {
+      "driver.log": "4a4b26280e739546c56e45bd6b0b3e802a2e074566066ee11a350691d74e7ddb",
+      "env.txt": "a1a37017d9055f59c355f3d78a64336a985114a9cdd5942ca4022904c9209f82",
+      "run_all.log": "bddf50dd6eb4f02d855ec7eab93fa5aab4fa0760d104f7cd1a1ea0d22435f00c"
+    },
+    "outputs": {
+      "pilot_e2e/20260926_1515c/evaluate/evaluation.json": "e5e9c1ae605a38cca3063ff82743f858d527a96ad202454ca2457477a86b0e2b",
+      "pilot_e2e/20260926_1515c/evaluate/run_predictions.jsonl": "d2259b79a237c149b9a72bb24bed48b1dbc4a5de1f70dfd4a43f671391d292c7",
+      "pilot_e2e/20260926_1515c/report/statistics.json": "4832b102b8d63a9818980ee3891823ab6bea2b1e0117e5877b8d621ca486e36c",
+      "pilot_e2e/20260926_1515c/split/folds.json": "06b64ab0afe7b5d1a2d4826bbf9fdd18f6308cd60a3d970a6fb12b5c73552695",
+      "pilot_e2e/20260926_1515c/summary/best_epochs.json": "85af06b396199f2650de0d667d6ead0b2b02aeacfddcc109b574e5411a5292f7",
+      "pilot_e2e/20260926_1515c/summary/e2e_summary.json": "c639b1fb8cbc89a174a00dbaef6b05e48e5aa50d917b89a0828126f21cbc4e06",
+      "pilot_e2e/20260926_1515c/summary/fit_list.json": "8eba4d23e1e20a4a7e19508a0dace717e1094278f1a8d79398ff1d081d8b1a71"
+    },
+    "outputs_match_gate": true,
+    "run_dir": "pilot_e2e/20260926_1515c",
+    "scope": {
+      "cells": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "main_pool_overlap": 0,
+      "not_included": [
+        "S",
+        "NG",
+        "SG",
+        "report-comparison"
+      ],
+      "split_hash_prefix": "8bfd4ab54f52",
+      "subjects": "pilot 31 (pilot 기술 분할)"
+    }
+  },
+  "reason": "결정 21 명세 4 — 첫 구현 잠금 (HEAD ccb5587, junit 은 같은 내용의 커밋 전 작업트리에서 13:18:59Z 마감 1단계)",
+  "schema": "implementation_lock_v1",
+  "t10_gpu_reload": {
+    "note": "CLI evaluate 는 checkpoint 를 재로드하지 않는다 (sha 만). GPU 저장 → 재로드 대조는 이 판에 넣지 않음 (구현 선택).",
+    "status": "not_done"
+  },
+  "verify_command": "python scripts/h197/27_build_implementation_lock.py --verify --data-root <...> --repo-root <...> --release <...>"
+}
