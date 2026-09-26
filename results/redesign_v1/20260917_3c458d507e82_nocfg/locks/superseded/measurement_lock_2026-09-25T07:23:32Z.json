@@ -1,7 +1,7 @@
 {
   "schema_version": "measurement_lock_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "locked_at_utc": "2026-09-26T02:19:05Z",
+  "locked_at_utc": "2026-09-25T07:23:32Z",
   "gate": "G1 Measurement lock",
   "work_instruction": "WI-03",
   "roots": {
@@ -240,8 +240,8 @@
   "environment": {
     "protocol": {
       "path": "docs/experiments/mobse_redesign_protocol_2026-09-17.md",
-      "sha256": "bbb922c065720dec47c42830205bd056399b48f43824785ecb20d9f8a25d3348",
-      "bytes": 40022
+      "sha256": "6561e9c37182ece139ca8aaa5b4904558c36fb061a11a598ae5cb4d3fc9a9aec",
+      "bytes": 38495
     },
     "instructions": {
       "path": "docs/experiments/mobse_redesign_work_instructions_2026-09-17.md",
@@ -269,14 +269,14 @@
       }
     },
     "code": {
-      "code_hash": "58c7152122a5ed126ffe24206f2d7491f069ee744fa2c98ed702cd794244efe0",
+      "code_hash": "fbd9fd7feee2b12e0501bda6dd9b1db0e310486e57fe35df287592e2f421f7cb",
       "modules": {
         "__init__.py": "c884876e4717224c87d95b1fd4b3821863307e65f9146eac605bc9a96375c9ab",
         "baselines.py": "4dc480f05a2021d2133cf77826c6e1956a6fc01b55195a1172431958768a7748",
-        "cli.py": "588edd94fdc7802df195dbdd84d154940eba54fec577229fb33b18ead1bc2d7c",
+        "cli.py": "79ad3273e75473144523cc5e9c9c0be5d052fe1c15208177f29f94b5beab752a",
         "cohort.py": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
         "config.py": "0a61104787f5664fa3fda0c860adb18e96590da97dcdd906a593564a54fa9746",
-        "evaluate.py": "1e10969e7d1c0814b738067d06a8a7fb9a5efa67b32d145e315ddc72d6e0493f",
+        "evaluate.py": "bde539b695a261512f5846afe2b812b377499fd024736a6518f829118f3848c6",
         "extract.py": "45425fc516cc790e45e911af11c03fe5937c573fbfed3985e4bc6e7d5e7316f9",
         "features.py": "f9c81ef8155776f3d1971304ef32baf99b94b5f7bf100c0067f82dd1600b8f10",
         "fitting.py": "12ad51ceed897ab656dbf345d4380847faf96e090657923563dadb7db11929bb",
@@ -330,9 +330,9 @@
     "formula": "126 subjects x 2 tasks x 4 windows x 3 seeds x 4 cells"
   },
   "supersedes": {
-    "lock_hash": "78ddd887253f94db94ea061910b6a0760035fbf42f3a1137164476e1939cf0c2",
-    "locked_at_utc": "2026-09-25T07:23:32Z",
-    "reason": "decision 18 (protocol P12): A minus NG and A minus SG added as auxiliary contrasts beside A minus S in evaluate.COMPARISON_CONTRASTS, comparison_contrasts takes S, NG and SG runs (keyword), report-comparison writes all three under the one shared bootstrap index (seed 9001, 10000, nominal pct), role auxiliary, primary false; protocol section 8 amendment row P12 pre-registered before main OOF; no fit; main pool not consumed"
+    "lock_hash": "c96a74b297eca9571ffb8f2f1b126bf974554d3eaa121022b73b5d8633f589a0",
+    "locked_at_utc": "2026-09-25T06:23:32Z",
+    "reason": "remaining work 2-c: new subcommand report-comparison reads the evaluate outputs (same checks as report, moved into _read_evaluated) plus the S, NG and SG outer selection records and outer fits via _load_s_outer and _load_comparator_outer, checks run truth and group against A, and writes comparison_statistics.json with cell BA for S, NG, SG and A minus S under the report bootstrap (seed 9001, 10000, nominal pct, one shared index); A minus NG and A minus SG not built (decision pending); no fit; main pool not consumed"
   },
-  "lock_hash": "9564cadb238bc782797570094aa46dd775a27b6e07703403de47a739f8796b91"
+  "lock_hash": "78ddd887253f94db94ea061910b6a0760035fbf42f3a1137164476e1939cf0c2"
 }
