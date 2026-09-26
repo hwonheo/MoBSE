@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "a95d27dced51c10114c94accdcc9430277575e37",
-  "timestamp_utc": "2026-09-26T00:17:20Z",
-  "revision": 63,
-  "supersedes_sha256": "a0998a61a022d3959f21c8099478e0b75bbad5bc9d3c4312eb6ee3f08afb402c",
-  "revision_reason": "rev63 (2026-09-26): 선생님 결정 20 — main OOF 착수 승인 전 G1 fail 나머지 확인·보고 (부록 BK). 읽기·보고만: 판정·status 변경 없음, 코드·시험·잠금 불변 (78ddd887). 보고서 sha 치환만",
+  "git_head": "0fe8d5e7f45699535d9971f2c84bd38c24b50e28",
+  "timestamp_utc": "2026-09-26T01:15:40Z",
+  "revision": 64,
+  "supersedes_sha256": "b2d6151690a9930b8c6678f47ae760a2ec76f962e5e08026660a868c532ef240",
+  "revision_reason": "rev64 (2026-09-26): 선생님 결정 19 — G1 checks[7] 'resource plan from pilot measurement' fail -> pass, note 교체 (부록 BL). 다른 판정·status 불변, 코드·시험·잠금 불변 (78ddd887). 보고서 sha 치환",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -102,7 +102,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "ae077875f858e285727f723c84386ff0cf582f590c1c79c1f4d18fc52b81c36e"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "bd2b249841bafe74847dda025a63869e17ad1e10ce4f5b7f6a2d4b48d54c1d98"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -182,8 +182,8 @@
         },
         {
           "check": "resource plan from pilot measurement",
-          "result": "fail",
-          "note": "pilot fit 미구현으로 합성 측정으로 대체했다. reports/resource_budget.md 가 [측정]/[추정]/[미측정] 을 구분하고 이 한계를 명시한다. §7 요구는 미충족"
+          "result": "pass",
+          "note": "결정 19 (09-26, 선택지 (가)) 로 pass. 근거: rev58 pilot 기술 분할 실측 (칸 A·B·C·D·NG·SG 각 5,000 update, s/epoch 0.0339–0.0600, peak GPU ≤136.4 MiB, peak RSS ≤1.49 GiB) 으로 순차 학습 14.1–33.5 h + 고정비 ≤5.2 h (1,038 fit) 예산 (부록 BF, resource_budget.md 9절); rev61 칸당 3회 반복·동시 실행 (반복 변동 최대 2.7 배, k=4 처리량 2.23 배, 상한 34.0 h — 부록 BI, 9.1절). 한계: S 후보 fit 시간 미측정 (비중이 작다는 것은 추정), 반복 변동 원인 미확인, main 규모 실자료 시간·동시 실행 미측정 (main OOF 승인 전 금지). 부록 BL"
         }
       ],
       "unresolved": [
@@ -2562,7 +2562,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev63 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev64 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -4348,5 +4348,50 @@
     "surfaced_for_decision": "작업 지침서 WI-06 'G2 … 이 gate 전에는 main 학습을 시작하지 않는다', WI-07 입력 'G1/G2 잠금 artifact' — gates[2] (G2) check 0건·planned, locks/implementation_lock.json 없음. 측정 잠금이 이를 갈음하는지 계획서 문장 없음",
     "judgment_changed": false,
     "report_appendix": "BK"
+  },
+  "decision19_g1_resource_plan_rev64": {
+    "decision_quote": "권고: (가). 계획서 §7 문장(\"pilot에서 peak memory·시간을 측정해 자원 계획을 만든다\")은 채웠습니다. S 후보는 입력 차원이 작은 logistic과 32-hidden MLP라서, 예산을 좌우하는 A–D·NG·SG fit(1,038개)에 비하면 비중이 작습니다. 다만 이것은 추정이고 실측은 아닙니다.",
+    "chosen_option": "(가) `pass` 로 바꾸고, note 에 실측 내용과 한계(S 후보 시간 미측정, 반복 변동 최대 2.7배)를 적습니다",
+    "decision_recorded": "2026-09-26 02:2x KST",
+    "gate": "G1",
+    "check_index": 7,
+    "check": "resource plan from pilot measurement",
+    "previous": {
+      "check": "resource plan from pilot measurement",
+      "result": "fail",
+      "note": "pilot fit 미구현으로 합성 측정으로 대체했다. reports/resource_budget.md 가 [측정]/[추정]/[미측정] 을 구분하고 이 한계를 명시한다. §7 요구는 미충족"
+    },
+    "new_result": "pass",
+    "basis_revisions": [
+      "resource_plan_pilot_rev58",
+      "resource_plan_repeat_concurrency_rev61"
+    ],
+    "limits": [
+      "S 후보 fit 시간 미측정",
+      "반복 변동 원인 미확인",
+      "main 규모 실자료 시간·동시 실행 미측정 (승인 전 금지)"
+    ],
+    "g1_remaining_fail": [
+      {
+        "index": 0,
+        "check": "group_id constructible from local metadata"
+      },
+      {
+        "index": 1,
+        "check": "PIOP1/PIOP2 subject ID namespace"
+      },
+      {
+        "index": 6,
+        "check": "precision for delta=0.02"
+      }
+    ],
+    "g1_status_unchanged": "in_progress",
+    "not_decided": [
+      "G1 gate 전체 판정",
+      "G1 unresolved·status_note 갱신",
+      "fit-s timing 기록",
+      "main OOF 착수 승인"
+    ],
+    "report_appendix": "BL"
   }
 }
