@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "bf9f6d2271f97e631f64e850a8bc47d074638828",
-  "timestamp_utc": "2026-09-25T14:24:16Z",
-  "revision": 62,
-  "supersedes_sha256": "9f98b8d1ed79009912595e44f4cb4df584f1f1a052cae02cfe8b3fa83abf2b0b",
-  "revision_reason": "rev62 (2026-09-25): 남은 작업 5-c — 부록 BG.4 '추출에 실제 쓰인 잔차와의 대조' 와 부록 BH.4 '창 격자에서 관측 불가한 차단대역' 을 pilot 31명 ok run 93 (계획서 §3.2 pilot 기술 검증) 에서 BOLD 를 원 TR 로 다시 읽어 측정 (부록 BJ). 재계산 창 = 저장 창 바이트 동일 372/372, 결합 설계 잔차의 차단대역 DCT 전력 비율 <= 3.1e-15 (nuisance 만 회귀하면 0.3-37%). 코드·시험·잠금 불변 (78ddd887). main pool run 미사용, 라벨·fold·fit 없음. 새 결정 아님",
+  "git_head": "a95d27dced51c10114c94accdcc9430277575e37",
+  "timestamp_utc": "2026-09-26T00:17:20Z",
+  "revision": 63,
+  "supersedes_sha256": "a0998a61a022d3959f21c8099478e0b75bbad5bc9d3c4312eb6ee3f08afb402c",
+  "revision_reason": "rev63 (2026-09-26): 선생님 결정 20 — main OOF 착수 승인 전 G1 fail 나머지 확인·보고 (부록 BK). 읽기·보고만: 판정·status 변경 없음, 코드·시험·잠금 불변 (78ddd887). 보고서 sha 치환만",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -102,7 +102,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "8093631756df151161a7a4e9e65931871b1a200b18c0e80073d41fa36cd11fee"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "ae077875f858e285727f723c84386ff0cf582f590c1c79c1f4d18fc52b81c36e"
       },
       "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
     },
@@ -2562,7 +2562,7 @@
     "measurement_that_would_settle_it": "main inner fold 하나(outer 0 / inner 0, cell A, config 0, seed 42)를 epoch 상한 없이 돌리고 **학습 손실 곡선만** 본다. inner validation 도 outer test 도 보지 않으므로 선택에 쓰이지 않는다. 아직 하지 않았다 — 잠긴 분할을 소비하는 첫 행위이므로 결정 전에 단독으로 시작하지 않는다",
     "decision_verbatim": "P8 - 최소 1,500 update 보장, 상한 200 epoch, early stopping은 최소치 이후에만 ok (필요하다면 epoch 수를 더 늘려도 됨. 최소 수치 조정도 가능)"
   },
-  "git_head_note": "rev62 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
+  "git_head_note": "rev63 는 이 HEAD 위의 작업트리 기준으로 작성하고 같은 회차에 커밋한다 (rev25 규칙 유지)",
   "e18_volatile_window_paths": {
     "found": "2026-09-23",
     "what": "PIOP1 workingmemory manifest 704창 path 가 /tmp/wm_rerun2 — 재부팅으로 소실. derivatives_v2 는 1차 추출본이라 sub-0171 4창 없음",
@@ -4313,5 +4313,40 @@
       "독립 구현과의 대조 (재계산은 추출과 같은 코드)"
     ],
     "report_appendix": "BJ"
+  },
+  "decision20_g1_fail_report_rev63": {
+    "decision_quote": "판단 전에 확인할 것: rev59 기준 G1에 fail이 4건 있습니다. 위 2번 외의 3건이 무엇인지는 이번에 확인하지 못했습니다. 지금 이 세션에서 선생님 컴퓨터에 연결되지 않아 gate evidence를 직접 열 수 없었습니다. 승인 전에 그 3건을 확인해 보고하도록 할 것",
+    "decision_recorded": "2026-09-26 02:2x KST",
+    "g1_checks": {
+      "total": 8,
+      "pass": 4,
+      "fail": [
+        {
+          "index": 0,
+          "check": "group_id constructible from local metadata"
+        },
+        {
+          "index": 1,
+          "check": "PIOP1/PIOP2 subject ID namespace"
+        },
+        {
+          "index": 6,
+          "check": "precision for delta=0.02"
+        },
+        {
+          "index": 7,
+          "check": "resource plan from pilot measurement"
+        }
+      ]
+    },
+    "reading": {
+      "0": "관측 기록 — 관계 metadata 부재 (U10), 계획서 개정 P4 가 1 subject = 1 group 퇴화로 처리하도록 정함",
+      "1": "관측 기록 — 계획서 개정 P5 dataset prefix 로 코드에서 처리 완료",
+      "6": "계획서 §8 이 inconclusive 가능성 명시로 정한 정밀도 한계 (실행 gate 아님, note 원문)",
+      "7": "결정 19 대상 (pass 확정, 반영은 다음 revision)"
+    },
+    "surfaced_for_decision": "작업 지침서 WI-06 'G2 … 이 gate 전에는 main 학습을 시작하지 않는다', WI-07 입력 'G1/G2 잠금 artifact' — gates[2] (G2) check 0건·planned, locks/implementation_lock.json 없음. 측정 잠금이 이를 갈음하는지 계획서 문장 없음",
+    "judgment_changed": false,
+    "report_appendix": "BK"
   }
 }
