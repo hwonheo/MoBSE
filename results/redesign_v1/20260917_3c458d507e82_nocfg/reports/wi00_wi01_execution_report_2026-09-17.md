@@ -4955,3 +4955,59 @@ G1 `unresolved` 6 → **3** (U10 · U17 · δ 정밀도).
 
 - 실자료 fit 에서 T11 가드가 걸리는 경우가 있는지 (main pool fit 금지 — pilot end-to-end (명세 3) 에서 pilot 분할로 확인 가능).
 - 명세 3–5 (pilot end-to-end, `implementation_lock.json`, G2 check) 는 다음 슬롯.
+
+
+# 부록 BQ — 결정 21 명세 3: pilot end-to-end (CLI 전 경로, pilot 기술 분할) (rev69, 2026-09-26 21:15 예약 슬롯)
+
+선생님 결정 21 (09-26 11:1x KST 기록) — 선택지 "(가) `implementation_lock.json`을 만들고 G2 check를 채운 뒤 main OOF로 갑니다. 담을 내용은 환경, code/config hash, acceptance 결과, pilot end-to-end입니다. … main pool을 쓰지 않으니 되돌릴 수 있습니다." 의 명세 3. 실행은 09-26 15:15 슬롯 착수, 20:15 슬롯 끝 확인, 이 부록은 21:15 슬롯 기록. **바꾸지 않은 것**: 코드·시험·config·잠금 (9b7b11cf), 학습·선택 규칙과 값, gate 판정·status, G2 check (여전히 0건). main pool 미소비. **성능은 해석하지 않는다.** main OOF 착수 승인 아님.
+
+## BQ.1 범위와 방법
+
+- 입력: pilot 31 명만 — v3 PIOP1 창 manifest 3 개로 `prepare` → pilot 명단 거르기 (`splits_piop1_p7/folds.json` `pilot.subjects`, 구동기 안에서 — CLI 단계 아님, 구현 선택) → `split` (`configs/redesign_v1/pilot.yaml`). real main pool (`folds_p7`) 과 subject 겹침 0.
+- 최소 규모 (grep 근거): `select-ad` 는 4 cell × 8 config × 3 inner = 96 완비를, `evaluate` 는 A–D × outer 전부 × seed 3 격자 완비를 요구한다 → pilot 기술 분할 전체 격자 **inner 480 (5 outer × 96, seed 42) → `select-ad` 5 → outer 60 (5 × 4 cell × seed 42–44) → `evaluate` → `report`**. S·NG·SG·`report-comparison` 은 넣지 않았다 (명세 3 단계 목록이 A–D 경로 — 구현 선택).
+- 코드: 시작 시점 HEAD `72cc1b3` 의 `git archive HEAD mobse configs` 사본 (작업트리 깨끗). h197 bmcws, python 3.11.5, torch 2.10.0+cu128, CUDA 12.8, `--device cuda`, k=4 동시 (CLI subprocess), `-B`·`PYTHONDONTWRITEBYTECODE=1`.
+- **CLI 한계 (기록)**: CLI 에는 학습 상한을 바꿀 인자가 없다. `fitting.train_fold` 가 `n_epochs_planned > MAX_EPOCHS` (400) 를 거부하고, `select-ad`·`train.select_config` 가 best epoch·공통 E 를 1–`train.MAX_EPOCHS` 로 거부한다. pilot 규모 (inner 학습 104–112 창, 4 update/epoch) 는 최소 epoch 1,250 (= 5,000 update / 4) 이라 **CLI 경로 그대로는 실행 불가**다 (결정 15 절 5 와 같은 귀결).
+- **방법 (구현 선택, 표시함)**: 감싸개 `.backup/slot_1515c/e2e_cli.py` 가 `mobse.v2.cli` 를 **먼저 import** 한 뒤 이 프로세스 안에서만 `train.MAX_EPOCHS`·`fitting.MAX_EPOCHS` 를 2000 으로 덮고 `cli.main(argv)` 를 그대로 부른다. config 값 (`train.max_epochs: 400`·`min_updates: 5000`)·다른 규칙 불변. inner `--epochs 2000` (pilot 판 상한). 구동기 `e2e_driver.py`, 설치 `e2e_setup.sh`, prep 대조 `cmp_prep.py`.
+- **첫 시도 거부 (06:19:53Z)**: 덮은 뒤 cli 를 import 하자 `config.FieldSpec(locked_to=train.MAX_EPOCHS)` 가 2000 을 잡아 `prepare` 가 "train.max_epochs: 코드 상수와 불일치 (config=400, 코드=2000)" 로 거부했다 — config 잠금 가드가 작동한 것. import 순서를 바꿔 해결 (config 파일은 400 그대로 검증 통과). 실패 판은 지우지 않고 `pilot_e2e/try1_20260926_1515c_config_guard/` 에 둠.
+
+## BQ.2 prep 대조 (06:21:22Z)
+
+- `prepare` 산출 `windows.jsonl`·`subjects.jsonl`·`exclusions.jsonl` = 잠긴 `derivatives_v3/windows_piop1.jsonl`·`cohort_piop1/{subjects,exclusions}.jsonl` **바이트 동일** (sha256 앞 12자 `0750c81c0670`·`5ab193392202`·`2e51f25bf1df`). pilot 거르기 결과 = `derivatives_v2/pilot_tech/subjects.jsonl` 바이트 동일 (`45a02f0297fb`).
+- `split` → split_hash `8bfd4ab54f52…` = pilot 기술 분할과 같음 (outer·inner 경계 동일, pilot 6 · main pool 25, outer test [5,5,5,5,5]). 새 folds.json 의 `config_hash` 는 `6498596a` (기존 파일은 09-18 config 판 `fd6c8a27` — split_hash 는 config 에 의존하지 않음). `external_folds.json` 도 쓰였으나 쓰지 않음 (outer 9 없음).
+
+## BQ.3 단계 시간 (driver.log, UTC)
+
+| 단계 | 시작 → 끝 | 벽시계 | rc |
+|---|---|---|---|
+| prep (prepare·거르기·split) | 06:21:22Z | 수 초 | 0 |
+| inner fit 480 (k=4) | 06:22:44Z → 10:49:34Z | 4 h 27 m | 실패 0 |
+| `select-ad` × 5 | 10:49:34Z → 10:49:36Z | 2 s | 전부 0 |
+| outer fit 60 (k=4) | 10:49:36Z → 11:31:05Z | 41.5 분 (fit 당 약 142–176 s) | 실패 0 |
+| `evaluate` (n_fits 60) | 11:31:05Z | 약 1 s | 0 |
+| `report` | 11:31:06Z | 약 1 s | 0 |
+
+`run_all.log` `ALL_RC=0`, `driver.log` `ALLDONE`. inner fit 벽시계는 15:15 마감 시험과 겹친 동안 157–172 s, 그 마감을 중단한 뒤 133–146 s (첫 fit 학습 부분 55.9 s, 0.0445 s/epoch, peak GPU 143 MB). GPU 0 에 다른 사용자 프로세스 약 19 GB 동시 상주.
+
+## BQ.4 산출물 sha256 (h197 data root `pilot_e2e/20260926_1515c/`, 커밋 안 함)
+
+- 요약 (`summary/`, 틀 `.backup/slot_2015c/e2e_summary.py` — 읽기만, 덮어쓰기 거부): `e2e_summary.json` `c639b1fb8cbc…`, `fit_list.json` `8eba4d23e1e2…` (경로·fit_id·checkpoint sha256 540 행 — 요약의 `fits.list_sha256`), `best_epochs.json` `85af06b39619…`.
+- fit **540** (inner 480 · outer 60), checkpoint 빠짐 0, fit_id 고유 540.
+- split `folds.json` `06b64ab0afe7…` · `external_folds.json` `e18366f36242…`. `selection.json` o0 `933ad373f3f4…` · o1 `211687f2afc1…` · o2 `fa2e2aed061d…` · o3 `e8d35410da06…` · o4 `ec839402ce70…`. `evaluation.json` `e5e9c1ae605a…` · `run_predictions.jsonl` `d2259b79a237…`. `statistics.json` `4832b102b8d6…`.
+- **구현 선택 (표시함)**: 요약 3 파일은 release `reports/` 로 복사하지 않고 gate 새 블록에 data root 상대 경로와 sha256 만 적는다 (`data_root_outputs` — `artifacts` 가 아니므로 17번 검사 대상 아님, 2번 수 192 그대로). 이유: run 단위 산출물이고 `e2e_summary.json` 에 아래 BQ.5 의 틀 오류 필드가 있다. 명세 4 (`implementation_lock.json`) 에서 이 sha 들을 다시 재어 넣는다.
+
+## BQ.5 선택 기록 (성능 해석 안 함)
+
+- 선택 config: o0 1 · o1 1 · o2 0 · o3 1 · o4 4. 공통 E: o0 1252 · o1 1252 · o2 1256 · o3 1252 · o4 1252.
+- 선택 config 의 inner best epoch (cell 4 × inner 3 = 12 개, `best_epochs.json`): o0 1250–1264 · o1 1250–1264 · o2 1250–1263 · o3 1250–1258 · o4 1250–1260 — 전부 최소 epoch 1,250 에서 14 epoch 안 (early stopping 이 최소치 직후 멈춤). pilot 규모 특성인지 규칙상 문제인지는 판단하지 않았다.
+- **정정 (기록)**: `e2e_summary.json` 의 `selection.*.best_epoch_min` = 0 은 요약 틀 오류다 — selection.json `best_epochs` 행의 `inner_fold` 정수 (0–2) 까지 숫자로 모았다. 파일은 덮어쓰지 않고 행의 `best_epoch` 만 뽑은 `best_epochs.json` 을 따로 두었다. 위 값은 `best_epochs.json` 이다.
+
+## BQ.6 acceptance 관련 관측
+
+- T11 가드 (rev68, training 라벨 두 class): 540 fit 에서 걸리지 않음 (실패 0).
+- T10 (GPU 저장/재로드 근거): CLI `evaluate` 는 `checkpoint.pt` 를 재로드하지 않고 존재·sha256 만 기록한다 (`cli.py` grep — `torch.load`·`load_state_dict` 없음; `fitting.py` 의 `load_state_dict` 는 inner best 가중치 복원). 따라서 이 end-to-end 는 GPU 저장 checkpoint 재로드 근거를 만들지 않는다 — 명세 4 에서 재로드 대조 (cuda 저장 → 로드 → 창 예측 재계산 = `window_predictions.jsonl`) 를 넣을지 구현 선택으로 정한다.
+- fit 없는 상태의 마감 (h197 11:34:25Z–11:44:00Z): 시험 1173 passed / 12 skipped, 해시 192/192, 인용 0, 잠금 45/45, 창 4,728 — 전부 rc=0 (HEAD `72cc1b3`).
+
+## BQ.7 확인하지 못한 것
+
+- `evaluation.json`·`statistics.json` 내용 (sha 만 — 성능 해석 금지 범위와 별개로 필드 검토도 안 함), 선택 config 밖 칸별 best epoch 분포, fit 별 GPU peak 집계 (fit_report 에 있음), T10 재로드 대조.
+- CLI 가 상한을 덮지 않고 pilot 규모를 돌 방법은 만들지 않았다 (CLI 계약 변경 — 범위 밖). main 규모에서는 최소 epoch 295 ≤ 400 이라 덮기가 필요 없다 (결정 15 절 5 계산).
