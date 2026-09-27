@@ -107,7 +107,7 @@ PYTHONPATH=. python -m pytest tests/v2 -q
 ```
 **경로는 전부 명시해야 함 — glob fallback 없음.** fit 이웃 파일(`fit_report.json`·`window_predictions.jsonl` 등)과 `external_folds.json` 만 고정 이름으로 옆에서 읽는다.
 
-### 마감 5단계 (h197, 매 변경마다 전부 rc=0 일 때만 커밋)
+### 마감 5단계 (h197, 매 변경마다 전부 rc=0 일 때만 커밋) + 6단계 구현 잠금 검증 (결정 21 명세 6, 09-27)
 ```bash
 cd /mnt/data/code/MoBSE; R=results/redesign_v1/20260917_3c458d507e82_nocfg; D=/mnt/data/mp2026/MoBSE_dataset
 PYTHONPATH=. python -m pytest tests/v2 -q
@@ -115,6 +115,7 @@ python scripts/h197/17_verify_gate_hashes.py $R
 python scripts/h197/22_crosscheck_reported_numbers.py $R
 python scripts/h197/19_verify_measurement_lock.py --data-root $D --repo-root . --release $R
 python scripts/h197/25_verify_window_files.py --data-root $D --lock $R/locks/measurement_lock.json
+python -B scripts/h197/27_build_implementation_lock.py --verify --data-root $D --repo-root . --release $R   # 6: h197 에서만 의미, rc≠0 이면 구현 잠금 새 판 필요
 ```
 
 ### artifact 계약
