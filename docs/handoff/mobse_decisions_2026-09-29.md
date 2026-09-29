@@ -352,3 +352,23 @@ P8-b 는 `MIN_UPDATES = 5000` 과 `MAX_EPOCHS = 400` 을 함께 잠갔다. 창 8
 - 남은 1 건은 `vasa_permutation` 의 치환 검사인데, `linear_sum_assignment` 가 정의상 일대일 배정을 돌려주므로 **정상 경로로는 닿지 않는다**. 코드에 그 사실과 남겨 두는 이유 (반구 분할이 잘못되면 여기서 걸린다) 를 적었다.
 
 **다음**: 4 `config` 새 잠금 키 + `configs/exploratory_v2/` · 5 학습 subject 부분표집 · 6 v3 잠금·pilot e2e.
+
+## v3 빌드 5 단계 — 학습 subject 부분표집 (2026-09-29)
+
+`mobse/v3/subsample.py` (약 100 줄) · `tests/v3/test_subsample_v3.py` (시험 17 개). 누적 `tests/v3` **78 개** 전부 통과. **`mobse/v2` 불변.**
+
+저표본 곡선의 핵심이다. target 도 분할도 바꾸지 않고, **outer fold 의 학습 subject 를 몇 명까지 쓰는가**만 바꾼다.
+
+**설계로 못 박은 두 가지**
+1. **중첩 (nested)** — 작은 수준은 큰 수준의 부분집합이다. 수준마다 따로 뽑으면 곡선의 오르내림에 "누구를 뽑았나" 가 섞여 자료의 양으로 읽을 수 없다. 한 번 섞은 순서의 앞에서 잘라 쓴다.
+2. **fold 마다 다른 순서** — 모든 fold 가 같은 순서를 쓰면 한 번의 운 나쁜 섞기가 곡선 전체를 기울인다. seed 를 fold 로 가른다 (`SUBSAMPLE_SEED_BASE = 40000` + outer_fold).
+
+**잠긴 수준** `LOW_SAMPLE_LEVELS = (10, 20, 40, 70, 100)`. outer fold 의 학습 집합은 **100–101 명** (실측) 이라 100 이 사실상 전부에 가깝다.
+
+**class 균형은 따로 맞추지 않는다** — 이 target (run identity) 은 사람마다 두 class 를 하나씩 가지므로 subject 를 뽑으면 저절로 균형이다. 그 사실을 시험이 지킨다.
+
+**거부하는 것 (조용히 넘기지 않는다)**: `n_keep` 이 학습 집합보다 크면 잘라 맞추지 않고 멈춘다 (수준을 잘못 준 것을 숨기면 곡선이 거짓말을 한다) · 중복·빈 집합 · 오름차순 아닌 수준 · 음수 fold.
+
+**돌연변이 9/9 검출** (`.backup/slot_wi09_0929/mut_v3subsample.py`). 처음 8/9 로 나왔던 "중첩 깨짐" 은 **변이 설계가 잘못된 것**이었다 — fold 당 순열 하나를 다른 것으로 바꿨을 뿐이라 중첩이 그대로 유지됐다. 수준마다 seed 를 가르는 진짜 변이로 고치니 검출됐다.
+
+**남은 v3 빌드**: 4 `config` 새 잠금 키 + `configs/exploratory_v2/` · 6 v3 잠금 (측정·구현)·pilot end-to-end.
