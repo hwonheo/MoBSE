@@ -284,3 +284,29 @@ P8-b 는 `MIN_UPDATES = 5000` 과 `MAX_EPOCHS = 400` 을 함께 잠갔다. 창 8
 - `mobse/v3/` 에서 바꿀 것: ① `train`·`fitting` 의 학습 규칙 (위) ② `models` 에 ROI embedding · ROI 별 readout 두 구조 (결정 28-2) ③ `templates` 에 null 세 종류 — 순열 · Váša 회전 (spin) · degree 보존 rewiring (결정 28-3) ④ `config` 에 새 잠금 키 (update 예산 · 구조 · null 종류 · M · PCA 차원 grid) ⑤ 학습 subject 부분표집 (저표본 곡선, 잠긴 seed) ⑥ `configs/exploratory_v2/` ⑦ `tests/v3`.
 - **구현 선택 (표시)**: v3 는 동결된 `mobse/v2` 를 import 해 재사용하고, v3 잠금의 `code_hash` 는 **`mobse/v3/*.py` 와 `mobse/v2/*.py` 를 함께** 해시한다. v2 는 v1 release 로 동결됐으므로 이 참조는 흔들리지 않는다. 9,000 줄을 복사하지 않는 대신 의존을 잠금에 명시한다.
 - v1 의 분할 (`folds.json`, split_hash `ace5f4a4…`)·pilot 경계·마감 6단계·gate revision 방식은 그대로 쓴다. **PIOP2 는 계속 열지 않는다** (결정 27).
+
+## v3 빌드 1 단계 — 학습 규칙 모듈 (2026-09-29)
+
+`mobse/v3/` 를 새로 만들었다. **`mobse/v2` 와 `tests/v2` 는 한 줄도 바뀌지 않았다** (`git status` 0) — v1 의 측정 잠금 `9b7b11cf` · 구현 잠금 `bcf1fec22676` · gate rev75 가 그대로 유효하다.
+
+| 파일 | 줄 | 내용 |
+|---|---:|---|
+| `mobse/v3/__init__.py` | 20 | 모듈 취지와 구현 선택 (무엇을 새로 쓰고 무엇을 v2 에서 import 하는지) |
+| `mobse/v3/train.py` | 212 | 학습 규칙 (P8-c 후보) |
+| `tests/v3/test_train_v3.py` | 163 | 시험 22 개 |
+
+**구현 선택 (표시)**: 크게 바뀌는 모듈만 v3 에 새로 쓰고, 바뀌지 않는 것 (grid·손실·동률 규칙·누설 검사 등) 은 동결된 `mobse.v2.train` 을 import 한다. `_median`·`_require_complete` 같은 비공개 이름도 import 한다 — 사문을 다시 쓰면 두 벌이 갈라질 위험이 더 크다고 보았다.
+
+**새 API**
+- `UPDATE_BUDGET = 5000` — v1 의 `MIN_UPDATES` 와 **같은 수지만 뜻이 다르다**: v1 은 최소치, v3 는 **예산이자 상한**.
+- `epochs_for_budget(n_train)` = `ceil(예산 / update_per_epoch)` — 그 학습 집합의 epoch 상한. 고정 상한은 없다.
+- `EPOCH_SANITY_CEILING = 20000` — 규칙이 아니라 방어선 (지나치게 작은 학습 집합을 잡는다).
+- `select_best_epoch(...)` — `min_epoch` 결합 없이 best epoch 를 고른다 (결정 32).
+- `CellFoldResult` 는 `epoch_ceiling` 을 **반드시** 받는다 (기본값 없음 — 빠뜨리면 조용히 잘못된 상한으로 통과한다).
+- `select_config(...)` — 선택 규칙은 v1 과 **같고** 공통 E 의 상한만 그 학습 집합의 `epoch_ceiling` 이다.
+
+**시험 22 개** (`tests/v3`, 전부 통과). 지키려는 것: ① 예산 산술이 v1 과 같은 수를 낸다 ② 저표본에서 v1 은 충돌하지만 v3 는 그 값이 곧 상한이다 ③ **best epoch 결합이 풀렸다** (v1 이 거부하던 이른 epoch 를 고른다) ④ 선택 규칙은 v1 과 같은 결과를 낸다 (같은 입력으로 v2·v3 를 나란히 돌려 대조).
+
+**돌연변이 시험 6/7 검출** (`.backup/slot_wi09_0929/mut_v3train.py`, gitignore). 놓친 1 건은 "공통 E 상한을 안전 상한으로 바꿈" 인데, `CellFoldResult` 가 이미 `best_epoch ≤ epoch_ceiling` 을 강제하므로 그 중앙값의 올림도 상한을 넘을 수 없다 — **정상 경로로는 닿지 않는 방어선**이다. 지우지 않고 코드에 그 사실을 적었다 (`select_config` 주석).
+
+**다음 (v3 빌드)**: 2 `models` 두 구조 · 3 `templates` null 세 종류 · 4 `config` 새 잠금 키 + `configs/exploratory_v2/` · 5 학습 subject 부분표집 · 6 v3 잠금·pilot e2e.
