@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "89c336a59404e3c10fa26598763e2a869ade64f5",
-  "timestamp_utc": "2026-09-29T04:21:58Z",
-  "revision": 75,
-  "supersedes_sha256": "144df61654fe6d553737753672c4ab59b3d0834072c526be524242fbea8e4fd2",
-  "revision_reason": "rev75 (2026-09-29): 결정 25-6 A−S 진단 (새 학습 없음 — S 는 252 run 전부 정답, A 는 31 run 오답이며 그중 18 개가 margin 0.1 미만·26 개가 emomatching, 감점 30 명 중 29 명이 한 run 만 틀림, A 감점자는 S 에서 전원 만점) 과 결정 27 (진로 (나) 확정 — 현 버전 내부 마감·PIOP2 미개방·새 탐색 버전 설계, 사전등록 §8 이탈 사유 기록; 보조 interaction 판독 철회 — 민감도 네 판 모두 하한 ≤ 0). 새 블록 decision25_6_as_diagnostic_rev75 · decision27_direction_and_interaction_rev75, 보고서 부록 BZ·CA. gate 판정·status 는 rev73 그대로. statistics.json 과 mobse/v2·잠금 불변",
+  "git_head": "4d63ac1beb2ead886dc331bd60f396adc5e1d188",
+  "timestamp_utc": "2026-09-29T08:14:07Z",
+  "revision": 76,
+  "supersedes_sha256": "427d697ed91e61c5a74714c2be07f1c3d2cd38ced5a016990ad67561b7082b77",
+  "revision_reason": "rev76 (2026-09-29): WI-11 연구 결과 패키지 (재설계 v1 내부 마감, 결정 27) 를 reports/wi11_research_package_2026-09-29.md 로 추가하고 G5 artifact_hashes 에 등록. G5 check 5 건 — claim–evidence 표 · 비용 (parameter·벽시계) · 제한과 음성 결과 · 실제 구현된 명령만 쓴 재현 절 · 사전등록 이탈 기록 — 전부 pass. §5 가 보조 비교의 not_reported (parameter/비용) 를 닫는다: A 6,469 대 S4 158,498 (24.5 배). G5 status 는 planned 그대로 (선생님 결정 사항). 다른 gate 판정·status 불변. 측정·구현 잠금과 mobse/v2 불변",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -432,9 +432,93 @@
     {
       "gate": "G5 Interpretation",
       "status": "planned",
-      "checks": [],
+      "checks": [
+        {
+          "check": "claim-evidence table",
+          "result": "pass",
+          "source": "계획서 §10 G5 필수 산출물 'claim–evidence 표' · 다음 단계 조건 '각 주장과 원 artifact 연결'",
+          "observed": {
+            "claims": 10,
+            "each_linked_to_artifact_sha256": true,
+            "artifacts": [
+              "main_a2/report/statistics.json",
+              "aux_a1/report_comparison/comparison_statistics.json",
+              "null_sens/…/summary/null_sensitivity.json",
+              "aux_a1/diagnostic/as_diagnostic.json",
+              "main_a2/summary/completion_check.json"
+            ]
+          },
+          "note": "보고서 §3. 주장하지 않는 것 (최초성·인지기전·효율·외부 일반화) 도 같은 절에 적었다"
+        },
+        {
+          "check": "cost table (parameters and wall clock)",
+          "result": "pass",
+          "source": "계획서 §10 G5 필수 산출물 '비용'",
+          "observed": {
+            "parameters": {
+              "A_C": 6469,
+              "B_D": 6021,
+              "SG": 6018,
+              "NG": 5154,
+              "S3_fc_logreg": 4951,
+              "S4_fc_mlp": 158498
+            },
+            "wall_clock": {
+              "main_oof": "3 h 11 m",
+              "aux_comparison": "1 h 55 m",
+              "null_sensitivity": "1 h 22 m"
+            }
+          },
+          "note": "보고서 §5. aux 의 not_reported (parameter/비용) 를 닫는다 — 가장 자주 뽑힌 S4 가 A 보다 parameter 24.5 배 많다. 효율 우위를 주장할 수 없다 (계획서 §1 과 일치)"
+        },
+        {
+          "check": "limits and negative results recorded",
+          "result": "pass",
+          "source": "계획서 §10 G5 필수 산출물 '제한' · 지침서 WI-11 '실험 실패·음성 결과를 취합'",
+          "observed": {
+            "negative_results": 7,
+            "limits": 6
+          },
+          "note": "보고서 §6·§8. H2 불확실 · 사전 검정력 부족 · interaction 판독 철회 · target 포화 · 등변 구조 · 구동기 사고 2 건"
+        },
+        {
+          "check": "reproduction package uses only implemented commands",
+          "result": "pass",
+          "source": "지침서 WI-11 '재현 방법은 실제 구현된 명령으로만 작성한다'",
+          "observed": {
+            "cli_subcommands_cited": [
+              "fit",
+              "fit-s",
+              "select-ad",
+              "select-comparator",
+              "select-s",
+              "evaluate",
+              "report",
+              "report-comparison"
+            ],
+            "locks_cited": {
+              "measurement": "9b7b11cf8576",
+              "implementation": "bcf1fec22676"
+            }
+          },
+          "note": "보고서 §9·§10. 구동기는 .gitignore 영역이며 각 산출 root 의 사본 sha 는 gate 에 있다"
+        },
+        {
+          "check": "preregistration departure recorded",
+          "result": "pass",
+          "source": "계획서 §8 '내부 결과가 음성이어도 외부 검증 수행' — 결정 27 이 이탈",
+          "observed": {
+            "reasons": 4,
+            "piop2_opened": false,
+            "external_folds_preserved": true
+          },
+          "note": "보고서 §7. PIOP2 는 새 탐색 버전의 확증용으로 남긴다"
+        }
+      ],
       "unresolved": [],
-      "artifact_hashes": {}
+      "artifact_hashes": {
+        "reports/wi11_research_package_2026-09-29.md": "c2e758e88205d0e8123139e81257651422a8114ae6b7886e1d3245845da1a907"
+      }
     }
   ],
   "protocol_figures": {
@@ -5817,5 +5901,35 @@
     ],
     "judgment_changed": false,
     "report_appendix": "CA"
+  },
+  "wi11_research_package_rev76": {
+    "decision_quote": "결정 27 (2026-09-29): (나) 로 간다 — 현 버전은 내부 결과로 마감",
+    "artifact": {
+      "reports/wi11_research_package_2026-09-29.md": "c2e758e88205d0e8123139e81257651422a8114ae6b7886e1d3245845da1a907"
+    },
+    "scope": "재설계 v1 의 내부 마감 문서. PIOP2 외부 검증은 하지 않았고 사유를 §7 에 기록",
+    "contents": [
+      "§2 자료 흐름",
+      "§3 claim–evidence 10 행",
+      "§4 칸별 BA",
+      "§5 비용 (parameter·벽시계)",
+      "§6 실패·음성 결과 7 건",
+      "§7 사전등록 이탈 사유 4",
+      "§8 한계 6",
+      "§9 재현 명령",
+      "§10 잠금"
+    ],
+    "closes": {
+      "aux_not_reported_parameter_and_cost": "보조 비교 산출물의 not_reported 를 §5 가 닫는다 (학습 parameter 실측)"
+    },
+    "key_numbers": {
+      "A_parameters": 6469,
+      "S4_parameters": 158498,
+      "ratio": 24.5,
+      "A_minus_S": -0.12301587301587301
+    },
+    "g5_status_unchanged": "planned — status 변경은 선생님 결정 사항이라 건드리지 않았다. check 5 건은 전부 pass",
+    "judgment_changed": "G5 check 0 → 5 (pass 5); G5 status 와 다른 gate 는 불변",
+    "report_appendix": null
   }
 }

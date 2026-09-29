@@ -1,6 +1,6 @@
 # CLAUDE.md — MoBSE Project Context
 
-> 최종 갱신 2026-09-29 16:0x KST — **결정 30·31·32**: 새 버전 축은 **T4 저표본 곡선**, 코드는 **새 모듈 `mobse/v3/`** (`mobse/v2` 불변 → v1 잠금·gate rev75 유효), 학습은 **update 예산 5,000 고정·epoch 상한 없음·best checkpoint 선택 자유**. 그 직전: **결정 29** (G-a·G-b 는 차단이 아니라 보고 장치; pilot 만·버리는 쪽으로만) 와 **G-a 선별 실행 완료** — 양성 대조 v1 target 1.000 (gate 가 작동함), 나머지 0.52–0.70 이나 pilot 31 규모라 우연과 구분 불가 (`sex` 0.536 이 민감도 경고). gate 는 rev75 그대로. 그 직전: **결정 28: 새 탐색 버전 설계 세 갈래** (축 미정 → 포화 선별 gate 우선 · ROI 구조 둘 다 병행 · null 은 M 축소 + 종류 확대) 와 설계안 초안 `docs/experiments/mobse_exploratory_v2_design_draft_2026-09-29.md`. 착수 전 확인 2건 완료 (등변성·spin). gate 는 **rev75 그대로** (v2 설계 측정은 v1 근거가 아님). 그 직전: **결정 27: 진로 (나) 확정** (현 버전 내부 마감 · PIOP2 미개방 · 새 탐색 버전 설계) + interaction 판독 철회, **A−S 진단** (결정 25-6) → **gate evidence rev75**, 부록 BZ·CA. 그 직전: WI-09 null 민감도 완료 → rev74, 부록 BY. 그 전 같은 날: 결정 25 기록, rev73 (09-28 실행 기록 + gate 표기), 부록 BT–BX, `resource_budget.md` 9.2, 커밋 `97e434a`. claude.ai Project 사본 동기화 중단 — 정본은 저장소 `docs/handoff/`.
+> 최종 갱신 2026-09-29 18:0x KST — **WI-11 연구 결과 패키지** 작성 (v1 내부 마감, `reports/wi11_research_package_2026-09-29.md`) → **gate rev76** (G5 check 5 건 pass, G5 status 는 planned 그대로), 인용 수치 독립 대조 실패 0. **결정 33** (v3 config 잠금 키: 8 칸 · 최대 수준에서 한 번 선택 · PCA 10 고정 · null M=20). v3 빌드 1·2·3·5 단계 완료. 그 직전: **결정 30·31·32**: 새 버전 축은 **T4 저표본 곡선**, 코드는 **새 모듈 `mobse/v3/`** (`mobse/v2` 불변 → v1 잠금·gate rev75 유효), 학습은 **update 예산 5,000 고정·epoch 상한 없음·best checkpoint 선택 자유**. 그 직전: **결정 29** (G-a·G-b 는 차단이 아니라 보고 장치; pilot 만·버리는 쪽으로만) 와 **G-a 선별 실행 완료** — 양성 대조 v1 target 1.000 (gate 가 작동함), 나머지 0.52–0.70 이나 pilot 31 규모라 우연과 구분 불가 (`sex` 0.536 이 민감도 경고). gate 는 rev75 그대로. 그 직전: **결정 28: 새 탐색 버전 설계 세 갈래** (축 미정 → 포화 선별 gate 우선 · ROI 구조 둘 다 병행 · null 은 M 축소 + 종류 확대) 와 설계안 초안 `docs/experiments/mobse_exploratory_v2_design_draft_2026-09-29.md`. 착수 전 확인 2건 완료 (등변성·spin). gate 는 **rev75 그대로** (v2 설계 측정은 v1 근거가 아님). 그 직전: **결정 27: 진로 (나) 확정** (현 버전 내부 마감 · PIOP2 미개방 · 새 탐색 버전 설계) + interaction 판독 철회, **A−S 진단** (결정 25-6) → **gate evidence rev75**, 부록 BZ·CA. 그 직전: WI-09 null 민감도 완료 → rev74, 부록 BY. 그 전 같은 날: 결정 25 기록, rev73 (09-28 실행 기록 + gate 표기), 부록 BT–BX, `resource_budget.md` 9.2, 커밋 `97e434a`. claude.ai Project 사본 동기화 중단 — 정본은 저장소 `docs/handoff/`.
 > 이전 갱신 2026-09-29 09:2x KST — "인수인계 — 2026-09-29" 절 추가 (Cowork 세션 → 터미널 Claude Code), 정본 포인터를 저장소 `docs/handoff/` 로 옮김 (그때 gate 는 rev72). 그 이전 (2026-09-26 23:3x, rev60–rev72 의 세부) 은 `.backup/CLAUDE_2026092*.md` 에 있다. 모든 수치는 실측값이며 출처를 함께 적음.
 > 이전판(2026-09-18)은 `.backup/CLAUDE_20260925_201635.md` 에, 2026-04-17판은 `.backup/CLAUDE.md_20260918_*.md` 에 보존됨.
 > **현행 상태의 정본은 이 파일이 아님** — 저장소 `docs/handoff/` 의 문서 (읽는 순서는 아래 "인수인계 — 2026-09-29" 절) 와 가장 높은 revision 의 `gate_evidence.json`. 이 파일은 저장소에 들어온 사람을 위한 방향 안내다.
@@ -89,6 +89,12 @@
 - **학습 규칙 (P8-c 후보, 결정 31-1·32)**: update 예산 **5,000 을 모든 N 이 동일하게** · **epoch 상한 없음** · **best checkpoint 는 어느 epoch 에서든** (`min_epoch` 결합 해제).
   - 결정 32 가 필요했던 이유 [측정]: `fitting.py:613`·`670`, `train.py:288` 이 `min_epoch` 전에는 early stopping·best 선택을 막는다 → 학습 10 명이면 창 80 개를 **1,667 epoch 반복한 뒤에야** checkpoint 를 고르게 되어 저표본이 구조적으로 과적합된다.
 - **v3 에서 바꿀 것**: 학습 규칙 · ROI embedding·ROI 별 readout (28-2) · null 세 종류 (28-3) · config 새 잠금 키 · 학습 subject 부분표집 · `configs/exploratory_v2/` · `tests/v3`.
+
+### WI-11 · 결정 33 (2026-09-29)
+
+- **WI-11 연구 결과 패키지** — `results/redesign_v1/.../reports/wi11_research_package_2026-09-29.md` (sha `c2e758e88205`). claim–evidence 10 행 · 비용 · 음성 결과 7 · 사전등록 이탈 사유 4 · 한계 6 · 재현 명령. **gate rev76** 에 등록하고 G5 check 5 건 pass — **G5 `status` 는 `planned` 그대로** (변경은 선생님 결정 사항). 인용 수치 독립 대조 **실패 0**.
+- **비용 실측** (보조 비교의 `not_reported` 를 닫음): A·C 6,469 · B·D 6,021 · SG 6,018 · NG 5,154 · S3 4,951 · **S4 158,498** parameter. **S4 가 A 보다 24.5 배 큰데 12 %p 이긴다** → 효율 우위 주장 불가.
+- **결정 33 (v3 config 잠금 키)**: 칸 **A–D × 2 구조 = 8 칸** · config grid 선택은 **가장 큰 수준 (N=100) 에서 한 번** 후 전 수준 재사용 · gate PCA **10 고정** (grid 안 엶) · null **M = 20**. 정하지 않은 것: δ·endpoint 해상도, G-b simulation 시점, 저표본 fit 당 실제 시간 (착수 전 실측 필요).
 
 ### 작업 규칙 (선생님 지시 — 모든 세션 공통)
 - 한국어·간결·쉬운 말. 수치·시각·상태는 명령으로 확인한 값만 쓰고, 확인하지 못한 것은 따로 적는다.
