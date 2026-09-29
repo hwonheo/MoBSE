@@ -1,6 +1,6 @@
 # CLAUDE.md — MoBSE Project Context
 
-> 최종 갱신 2026-09-29 13:1x KST — **결정 27: 진로 (나) 확정** (현 버전 내부 마감 · PIOP2 미개방 · 새 탐색 버전 설계) + interaction 판독 철회, **A−S 진단** (결정 25-6) → **gate evidence rev75**, 부록 BZ·CA. 그 직전: WI-09 null 민감도 완료 → rev74, 부록 BY. 그 전 같은 날: 결정 25 기록, rev73 (09-28 실행 기록 + gate 표기), 부록 BT–BX, `resource_budget.md` 9.2, 커밋 `97e434a`. claude.ai Project 사본 동기화 중단 — 정본은 저장소 `docs/handoff/`.
+> 최종 갱신 2026-09-29 14:0x KST — **결정 28: 새 탐색 버전 설계 세 갈래** (축 미정 → 포화 선별 gate 우선 · ROI 구조 둘 다 병행 · null 은 M 축소 + 종류 확대) 와 설계안 초안 `docs/experiments/mobse_exploratory_v2_design_draft_2026-09-29.md`. 착수 전 확인 2건 완료 (등변성·spin). gate 는 **rev75 그대로** (v2 설계 측정은 v1 근거가 아님). 그 직전: **결정 27: 진로 (나) 확정** (현 버전 내부 마감 · PIOP2 미개방 · 새 탐색 버전 설계) + interaction 판독 철회, **A−S 진단** (결정 25-6) → **gate evidence rev75**, 부록 BZ·CA. 그 직전: WI-09 null 민감도 완료 → rev74, 부록 BY. 그 전 같은 날: 결정 25 기록, rev73 (09-28 실행 기록 + gate 표기), 부록 BT–BX, `resource_budget.md` 9.2, 커밋 `97e434a`. claude.ai Project 사본 동기화 중단 — 정본은 저장소 `docs/handoff/`.
 > 이전 갱신 2026-09-29 09:2x KST — "인수인계 — 2026-09-29" 절 추가 (Cowork 세션 → 터미널 Claude Code), 정본 포인터를 저장소 `docs/handoff/` 로 옮김 (그때 gate 는 rev72). 그 이전 (2026-09-26 23:3x, rev60–rev72 의 세부) 은 `.backup/CLAUDE_2026092*.md` 에 있다. 모든 수치는 실측값이며 출처를 함께 적음.
 > 이전판(2026-09-18)은 `.backup/CLAUDE_20260925_201635.md` 에, 2026-04-17판은 `.backup/CLAUDE.md_20260918_*.md` 에 보존됨.
 > **현행 상태의 정본은 이 파일이 아님** — 저장소 `docs/handoff/` 의 문서 (읽는 순서는 아래 "인수인계 — 2026-09-29" 절) 와 가장 높은 revision 의 `gate_evidence.json`. 이 파일은 저장소에 들어온 사람을 위한 방향 안내다.
@@ -12,7 +12,7 @@
 2. `docs/handoff/mobse_main_oof_2026-09-28.md` — 결정 23·24 원문, main OOF·보조 비교 실행 기록과 결과, gate 표기 권고.
 3. `docs/handoff/mobse_h2_midreview_2026-09-29.md` — H2 (A−C) 증명 방식 중간 점검: `C(x) = A(Pᵀx)` 수치 검증, 설계 약점 5개, 선택지 (가)/(나)/(다).
 4. `docs/handoff/mobse_interpretation_2026-09-29.md` — A < S 해석, H2 불확실 근거 (기존 결과·문헌), PIOP2 계획과 미구현 목록. 1절·2절의 "ROI 식별을 못 해 구조상 A≈C" 서술은 midreview 1절에서 **정정됨**.
-5. `docs/handoff/mobse_redesign_g0_handoff_2026-09-17.md` — 결정 0–22 원문과 세부, 실행 절차, 마감 절차, 재발 방지 장치 (09-27 판; 머리에 결정 23–25 요약 행 추가).
+5. `docs/experiments/mobse_exploratory_v2_design_draft_2026-09-29.md` — **새 탐색 버전 설계안 초안** (결정 28 반영). 6. `docs/handoff/mobse_redesign_g0_handoff_2026-09-17.md` — 결정 0–22 원문과 세부, 실행 절차, 마감 절차, 재발 방지 장치 (09-27 판; 머리에 결정 23–25 요약 행 추가).
 
 - **정본은 저장소 `docs/handoff/` 다.** claude.ai Project "MoBSE" 사본 동기화는 하지 않는다 (2026-09-29 지시).
 - 문서끼리 어긋나면 **날짜가 늦은 쪽**이 앞선다. 해석·점검 문서는 판단 재료이며 결정이 아니다.
@@ -61,6 +61,16 @@
 - **interaction 판독 철회**: primary 판만 하한 > 0, 민감도 네 판은 모두 하한 ≤ 0. "추가 기여 지지" 서술을 쓰지 않는다. `statistics.json` 수치는 그대로 (§8).
 - **A−S 진단** (결정 25-6, 새 학습 없음, 부록 BZ): S 는 252 run 전부 정답. A 는 31 run 오답인데 **18 개가 margin 0.1 미만**이고 **26 개가 emomatching** 이다. A 감점 30 명 중 29 명은 **한 run 만** 틀렸고, 그 30 명은 **S 에서 전원 만점**. → 틀리는 run 이 어려운 게 아니라 A 의 경로 (FC 4,950 → gate PCA 10) 가 정보를 잃는다는 관측. 새 버전 설계 변수로 **PCA 압축 폭**을 추가.
 - **정하지 않은 것**: 새 탐색 버전의 target·구조·null 설계·δ·N. PIOP2 를 영영 안 쓴다는 뜻도 아니다.
+
+### 결정 28 (2026-09-29) — 새 탐색 버전 설계 세 갈래
+
+설계안 초안: **`docs/experiments/mobse_exploratory_v2_design_draft_2026-09-29.md`** (읽는 순서 5번 다음).
+
+- **축 미정** → **포화 선별 gate (G-a) 가 1 순위**. 후보 target 을 pilot 에서 걸러 본 뒤 축을 정한다. 선별 가능한 라벨은 초안 §5.1 (성별·raven·NEO·나이·과제 정확도·RT — 전부 기존 자료).
+- **G-d ROI 구조: ROI embedding + ROI 별 readout 병행 비교** (칸 2 배). 두 구조가 순열 등변성을 깨는 것은 **확인 완료** — v1 현행 1.19e−07 (등변) vs embedding 5.68e−03 · readout 1.27e−03.
+- **G-c null: M 축소 + 종류 확대** — 순열 · **공간 보존 (spin)** · degree 보존 rewiring 을 각 M=20. spin 은 **numpy+scipy 만으로 구현 가능 확인** (거리행렬 상관 0.497 대 단순 순열 0.003, 반구 유지 1.000). 세 null × M=20 은 120 fit ≈ 0.9 h [추정] — 전면 M=100 (22 h) 보다 20 배 싸다.
+- **남은 결정**: G-a 기준값 · 선별을 어디서 할지 (pilot 31 은 표본이 작다) · G-b 검정력 기준값 · M · δ·endpoint 해상도 · 후보 전부 탈락 시 대안.
+- v2 설계 측정은 **gate evidence 에 넣지 않는다** — v1 release 의 근거가 아니다.
 
 ### 작업 규칙 (선생님 지시 — 모든 세션 공통)
 - 한국어·간결·쉬운 말. 수치·시각·상태는 명령으로 확인한 값만 쓰고, 확인하지 못한 것은 따로 적는다.
@@ -230,7 +240,7 @@ python -B scripts/h197/27_build_implementation_lock.py --verify --data-root $D -
 
 ## Next Steps
 정본은 `docs/handoff/mobse_decisions_2026-09-29.md` "결정 25 이후 진행" 과 위 인수인계 절. 2026-09-29 기준 요지:
-1. **새 탐색 버전 설계안 작성** (결정 27 로 열림) — 후보 요소: ROI 를 구분하는 구조 (ROI embedding 또는 ROI 별 readout), 그래프가 필요한 target, 다수 순열 분포 검정 + 공간 보존 null (spin)·degree 보존 rewiring, 학습·일반 그래프 대조, main 전 검정력 simulation gate, **gate 입력 FC 압축 폭 (PCA 10)**. 설계안은 선생님 확인 뒤 확정.
+1. **설계안 남은 결정 (초안 §8)** — G-a 포화 기준값 · 선별 장소 · G-b 검정력 기준값 · G-c 의 M · δ·endpoint 해상도 · 후보 전부 탈락 시 대안. 그 뒤 **G-a 선별을 실제로 돌려** 축을 정한다 (결정 28-1).
 2. **현 버전 마감 문서 (WI-11 연구 결과 패키지)** — claim–evidence 표, dataset flow, 핵심 2 contrasts 와 S 결과, 음성 결과, **사전등록 이탈 사유 (부록 CA.3)** 포함.
 3. **PIOP2 는 열지 않음** (결정 27). `external_folds.json` (결정 17) 과 미구현 배선은 그대로 둔다 — 새 버전의 확증용으로 남긴다.
 4. 결정 불요 후보: h197 정리 (삭제는 선생님 확인 뒤 — `pilot_e2e/20260926_1515c/`·`impl_lock/20260926_2215d/`·`main_oof/`·`null_sens/` 는 지우지 않음).
