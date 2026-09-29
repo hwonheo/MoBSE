@@ -327,3 +327,28 @@ P8-b 는 `MIN_UPDATES = 5000` 과 `MAX_EPOCHS = 400` 을 함께 잠갔다. 창 8
 **시험이 고정하는 것**: ① `mean` 은 등변이고 **같은 가중치면 v2 와 수치가 같다** ② `embedding` 은 처음부터 등변성을 깬다 ③ `readout` 은 **초기엔 `mean` 과 같고**, 가중치가 움직이면 깬다 ④ bank 는 buffer 라 optimizer parameter 가 아니다 ⑤ **bank 가 `state_dict` 에 들어간다는 사실 자체** — 09-29 설계 측정에서 A 의 state 를 C 에 통째로 실어 null bank 가 덮인 사고를 되풀이하지 않기 위한 회귀 시험 ⑥ parameter 증가량이 새 구조 몫과 정확히 같다.
 
 **돌연변이 8/8 검출** (`.backup/slot_wi09_0929/mut_v3models.py`, gitignore).
+
+## v3 빌드 3 단계 — null 세 종류 (2026-09-29)
+
+`mobse/v3/templates.py` (약 240 줄) · `tests/v3/test_templates_v3.py` (시험 24 개). 누적 `tests/v3` **61 개** 전부 통과. **`mobse/v2` 불변.**
+
+| kind | 무엇을 보존하나 | 무엇을 깨나 |
+|---|---|---|
+| `permutation` (v1 과 같음) | spectrum · weight 분포 · bank 간 관계 | 해부학 배치 · 공간 인접 · 반구 |
+| `spin` (Váša 회전 + 일대일 배정) | **공간 인접 · 반구** · spectrum · weight 분포 | 해부학 배치 |
+| `rewire` (degree 보존 double-edge swap) | 각 node 의 **연결 수** · weight 다중집합 | 연결 상대 · node strength |
+
+**읽는 법**: A 가 `permutation` 만 이기고 `spin` 을 못 이기면, 모델이 쓰는 것은 해부학 배치가 아니라 공간 통계라는 뜻이다.
+
+**구현 선택 (표시)**
+- `rewire` 는 정규화된 template 을 직접 섞지 않는다. bank 를 만든 길을 **되밟는다**: `raw_centroids` → `sparsify_positive(density)` → rewire → `normalize_with_self_loop`. 정규화된 행렬을 섞으면 `D^(−1/2)(A+I)D^(−1/2)` 관계가 깨진다. 되밟은 edge 수가 bank 기록과 다르면 멈춘다.
+- `rewire` 는 template 마다 seed 를 `seed + k` 로 갈라 재현 가능하게 한다. `permutation`·`spin` 은 v1 처럼 **모든 template 에 같은 순열**을 준다.
+- 정중선 (x = 0) parcel 이 있으면 `roi_centroids` 가 멈춘다 — 반구 안 회전을 정의할 수 없기 때문이다.
+
+**실제 아틀라스 확인 (h197, Schaefer-100 MNI152NLin2009cAsym)**: parcel 100 (좌 50 · 우 50). seed 1730–1749 의 spin 20 개에서 거리행렬 상관 **중앙 0.485** (0.316–0.657), 단순 순열은 **0.007**, 반구 유지 전부 1.0.
+
+**돌연변이 13/14 검출** (`.backup/slot_wi09_0929/mut_v3templates.py`). 초기 12/14 에서 둘을 처리했다.
+- **진짜 구멍 1 건**: "rewire 를 정규화된 template 에서 수행" 이 통과했다. 정규화는 off-diagonal 의 **자리**를 바꾸지 않아 degree 검사로는 잡히지 않고 **값만 틀려진다**. 교환을 항등으로 바꾸면 원래 bank 가 그대로 나와야 한다는 시험을 더해 막았다.
+- 남은 1 건은 `vasa_permutation` 의 치환 검사인데, `linear_sum_assignment` 가 정의상 일대일 배정을 돌려주므로 **정상 경로로는 닿지 않는다**. 코드에 그 사실과 남겨 두는 이유 (반구 분할이 잘못되면 여기서 걸린다) 를 적었다.
+
+**다음**: 4 `config` 새 잠금 키 + `configs/exploratory_v2/` · 5 학습 subject 부분표집 · 6 v3 잠금·pilot e2e.
