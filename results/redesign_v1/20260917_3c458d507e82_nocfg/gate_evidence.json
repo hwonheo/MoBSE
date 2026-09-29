@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "4d63ac1beb2ead886dc331bd60f396adc5e1d188",
-  "timestamp_utc": "2026-09-29T08:14:07Z",
-  "revision": 76,
-  "supersedes_sha256": "427d697ed91e61c5a74714c2be07f1c3d2cd38ced5a016990ad67561b7082b77",
-  "revision_reason": "rev76 (2026-09-29): WI-11 연구 결과 패키지 (재설계 v1 내부 마감, 결정 27) 를 reports/wi11_research_package_2026-09-29.md 로 추가하고 G5 artifact_hashes 에 등록. G5 check 5 건 — claim–evidence 표 · 비용 (parameter·벽시계) · 제한과 음성 결과 · 실제 구현된 명령만 쓴 재현 절 · 사전등록 이탈 기록 — 전부 pass. §5 가 보조 비교의 not_reported (parameter/비용) 를 닫는다: A 6,469 대 S4 158,498 (24.5 배). G5 status 는 planned 그대로 (선생님 결정 사항). 다른 gate 판정·status 불변. 측정·구현 잠금과 mobse/v2 불변",
+  "git_head": "5e5bd3c374fad3dfdc37bca04082e2152f8202a5",
+  "timestamp_utc": "2026-09-29T08:34:00Z",
+  "revision": 77,
+  "supersedes_sha256": "6fed639fe2a961a55af781a04cdcbd938fd49c350767d07de77dcb39af093b08",
+  "revision_reason": "rev77 (2026-09-29): 선생님 승인으로 G5 Interpretation status 를 planned → cleared_with_limitations 로 올렸다. 근거는 WI-11 보고서와 rev76 의 G5 check 5 건 (전부 pass). 한계 셋을 status_note 에 적었다 — 외부 검증 없이 내린 해석 · 계획서 §8 사전등록 이탈 (사유 WI-11 §7) · H2 불확실과 interaction 판독 철회. G5 check 판정과 다른 gate 전부 불변, 잠금·mobse/v2 불변. G4 표기 (외부 단계 미수행) 는 정하지 않았다 — 보고 사항",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -431,7 +431,7 @@
     },
     {
       "gate": "G5 Interpretation",
-      "status": "planned",
+      "status": "cleared_with_limitations",
       "checks": [
         {
           "check": "claim-evidence table",
@@ -518,7 +518,8 @@
       "unresolved": [],
       "artifact_hashes": {
         "reports/wi11_research_package_2026-09-29.md": "c2e758e88205d0e8123139e81257651422a8114ae6b7886e1d3245845da1a907"
-      }
+      },
+      "status_note": "선생님 승인 (2026-09-29, \"G5 status 올릴지 결정은 권고 사항으로 바로 진행해 주길\") 으로 권고안을 적용했다. 계획서 §10 의 G5 필수 산출물 (claim–evidence 표 · 비용 · 제한 · 재현 패키지) 이 모두 있고 check 5 건이 전부 pass 다 (WI-11 보고서, rev76). 그러나 cleared 가 아니라 cleared_with_limitations 인 이유는 셋이다. (1) 이 해석은 **외부 검증 없이** 내부 결과만으로 내려졌다 — PIOP2 는 결정 27 로 열지 않았다. (2) 그것은 계획서 §8 '내부 결과가 음성이어도 외부 검증 수행' 의 **사전등록 이탈**이며 사유는 WI-11 §7 에 있다. (3) 주가설 둘 중 H2 는 불확실이고, 보조 interaction 판독은 결정 27-2 로 철회했다. G4 (External release) 가 planned 로 남아 있는 것은 이 버전에서 외부 단계를 수행하지 않았기 때문이며, 그 표기를 어떻게 할지는 아직 정하지 않았다 (보고 사항)."
     }
   ],
   "protocol_figures": {
@@ -5931,5 +5932,26 @@
     "g5_status_unchanged": "planned — status 변경은 선생님 결정 사항이라 건드리지 않았다. check 5 건은 전부 pass",
     "judgment_changed": "G5 check 0 → 5 (pass 5); G5 status 와 다른 gate 는 불변",
     "report_appendix": null
+  },
+  "decision_g5_status_rev77": {
+    "decision_quote": "G5 status 올릴지 결정은 권고 사항으로 바로 진행해 주길",
+    "decision_recorded": "2026-09-29 (대화)",
+    "recommendation_applied": "planned → cleared_with_limitations",
+    "why_not_plain_cleared": [
+      "외부 검증 없이 내부 결과만으로 내린 해석이다 (PIOP2 미개방, 결정 27)",
+      "계획서 §8 사전등록 이탈이다 (사유 WI-11 §7)",
+      "H2 불확실 · 보조 interaction 판독 철회 (결정 27-2)"
+    ],
+    "why_not_planned": "필수 산출물이 모두 있고 check 5/5 pass — planned 로 두면 결정 22·25 가 고친 낡은 표기와 같은 부류가 된다",
+    "vocabulary_precedent": "G1 이 같은 이유 (조건은 충족했으나 알려진 한계가 남음) 로 cleared_with_limitations 를 쓴다 (rev73)",
+    "unchanged": [
+      "G5 checks 5 건과 그 판정",
+      "G0·G1·G2·G3·G4 전부",
+      "측정 잠금 9b7b11cf",
+      "구현 잠금 bcf1fec22676",
+      "mobse/v2"
+    ],
+    "not_decided": "G4 (External release) 표기 — 이 버전에서 외부 단계를 수행하지 않았다는 사실을 gate 에 어떻게 적을지. planned 그대로 두었다 (보고 사항)",
+    "judgment_changed": "G5 status 만. check 판정은 불변"
   }
 }

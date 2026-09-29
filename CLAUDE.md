@@ -1,6 +1,6 @@
 # CLAUDE.md — MoBSE Project Context
 
-> 최종 갱신 2026-09-29 18:0x KST — **WI-11 연구 결과 패키지** 작성 (v1 내부 마감, `reports/wi11_research_package_2026-09-29.md`) → **gate rev76** (G5 check 5 건 pass, G5 status 는 planned 그대로), 인용 수치 독립 대조 실패 0. **결정 33** (v3 config 잠금 키: 8 칸 · 최대 수준에서 한 번 선택 · PCA 10 고정 · null M=20). v3 빌드 1·2·3·5 단계 완료. 그 직전: **결정 30·31·32**: 새 버전 축은 **T4 저표본 곡선**, 코드는 **새 모듈 `mobse/v3/`** (`mobse/v2` 불변 → v1 잠금·gate rev75 유효), 학습은 **update 예산 5,000 고정·epoch 상한 없음·best checkpoint 선택 자유**. 그 직전: **결정 29** (G-a·G-b 는 차단이 아니라 보고 장치; pilot 만·버리는 쪽으로만) 와 **G-a 선별 실행 완료** — 양성 대조 v1 target 1.000 (gate 가 작동함), 나머지 0.52–0.70 이나 pilot 31 규모라 우연과 구분 불가 (`sex` 0.536 이 민감도 경고). gate 는 rev75 그대로. 그 직전: **결정 28: 새 탐색 버전 설계 세 갈래** (축 미정 → 포화 선별 gate 우선 · ROI 구조 둘 다 병행 · null 은 M 축소 + 종류 확대) 와 설계안 초안 `docs/experiments/mobse_exploratory_v2_design_draft_2026-09-29.md`. 착수 전 확인 2건 완료 (등변성·spin). gate 는 **rev75 그대로** (v2 설계 측정은 v1 근거가 아님). 그 직전: **결정 27: 진로 (나) 확정** (현 버전 내부 마감 · PIOP2 미개방 · 새 탐색 버전 설계) + interaction 판독 철회, **A−S 진단** (결정 25-6) → **gate evidence rev75**, 부록 BZ·CA. 그 직전: WI-09 null 민감도 완료 → rev74, 부록 BY. 그 전 같은 날: 결정 25 기록, rev73 (09-28 실행 기록 + gate 표기), 부록 BT–BX, `resource_budget.md` 9.2, 커밋 `97e434a`. claude.ai Project 사본 동기화 중단 — 정본은 저장소 `docs/handoff/`.
+> 최종 갱신 2026-09-29 18:0x KST — **WI-11 연구 결과 패키지** 작성 (v1 내부 마감, `reports/wi11_research_package_2026-09-29.md`) → **gate rev76** (G5 check 5 건 pass) → **rev77** (승인으로 G5 `planned` → `cleared_with_limitations`), 인용 수치 독립 대조 실패 0. **결정 33** (v3 config 잠금 키: 8 칸 · 최대 수준에서 한 번 선택 · PCA 10 고정 · null M=20). v3 빌드 1·2·3·5 단계 완료. 그 직전: **결정 30·31·32**: 새 버전 축은 **T4 저표본 곡선**, 코드는 **새 모듈 `mobse/v3/`** (`mobse/v2` 불변 → v1 잠금·gate rev75 유효), 학습은 **update 예산 5,000 고정·epoch 상한 없음·best checkpoint 선택 자유**. 그 직전: **결정 29** (G-a·G-b 는 차단이 아니라 보고 장치; pilot 만·버리는 쪽으로만) 와 **G-a 선별 실행 완료** — 양성 대조 v1 target 1.000 (gate 가 작동함), 나머지 0.52–0.70 이나 pilot 31 규모라 우연과 구분 불가 (`sex` 0.536 이 민감도 경고). gate 는 rev75 그대로. 그 직전: **결정 28: 새 탐색 버전 설계 세 갈래** (축 미정 → 포화 선별 gate 우선 · ROI 구조 둘 다 병행 · null 은 M 축소 + 종류 확대) 와 설계안 초안 `docs/experiments/mobse_exploratory_v2_design_draft_2026-09-29.md`. 착수 전 확인 2건 완료 (등변성·spin). gate 는 **rev75 그대로** (v2 설계 측정은 v1 근거가 아님). 그 직전: **결정 27: 진로 (나) 확정** (현 버전 내부 마감 · PIOP2 미개방 · 새 탐색 버전 설계) + interaction 판독 철회, **A−S 진단** (결정 25-6) → **gate evidence rev75**, 부록 BZ·CA. 그 직전: WI-09 null 민감도 완료 → rev74, 부록 BY. 그 전 같은 날: 결정 25 기록, rev73 (09-28 실행 기록 + gate 표기), 부록 BT–BX, `resource_budget.md` 9.2, 커밋 `97e434a`. claude.ai Project 사본 동기화 중단 — 정본은 저장소 `docs/handoff/`.
 > 이전 갱신 2026-09-29 09:2x KST — "인수인계 — 2026-09-29" 절 추가 (Cowork 세션 → 터미널 Claude Code), 정본 포인터를 저장소 `docs/handoff/` 로 옮김 (그때 gate 는 rev72). 그 이전 (2026-09-26 23:3x, rev60–rev72 의 세부) 은 `.backup/CLAUDE_2026092*.md` 에 있다. 모든 수치는 실측값이며 출처를 함께 적음.
 > 이전판(2026-09-18)은 `.backup/CLAUDE_20260925_201635.md` 에, 2026-04-17판은 `.backup/CLAUDE.md_20260918_*.md` 에 보존됨.
 > **현행 상태의 정본은 이 파일이 아님** — 저장소 `docs/handoff/` 의 문서 (읽는 순서는 아래 "인수인계 — 2026-09-29" 절) 와 가장 높은 revision 의 `gate_evidence.json`. 이 파일은 저장소에 들어온 사람을 위한 방향 안내다.
@@ -92,7 +92,7 @@
 
 ### WI-11 · 결정 33 (2026-09-29)
 
-- **WI-11 연구 결과 패키지** — `results/redesign_v1/.../reports/wi11_research_package_2026-09-29.md` (sha `c2e758e88205`). claim–evidence 10 행 · 비용 · 음성 결과 7 · 사전등록 이탈 사유 4 · 한계 6 · 재현 명령. **gate rev76** 에 등록하고 G5 check 5 건 pass — **G5 `status` 는 `planned` 그대로** (변경은 선생님 결정 사항). 인용 수치 독립 대조 **실패 0**.
+- **WI-11 연구 결과 패키지** — `results/redesign_v1/.../reports/wi11_research_package_2026-09-29.md` (sha `c2e758e88205`). claim–evidence 10 행 · 비용 · 음성 결과 7 · 사전등록 이탈 사유 4 · 한계 6 · 재현 명령. **gate rev76** 에 등록하고 G5 check 5 건 pass → **rev77 에서 G5 `status` 를 `planned` → `cleared_with_limitations`** (선생님 승인 "권고 사항으로 바로 진행"). 단순 `cleared` 가 아닌 이유 셋을 `status_note` 에 적었다 — 외부 검증 없이 내린 해석 · 계획서 §8 사전등록 이탈 · H2 불확실과 interaction 판독 철회. 인용 수치 독립 대조 **실패 0**.
 - **비용 실측** (보조 비교의 `not_reported` 를 닫음): A·C 6,469 · B·D 6,021 · SG 6,018 · NG 5,154 · S3 4,951 · **S4 158,498** parameter. **S4 가 A 보다 24.5 배 큰데 12 %p 이긴다** → 효율 우위 주장 불가.
 - **결정 33 (v3 config 잠금 키)**: 칸 **A–D × 2 구조 = 8 칸** · config grid 선택은 **가장 큰 수준 (N=100) 에서 한 번** 후 전 수준 재사용 · gate PCA **10 고정** (grid 안 엶) · null **M = 20**. 정하지 않은 것: δ·endpoint 해상도, G-b simulation 시점, 저표본 fit 당 실제 시간 (착수 전 실측 필요).
 
@@ -166,7 +166,7 @@ MoBSE (Mixture of Brain-State Experts): fMRI 시계열을 dFC 유래 전문가 �
 - split_hash `ace5f4a4…` (불변). 외부 최종 선택용 main pool 3-fold (seed 20262000) 는 별도 `external_folds.json` (42/42/42, external_split_hash `40e50350…`, 결정 17).
 - h197 경로 (data root 상대): subjects `derivatives_v3/cohort_piop1/subjects.jsonl`, 분할 `derivatives_v3/splits_piop1_p7/{folds.json, external_folds.json}`.
 
-## Gate 현황 (gate_evidence.json revision 73 — 09-28 실행 기록 + 결정 25-1 gate 표기, 2026-09-29)
+## Gate 현황 (gate_evidence.json revision 77 — WI-11 과 G5, 2026-09-29)
 
 | Gate | 상태 |
 |---|---|
@@ -174,8 +174,8 @@ MoBSE (Mixture of Brain-State Experts): fMRI 시계열을 dFC 유래 전문가 �
 | G1 Measurement lock | **cleared_with_limitations** (검사 8건: pass 6 · fail 2 — group_id 구성, δ=0.02 정밀도. 둘 다 계획서 P4·§8 이 정한 알려진 한계) |
 | G2 Implementation lock | **cleared** (검사 5건: pass 5) |
 | G3 Internal release | **cleared** (검사 3건: pass 3 — §7 fit 예산 · A–D main OOF 완료 기준 · 보조 비교 완료) |
-| G4 External release | planned (검사 1건 pass. `unresolved` 는 U17 만 — PIOP2 착수는 결정 25-3 으로 보류) |
-| G5 Interpretation | planned (검사 0건) |
+| G4 External release | planned (검사 1건 pass. `unresolved` 는 U17 만 — **결정 27 로 이 버전에서는 외부 단계를 하지 않는다**. 그 사실을 gate 에 어떻게 적을지는 **미정 — 보고 사항**) |
+| G5 Interpretation | **cleared_with_limitations** (검사 5건: pass 5 — WI-11. 한계 셋: 외부 검증 없이 내린 해석 · 계획서 §8 사전등록 이탈 · H2 불확실과 interaction 판독 철회) |
 
 - 정본은 `results/redesign_v1/20260917_3c458d507e82_nocfg/gate_evidence.json` 이며 **revision이 올라가면 이전 판정표를 인용하지 말 것.** 순서는 revision 번호로만 봄 (`timestamp_utc` 는 거꾸로 간 적 있음).
 - rev73 이 바꾼 것 (결정 25-1 = main_oof 문서 "gate 표기 권고" 1–6): G0 `conditionally_cleared`→`cleared` (U3·U6 삭제, U10 은 G1 로), G1 `in_progress`→`cleared_with_limitations` (**check 판정은 불변**), G2·G3 `planned`→`cleared`, G3 check 1→3, "blocked by G0"·"blocked by G0/G1" 표기 전부 삭제. G4·G5 `status` 는 planned 그대로. 보고서 부록 BX.

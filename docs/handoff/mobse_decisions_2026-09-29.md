@@ -411,3 +411,34 @@ P8-b 는 `MIN_UPDATES = 5000` 과 `MAX_EPOCHS = 400` 을 함께 잠갔다. 창 8
 
 **독립 대조**: `.backup/slot_wi09_0929/verify_wi11.py` (gitignore) 가 문서의 인용 수치를 산출물에서 다시 계산해 대조한다 — primary 두 contrast · 칸별 BA 7 · 보조 contrast 3 · 완료 기준·누설 (main + null seed 4) · null 범위 · 진단 수치 · 자료 흐름 · 잠금 해시 4. **실패 0 건.**
 - 처음 6 건이 불일치로 나왔는데 **문서 오류가 아니라 대조기 결함**이었다: 문서는 활자용 빼기표 (U+2212) 를 쓰고 대조기는 ASCII 하이픈으로 찾았다. 정규화해 고쳤다.
+
+## G5 status — 권고안 적용 (2026-09-29, gate rev77)
+
+선생님 회신 원문: **"G5 status 올릴지 결정은 권고 사항으로 바로 진행해 주길"**.
+
+**적용**: G5 Interpretation `planned` → **`cleared_with_limitations`**.
+
+**왜 `planned` 이 아닌가**: 계획서 §10 의 G5 필수 산출물 (claim–evidence 표 · 비용 · 제한 · 재현 패키지) 이 모두 있고 check 5 건이 전부 pass 다 (WI-11, rev76). 그대로 두면 결정 22·25 가 고쳤던 **낡은 표기**와 같은 부류가 된다.
+
+**왜 단순 `cleared` 가 아닌가** — 세 가지를 gate 표에서 바로 보이게 하려는 것이다.
+1. 이 해석은 **외부 검증 없이** 내부 결과만으로 내렸다 (PIOP2 미개방, 결정 27).
+2. 그것은 계획서 §8 **사전등록 이탈**이다 (사유 WI-11 §7).
+3. 주가설 둘 중 **H2 는 불확실**이고 보조 interaction 판독은 철회했다 (결정 27-2).
+
+어휘 전례: G1 이 같은 이유 (조건은 충족했으나 알려진 한계가 남음) 로 `cleared_with_limitations` 를 쓴다 (rev73).
+
+**바꾸지 않은 것**: G5 check 5 건의 판정, G0–G4 전부, 측정·구현 잠금, `mobse/v2`.
+
+### 보고 사항 — G4 표기는 정하지 않았다
+G4 (External release) 가 `planned` 로 남아 있는데, 결정 27 로 **이 버전에서는 외부 단계를 수행하지 않는다.** `planned` 는 "아직 오고 있다" 로 읽히므로 정확하지 않다. 어떻게 적을지 (예: `not_pursued_in_this_version` 같은 새 값, 또는 `status_note` 만 보강) 는 **선생님 판단 사항**이라 건드리지 않았다.
+
+### gate rev77 판정표
+
+| Gate | status | checks |
+|---|---|---|
+| G0 Provenance | `cleared` | 10 (pass 10) |
+| G1 Measurement lock | `cleared_with_limitations` | 8 (pass 6 · fail 2) |
+| G2 Implementation lock | `cleared` | 5 (pass 5) |
+| G3 Internal release | `cleared` | 3 (pass 3) |
+| G4 External release | `planned` (표기 미정) | 1 (pass 1) |
+| G5 Interpretation | **`cleared_with_limitations`** | 5 (pass 5) |
