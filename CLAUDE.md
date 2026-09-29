@@ -1,6 +1,6 @@
 # CLAUDE.md — MoBSE Project Context
 
-> 최종 갱신 2026-09-29 12:4x KST — **WI-09 null 민감도 완료** (결정 25-2·25-5 착수, 결정 26 구현 (가)) → **gate evidence rev74**, 보고서 부록 BY. 그 전 같은 날: 결정 25 기록, rev73 (09-28 실행 기록 + gate 표기), 부록 BT–BX, `resource_budget.md` 9.2, 커밋 `97e434a`. claude.ai Project 사본 동기화 중단 — 정본은 저장소 `docs/handoff/`.
+> 최종 갱신 2026-09-29 13:1x KST — **결정 27: 진로 (나) 확정** (현 버전 내부 마감 · PIOP2 미개방 · 새 탐색 버전 설계) + interaction 판독 철회, **A−S 진단** (결정 25-6) → **gate evidence rev75**, 부록 BZ·CA. 그 직전: WI-09 null 민감도 완료 → rev74, 부록 BY. 그 전 같은 날: 결정 25 기록, rev73 (09-28 실행 기록 + gate 표기), 부록 BT–BX, `resource_budget.md` 9.2, 커밋 `97e434a`. claude.ai Project 사본 동기화 중단 — 정본은 저장소 `docs/handoff/`.
 > 이전 갱신 2026-09-29 09:2x KST — "인수인계 — 2026-09-29" 절 추가 (Cowork 세션 → 터미널 Claude Code), 정본 포인터를 저장소 `docs/handoff/` 로 옮김 (그때 gate 는 rev72). 그 이전 (2026-09-26 23:3x, rev60–rev72 의 세부) 은 `.backup/CLAUDE_2026092*.md` 에 있다. 모든 수치는 실측값이며 출처를 함께 적음.
 > 이전판(2026-09-18)은 `.backup/CLAUDE_20260925_201635.md` 에, 2026-04-17판은 `.backup/CLAUDE.md_20260918_*.md` 에 보존됨.
 > **현행 상태의 정본은 이 파일이 아님** — 저장소 `docs/handoff/` 의 문서 (읽는 순서는 아래 "인수인계 — 2026-09-29" 절) 와 가장 높은 revision 의 `gate_evidence.json`. 이 파일은 저장소에 들어온 사람을 위한 방향 안내다.
@@ -23,9 +23,9 @@
 - **결정 24** → 보조 비교 (S 4 후보·NG·SG) 완료: `$D/main_oof/20260928_1cd4054_aux_a1/` (`ALL_RC=0`). smoke 판 `$D/main_oof/20260928_aux_smoke/`.
 - 결과 (BA): A 0.877 · B 0.722 · C 0.893 · D 0.790 · S 1.000 · NG 0.889 · SG 0.810.
   - primary (97.5% CI): **H1 A−B +0.155 [+0.095, +0.214]** (하한 > δ) · **H2 A−C −0.016 [−0.052, +0.020] 불확실** → 두 기여를 함께 주장할 수 없음 (§8).
-  - 보조 (95% CI): interaction +0.052 [+0.004, +0.099] · A−S −0.123 [−0.163, −0.083] · A−NG −0.012 [−0.052, +0.028] · A−SG +0.067 [+0.016, +0.119].
+  - 보조 (95% CI): interaction +0.052 [+0.004, +0.099] — **판독 철회 (결정 27-2): 순열 하나에 기댄 값이라 "추가 기여 지지" 로 쓰지 않는다** · A−S −0.123 [−0.163, −0.083] · A−NG −0.012 [−0.052, +0.028] · A−SG +0.067 [+0.016, +0.119].
   - sha256 앞자리: `statistics.json` `f0a9847bb61c` · `comparison_statistics.json` `a62e6239fbab`.
-- **gate evidence 는 rev74** — 09-28 실행 기록·결정 25-1 gate 표기 (rev73, 부록 BT–BX) 에 이어 WI-09 null 민감도 기록 (rev74, 부록 BY). gate 판정은 rev73 과 같다.
+- **gate evidence 는 rev75** — rev73 (09-28 실행 기록 + gate 표기, 부록 BT–BX) → rev74 (WI-09 null 민감도, 부록 BY) → rev75 (A−S 진단 + 결정 27, 부록 BZ·CA). gate 판정·status 는 rev73 그대로.
 - 구동기는 gitignore 영역 (버전 관리 밖): Mac `.backup/slot_thr_0928/` — `main_driver.py`·`main_setup.sh`·`main_check.py`·`aux_driver.py` (v2)·`aux_driver_v1.py` (결함판)·`aux_setup.sh`·`aux_resume.sh`·`thr_{driver,setup,compare}`. h197 산출 root 에도 driver 사본이 있다.
 - 스레드 고정: 프로세스당 `OMP/MKL/OPENBLAS/NUMEXPR_NUM_THREADS=2` + 동시 k=4. pilot 96 fit 창 예측·checkpoint 바이트 동일, fit 당 벽시계 158.9 s → 73.5 s. main inner 480 은 2 h 44 m, outer 60 은 26.4 분 (`resource_budget.md` 9.2).
 
@@ -53,7 +53,14 @@
 
 - A 0.8770 · B 0.7222 · H1 A−B +0.1548 은 다섯 판 모두 같다 (A·B 는 null 과 무관).
 - **① A−C 는 다섯 판 전부 [−0.016, 0.000], CI 모두 0 포함** → H2 의 불확실은 순열 선택 탓이 아니다. **② 보조 interaction 은 primary 판에서만 하한 > 0** (민감도 네 판은 하한 ≤ 0) → 그 보조 판독은 순열 하나에 기대고 있었다. primary 판정은 바꾸지 않는다 (§8).
-- **다음 결정**: 결정 25-2 의 (다) 는 "WI-09 뒤 (나) 판단" 이었다 → **(나) (내부 마감 + 새 탐색 버전 설계) 여부가 선생님 판단 대기**.
+- **결정 27 로 (나) 확정** — 현 버전은 내부 결과로 마감, PIOP2 는 열지 않음, 새 탐색 버전 설계. 사전등록 §8 이탈이라 사유를 부록 CA.3 에 기록했다.
+
+### 결정 27 (2026-09-29) — 진로 (나) · interaction 철회 · A−S 진단
+
+- **(나) 로 확정**: 현 버전은 내부 결과로 마감 · **PIOP2 는 열지 않음** · 새 탐색 버전 설계. 사전등록 (§8 "내부 결과가 음성이어도 외부 검증 수행") **이탈**이며 사유 4개를 부록 CA.3 에 적었다 — 최종 보고서 (WI-11) 에 옮겨야 한다.
+- **interaction 판독 철회**: primary 판만 하한 > 0, 민감도 네 판은 모두 하한 ≤ 0. "추가 기여 지지" 서술을 쓰지 않는다. `statistics.json` 수치는 그대로 (§8).
+- **A−S 진단** (결정 25-6, 새 학습 없음, 부록 BZ): S 는 252 run 전부 정답. A 는 31 run 오답인데 **18 개가 margin 0.1 미만**이고 **26 개가 emomatching** 이다. A 감점 30 명 중 29 명은 **한 run 만** 틀렸고, 그 30 명은 **S 에서 전원 만점**. → 틀리는 run 이 어려운 게 아니라 A 의 경로 (FC 4,950 → gate PCA 10) 가 정보를 잃는다는 관측. 새 버전 설계 변수로 **PCA 압축 폭**을 추가.
+- **정하지 않은 것**: 새 탐색 버전의 target·구조·null 설계·δ·N. PIOP2 를 영영 안 쓴다는 뜻도 아니다.
 
 ### 작업 규칙 (선생님 지시 — 모든 세션 공통)
 - 한국어·간결·쉬운 말. 수치·시각·상태는 명령으로 확인한 값만 쓰고, 확인하지 못한 것은 따로 적는다.
@@ -189,7 +196,7 @@ python -B scripts/h197/27_build_implementation_lock.py --verify --data-root $D -
 `release_id` = `YYYYMMDD_<short-code-hash>_<config-hash-prefix>`. **같은 release 결과를 덮어쓰지 않으며** 실패 재시도는 attempt 번호를 덧붙임. 데이터·run 단위 provenance 는 커밋하지 않음.
 
 ## 고정 운영 규칙
-- main OOF 는 **결정 23 (2026-09-28) 으로 실행 완료**, 보조 비교는 결정 24 로 완료. **null 민감도 (WI-09) 는 결정 25-2·25-5 로 승인** (기록·커밋 뒤 착수). **외부 선택/최종 fit·PIOP2 평가 (WI-08) 는 결정 25-3 으로 보류 — 선생님 원문 승인 전 시작하지 않음.** 결정 17 (외부 분할) 도 외부 실행 승인이 아님.
+- main OOF 는 **결정 23 (2026-09-28) 으로 실행 완료**, 보조 비교는 결정 24 로 완료. **null 민감도 (WI-09) 는 결정 25-2·25-5 로 승인** (기록·커밋 뒤 착수). **외부 선택/최종 fit·PIOP2 평가 (WI-08) 는 결정 27 로 현 버전에서 하지 않음** — 새 탐색 버전의 확증용으로 남긴다. 다시 열려면 선생님 원문 승인이 필요하다. 결정 17 (외부 분할) 도 외부 실행 승인이 아님.
 - 공용 저장소(NAS, bmc-storage 등)에 쓰지 않음. `/tmp` 에 정본 산출물을 두지 않음.
 - 돌연변이 시험은 bytecode 없이 (`python -B` + `PYTHONDONTWRITEBYTECODE=1`), 돌연변이 뒤·rsync 전·잠금 재생성 전에 `find mobse scripts tests -name '*.pyc'` 0 확인.
 - 커밋 메시지는 Conventional Commits (영문), 파일로 써서 `git commit -F` (zsh heredoc 사고).
@@ -223,10 +230,10 @@ python -B scripts/h197/27_build_implementation_lock.py --verify --data-root $D -
 
 ## Next Steps
 정본은 `docs/handoff/mobse_decisions_2026-09-29.md` "결정 25 이후 진행" 과 위 인수인계 절. 2026-09-29 기준 요지:
-1. **선생님 판단 대기: (나) 로 갈지** — 결정 25-2 의 (다) 대로 WI-09 를 마쳤다 (rev74, 부록 BY). 이제 현 버전을 내부 결과로 마감하고 PIOP2 는 보류한 채 새 탐색 버전을 설계할지 정할 차례다. 재료는 부록 BY 의 두 읽을 거리와 midreview 3절.
-2. **A−S 진단** (결정 25-6) — 새 학습 없이 기존 산출물만 읽는 진단. 가역이라 아무 때나 가능.
-3. **선생님 승인 대기**: PIOP2 외부 평가 (WI-08) 착수 — 되돌릴 수 없다. 외부 S·NG·SG 포함 여부와 U17 해소 판단을 함께 정한다. 미구현: (9,9) final fit 배선, PIOP2 평가 경로, `external_lock.json`, 시험, 잠금 새 판·gate revision.
-4. 결정 불요 후보: h197 정리 (삭제는 선생님 확인 뒤 — `pilot_e2e/20260926_1515c/`·`impl_lock/20260926_2215d/`·`main_oof/` 는 지우지 않음).
+1. **새 탐색 버전 설계안 작성** (결정 27 로 열림) — 후보 요소: ROI 를 구분하는 구조 (ROI embedding 또는 ROI 별 readout), 그래프가 필요한 target, 다수 순열 분포 검정 + 공간 보존 null (spin)·degree 보존 rewiring, 학습·일반 그래프 대조, main 전 검정력 simulation gate, **gate 입력 FC 압축 폭 (PCA 10)**. 설계안은 선생님 확인 뒤 확정.
+2. **현 버전 마감 문서 (WI-11 연구 결과 패키지)** — claim–evidence 표, dataset flow, 핵심 2 contrasts 와 S 결과, 음성 결과, **사전등록 이탈 사유 (부록 CA.3)** 포함.
+3. **PIOP2 는 열지 않음** (결정 27). `external_folds.json` (결정 17) 과 미구현 배선은 그대로 둔다 — 새 버전의 확증용으로 남긴다.
+4. 결정 불요 후보: h197 정리 (삭제는 선생님 확인 뒤 — `pilot_e2e/20260926_1515c/`·`impl_lock/20260926_2215d/`·`main_oof/`·`null_sens/` 는 지우지 않음).
 
 ## Excluded Datasets (and why)
 - **HCP**: DUA 필요, 데이터 접근 불확실

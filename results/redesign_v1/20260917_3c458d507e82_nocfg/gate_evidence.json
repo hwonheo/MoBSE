@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "97e434add2d36d2801ae34ea94b91edfe29bfd25",
-  "timestamp_utc": "2026-09-29T03:36:24Z",
-  "revision": 74,
-  "supersedes_sha256": "6b5edc871de236fbf0d31e6f42ece3dc6c4ad6305a68d657673cfb3ce22a5b35",
-  "revision_reason": "rev74 (2026-09-29): WI-09 null 민감도 기록 (결정 25-2·25-5 착수, 결정 26 구현 (가)) — seed 1730–1733 각각 A·B·C·D outer 60 fit (총 240, 실패 0) → evaluate·report, ALL_RC=0, 누설 0. A−C 는 다섯 판 전부 [−0.016, 0.000] 이고 CI 가 모두 0 을 포함 — H2 의 불확실은 순열 선택 탓이 아니다. 보조 interaction 은 primary 판에서만 하한 > 0 이었다 (민감도 네 판은 하한 ≤ 0). 새 블록 decision26_wi09_null_sensitivity_rev74, 보고서 부록 BY. gate 판정·status 는 rev73 그대로. mobse/v2 와 측정·구현 잠금 불변 (9b7b11cf · bcf1fec22676)",
+  "git_head": "89c336a59404e3c10fa26598763e2a869ade64f5",
+  "timestamp_utc": "2026-09-29T04:21:58Z",
+  "revision": 75,
+  "supersedes_sha256": "144df61654fe6d553737753672c4ab59b3d0834072c526be524242fbea8e4fd2",
+  "revision_reason": "rev75 (2026-09-29): 결정 25-6 A−S 진단 (새 학습 없음 — S 는 252 run 전부 정답, A 는 31 run 오답이며 그중 18 개가 margin 0.1 미만·26 개가 emomatching, 감점 30 명 중 29 명이 한 run 만 틀림, A 감점자는 S 에서 전원 만점) 과 결정 27 (진로 (나) 확정 — 현 버전 내부 마감·PIOP2 미개방·새 탐색 버전 설계, 사전등록 §8 이탈 사유 기록; 보조 interaction 판독 철회 — 민감도 네 판 모두 하한 ≤ 0). 새 블록 decision25_6_as_diagnostic_rev75 · decision27_direction_and_interaction_rev75, 보고서 부록 BZ·CA. gate 판정·status 는 rev73 그대로. statistics.json 과 mobse/v2·잠금 불변",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -104,7 +104,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "4ab725c9f75d6036e9178607b80a719c7dc4515a0c978f7d1cf6dd9c15c1244e"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "262dc0b30ad2d65d4fc55a49ff4803fe9616d9bc9859a6451764abe31a57421f"
       },
       "status_note": "결정 25-1 (2026-09-29, 권고 3) 로 cleared. check 10/10 pass. U3 (버려진 volume) 는 부록 F.1 로 해소됐고 (u3_discarded_volumes.status: resolved), U6 (targets, Wave 2) 는 Wave 2 수령 완료로 해소됐다 — 둘 다 낡은 표기였다. U10 (group_id 를 지을 지역 metadata 없음) 은 계획서 개정 P4 가 처리한 알려진 한계이며 G1 unresolved 로 옮겨 적었다. 이전 note 가 조건으로 달았던 재추출 (derivatives_v3, 부록 AA) 과 QC (WI-02) 는 끝났다."
     },
@@ -5670,5 +5670,152 @@
     ],
     "judgment_changed": false,
     "report_appendix": "BY"
+  },
+  "decision25_6_as_diagnostic_rev75": {
+    "decision_quote": {
+      "25-4": "추가 분석 후 판단",
+      "25-6": "새 학습 없는 진단만"
+    },
+    "method": "main evaluate 산출물 + 보조 비교 산출물만 읽음 — 새 fit·새 변환·새 bootstrap 없음",
+    "script": ".backup/slot_wi09_0929/as_diagnostic.py (gitignore)",
+    "subject_score_distribution": {
+      "S": {
+        "0": 0,
+        "0.5": 0,
+        "1": 126
+      },
+      "C": {
+        "0": 2,
+        "0.5": 23,
+        "1": 101
+      },
+      "NG": {
+        "0": 2,
+        "0.5": 24,
+        "1": 100
+      },
+      "A": {
+        "0": 1,
+        "0.5": 29,
+        "1": 96
+      },
+      "SG": {
+        "0": 2,
+        "0.5": 44,
+        "1": 80
+      },
+      "D": {
+        "0": 2,
+        "0.5": 49,
+        "1": 75
+      },
+      "B": {
+        "0": 4,
+        "0.5": 62,
+        "1": 60
+      }
+    },
+    "wrong_runs": {
+      "A": {
+        "n_wrong": 31,
+        "n_runs": 252,
+        "emomatching": 26,
+        "workingmemory": 5,
+        "median_margin_correct": 0.3423,
+        "median_margin_wrong": 0.0825,
+        "wrong_with_margin_below_0.1": 18
+      },
+      "C": {
+        "n_wrong": 27,
+        "emomatching": 15,
+        "workingmemory": 12,
+        "median_margin_correct": 0.3206,
+        "median_margin_wrong": 0.1011
+      },
+      "D": {
+        "n_wrong": 53,
+        "emomatching": 46,
+        "workingmemory": 7
+      },
+      "B": {
+        "n_wrong": 70,
+        "emomatching": 63,
+        "workingmemory": 7
+      }
+    },
+    "subject_overlap_with_A": {
+      "A_imperfect": 30,
+      "A_and_B": 24,
+      "A_and_D": 22,
+      "A_and_C": 19,
+      "A_and_SG": 18,
+      "A_and_NG": 15,
+      "A_and_S": 0,
+      "A_imperfect_but_S_perfect": 30
+    },
+    "A_error_shape": {
+      "both_runs_wrong": 1,
+      "one_run_wrong": 29,
+      "wrong_runs_total": 31
+    },
+    "readings": [
+      "이 target 에서 틀리는 run 은 본래 어려운 run 이 아니다 — S 가 252 run 을 전부 맞힌다",
+      "A 의 오답은 얕다 (틀린 run 중앙 margin 0.083 대 맞힌 run 0.342; 31 개 중 18 개가 0.1 미만) — 경계에서 흔들린 것",
+      "A 의 오답은 emomatching 으로 쏠린다 (26 대 5); B·D 도 같은 방향, C 는 고르다",
+      "A 감점자 30 명 중 15 명이 NG 에서도 감점 — 두 경로가 정보를 상당 부분 공유 (A−NG −0.012 와 같은 방향)",
+      "관측이며 인과 설명이 아니다 — PCA 차원을 바꿔 다시 학습하는 것은 새 exploratory version"
+    ],
+    "data_root_outputs": {
+      "main_oof/20260928_1cd4054_aux_a1/diagnostic/as_diagnostic.json": "e86625d873a92bec36a1e17d94d92a87bb159bea9af0264488758297b9d86e75"
+    },
+    "not_done": [
+      "gate PCA 10 이 버리는 정보량의 직접 측정 (변환 재계산이 필요)",
+      "촬영 순서·움직임 교란 대조 (계획 밖)",
+      "emomatching 쏠림의 원인"
+    ],
+    "judgment_changed": false,
+    "report_appendix": "BZ"
+  },
+  "decision27_direction_and_interaction_rev75": {
+    "decision_recorded": "2026-09-29 (선택 TUI 2문항)",
+    "answers": {
+      "27-1 진로": "(나) 로 간다",
+      "27-2 interaction": "주장에서 뺀다"
+    },
+    "decided": [
+      "현 버전 (재설계 v1) 은 내부 결과로 마감한다",
+      "PIOP2 는 열지 않는다 — 결정 25-3 의 보류가 확정됐다",
+      "새 탐색 버전을 설계한다",
+      "보고서·논문에서 'interaction 이 추가 기여를 지지한다' 는 서술을 쓰지 않는다"
+    ],
+    "not_decided": [
+      "새 탐색 버전의 내용 (target·모델 구조·null 설계·δ·N) — 설계안을 따로 올린다",
+      "PIOP2 를 영영 쓰지 않는다는 뜻은 아니다 (새 버전의 확증용으로 남긴다)"
+    ],
+    "preregistration_departure": {
+      "clause": "계획서 §8 '내부 결과가 음성이어도 외부 검증 수행'",
+      "status": "이탈 — 사유를 기록한다 (부록 CA.3)",
+      "reasons": [
+        "H2 의 불확실이 순열 선택 탓이 아님을 WI-09 가 보였다 (다섯 판 전부 A−C ∈ [−0.016, 0.000], CI 모두 0 포함) → 같은 설계로 PIOP2 를 열면 같은 이유로 다시 불확실할 가능성이 크다 [추정]",
+        "PIOP2 는 한 번만 열 수 있다 — 확증력이 거의 없는 실행에 그 한 번을 쓰면 새 설계의 확증 수단이 사라진다",
+        "target 자체가 이 가설에 부적절하다는 증거가 모였다: S 1.000 (부록 BW), NG ≈ A, 부록 BZ (틀리는 run 이 본래 어려운 run 이 아님)",
+        "내부 결과 (H1 지지 · H2 불확실) 는 그대로 보고한다 — 음성 결과를 숨기려는 생략이 아니다"
+      ],
+      "must_appear_in_final_report": "WI-11 연구 결과 패키지에 옮겨 적는다"
+    },
+    "interaction_retraction": {
+      "fact": "primary (null seed 1729) interaction +0.0516 [+0.0040, +0.0992] 는 하한이 0 을 넘지만, WI-09 민감도 네 판은 모두 하한 ≤ 0 (부록 BY.6)",
+      "action": "서술에서 '추가 기여 지지' 를 쓰지 않고, 값을 적을 때 '순열 하나에 기댄 판독' 단서를 단다",
+      "unchanged": "statistics.json 의 수치와 그 파일이 낸 판독 문구, 부록 BV.3 의 인용 — 계획서 §8 (민감도를 primary 에 역반영하지 않는다)"
+    },
+    "closed": [
+      "PIOP2 외부 평가 (WI-08) — 현 버전에서는 하지 않는다. external_folds.json (결정 17) 과 미구현 배선은 그대로 둔다"
+    ],
+    "opened": [
+      "새 탐색 버전 설계안 작성 (midreview 3절 (나) 후보 + 부록 BZ 가 보탠 'gate 입력 FC 압축 폭 (PCA 10) 을 설계 변수로')",
+      "현 버전 마감 문서 (WI-11) 는 별도 작업"
+    ],
+    "judgment_changed": false,
+    "report_appendix": "CA"
   }
 }
