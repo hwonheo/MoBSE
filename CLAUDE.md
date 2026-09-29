@@ -67,7 +67,7 @@
 설계안 초안: **`docs/experiments/mobse_exploratory_v2_design_draft_2026-09-29.md`** (읽는 순서 5번 다음).
 
 - **축 미정** → **포화 선별 gate (G-a) 가 1 순위**. 후보 target 을 pilot 에서 걸러 본 뒤 축을 정한다. 선별 가능한 라벨은 초안 §5.1 (성별·raven·NEO·나이·과제 정확도·RT — 전부 기존 자료).
-- **G-d ROI 구조: ROI embedding + ROI 별 readout 병행 비교** (칸 2 배). 두 구조가 순열 등변성을 깨는 것은 **확인 완료** — v1 현행 1.19e−07 (등변) vs embedding 5.68e−03 · readout 1.27e−03.
+- **G-d ROI 구조: ROI embedding + ROI 별 readout 병행 비교** (칸 2 배). 두 구조가 순열 등변성을 깨는 것은 **확인 완료** — v1 현행 1.19e−07 (등변) vs embedding 5.68e−03 · readout 1.27e−03. **정정**: readout 의 값은 무작위 초기화로 잰 것이고, 구현은 0 초기화라 **학습 전에는 mean 과 같고 등변**이다 — 학습이 가중치를 움직인 뒤에 갈라진다 (`tests/v3` 가 고정).
 - **G-c null: M 축소 + 종류 확대** — 순열 · **공간 보존 (spin)** · degree 보존 rewiring 을 각 M=20. spin 은 **numpy+scipy 만으로 구현 가능 확인** (거리행렬 상관 0.497 대 단순 순열 0.003, 반구 유지 1.000). 세 null × M=20 은 120 fit ≈ 0.9 h [추정] — 전면 M=100 (22 h) 보다 20 배 싸다.
 - **남은 결정**: G-a 기준값 · 선별을 어디서 할지 (pilot 31 은 표본이 작다) · G-b 검정력 기준값 · M · δ·endpoint 해상도 · 후보 전부 탈락 시 대안.
 - v2 설계 측정은 **gate evidence 에 넣지 않는다** — v1 release 의 근거가 아니다.

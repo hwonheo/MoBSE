@@ -177,6 +177,10 @@ primary 판 (seed 1729) 만 하한 +0.0040 > 0 이고 민감도 네 판은 모�
 | + ROI 별 readout | 1.27e−03 | 1.14e−03 | 예 |
 
 크기는 성능을 뜻하지 않는다 (학습 전 가중치) — 읽을 수 있는 것은 "0 인가 아닌가" 뿐이다.
+> **정정 (2026-09-29, v3 빌드 2 단계)**: 위 `readout` 의 1.27e−03 은 **무작위 초기화**로 잰 값이다.
+> 실제 구현은 `roi_readout` 을 **0 으로 초기화**했다 (두 구조가 같은 출발점에서 갈라지게 하려는 구현 선택) — 그래서
+> **학습 전에는 `readout` 이 `mean` 과 완전히 같고 등변이다.** 정렬을 쓸 수 있게 되는 것은 학습이 그 가중치를 움직인 뒤다.
+> `embedding` 은 작은 양수로 초기화하므로 처음부터 등변이 아니다. 두 성질 모두 `tests/v3/test_models_v3.py` 가 고정한다.
 기록: `template_bank` 가 buffer 라 `state_dict` 에 들어간다 — A 의 state_dict 를 C 에 통째로 실으면 C 의 null bank 가 덮여 `C(x) = A(x)` 가 된다. 버퍼를 빼고 싣고 assert 로 확인했다.
 
 **② spin (공간 보존 null) 을 Schaefer-100 에 쓸 수 있는가** (h197, venv)
@@ -310,3 +314,16 @@ P8-b 는 `MIN_UPDATES = 5000` 과 `MAX_EPOCHS = 400` 을 함께 잠갔다. 창 8
 **돌연변이 시험 6/7 검출** (`.backup/slot_wi09_0929/mut_v3train.py`, gitignore). 놓친 1 건은 "공통 E 상한을 안전 상한으로 바꿈" 인데, `CellFoldResult` 가 이미 `best_epoch ≤ epoch_ceiling` 을 강제하므로 그 중앙값의 올림도 상한을 넘을 수 없다 — **정상 경로로는 닿지 않는 방어선**이다. 지우지 않고 코드에 그 사실을 적었다 (`select_config` 주석).
 
 **다음 (v3 빌드)**: 2 `models` 두 구조 · 3 `templates` null 세 종류 · 4 `config` 새 잠금 키 + `configs/exploratory_v2/` · 5 학습 subject 부분표집 · 6 v3 잠금·pilot e2e.
+
+## v3 빌드 2 단계 — ROI 정체 구조 (2026-09-29)
+
+`mobse/v3/models.py` (147 줄) · `tests/v3/test_models_v3.py` (시험 15 개). 누적 `tests/v3` 37 개 전부 통과. **`mobse/v2` 는 여전히 불변.**
+
+- `ROI_STRUCTURES = ("mean", "embedding", "readout")` — `mean` 은 v1 과 같은 동작으로 남긴 대조군이다.
+- 구조 부품 (encoder · gate · graph layer · `ModelConfig`) 은 동결된 v2 를 그대로 import 한다. 새로 쓴 것은 `MoBSEv3` 한 클래스뿐이다.
+- **구현 선택 (표시)**: `roi_readout` 을 **0 으로 초기화**한다 → 학습 전에는 `readout` 이 `mean` 과 완전히 같다. 두 구조가 같은 출발점에서 갈라지게 하려는 선택이며, 그 결과 **초기 등변성 측정은 0 이 나온다** (설계 기록의 1.27e−03 정정 — 위 결정 28 절).
+- `embedding` 은 `ROI_EMBEDDING_INIT_STD = 0.1` 로 초기화하므로 처음부터 등변이 아니다.
+
+**시험이 고정하는 것**: ① `mean` 은 등변이고 **같은 가중치면 v2 와 수치가 같다** ② `embedding` 은 처음부터 등변성을 깬다 ③ `readout` 은 **초기엔 `mean` 과 같고**, 가중치가 움직이면 깬다 ④ bank 는 buffer 라 optimizer parameter 가 아니다 ⑤ **bank 가 `state_dict` 에 들어간다는 사실 자체** — 09-29 설계 측정에서 A 의 state 를 C 에 통째로 실어 null bank 가 덮인 사고를 되풀이하지 않기 위한 회귀 시험 ⑥ parameter 증가량이 새 구조 몫과 정확히 같다.
+
+**돌연변이 8/8 검출** (`.backup/slot_wi09_0929/mut_v3models.py`, gitignore).
