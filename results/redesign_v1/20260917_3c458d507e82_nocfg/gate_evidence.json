@@ -1,11 +1,11 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "1cd4054cd393ef6730aa9e3be7fe6062aecf81c9",
-  "timestamp_utc": "2026-09-29T01:15:47Z",
-  "revision": 73,
-  "supersedes_sha256": "21756b2e64d7f03772b94fe7d74e9d6ac019c04e2a3e6f9531037356d9bcbf5e",
-  "revision_reason": "rev73 (2026-09-29): 결정 23 (main OOF 착수 승인) 실행 기록 + 결정 24 (보조 비교) 실행·결과 기록 + 결정 25-1 로 gate 표기 적용 (권고 1–6) — G0 cleared · G1 cleared_with_limitations (fail 2 판정 불변) · G2 cleared · G3 cleared (check 1 → 3) · 'blocked by G0'·'blocked by G0/G1' 표기 삭제, G4·G5 status 는 planned 그대로. 새 블록 thread_pinning_rev73 · decision23_main_oof_rev73 · decision24_aux_comparison_rev73 · decision25_gate_status_rev73, 보고서 부록 BT–BX 와 reports/resource_budget.md 9.2 (스레드 고정·main 규모 실측 반영, G1 artifact_hashes 갱신). rev72 not_done '명세 6' 은 corrections 로 정정 (09-27 커밋 1cd4054 로 완료). 측정 잠금 9b7b11cf 유지, mobse/v2 불변. main pool 은 결정 23·24 로 이미 소비됨",
+  "git_head": "97e434add2d36d2801ae34ea94b91edfe29bfd25",
+  "timestamp_utc": "2026-09-29T03:36:24Z",
+  "revision": 74,
+  "supersedes_sha256": "6b5edc871de236fbf0d31e6f42ece3dc6c4ad6305a68d657673cfb3ce22a5b35",
+  "revision_reason": "rev74 (2026-09-29): WI-09 null 민감도 기록 (결정 25-2·25-5 착수, 결정 26 구현 (가)) — seed 1730–1733 각각 A·B·C·D outer 60 fit (총 240, 실패 0) → evaluate·report, ALL_RC=0, 누설 0. A−C 는 다섯 판 전부 [−0.016, 0.000] 이고 CI 가 모두 0 을 포함 — H2 의 불확실은 순열 선택 탓이 아니다. 보조 interaction 은 primary 판에서만 하한 > 0 이었다 (민감도 네 판은 하한 ≤ 0). 새 블록 decision26_wi09_null_sensitivity_rev74, 보고서 부록 BY. gate 판정·status 는 rev73 그대로. mobse/v2 와 측정·구현 잠금 불변 (9b7b11cf · bcf1fec22676)",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -104,7 +104,7 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "d1699611974e799bacef4be9854d37fbebc4a86415bf201bd431580090263d46"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "4ab725c9f75d6036e9178607b80a719c7dc4515a0c978f7d1cf6dd9c15c1244e"
       },
       "status_note": "결정 25-1 (2026-09-29, 권고 3) 로 cleared. check 10/10 pass. U3 (버려진 volume) 는 부록 F.1 로 해소됐고 (u3_discarded_volumes.status: resolved), U6 (targets, Wave 2) 는 Wave 2 수령 완료로 해소됐다 — 둘 다 낡은 표기였다. U10 (group_id 를 지을 지역 metadata 없음) 은 계획서 개정 P4 가 처리한 알려진 한계이며 G1 unresolved 로 옮겨 적었다. 이전 note 가 조건으로 달았던 재추출 (derivatives_v3, 부록 AA) 과 QC (WI-02) 는 끝났다."
     },
@@ -5471,5 +5471,204 @@
     ],
     "judgment_changed": "G0·G1·G2·G3 status, G0·G2·G3·G4·G5 unresolved, G3 check 1 → 3",
     "report_appendix": "BX"
+  },
+  "decision26_wi09_null_sensitivity_rev74": {
+    "decision_quotes": {
+      "25-2 H2 방향": "(다) WI-09 만 먼저 (PIOP2 미사용) 후 (나) 판단",
+      "25-5 일정": "기록·커밋 마친 뒤 착수",
+      "26 구현": "가. 로 진행"
+    },
+    "decision_recorded": "2026-09-29 (선택 TUI 25-2·25-5, 대화 26)",
+    "scope_decided": "null 민감도만 — seed 1730–1733, main 이 고른 config·epoch 그대로, 재튜닝·inner 재실행 없음",
+    "scope_not_done": [
+      "WI-09 의 routing 고정/shuffle",
+      "nuisance/time 기준선",
+      "비용 측정",
+      "window·atlas·GSR·K 민감도",
+      "reports/sensitivity.md (아직 만들지 않음)"
+    ],
+    "why_240_fits": "fit 은 null seed 를 config bank.null_seed 에서 읽고 config.py 가 1729 로 잠근다. seed 를 바꾸면 config_hash 가 바뀌고 evaluate 는 manifest 의 config_hash 가 다르면 거부한다 (cli.py:1738) → main 의 A·B 를 재사용할 수 없다. 결정 26 (가) 로 seed 마다 A·B·C·D 60 fit 을 모두 돌렸다 (seed 의존 C·D 120 + config_hash 를 맞추기 위한 A·B 120)",
+    "implementation_choices": [
+      "null seed 는 null_cli.py 가 프로세스 안에서만 cli.load_config 를 감싸 덮는다 (검증 통과 뒤 값만 교체; 1729 가 아니거나 잠긴 민감도 목록 밖이면 중단) — pilot e2e 의 MAX_EPOCHS 덮기와 같은 방식",
+      "mobse/v2 와 측정·구현 잠금은 바꾸지 않았다",
+      "산출물은 data root — 17번 해시 검사 대상이 아니다"
+    ],
+    "run_dir": "null_sens/20260929_97e434a_a1",
+    "code_head": "97e434add2d36d2801ae34ea94b91edfe29bfd25",
+    "environment": {
+      "host": "h197",
+      "python": "3.11.5",
+      "torch": "2.10.0+cu128",
+      "cuda": "12.8",
+      "cuda_available": true
+    },
+    "preflight": {
+      "measurement_lock_rc": 0,
+      "window_files_rc": 0,
+      "implementation_lock_rc": 0,
+      "gate_hashes_rc": 0,
+      "tracked_files_identical": 381
+    },
+    "verify_ab": {
+      "fit": "s1730 / outer 0 / A_s42",
+      "n_windows": 208,
+      "same_window_keys": true,
+      "p_class1_differences": 0,
+      "checkpoint_same": true,
+      "bank_id_same": true,
+      "null_seed": [
+        1730,
+        1729
+      ],
+      "config_hash": [
+        "fdbf7696",
+        "2a7d7d7f"
+      ]
+    },
+    "stages_utc": {
+      "verify_ab": "01:38:28Z → 01:40:27Z",
+      "start": "2026-09-29T01:40:37Z",
+      "outer_240": {
+        "end": "2026-09-29T03:03:12Z",
+        "wall": "1 h 22 m 35 s",
+        "failed": 0
+      },
+      "evaluate_4_report_4": "03:03:13Z → 03:03:17Z, 전부 rc=0",
+      "alldone": "2026-09-29T03:03:17Z",
+      "all_rc": 0
+    },
+    "completion_per_seed": {
+      "outer_fits": 60,
+      "unique_checkpoints": 60,
+      "window_prediction_rows": 12096,
+      "train_subject_in_own_test_predictions": 0,
+      "prediction_outside_assigned_outer_fold": 0,
+      "null_seed_in_manifests": "그 seed 하나",
+      "ab_fits_compared_with_main": 30,
+      "ab_fits_differing_from_main": 0,
+      "g3_completeness": "pass"
+    },
+    "config_hash_by_seed": {
+      "1730": "fdbf7696",
+      "1731": "0924b18e",
+      "1732": "e3a98487",
+      "1733": "f769e38e"
+    },
+    "results": {
+      "note": "A·B 는 null 과 무관하므로 다섯 판에서 같다 (A 0.8770 · B 0.7222 · H1 A−B +0.1548 [+0.0952, +0.2143])",
+      "H2_A_minus_C": {
+        "1729_primary": {
+          "point": -0.015873015873015872,
+          "ci": [
+            -0.051587301587301584,
+            0.01984126984126984
+          ]
+        },
+        "1730": {
+          "point": 0.0,
+          "ci": [
+            -0.023809523809523808,
+            0.023809523809523808
+          ]
+        },
+        "1731": {
+          "point": 0.0,
+          "ci": [
+            -0.03571428571428571,
+            0.03571428571428571
+          ]
+        },
+        "1732": {
+          "point": 0.0,
+          "ci": [
+            -0.031746031746031744,
+            0.031746031746031744
+          ]
+        },
+        "1733": {
+          "point": -0.015873015873015872,
+          "ci": [
+            -0.04365079365079365,
+            0.011904761904761904
+          ]
+        }
+      },
+      "interaction": {
+        "1729_primary": {
+          "point": 0.051587301587301584,
+          "ci": [
+            0.003968253968253968,
+            0.0992063492063492
+          ]
+        },
+        "1730": {
+          "point": 0.03571428571428571,
+          "ci": [
+            -0.007936507936507936,
+            0.07936507936507936
+          ]
+        },
+        "1731": {
+          "point": 0.03571428571428571,
+          "ci": [
+            -0.007936507936507936,
+            0.08333333333333333
+          ]
+        },
+        "1732": {
+          "point": 0.0,
+          "ci": [
+            -0.03968253968253968,
+            0.04365079365079365
+          ]
+        },
+        "1733": {
+          "point": 0.027777777777777776,
+          "ci": [
+            -0.007936507936507936,
+            0.06349206349206349
+          ]
+        }
+      },
+      "cell_C": {
+        "1729": 0.8928571428571429,
+        "1730": 0.876984126984127,
+        "1731": 0.876984126984127,
+        "1732": 0.876984126984127,
+        "1733": 0.8928571428571429
+      },
+      "cell_D": {
+        "1729": 0.7896825396825397,
+        "1730": 0.7579365079365079,
+        "1731": 0.7579365079365079,
+        "1732": 0.7222222222222222,
+        "1733": 0.7658730158730159
+      },
+      "readings": [
+        "A−C 는 다섯 판 전부 [−0.016, 0.000] 안이고 CI 가 모두 0 을 포함한다 — H2 의 불확실은 고른 순열 때문이 아니다",
+        "보조 interaction 의 판독은 null 에 따라 바뀐다: primary 는 하한 +0.0040 > 0 이었으나 민감도 네 판은 모두 하한 ≤ 0. 그 보조 판독은 순열 하나에 기대고 있었다",
+        "C 는 거의 움직이지 않고 (0.8770–0.8929) D 가 더 흔들린다 (0.7222–0.7897) — interaction 변동은 주로 D 쪽",
+        "순열 5 개는 분포를 만들기에 적다 (midreview 2절 약점 4) — 퍼짐 관측이지 null 분포 검정이 아니다"
+      ],
+      "primary_verdict_unchanged": true,
+      "primary_not_revised": "계획서 §8 — 민감도는 primary 에 역반영하지 않는다"
+    },
+    "data_root_outputs": {
+      "null_sens/20260929_97e434a_a1/summary/null_sensitivity.json": "5ddfee4b388324438ab5c660f3f78994e2f20481c4d973ee32dc839be7df6bf2",
+      "null_sens/20260929_97e434a_a1/verify_ab/verify_ab.json": "105316ef649937bae96c1d6c842067c6b253a398db6dcc95961636ec9c6fe667",
+      "null_sens/20260929_97e434a_a1/report/s1730/statistics.json": "b7b55b7b93c340aab993344b8b35ef49e9a18720e651df59ef56d5f9ee7dad40",
+      "null_sens/20260929_97e434a_a1/report/s1731/statistics.json": "0475562f941e486fe284061c9e998c06a09be2e7af47e776227e78e6f3b28619",
+      "null_sens/20260929_97e434a_a1/report/s1732/statistics.json": "c44a6e7065423a83745dbdffee78104af247c9eee1d1c1fc304a7f89a7ba1388",
+      "null_sens/20260929_97e434a_a1/report/s1733/statistics.json": "df3df8effd6ca5d1a5dc9f1de2d3511f9687fa5db5997674687543a022cce8d3",
+      "null_sens/20260929_97e434a_a1/driver.log": "c1f972774fe5220b0d87d160077c695d4a468f0c8bfa920347d71caa59547b93"
+    },
+    "data_root_outputs_note": "h197 data root 기준 상대 경로. 17번 검사 대상 아님 (구현 선택). 구동기 null_driver.py 03607be3e99b · null_cli.py a23c72e4718a (gitignore)",
+    "not_done": [
+      "공간 보존 null (spin)·degree 보존 rewiring — 계획 밖 (새 탐색 버전 후보)",
+      "interaction 변동 (D 쪽) 의 원인 분석 — 계획 밖",
+      "WI-09 의 나머지 항목"
+    ],
+    "judgment_changed": false,
+    "report_appendix": "BY"
   }
 }

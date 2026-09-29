@@ -5375,3 +5375,105 @@ rev72 블록 `not_done` 은 "명세 6 마감 5단계에 27 `--verify` 추가 여
 
 - G1 의 fail 2 건을 없앨 방법 (group_id 실자료·δ 정밀도) — 계획서 P4·§8 이 한계로 받아들인 항목이라 이번 범위 밖.
 - `cleared_with_limitations` 를 읽는 쪽 (스크립트·시험) 이 새 값을 기대하는지 — 마감 절차에서 확인한다.
+
+# 부록 BY — WI-09 null 민감도 (seed 1730–1733) (rev74, 2026-09-29)
+
+## BY.1 결정과 범위
+
+- 착수: 결정 25-2·25-5 (2026-09-29) — H2 방향 **(다)**, "WI-09 만 먼저 (PIOP2 미사용)", 일정은 "기록·커밋 마친 뒤".
+- 구현: 결정 26 — 선생님 회신 원문 **"가. 로 진행"**.
+- **범위는 null 민감도뿐이다.** WI-09 의 나머지 (routing 고정/shuffle, nuisance/time 기준선, 비용, window·atlas·GSR·K 민감도) 는 하지 않았다 — `reports/sensitivity.md` 는 아직 만들지 않는다.
+- 재튜닝 없음: main 이 고른 config·epoch (`select/o*/selection.json` 의 `outer_plan`) 를 그대로 쓴다. inner 재실행 없음.
+
+## BY.2 왜 240 fit 인가 (결정 26 (가))
+
+`fit` CLI 는 null seed 를 config `bank.null_seed` 에서 읽고, `mobse/v2/config.py` 검증기가 그 값을 코드 상수 1729 로 잠근다. seed 를 바꾸면 `config_hash` 가 바뀌고 `evaluate` 는 fit manifest 의 `config_hash` 가 다르면 거부한다 (`cli.py:1738`). 그래서 main 의 A·B outer 예측을 그대로 붙일 수 없다.
+
+- (가) 채택: seed 마다 A·B·C·D outer 60 fit 을 모두 돌린다 → **240 fit**. 이 중 seed 에 실제로 의존하는 것은 C·D **120** (계획서 수치) 이고, A·B **120** 은 `config_hash` 일치를 위한 재계산이다.
+- (나) 기각: `config.py` 의 잠금을 풀면 측정 잠금 재생성 + gate 새 revision 이 따른다. `mobse/v2` 와 잠금은 **바꾸지 않았다.**
+- null seed 는 구동기가 **프로세스 안에서만** `cli.load_config` 를 감싸 덮는다 (`null_cli.py`) — pilot end-to-end 가 `MAX_EPOCHS` 를 덮은 것과 같은 방식 (부록 BQ.1). 검증을 통과한 뒤 값만 바꾸고, 1729 가 아니거나 잠긴 민감도 목록 밖 seed 면 멈춘다.
+
+## BY.3 착수 전 확인 — A 는 정말 null 과 무관한가
+
+seed 1730 판으로 outer fold 0 의 `A_s42` 한 건을 돌려 main 과 대조했다 (`verify_ab/verify_ab.json`, sha256 `105316ef6499…`).
+
+| 항목 | 값 |
+|---|---|
+| 창 수 | 208 (key 집합 동일) |
+| `p_class1` 차이 | **0** |
+| checkpoint sha256 동일 | **예** |
+| `bank_id` 동일 | 예 |
+| `null_seed` (민감도 / main) | 1730 / 1729 |
+| `config_hash` (민감도 / main) | `fdbf7696` / `2a7d7d7f` |
+
+→ 바뀌는 것은 기록 (config_hash·null_seed) 뿐이고 A 의 결과는 같다. 본 실행에서도 seed 마다 A·B 30 건씩 전부 main 과 같았다 (BY.5).
+
+## BY.4 실행 (h197, 산출 `null_sens/20260929_97e434a_a1/`)
+
+- HEAD `97e434a` (gate rev73 커밋), 작업트리 깨끗, 추적 파일 381 개 사본 동일.
+- preflight 전부 rc=0: 측정 잠금 (19) · 창 파일 (25) · 구현 잠금 (27) · gate 해시 (17).
+- 환경: python 3.11.5 · torch 2.10.0+cu128 · CUDA 12.8 · cuda True. k=4, 프로세스당 스레드 2.
+
+| 단계 | 시각 (UTC) |
+|---|---|
+| verify-ab | 01:38:28Z → 01:40:27Z (1 fit, 119.6 s) |
+| 시작 | 01:40:37Z (`seeds=[1730, 1731, 1732, 1733]`) |
+| outer 240 fit | 01:40:37Z → 03:03:12Z — **1 h 22 m 35 s**, 실패 0 |
+| evaluate 4 · report 4 | 03:03:13Z → 03:03:17Z, 전부 rc=0 (`n_fits=60` × 4) |
+| 종료 | 03:03:17Z `ALLDONE`, `run_all.rc` = `ALL_RC=0` |
+
+## BY.5 완료 점검 (`summary/null_sensitivity.json`, 산출물 재집계)
+
+네 seed 모두 같은 값이다.
+
+| 검사 | 값 |
+|---|---:|
+| outer fit | 60 |
+| 고유 checkpoint | 60 |
+| 창 예측 행 | 12,096 |
+| 학습 subject 가 자기 test 예측에 섞임 | **0** |
+| 배정 밖 outer fold 예측 | **0** |
+| manifest 의 `null_seed` | 그 seed 하나 |
+| manifest 의 `config_hash` | 그 seed 하나 (1730 `fdbf7696` · 1731 `0924b18e` · 1732 `e3a98487` · 1733 `f769e38e`) |
+| A·B fit 을 main 과 대조 | 30 건 — **차이 0** |
+| report `g3_verdict.completeness_and_consistency` | pass |
+
+## BY.6 결과 — null 을 바꿔도 H2 는 불확실하다
+
+primary (seed 1729) 는 main OOF 값이다 (부록 BV). A·B 는 null 과 무관하므로 다섯 판에서 모두 같다 (A 0.8770 · B 0.7222 · H1 A−B +0.1548 [+0.0952, +0.2143]).
+
+| null seed | C | D | **H2 A−C** (97.5% CI) | interaction (95% CI) |
+|---|---:|---:|---|---|
+| **1729 (primary)** | 0.8929 | 0.7897 | **−0.0159** [−0.0516, +0.0198] | +0.0516 [+0.0040, +0.0992] |
+| 1730 | 0.8770 | 0.7579 | 0.0000 [−0.0238, +0.0238] | +0.0357 [−0.0079, +0.0794] |
+| 1731 | 0.8770 | 0.7579 | 0.0000 [−0.0357, +0.0357] | +0.0357 [−0.0079, +0.0833] |
+| 1732 | 0.8770 | 0.7222 | 0.0000 [−0.0317, +0.0317] | 0.0000 [−0.0397, +0.0437] |
+| 1733 | 0.8929 | 0.7659 | −0.0159 [−0.0437, +0.0119] | +0.0278 [−0.0079, +0.0635] |
+
+읽는 법 (기록):
+
+1. **A−C 는 다섯 판 전부 [−0.016, 0.000] 안에 있고, CI 가 모두 0 을 포함한다.** H2 가 불확실하게 나온 것은 하필 고른 순열 (seed 1729) 때문이 아니다. 해석 문서의 추정 (`mobse_interpretation_2026-09-29.md` 2절) 과 어긋나지 않는다.
+2. **보조 interaction 의 판독은 null 에 따라 바뀐다.** primary 판에서는 하한 +0.0040 > 0 이었으나, 민감도 네 판은 모두 하한이 0 이하다 (CI 가 0 을 포함). 즉 "(A−B)−(C−D) 의 추가 기여" 라는 보조 판독은 **순열 하나에 기대고 있었다.** primary 판정은 바꾸지 않는다 (계획서 §8 — 민감도는 primary 에 역반영하지 않는다).
+3. C 는 0.8770–0.8929 로 거의 움직이지 않고, D 가 0.7222–0.7897 로 더 흔들린다. interaction 의 변동은 주로 D 쪽에서 온다.
+4. 순열 5 개는 분포를 만들기에 적다 (midreview 2절 약점 4). 이 표는 "퍼짐이 작다" 는 관측이지 null 분포 검정이 아니다.
+
+## BY.7 산출물 sha256 (h197 data root 상대, 커밋 안 함)
+
+| 파일 | sha256 |
+|---|---|
+| `null_sens/20260929_97e434a_a1/summary/null_sensitivity.json` | `5ddfee4b388324438ab5c660f3f78994e2f20481c4d973ee32dc839be7df6bf2` |
+| `…/verify_ab/verify_ab.json` | `105316ef649937bae96c1d6c842067c6b253a398db6dcc95961636ec9c6fe667` |
+| `…/report/s1730/statistics.json` | `b7b55b7b93c340aab993344b8b35ef49e9a18720e651df59ef56d5f9ee7dad40` |
+| `…/report/s1731/statistics.json` | `0475562f941e486fe284061c9e998c06a09be2e7af47e776227e78e6f3b28619` |
+| `…/report/s1732/statistics.json` | `c44a6e7065423a83745dbdffee78104af247c9eee1d1c1fc304a7f89a7ba1388` |
+| `…/report/s1733/statistics.json` | `df3df8effd6ca5d1a5dc9f1de2d3511f9687fa5db5997674687543a022cce8d3` |
+| `…/driver.log` | `c1f972774fe5220b0d87d160077c695d4a468f0c8bfa920347d71caa59547b93` |
+
+구동기 `null_driver.py` `03607be3e99b…` · `null_cli.py` `a23c72e4718a…` (Mac `.backup/slot_wi09_0929/`, gitignore — 커밋 안 함).
+
+## BY.8 확인하지 못한 것
+
+- 순열 5 개로는 null 분포를 만들 수 없다. 공간 보존 null (spin) 이나 degree 보존 rewiring 은 계획 밖이다 (새 탐색 버전 후보 — midreview 3절 (나)).
+- interaction 의 판독이 null 에 따라 바뀌는 이유 (D 의 변동) 를 더 파고들지 않았다 — 계획 밖.
+- WI-09 의 나머지 항목 (routing 고정/shuffle, nuisance/time 기준선, 비용, window·atlas·GSR·K 민감도) 은 하지 않았다.
+- A·B 120 fit 은 `config_hash` 검사를 통과시키기 위한 재계산이다. 결과가 같다는 것은 확인했지만 (BY.3·BY.5), 계산 자원은 썼다.
