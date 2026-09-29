@@ -5093,3 +5093,285 @@ G1 `unresolved` 6 → **3** (U10 · U17 · δ 정밀도).
 ## BS.5 정정
 
 부록 BR.5 의 "7 함수" 는 오기다 — `tests/v2/test_implementation_lock_script.py` 는 6 함수 7 경우 (parametrize 포함) 다.
+
+# 부록 BT — 착수 전 측정: 스레드 고정 (pilot 기술 분할, main pool 미사용) (rev73, 2026-09-28)
+
+main OOF 착수 전에 처리량만 재는 가역 측정이다. 결정 23 (착수 승인) 직전 슬롯에서 돌았고 main pool 을 쓰지 않았다.
+
+## BT.1 방법
+
+- 산출 h197 data root `pilot_threads/20260928_thr2/`. 틀 Mac `.backup/slot_thr_0928/{thr_driver.py, thr_setup.sh, thr_compare.py}` (gitignore 영역 — 커밋 안 함).
+- pilot 기술 분할 outer 0 의 inner fit **96 개**, 동시 실행 k=4, 프로세스당 `OMP_NUM_THREADS=OPENBLAS_NUM_THREADS=MKL_NUM_THREADS=NUMEXPR_NUM_THREADS=2`.
+- 대조 (base) 는 같은 fit 을 스레드 고정 없이 돌린 앞선 판이다. **같은 결과가 나오는지**와 **벽시계**를 함께 본다.
+- 창 구간 `driver.log` 2026-09-28T06:06:58Z–06:37:14Z.
+
+## BT.2 결과 (`compare.txt`, sha256 `f15c8cd601df…`)
+
+| 항목 | 값 |
+|---|---|
+| fit 수 | 96 |
+| 창 예측 동일 | 96 / 96 |
+| checkpoint 동일 | 96 / 96 |
+| eval_loss 동일 | 96 / 96 |
+| 차이 목록 | 빈 목록 |
+
+| 벽시계 (s) | 중앙 | 최소 | 최대 | 합 |
+|---|---:|---:|---:|---:|
+| 스레드 2 고정 | **73.5** | 65.3 | 93.6 | 7,191.3 |
+| 대조 (고정 없음) | **158.9** | 121.2 | 175.0 | 14,874.1 |
+
+- 학습 자체는 거의 같다: s/epoch 중앙 0.0512 → 0.0527, 학습 시간 중앙 64.4 s → 66.4 s (**조금 늘었다**).
+- 줄어든 것은 학습 밖 CPU 단계다. 합계로 2.07 배 (14,874.1 / 7,191.3).
+
+## BT.3 구현 선택 (표시)
+
+- 대조군을 이 슬롯에서 다시 돌리지 않고 앞선 판의 기록을 썼다 (가역 판단, 시간 절약).
+- 산출물은 data root 에 두고 저장소에 커밋하지 않는다 (release `fits/` 는 `.gitignore` 밖 — 부록 BQ.4 와 같은 선택).
+
+## BT.4 확인하지 못한 것
+
+- main 규모 (126 명·480 fit) 에서 스레드 2 가 최적인지. 잰 것은 pilot 규모뿐이다.
+- 벽시계 감소의 원인을 단계별로 분해하지 않았다 (학습 밖 CPU 단계라는 것까지만).
+
+# 부록 BU — 결정 23: A–D main OOF 실행 (WI-07) (rev73, 2026-09-28)
+
+## BU.1 결정 원문과 범위
+
+선생님 결정 23 (2026-09-28 15:4x KST, 대화): **"main OOF 착수 승인"**.
+
+**정한 것**: A–D main OOF — WI-07 main inner 480 + outer 60 + select-ad 5 + evaluate + report.
+**정하지 않은 것**: null 민감도 (WI-09), 외부 PIOP2 (WI-08), gate `status`·"blocked by G0" 표기, 결과를 본 뒤의 설계·grid·δ·N 변경 (계획서 §3·§8 금지).
+
+## BU.2 산출 위치와 preflight
+
+- 산출 h197 data root `main_oof/20260928_1cd4054_main_a2/` (**구현 선택** — 저장소 release `fits/` 는 `.gitignore` 밖).
+- attempt 1 (`…_main`) 은 코드 사본 대조를 `diff -r` 로 해서 미추적 파일 때문에 멈췄다 (fit 0). 남겨 두고 **추적 파일 sha256 대조**로 attempt 2 를 돌렸다. 재발 방지: 코드 사본 대조는 추적 파일 sha256 으로 한다.
+- 구동기 `main_driver.py` sha256 `b252d579394a…` + `main_setup.sh`.
+- preflight: HEAD `1cd4054`, 작업트리 깨끗, 측정 잠금 45/45, 창 파일 rc=0, 구현 잠금 38/38, gate 해시 rc=0.
+- 환경 (`env.txt`): python 3.11.5 · torch 2.10.0+cu128 · CUDA 12.8 · cuda 사용 가능 True.
+
+## BU.3 입력 sha256 (`input_sha256.txt`)
+
+| 입력 | sha256 앞 16자 |
+|---|---|
+| `derivatives_v3/splits_piop1_p7/folds.json` | `242ba87d6101f704` |
+| `derivatives_v3/cohort_piop1/subjects.jsonl` | `5ab1933922027dee` |
+| `derivatives_v3/windows_piop1.jsonl` | `0750c81c0670df1f` |
+| `configs/redesign_v1/main.yaml` | `ef4b16509f2da80c` |
+| `main_driver.py` | `b252d579394a0a58` |
+
+## BU.4 단계 시간 (`driver.log`, UTC)
+
+| 단계 | 시각 | 비고 |
+|---|---|---|
+| 시작 | 06:44:36Z | `stage=all k=4 threads=2 outers=[0,1,2,3,4]` |
+| inner 480 | 06:44:36Z → 09:28:35Z | **2 h 44 m**, 실패 0 |
+| select-ad 5 | 09:28:37Z → 09:28:46Z | 전부 rc=0, `stage select fails=0` |
+| outer 60 | 09:28:46Z → 09:55:08Z | **26.4 분**, 실패 0 |
+| evaluate | 09:55:09Z | rc=0, `n_fits=60` |
+| report | 09:55:10Z | rc=0 |
+| 종료 | 09:55:10Z | `ALLDONE`, `run_all.rc` = `ALL_RC=0` |
+
+## BU.5 WI-07 완료 기준 (`summary/completion_check.json`, sha256 `1635d855f8c1…`)
+
+`.backup/slot_thr_0928/main_check.py` 가 산출물을 다시 읽어 셌다. **전부 충족.**
+
+| 검사 | 값 |
+|---|---:|
+| inner fit report | 480 |
+| inner best epoch 범위 | 295 – 312 (295 미만 0) |
+| driver rc≠0 줄 | 0 |
+| outer fit | 60 |
+| primary checkpoint 고유 | 60 (report 와 sha 불일치 0) |
+| 창 예측 행 | 12,096 = 126 × 2 × 4 × 3 × 4 |
+| run 예측 행 | 1,008 = 126 × 2 × 4 |
+| 예측된 subject | 126 (= main pool) |
+| (subject, 칸) 쌍 | 504 — 전부 24 행, 전부 outer fold 하나 |
+| 학습 subject 가 자기 test 예측에 섞임 | **0** |
+| 배정 밖 outer fold 예측 | **0** |
+
+## BU.6 선택 기록 (성능 해석 안 함)
+
+| outer | config | 공통 E | selection sha256 앞 12자 |
+|---|---:|---:|---|
+| o0 | 0 | 298 | `375b58ecb3b6` |
+| o1 | 0 | 298 | `6c78a9abe83a` |
+| o2 | 4 | 297 | `59fc09a2e4fc` |
+| o3 | 1 | 297 | `b5421eb82b8a` |
+| o4 | 0 | 298 | `6adc4ee3bbe0` |
+
+## BU.7 산출물 sha256 (h197 data root 상대, 커밋 안 함)
+
+| 파일 | sha256 |
+|---|---|
+| `…_main_a2/summary/completion_check.json` | `1635d855f8c12ab6f7d29a37ac752c0275a084b226c6e1678c494a531553a0ba` |
+| `…_main_a2/evaluate/evaluation.json` | `02f6ac5e1feb665b0bd131db6d16d1833c710487a61361e90b81ac41b17ecb6c` |
+| `…_main_a2/evaluate/run_predictions.jsonl` | `e377a18939de80306dd16017d6b62fe0f065e55d4fbc0178d7b2223f0e769184` |
+| `…_main_a2/report/statistics.json` | `f0a9847bb61ca762ed69f3a72bdee006e085adf1b91b14950f89c799d0064569` |
+| `…_main_a2/driver.log` | `adcd415b16c4903091210aa3d169b183586cb42028e093abab27df5a91b1f12c` |
+
+## BU.8 확인하지 못한 것
+
+- 산출물은 17번 해시 검사 대상이 아니다 (data root — 부록 BQ.4 와 같은 구현 선택). gate evidence `data_root_outputs` 블록에만 적힌다.
+- attempt 1 의 부분 산출물은 지우지 않고 남겨 두었다 (`…_main`, fit 0).
+
+# 부록 BV — main OOF primary 결과 (rev73, 2026-09-28 19:1x KST 열람)
+
+결정 24 항목 1 ("결과 열람 후 보고") 에 따라 `report/statistics.json` (sha256 `f0a9847bb61c…`) 을 그대로 옮긴다. 해석 규칙은 계획서 §8 이고, 이 부록은 규칙을 새로 만들지 않는다.
+
+## BV.1 통계 설정 (파일 기록)
+
+- N = 126, 통계 단위 subject (group 재표집), group = subject.
+- paired bootstrap seed 9001 · 10,000 회, 칸 간 **같은 재표집** (`shared_across_cells: true`).
+- primary CI 는 97.5% (백분위 1.25–98.75), 보조·칸별은 95% (2.5–97.5). δ = 0.02, threshold 0.5.
+- `config_hash` `2a7d7d7f`, `split_hash` `ace5f4a41446…`, fit·evaluator·report code_hash 전부 `804d6ee17625…`.
+
+## BV.2 primary 두 contrast
+
+| 비교 | 점추정 | CI (97.5%) | 파일 판독 문구 |
+|---|---:|---|---|
+| **H1 A−B** (입력 의존 routing) | **+0.1548** | [+0.0952, +0.2143] | "하한 0.0952 > delta 0.02 — 선택한 최소 효과 이상의 우월성 지지" |
+| **H2 A−C** (정렬된 brain bank 대 공동 ROI-permuted null) | **−0.0159** | [−0.0516, +0.0198] | "CI 가 0 을 포함 — 불확실. 비유의를 효과 없음·동등성으로 바꾸지 않는다" |
+
+`both_primary_lower_gt_0: false` → 계획서 §8 에 따라 **두 기여를 함께 주장할 수 없다.**
+
+## BV.3 보조 contrast와 칸별 balanced accuracy
+
+| 항목 | 점추정 | 95% CI | 판독 |
+|---|---:|---|---|
+| interaction (A−B)−(C−D) | +0.0516 | [+0.0040, +0.0992] | 하한 > 0 이나 δ 0.02 이하 — 추가 기여는 지지, 실질적 우월성 확정 아님 |
+| A | 0.8770 | [0.8373, 0.9167] | — |
+| B | 0.7222 | [0.6746, 0.7698] | — |
+| C | 0.8929 | [0.8532, 0.9325] | — |
+| D | 0.7897 | [0.7421, 0.8333] | — |
+
+## BV.4 G3 판정 (파일 `g3_verdict`)
+
+- `completeness_and_consistency: pass`, `significance_is_gate: false`.
+- 검사 5 건: run_predictions sha256 = evaluation.json 기록 · run 행 재계산 b_i = evaluation.json subject_scores · 재계산 subject 차이 = evaluation.json · cell BA = evaluation.json · complete-case, cell 간 subject 동일, 부적격 0.
+
+## BV.5 caveat (파일 기록 그대로)
+
+"내부 OOF bootstrap 은 고정된 학습 결과에 조건부이며 training-set 변동을 완전히 반영하지 않는다 (계획서 §8)."
+
+## BV.6 확인하지 못한 것
+
+- H2 가 불확실하게 나온 **이유**. 이 부록은 결과만 옮긴다. 판단 재료는 `docs/handoff/mobse_h2_midreview_2026-09-29.md`·`mobse_interpretation_2026-09-29.md` 에 있고, 그 두 문서는 결정이 아니다.
+- 검정력은 main 전부터 낮게 기록돼 있었다 (G1 check [6]: δ=0.02 에서 P(하한>0) 0.048–0.191). 이번 결과는 그 기록과 어긋나지 않는다.
+
+# 부록 BW — 결정 24: 보조 비교 S 후보 4 · NG · SG (rev73, 2026-09-28)
+
+## BW.1 결정 원문과 판단 근거
+
+결정 24 (2026-09-28 19:1x KST) 항목 2 원문: **"S 후보와 구조 비교(NG·SG): 1의 결과에 종속적일 경우 결과 확인 후 권고, 독립적이면 바로 수행"**.
+
+세션 판단 (보고): S 4 후보 grid·선택 규칙 (§6, 개정 P11), NG·SG 학습·선택 규칙 (결정 14), A−S·A−NG·A−SG 보조 contrast (§8 개정 P12 — main 결과 전 사전 등록) 가 모두 main 결과와 무관하게 정해져 있고, 실행 입력은 main pool 분할과 main evaluate 산출물뿐이다. 결과가 S·NG·SG 의 실행 여부·방식을 바꾸는 규칙은 계획서에 없다 (grep 확인). → **독립으로 보고 바로 실행.**
+
+## BW.2 v1 결함과 정정 (재발 방지)
+
+- `aux_driver.py` v1 이 S 후보 이름을 "S1" 로 줄여 써서 `fit-s` 의 argparse 가 거부했다 (rc=2, fit 미실행 480 호출). smoke 판 (`main_oof/20260928_aux_smoke/`) 에서 드러났다.
+- v1 은 NG·SG inner 240 을 끝낸 뒤 11:14:12Z 멈췄다 (`run_all_v1.rc` = `ALL_RC=1`). `aux_resume.sh` 가 v2 로 **같은 root 에서** 이어 돌았다 (11:14:16Z `RESUME`, 끝난 fit 은 건너뜀). v2 이후 fit rc≠0 은 **0**.
+- **재발 방지**: 새 구동기는 CLI 인자 값을 코드 상수에서 가져오거나, 첫 fit smoke 를 먼저 돌린다.
+
+## BW.3 단계 시간 (`driver.log`, UTC) — 산출 `main_oof/20260928_1cd4054_aux_a1/`
+
+| 단계 | 시각 |
+|---|---|
+| 시작 | 10:07:18Z (`k=4 threads=2`, main 산출 참조) |
+| NG·SG inner 240 | 10:07Z → 11:14Z |
+| v2 RESUME | 11:14:16Z |
+| S inner 480 (`fit-s`) | 11:14Z → 11:48Z |
+| select 15 (`select-comparator` 10 + `select-s` 5) | → 11:48:43Z, `stage select fails=0` |
+| outer 43 | 11:50:18Z → 12:01:5xZ |
+| `report-comparison` | 12:02:00Z rc=0 |
+| 종료 | 12:02:00Z `ALLDONE`, `run_all.rc` = `ALL_RC=0` |
+
+outer 43 = NG 15 + SG 15 + S 13 (S 는 MLP 4 fold × 3 seed + logistic 1 — logistic 은 seed 가 없다). 세션이 산출물을 다시 세어 확인했다.
+
+## BW.4 완료 점검 (세션 재집계)
+
+- S outer 예측 2,624 행, subject 126.
+- **학습 subject 가 test 예측에 섞임 0**, 배정 밖 fold 0, 각 S outer fit 의 `fit_subjects` = 그 fold 의 train 전부.
+- S 미수렴 제외 0 (5 fold 모두). 누설 점검은 코드 (`_load_s_outer`) 와 세션 독립 재집계 두 번 다 0.
+
+## BW.5 선택 기록 (성능 해석 안 함)
+
+| outer | S 후보 | S 설정 | S outer E | NG config | NG outer E | SG config | SG outer E |
+|---|---|---|---:|---:|---:|---:|---:|
+| o0 | S4 (FC Fisher-z MLP) | config=3 | 295 | 0 | 299 | 0 | 297 |
+| o1 | S4 | config=4 | 295 | 0 | 299 | 0 | 299 |
+| o2 | S4 | config=4 | 295 | 0 | 298 | 1 | 304 |
+| o3 | **S3 (FC Fisher-z logistic)** | C=10000 | 없음 | 0 | 298 | 0 | 300 |
+| o4 | S4 | config=2 | 296 | 3 | 304 | 1 | 302 |
+
+## BW.6 결과 (`report_comparison/comparison_statistics.json`, sha256 `a62e6239fbab…`, 21:2x KST 열람)
+
+**전부 보조 지표다 — primary 가 아니다.** 95% 기술적 CI, main 과 **같은 bootstrap 재표집** (`same_indices_as_report: true`, seed 9001 · 10,000 회, N=126).
+
+| 비교 | 점추정 | 95% CI | 파일 판독 문구 |
+|---|---:|---|---|
+| **A−S** (MoBSE 대 최선 단순 기준선) | **−0.1230** | [−0.1627, −0.0833] | "상한 −0.0833 < 0 — 반대 방향" |
+| A−NG (그래프 없는 fusion MLP) | −0.0119 | [−0.0516, +0.0278] | "CI 가 0 을 포함 — 불확실" |
+| A−SG (평균 그래프 하나) | +0.0675 | [+0.0159, +0.1190] | 하한 > 0 이나 δ 이하 — 추가 기여 지지, 실질적 우월성 확정 아님 |
+
+칸별 balanced accuracy (95%): **S 1.0000 [1.0000, 1.0000]** · NG 0.8889 [0.8452, 0.9286] · SG 0.8095 [0.7659, 0.8532].
+
+- 읽는 법 (기록): 이 target (emomatching 대 workingmemory run identity) 은 FC Fisher-z 를 쓰는 단순 분류기 (S3·S4) 가 126 명 전원의 두 run 을 모두 맞혀 완전히 가른다. MoBSE A 는 그보다 12 %p 낮다. 계획서 §8 이 A−S 를 보조로 두었으므로 **primary 판정은 바뀌지 않는다.**
+- 결과를 본 뒤 설계·grid 를 바꾸면 새 exploratory version 이다 (계획서 §3·§4-5).
+- `not_reported`: parameter·비용 집계는 이 명령 범위 밖이다 (계획서 §6 — 별도 조각).
+
+## BW.7 확인하지 못한 것
+
+- 단순 FC 기준선이 100% 인 이유 (target 자체가 FC 로 쉽게 갈리는지, 다른 요인이 있는지). 추가 분석은 계획 밖이라 하지 않았다. 선생님 결정 25-6 으로 **새 학습 없는 진단**만 하기로 정해졌고, 이 부록 시점에는 아직 하지 않았다.
+- NG·SG 실자료 parameter/비용 집계 (`not_reported`).
+- smoke 판·v1 부분 산출물은 지우지 않고 남겨 두었다.
+
+# 부록 BX — 결정 25: gate 표기 적용과 09-28 실행 기록 (rev73, 2026-09-29)
+
+## BX.1 결정 원문과 수집 방식
+
+2026-09-29 09:5x KST, 선택 TUI 5 문항으로 받았다. 선택지 문안은 `docs/handoff/mobse_main_oof_2026-09-28.md` "gate 표기 권고 1–6", `mobse_h2_midreview_2026-09-29.md` 3절 (가)/(나)/(다), `mobse_interpretation_2026-09-29.md` 3절 (PIOP2·WI-08) 에서 그대로 가져왔다. 원문 기록은 `docs/handoff/mobse_decisions_2026-09-29.md`.
+
+| # | 물음 | 선택 |
+|---|---|---|
+| 25-1 | gate evidence 표기 | 권고 1–6 전부 적용 |
+| 25-2 | H2 (A−C) 방향 | (다) WI-09 만 먼저 (PIOP2 미사용) 후 (나) 판단 |
+| 25-3 | PIOP2 외부 평가 (WI-08) 착수 | 지금은 승인하지 않음 |
+| 25-4 | A−S 처리 | 추가 분석 후 판단 |
+| 25-5 | WI-09 일정 | 기록·커밋 마친 뒤 착수 |
+| 25-6 | A−S 추가 분석 범위 | 새 학습 없는 진단만 |
+
+이어서 2026-09-29 (대화): **"claude.ai Project 에 올리는 일은 하지말고 docs/handoff 문서 갱신만.., 그리고 개발 진행은 승인"** → 인수인계 정본은 저장소 `docs/handoff/` 하나로 하고, Project 사본 동기화는 하지 않는다.
+
+## BX.2 rev73 이 바꾼 gate 표기 (결정 25-1 = 권고 1–6)
+
+| gate | 이전 (rev72) | rev73 | 근거 |
+|---|---|---|---|
+| G0 Provenance | `conditionally_cleared`, unresolved U3·U6·U10 | **`cleared`**, unresolved 비움 | check 10/10 pass. U3·U6 은 낡은 표기, U10 은 G1 로 옮겨 적음 (권고 3) |
+| G1 Measurement lock | `in_progress` | **`cleared_with_limitations`** (새 값) | check 판정은 `fail` 2 건 그대로 — [0] group_id·[6] δ 정밀도는 계획서 P4·§8 이 정한 알려진 한계 (권고 5) |
+| G2 Implementation lock | `planned`, "blocked by G0" | **`cleared`**, unresolved 비움 | check 5/5 pass, 09-28 preflight 에서 구현 잠금 38/38 재확인, main 이 그 잠금 코드로 실행됨 (권고 2·4) |
+| G3 Internal release | `planned`, "blocked by G0" | **`cleared`**, unresolved 비움, check 1 → 3 | 계획서 §10 조건 "완전성과 정합성 통과; 유의성 불요" 를 A–D (부록 BU·BV) 와 보조 비교 (부록 BW) 가 충족 (권고 1·4) |
+| G4 External release | `planned`, U17 + "blocked by G0/G1" | `planned`, **U17 만** | "blocked by G0/G1" 삭제 (권고 4). status 는 그대로 (권고 6) |
+| G5 Interpretation | `planned`, "blocked by G0" | `planned`, unresolved 비움 | "blocked by G0" 삭제 (권고 4). status 는 그대로 (권고 6) |
+
+## BX.3 새 top-level 블록
+
+- `thread_pinning_rev73` — 부록 BT.
+- `decision23_main_oof_rev73` — 부록 BU·BV, `data_root_outputs` 5 개.
+- `decision24_aux_comparison_rev73` — 부록 BW, `data_root_outputs` 1 개.
+- `decision25_gate_status_rev73` — 이 부록. 결정 25 원문·표기 변경 목록·rev72 정정.
+
+## BX.4 정정: rev72 `not_done` 의 "명세 6"
+
+rev72 블록 `not_done` 은 "명세 6 마감 5단계에 27 `--verify` 추가 여부" 를 미결로 적었다. 그 뒤 2026-09-27 커밋 `1cd4054` (`docs(claude): add implementation lock verify as closure step 6`) 로 **마감 절차에 6단계로 추가됐다.** rev72 블록 자체는 그때의 기록이므로 고치지 않고, rev73 블록 `corrections` 에 적는다 (구현 선택 — 과거 revision 블록을 다시 쓰지 않는다).
+
+## BX.5 구현 선택 (표시)
+
+- G3 에 check 를 2 건 더했다 (A–D 완료 기준·보조 비교 완료). 권고 1 은 `status` 만 말했으나, `cleared` 의 근거를 gate 안에 남기려면 check 가 필요하다고 보았다. 판정 근거는 부록 BU.5·BV.4·BW.4 와 같은 산출물이다.
+- G1 `status` 의 새 값 `cleared_with_limitations` 는 이 저장소에서 처음 쓰는 값이다 (권고 5 의 표현 그대로).
+- 09-28 산출물은 data root 에 있어 17번 해시 검사 대상이 아니다. `data_root_outputs` 블록에만 적고, 값은 이 슬롯에서 h197 에서 다시 쟀다.
+
+## BX.6 확인하지 못한 것
+
+- G1 의 fail 2 건을 없앨 방법 (group_id 실자료·δ 정밀도) — 계획서 P4·§8 이 한계로 받아들인 항목이라 이번 범위 밖.
+- `cleared_with_limitations` 를 읽는 쪽 (스크립트·시험) 이 새 값을 기대하는지 — 마감 절차에서 확인한다.

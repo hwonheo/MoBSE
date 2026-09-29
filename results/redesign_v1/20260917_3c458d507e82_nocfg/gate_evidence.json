@@ -1,16 +1,16 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "git_head": "89fd9415c240c766aa319fee306cd326727c3b8a",
-  "timestamp_utc": "2026-09-26T14:16:54Z",
-  "revision": 72,
-  "supersedes_sha256": "a891ee447091526a32fe71552d1f4ae2b912d826bae4001bfe36bc00263ae0f3",
-  "revision_reason": "rev72 (2026-09-26): 결정 21 명세 5 — G2 check 5 개 추가 (acceptance T01–T16 · config/code/environment hashes · runnable CLI --help · pilot end-to-end · leakage/연산/endpoint), 모두 pass (근거: 구현 잠금 bcf1fec22676, 부록 BP·BQ·BR), 보고서 부록 BS (BR.5 오기 정정 포함). G2 status·unresolved·artifact_hashes 와 G2 밖 gate 불변. 측정 잠금 9b7b11cf 유지. main pool 미소비",
+  "git_head": "1cd4054cd393ef6730aa9e3be7fe6062aecf81c9",
+  "timestamp_utc": "2026-09-29T01:15:47Z",
+  "revision": 73,
+  "supersedes_sha256": "21756b2e64d7f03772b94fe7d74e9d6ac019c04e2a3e6f9531037356d9bcbf5e",
+  "revision_reason": "rev73 (2026-09-29): 결정 23 (main OOF 착수 승인) 실행 기록 + 결정 24 (보조 비교) 실행·결과 기록 + 결정 25-1 로 gate 표기 적용 (권고 1–6) — G0 cleared · G1 cleared_with_limitations (fail 2 판정 불변) · G2 cleared · G3 cleared (check 1 → 3) · 'blocked by G0'·'blocked by G0/G1' 표기 삭제, G4·G5 status 는 planned 그대로. 새 블록 thread_pinning_rev73 · decision23_main_oof_rev73 · decision24_aux_comparison_rev73 · decision25_gate_status_rev73, 보고서 부록 BT–BX 와 reports/resource_budget.md 9.2 (스레드 고정·main 규모 실측 반영, G1 artifact_hashes 갱신). rev72 not_done '명세 6' 은 corrections 로 정정 (09-27 커밋 1cd4054 로 완료). 측정 잠금 9b7b11cf 유지, mobse/v2 불변. main pool 은 결정 23·24 로 이미 소비됨",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
       "gate": "G0 Provenance",
-      "status": "conditionally_cleared",
+      "status": "cleared",
       "checks": [
         {
           "check": "native TR of both primary targets",
@@ -95,11 +95,7 @@
           "note": "U26 해소. streaming 불필요"
         }
       ],
-      "unresolved": [
-        "U3",
-        "U6(targets, Wave 2)",
-        "U10"
-      ],
+      "unresolved": [],
       "artifact_hashes": {
         "provenance/workspace_snapshot.json": "43dac7b5195059f941e0e4b7c52645c2713b1609eaf632e50e6a6eaf547a6c0a",
         "provenance/source_runs.jsonl": "81645ac323376afc6c3289271fc69401eb35288b6f142402aea8a2ba1a65749c",
@@ -108,13 +104,13 @@
         "provenance/_gen_source_runs.py": "e2f83f5c5ac768885ca975c4eabd75152ea026d312c6b531d58b3c8706aba07b",
         "reports/implementation_map.md": "01e65ed89f9a28f2f329b17e75888dbd377d1b6c1f8c4c1c15db24a1989f2dd9",
         "reports/timing_audit.md": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d",
-        "reports/wi00_wi01_execution_report_2026-09-17.md": "c68f465bfe6d50947b5eb469e353a308d7b6331cf5d2855c6e3a2d47776b41f5"
+        "reports/wi00_wi01_execution_report_2026-09-17.md": "d1699611974e799bacef4be9854d37fbebc4a86415bf201bd431580090263d46"
       },
-      "status_note": "타이밍·nuisance·events 근거는 확보되었다. 남은 것은 재추출 입력(BOLD)뿐이며 이는 Wave 2 의 대상이다. 실제 clearing 은 재추출과 QC(WI-02) 이후에 판정한다."
+      "status_note": "결정 25-1 (2026-09-29, 권고 3) 로 cleared. check 10/10 pass. U3 (버려진 volume) 는 부록 F.1 로 해소됐고 (u3_discarded_volumes.status: resolved), U6 (targets, Wave 2) 는 Wave 2 수령 완료로 해소됐다 — 둘 다 낡은 표기였다. U10 (group_id 를 지을 지역 metadata 없음) 은 계획서 개정 P4 가 처리한 알려진 한계이며 G1 unresolved 로 옮겨 적었다. 이전 note 가 조건으로 달았던 재추출 (derivatives_v3, 부록 AA) 과 QC (WI-02) 는 끝났다."
     },
     {
       "gate": "G1 Measurement lock",
-      "status": "in_progress",
+      "status": "cleared_with_limitations",
       "checks": [
         {
           "check": "group_id constructible from local metadata",
@@ -200,15 +196,15 @@
       "artifact_hashes": {
         "locks/measurement_lock.json": "ca809fd80c2e002d25a89cd0f2021cb82e32313403097124d839974a7957028c",
         "reports/precision_scenarios.md": "a5d576edeb89a1223d79f97067490b85ac16fe56d516b92b56b9b4e33724aa69",
-        "reports/resource_budget.md": "3050f05cf285e62b5b57ebb7693091942b9ea15d0f2cfadcb5f69cada450b6d7",
+        "reports/resource_budget.md": "23eae35fae2b7dd8f8e85646788c09156fa2cbc2bf1dbb8427bc61eea8a2f32e",
         "provenance/wi03_precision/precision_scenarios.json": "67284e5991af25775ee569c32e2b51e75f8833ea9f0874d477b9d68d8ae7817e",
         "provenance/wi03_resource/resource_benchmark.json": "3a6bc49aae468d8d8d3cd8c519007b0963bd19c27c7077e72c001b423780511a"
       },
-      "status_note": "WI-03 의 세 산출물(subjects/folds 잠금, 정밀도, 자원)이 나왔고 실제 N 과 pilot 경계가 고정됐다. 그러나 G1 은 아직 열려 있다 — 계획서 §3.2 의 band-pass 순서·사양이 pilot 기술 검증 전이라 동결되지 않았고, pilot fit 자체가 미실행이라 §7 이 요구한 peak memory·시간 실측이 없다."
+      "status_note": "결정 25-1 (2026-09-29, 권고 5) 로 cleared_with_limitations — check 판정은 fail 2 건 그대로다. 이전 note 가 열어 둔 두 가지는 닫혔다: 계획서 §3.2 band-pass 는 개정 P9 로 동결돼 재추출됐고 (derivatives_v3), pilot fit 실측은 rev58·rev61 로 나와 결정 19 (rev64) 가 자원 계획 check 를 pass 로 올렸다. 남은 fail 2 건은 계획서가 처리 방식을 정한 알려진 한계다 — [0] group_id 는 개정 P4 (1 subject = 1 group), [6] δ=0.02 정밀도는 §8 의 '불확실 가능성 명시' 항목. main OOF (2026-09-28) 는 이 잠금 (9b7b11cf) 으로 실행됐다."
     },
     {
       "gate": "G2 Implementation lock",
-      "status": "planned",
+      "status": "cleared",
       "checks": [
         {
           "check": "acceptance tests T01-T16",
@@ -345,14 +341,12 @@
           "note": "구현 선택 (부록 BS.3): 문구를 지침서 §4 T-ID 에 대응시킨 것은 슬롯 해석 — 다른 묶음이면 이 note 만 바뀜 (근거는 같은 junit)"
         }
       ],
-      "unresolved": [
-        "blocked by G0"
-      ],
+      "unresolved": [],
       "artifact_hashes": {}
     },
     {
       "gate": "G3 Internal release",
-      "status": "planned",
+      "status": "cleared",
       "checks": [
         {
           "check": "section 7 fit budget arithmetic",
@@ -365,11 +359,54 @@
             "external_final": 12,
             "total": 768
           }
+        },
+        {
+          "check": "A-D main OOF completion criteria (WI-07)",
+          "result": "pass",
+          "source": "지침서 WI-07 완료 기준 · 계획서 §10 G3 '완전성과 정합성 통과; 유의성 불요'",
+          "observed": {
+            "inner_fits": 480,
+            "outer_fits": 60,
+            "primary_checkpoints_unique": 60,
+            "window_prediction_rows": 12096,
+            "run_prediction_rows": 1008,
+            "subject_cell_pairs": 504,
+            "train_subject_in_own_test_predictions": 0,
+            "prediction_outside_assigned_outer_fold": 0,
+            "inner_best_epoch_min_max": [
+              295,
+              312
+            ],
+            "all_rc": 0,
+            "g3_verdict": {
+              "completeness_and_consistency": "pass",
+              "significance_is_gate": false
+            }
+          },
+          "note": "부록 BU·BV. 근거 main_oof/20260928_1cd4054_main_a2 (summary/completion_check.json, report/statistics.json). 유의성은 gate 가 아니다 — H2 는 불확실"
+        },
+        {
+          "check": "auxiliary comparison completed (S/NG/SG)",
+          "result": "pass",
+          "source": "결정 24 항목 2 · 계획서 §6·§8 (보조 비교)",
+          "observed": {
+            "outer_fits": 43,
+            "outer_by_cell": {
+              "NG": 15,
+              "SG": 15,
+              "S": 13
+            },
+            "s_outer_prediction_rows": 2624,
+            "subjects": 126,
+            "train_subject_in_test_predictions": 0,
+            "prediction_outside_assigned_fold": 0,
+            "s_nonconverged_excluded": 0,
+            "all_rc": 0
+          },
+          "note": "부록 BW. 근거 main_oof/20260928_1cd4054_aux_a1 (report_comparison/comparison_statistics.json). 전부 보조 지표 — primary 아님"
         }
       ],
-      "unresolved": [
-        "blocked by G0"
-      ],
+      "unresolved": [],
       "artifact_hashes": {}
     },
     {
@@ -388,8 +425,7 @@
         }
       ],
       "unresolved": [
-        "U17(실제 overlap 은 공식 문서로만 판정)",
-        "blocked by G0/G1"
+        "U17(실제 overlap 은 공식 문서로만 판정)"
       ],
       "artifact_hashes": {}
     },
@@ -397,9 +433,7 @@
       "gate": "G5 Interpretation",
       "status": "planned",
       "checks": [],
-      "unresolved": [
-        "blocked by G0"
-      ],
+      "unresolved": [],
       "artifact_hashes": {}
     }
   ],
@@ -2194,9 +2228,12 @@
     },
     "binding_constraint": "계산·메모리·저장공간이 아니다. 209.7 GiB 원본이 이중화 없는 디스크 한 장 위에 있고 그 디스크가 1,932 섹터를 읽지 못한다. 파생물이 54.7 MiB 뿐이라 WI-02 재추출 외에는 원본 없이 다른 기계에서 돌릴 수 있다",
     "artifacts": {
-      "reports/resource_budget.md": "3050f05cf285e62b5b57ebb7693091942b9ea15d0f2cfadcb5f69cada450b6d7",
+      "reports/resource_budget.md": "23eae35fae2b7dd8f8e85646788c09156fa2cbc2bf1dbb8427bc61eea8a2f32e",
       "provenance/wi03_resource/resource_benchmark.json": "3a6bc49aae468d8d8d3cd8c519007b0963bd19c27c7077e72c001b423780511a"
-    }
+    },
+    "updates": [
+      "rev73 (2026-09-29): 9.2 절 추가 — 스레드 고정 (부록 BT) 과 main·보조 실행의 실측 시간 (부록 BU·BW). 9.1 의 [미측정] 중 S 후보 fit 시간·main 규모 epoch 시간·동시 실행이 실측으로 바뀜"
+    ]
   },
   "wi03_precision_scenarios": {
     "artifact": "reports/precision_scenarios.md",
@@ -5016,5 +5053,423 @@
     ],
     "judgment_changed": "G2 check 0 → 5 (pass 5); 다른 gate 판정 불변",
     "report_appendix": "BS"
+  },
+  "thread_pinning_rev73": {
+    "purpose": "main OOF 착수 전 처리량 측정 (가역, main pool 미사용)",
+    "run_dir": "pilot_threads/20260928_thr2",
+    "scope": {
+      "split": "pilot 기술 분할",
+      "outer": 0,
+      "inner_fits": 96,
+      "k": 4,
+      "threads_per_process": 2,
+      "env": "OMP/MKL/OPENBLAS/NUMEXPR_NUM_THREADS=2"
+    },
+    "identical_results": {
+      "window_predictions": "96/96",
+      "checkpoint": "96/96",
+      "eval_loss": "96/96",
+      "diffs": 0
+    },
+    "wall_seconds": {
+      "threads2": {
+        "median": 73.5,
+        "min": 65.3,
+        "max": 93.6,
+        "sum": 7191.3
+      },
+      "baseline": {
+        "median": 158.9,
+        "min": 121.2,
+        "max": 175.0,
+        "sum": 14874.1
+      }
+    },
+    "train_only": {
+      "sec_per_epoch_median": {
+        "threads2": 0.0527,
+        "baseline": 0.0512
+      },
+      "train_s_median": {
+        "threads2": 66.4,
+        "baseline": 64.4
+      },
+      "note": "학습 자체는 조금 늘었다 — 줄어든 것은 학습 밖 CPU 단계"
+    },
+    "driver_window_utc": [
+      "2026-09-28T06:06:58Z",
+      "2026-09-28T06:37:14Z"
+    ],
+    "data_root_outputs": {
+      "pilot_threads/20260928_thr2/compare.txt": "f15c8cd601df3d4b3a7d820b7f275d199a5a196d74d735680038809cd55f33f0",
+      "pilot_threads/20260928_thr2/driver.log": "823e7b99cc6222298c86464a9d3614d03a76e93c74b058bf5b1a85abdad7ab6e"
+    },
+    "implementation_choices": [
+      "대조군을 다시 돌리지 않고 앞선 판 기록을 씀 (가역 판단)",
+      "구동기는 .backup/slot_thr_0928/ (gitignore) — 커밋 안 함"
+    ],
+    "not_done": [
+      "main 규모에서 스레드 2 가 최적인지",
+      "벽시계 감소의 단계별 분해"
+    ],
+    "judgment_changed": false,
+    "report_appendix": "BT",
+    "report_sections": [
+      "보고서 부록 BT",
+      "reports/resource_budget.md 9.2 (스레드 고정·main 규모 실측)"
+    ]
+  },
+  "decision23_main_oof_rev73": {
+    "decision_quote": "main OOF 착수 승인",
+    "decision_recorded": "2026-09-28 15:4x KST (대화)",
+    "scope_decided": "A–D main OOF — WI-07 main inner 480 + outer 60 + select-ad 5 + evaluate + report",
+    "scope_not_decided": [
+      "null 민감도 (WI-09)",
+      "외부 PIOP2 (WI-08)",
+      "gate status·'blocked by G0' 표기 (결정 25-1 이 따로 정함)",
+      "결과를 본 뒤의 설계·grid·δ·N 변경 (계획서 §3·§8 금지)"
+    ],
+    "run_dir": "main_oof/20260928_1cd4054_main_a2",
+    "attempt_1": "main_oof/20260928_1cd4054_main — 코드 사본 diff -r 가 미추적 파일 때문에 멈춤 (fit 0). 남겨 둠. 재발 방지: 추적 파일 sha256 대조",
+    "code_head": "1cd4054cd393ef6730aa9e3be7fe6062aecf81c9",
+    "environment": {
+      "host": "h197",
+      "python": "3.11.5",
+      "torch": "2.10.0+cu128",
+      "cuda": "12.8",
+      "cuda_available": true
+    },
+    "preflight": {
+      "worktree_clean": true,
+      "measurement_lock": "45/45",
+      "window_files_rc": 0,
+      "implementation_lock": "38/38",
+      "gate_hashes_rc": 0
+    },
+    "driver": {
+      "path": "main_driver.py",
+      "sha256": "b252d579394a0a5869f2a9616fd7c1bf1fa46a42138517bbcfaff11563927248"
+    },
+    "input_sha256": {
+      "derivatives_v3/splits_piop1_p7/folds.json": "242ba87d6101f70438cc8a1d5fa9b3dcb6679ea307918f18a11f649cd3600b5b",
+      "derivatives_v3/cohort_piop1/subjects.jsonl": "5ab1933922027dee41ddd4b9aabd0b4e70e8255399e2b06086d1434bb6f7278a",
+      "derivatives_v3/windows_piop1.jsonl": "0750c81c0670df1f4a3e644923949ce1796d8be085afc9464cb9b988fd29a05a",
+      "configs/redesign_v1/main.yaml": "ef4b16509f2da80cd7800f63418bab6a878a0be688dc2bd055f8b5133eb5bc44"
+    },
+    "stages_utc": {
+      "start": "2026-09-28T06:44:36Z",
+      "inner_480": {
+        "end": "2026-09-28T09:28:35Z",
+        "wall": "2 h 44 m",
+        "failed": 0
+      },
+      "select_ad_5": {
+        "end": "2026-09-28T09:28:46Z",
+        "fails": 0
+      },
+      "outer_60": {
+        "end": "2026-09-28T09:55:08Z",
+        "wall": "26.4 분",
+        "failed": 0
+      },
+      "evaluate": "2026-09-28T09:55:09Z rc=0 n_fits=60",
+      "report": "2026-09-28T09:55:10Z rc=0",
+      "alldone": "2026-09-28T09:55:10Z",
+      "all_rc": 0
+    },
+    "wi07_completion": {
+      "inner_fit_reports": 480,
+      "inner_best_epoch_min_max": [
+        295,
+        312
+      ],
+      "outer_fits": 60,
+      "primary_checkpoints_unique": 60,
+      "checkpoint_sha_mismatch_vs_report": 0,
+      "window_prediction_rows": 12096,
+      "run_prediction_rows": 1008,
+      "subjects_predicted": 126,
+      "subject_cell_pairs": 504,
+      "train_subject_in_own_test_predictions": 0,
+      "prediction_outside_assigned_outer_fold": 0,
+      "all_targets_met": true
+    },
+    "selection_record_only": {
+      "selected_config": {
+        "o0": 0,
+        "o1": 0,
+        "o2": 4,
+        "o3": 1,
+        "o4": 0
+      },
+      "common_epochs": {
+        "o0": 298,
+        "o1": 298,
+        "o2": 297,
+        "o3": 297,
+        "o4": 298
+      },
+      "performance_interpreted": false
+    },
+    "primary_results": {
+      "n": 126,
+      "unit": "subject (group-resampled)",
+      "bootstrap": {
+        "seed": 9001,
+        "n_boot": 10000,
+        "shared_across_cells": true
+      },
+      "delta": 0.02,
+      "H1_A_minus_B": {
+        "point": 0.15476190476190477,
+        "ci": [
+          0.09523809523809523,
+          0.21428571428571427
+        ],
+        "pct": [
+          1.25,
+          98.75
+        ],
+        "read": "하한 > δ — 우월성 지지"
+      },
+      "H2_A_minus_C": {
+        "point": -0.015873015873015872,
+        "ci": [
+          -0.051587301587301584,
+          0.01984126984126984
+        ],
+        "pct": [
+          1.25,
+          98.75
+        ],
+        "read": "CI 가 0 포함 — 불확실"
+      },
+      "interaction": {
+        "point": 0.051587301587301584,
+        "ci": [
+          0.003968253968253968,
+          0.0992063492063492
+        ],
+        "pct": [
+          2.5,
+          97.5
+        ],
+        "read": "하한 > 0 이나 δ 이하"
+      },
+      "cell_balanced_accuracy": {
+        "A": 0.876984126984127,
+        "B": 0.7222222222222222,
+        "C": 0.8928571428571429,
+        "D": 0.7896825396825397
+      },
+      "both_primary_lower_gt_0": false,
+      "g3_verdict": {
+        "completeness_and_consistency": "pass",
+        "significance_is_gate": false
+      },
+      "caveat": "내부 OOF bootstrap 은 고정된 학습 결과에 조건부 (계획서 §8)"
+    },
+    "data_root_outputs": {
+      "main_oof/20260928_1cd4054_main_a2/summary/completion_check.json": "1635d855f8c12ab6f7d29a37ac752c0275a084b226c6e1678c494a531553a0ba",
+      "main_oof/20260928_1cd4054_main_a2/evaluate/evaluation.json": "02f6ac5e1feb665b0bd131db6d16d1833c710487a61361e90b81ac41b17ecb6c",
+      "main_oof/20260928_1cd4054_main_a2/evaluate/run_predictions.jsonl": "e377a18939de80306dd16017d6b62fe0f065e55d4fbc0178d7b2223f0e769184",
+      "main_oof/20260928_1cd4054_main_a2/report/statistics.json": "f0a9847bb61ca762ed69f3a72bdee006e085adf1b91b14950f89c799d0064569",
+      "main_oof/20260928_1cd4054_main_a2/driver.log": "adcd415b16c4903091210aa3d169b183586cb42028e093abab27df5a91b1f12c"
+    },
+    "data_root_outputs_note": "h197 data root 기준 상대 경로. 17번 검사 대상 아님 (구현 선택 — 부록 BQ.4 와 같음). 이 슬롯에서 다시 쟀다",
+    "judgment_changed": "G3 check 1 → 3 (추가 2 건 pass)",
+    "report_appendix": [
+      "BU",
+      "BV"
+    ]
+  },
+  "decision24_aux_comparison_rev73": {
+    "decision_quote": "1. 결과 열람 후 보고, 보고 형식은 쉬운 한국어로; 2. S 후보와 구조 비교(NG·SG): 1의 결과에 종속적일 경우 결과 확인 후 권고, 독립적이면 바로 수행; 3. gate 표기: 권고 사항을 알려주길",
+    "decision_recorded": "2026-09-28 19:1x KST (대화)",
+    "independence_judgment": "세션 판단 — S grid·선택 규칙 (§6, P11), NG·SG 규칙 (결정 14), 보조 contrast (§8 P12, main 결과 전 사전 등록) 가 main 결과와 무관하게 정해져 있고 입력은 main pool 분할·main evaluate 산출물뿐. 결과가 실행 여부·방식을 바꾸는 규칙 없음 (grep)",
+    "run_dir": "main_oof/20260928_1cd4054_aux_a1",
+    "smoke_dir": "main_oof/20260928_aux_smoke",
+    "v1_defect": "aux_driver_v1 이 S 후보 이름을 'S1' 로 줄여 써 fit-s argparse 가 거부 (rc=2, fit 미실행 480 호출). run_all_v1.rc = ALL_RC=1, NG·SG inner 240 뒤 11:14:12Z 정지. aux_resume.sh 가 v2 로 같은 root 에서 이어 돎 (11:14:16Z RESUME). v2 이후 fit rc≠0 은 0",
+    "prevention": "새 구동기는 CLI 인자 값을 코드 상수에서 가져오거나 첫 fit smoke 를 먼저 돌린다",
+    "driver": {
+      "path": "aux_driver.py",
+      "sha256": "4f07ee2abc6a76b4478fdc251842c8deb568aaf1a52e694e80b4a2eda9e0ca62"
+    },
+    "stages_utc": {
+      "start": "2026-09-28T10:07:18Z",
+      "ng_sg_inner_240": "10:07Z → 11:14Z",
+      "resume_v2": "2026-09-28T11:14:16Z",
+      "s_inner_480": "11:14Z → 11:48Z",
+      "select_15": {
+        "end": "2026-09-28T11:48:43Z",
+        "fails": 0
+      },
+      "outer_43": "11:50:18Z → 12:01:5xZ",
+      "report_comparison": "2026-09-28T12:02:00Z rc=0",
+      "alldone": "2026-09-28T12:02:00Z",
+      "all_rc": 0
+    },
+    "completion": {
+      "outer_fits": 43,
+      "by_cell": {
+        "NG": 15,
+        "SG": 15,
+        "S": 13
+      },
+      "s_outer_prediction_rows": 2624,
+      "subjects": 126,
+      "train_subject_in_test_predictions": 0,
+      "prediction_outside_assigned_fold": 0,
+      "s_nonconverged_excluded": 0,
+      "leakage_checked_twice": "코드 _load_s_outer + 세션 독립 재집계"
+    },
+    "selection_record_only": {
+      "S": {
+        "0": [
+          "S4_fc_fisher_z_mlp",
+          "config=3",
+          295
+        ],
+        "1": [
+          "S4_fc_fisher_z_mlp",
+          "config=4",
+          295
+        ],
+        "2": [
+          "S4_fc_fisher_z_mlp",
+          "config=4",
+          295
+        ],
+        "3": [
+          "S3_fc_fisher_z_logreg",
+          "C=10000",
+          null
+        ],
+        "4": [
+          "S4_fc_fisher_z_mlp",
+          "config=2",
+          296
+        ]
+      },
+      "NG": {
+        "config": [
+          0,
+          0,
+          0,
+          0,
+          3
+        ],
+        "outer_epochs": [
+          299,
+          299,
+          298,
+          298,
+          304
+        ]
+      },
+      "SG": {
+        "config": [
+          0,
+          0,
+          1,
+          0,
+          1
+        ],
+        "outer_epochs": [
+          297,
+          299,
+          304,
+          300,
+          302
+        ]
+      },
+      "performance_interpreted": false
+    },
+    "auxiliary_results": {
+      "role": "전부 보조 — primary 아님. 95% 기술적 CI, main 과 같은 재표집 (same_indices_as_report: true)",
+      "A_minus_S": {
+        "point": -0.12301587301587301,
+        "ci": [
+          -0.1626984126984127,
+          -0.08333333333333333
+        ],
+        "read": "상한 < 0 — 반대 방향 (S 가 더 높음)"
+      },
+      "A_minus_NG": {
+        "point": -0.011904761904761904,
+        "ci": [
+          -0.051587301587301584,
+          0.027777777777777776
+        ],
+        "read": "CI 가 0 포함 — 불확실"
+      },
+      "A_minus_SG": {
+        "point": 0.06746031746031746,
+        "ci": [
+          0.015873015873015872,
+          0.11904761904761904
+        ],
+        "read": "하한 > 0 이나 δ 이하"
+      },
+      "cell_balanced_accuracy": {
+        "S": 1.0,
+        "NG": 0.8888888888888888,
+        "SG": 0.8095238095238095
+      },
+      "not_reported": {
+        "parameter_and_cost": "이 명령 범위 밖 (계획서 §6 — 별도 조각)"
+      },
+      "primary_verdict_unchanged": true
+    },
+    "data_root_outputs": {
+      "main_oof/20260928_1cd4054_aux_a1/report_comparison/comparison_statistics.json": "a62e6239fbab57214f622e580640251efee0b8812458136fea683f4dc60fe0d4",
+      "main_oof/20260928_1cd4054_aux_a1/driver.log": "40f751f587cbd44edfc7799f88ea517e5874534649af8f01fd502e2ce13e45b8"
+    },
+    "not_done": [
+      "단순 FC 기준선이 100% 인 이유 (결정 25-6 으로 새 학습 없는 진단만 하기로 정함 — 미착수)",
+      "NG·SG 실자료 parameter/비용 집계"
+    ],
+    "judgment_changed": "G3 check 에 보조 비교 완료 1 건 추가",
+    "report_appendix": "BW"
+  },
+  "decision25_gate_status_rev73": {
+    "decision_recorded": "2026-09-29 09:5x KST, 선택 TUI 5 문항 (원문 docs/handoff/mobse_decisions_2026-09-29.md)",
+    "answers": {
+      "25-1 gate 표기": "권고 1–6 전부 적용",
+      "25-2 H2 방향": "(다) WI-09 만 먼저 (PIOP2 미사용) 후 (나) 판단",
+      "25-3 PIOP2 (WI-08) 착수": "지금은 승인하지 않음",
+      "25-4 A−S 처리": "추가 분석 후 판단",
+      "25-5 WI-09 일정": "기록·커밋 마친 뒤 착수",
+      "25-6 A−S 추가 분석 범위": "새 학습 없는 진단만"
+    },
+    "operating_instruction": "claude.ai Project 에 올리는 일은 하지말고 docs/handoff 문서 갱신만.., 그리고 개발 진행은 승인 (2026-09-29)",
+    "gate_changes": {
+      "G0": "conditionally_cleared → cleared; unresolved [U3, U6, U10] → []; status_note 갱신 (권고 3)",
+      "G1": "in_progress → cleared_with_limitations; check 판정 (fail 2) 불변; status_note 갱신 (권고 5)",
+      "G2": "planned → cleared; unresolved ['blocked by G0'] → [] (권고 2·4)",
+      "G3": "planned → cleared; unresolved → []; check 1 → 3 (권고 1·4)",
+      "G4": "unresolved 에서 'blocked by G0/G1' 삭제, U17 유지; status planned 그대로 (권고 4·6)",
+      "G5": "unresolved ['blocked by G0'] → []; status planned 그대로 (권고 4·6)"
+    },
+    "corrections": {
+      "decision21_g2_checks_rev72.not_done": "'명세 6 마감 5단계에 27 --verify 추가 여부' 는 2026-09-27 커밋 1cd4054 로 완료됐다 (마감 6단계). rev72 블록은 그때의 기록이므로 고치지 않고 여기에 적는다"
+    },
+    "implementation_choices": [
+      "G3 에 check 2 건 추가 — 권고 1 은 status 만 말했으나 cleared 의 근거를 gate 안에 남기려면 check 가 필요하다고 봄",
+      "cleared_with_limitations 는 이 저장소에서 처음 쓰는 status 값 (권고 5 의 표현 그대로)",
+      "09-28 산출물은 data root 에 있어 17번 검사 대상이 아니다 — data_root_outputs 블록에만 적음",
+      "과거 revision 블록은 다시 쓰지 않고 corrections 로 적음"
+    ],
+    "not_decided": [
+      "PIOP2 외부 평가 착수 (WI-08) — 외부 S·NG·SG 포함 여부, U17 해소 판단 포함",
+      "G1 fail 2 건의 해소 (계획서 P4·§8 이 정한 한계)",
+      "새 탐색 버전 설계 착수"
+    ],
+    "next": [
+      "WI-09 null 민감도 (seed 1730–1733, C/D 120 fit, 재튜닝 없음) — 기록·커밋 뒤",
+      "A−S 진단 (새 학습 없음)"
+    ],
+    "judgment_changed": "G0·G1·G2·G3 status, G0·G2·G3·G4·G5 unresolved, G3 check 1 → 3",
+    "report_appendix": "BX"
   }
 }

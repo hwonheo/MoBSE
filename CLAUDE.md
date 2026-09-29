@@ -1,8 +1,60 @@
 # CLAUDE.md — MoBSE Project Context
 
-> 최종 갱신 2026-09-26 23:3x KST (HEAD `89fd941` 위 작업트리, gate evidence rev72 기준 — rev60–rev63 는 부록 BH·BI·BJ·BK 기록만, rev64 는 결정 19 로 G1 check 1건 fail→pass, 부록 BL, rev65 는 결정 18 A−NG·A−SG 보조 contrast (계획서 P12, 재잠금 9564cadb, 판정 불변), 부록 BM, rev66 은 결정 22 낡은 gate 표기 정리 (G0 [2]·[7]·[8]·G1 [1] pass, G1 unresolved 3개 제거), 부록 BN, rev67 은 결정 21 명세 1 T01–T16 대응표 (판정 불변), 부록 BO, rev68 은 결정 21 명세 2 빈틈 보강 T03·T04·T11 (재잠금 9b7b11cf, 판정 불변), 부록 BP, rev69 는 결정 21 명세 3 pilot end-to-end 기록 (판정 불변), 부록 BQ, rev70·rev71 은 결정 21 명세 4 구현 잠금 스크립트·`locks/implementation_lock.json` (판정 불변), 부록 BR, rev72 는 결정 21 명세 5 G2 check 5건 (전부 pass), 부록 BS). 모든 수치는 실측값이며 출처를 함께 적음.
+> 최종 갱신 2026-09-29 11:0x KST — 결정 25 (선택 TUI 5문항) 기록, **gate evidence rev73** (09-28 main OOF·보조 비교 실행 기록 + 결정 25-1 gate 표기 적용), 보고서 부록 BT–BX, `resource_budget.md` 9.2. claude.ai Project 사본 동기화 중단 — 정본은 저장소 `docs/handoff/`.
+> 이전 갱신 2026-09-29 09:2x KST — "인수인계 — 2026-09-29" 절 추가 (Cowork 세션 → 터미널 Claude Code), 정본 포인터를 저장소 `docs/handoff/` 로 옮김 (그때 gate 는 rev72). 그 이전 (2026-09-26 23:3x, rev60–rev72 의 세부) 은 `.backup/CLAUDE_2026092*.md` 에 있다. 모든 수치는 실측값이며 출처를 함께 적음.
 > 이전판(2026-09-18)은 `.backup/CLAUDE_20260925_201635.md` 에, 2026-04-17판은 `.backup/CLAUDE.md_20260918_*.md` 에 보존됨.
-> **현행 상태의 정본은 이 파일이 아님** — claude.ai Project "MoBSE" 의 인수인계 문서 `claude/mobse_redesign_g0_handoff_2026-09-17.md` (선생님 결정 원문·남은 작업·마감 절차) 와 가장 높은 revision 의 `gate_evidence.json`. 이 파일은 저장소에 들어온 사람을 위한 방향 안내다.
+> **현행 상태의 정본은 이 파일이 아님** — 저장소 `docs/handoff/` 의 문서 (읽는 순서는 아래 "인수인계 — 2026-09-29" 절) 와 가장 높은 revision 의 `gate_evidence.json`. 이 파일은 저장소에 들어온 사람을 위한 방향 안내다.
+
+## 인수인계 — 2026-09-29 (Cowork 세션 → 터미널 Claude Code)
+
+### 먼저 읽을 것 (순서)
+1. `docs/handoff/mobse_decisions_2026-09-29.md` — **결정 25 원문과 그 뒤 진행. 09-29 이후 정본.**
+2. `docs/handoff/mobse_main_oof_2026-09-28.md` — 결정 23·24 원문, main OOF·보조 비교 실행 기록과 결과, gate 표기 권고.
+3. `docs/handoff/mobse_h2_midreview_2026-09-29.md` — H2 (A−C) 증명 방식 중간 점검: `C(x) = A(Pᵀx)` 수치 검증, 설계 약점 5개, 선택지 (가)/(나)/(다).
+4. `docs/handoff/mobse_interpretation_2026-09-29.md` — A < S 해석, H2 불확실 근거 (기존 결과·문헌), PIOP2 계획과 미구현 목록. 1절·2절의 "ROI 식별을 못 해 구조상 A≈C" 서술은 midreview 1절에서 **정정됨**.
+5. `docs/handoff/mobse_redesign_g0_handoff_2026-09-17.md` — 결정 0–22 원문과 세부, 실행 절차, 마감 절차, 재발 방지 장치 (09-27 판; 머리에 결정 23–25 요약 행 추가).
+
+- **정본은 저장소 `docs/handoff/` 다.** claude.ai Project "MoBSE" 사본 동기화는 하지 않는다 (2026-09-29 지시).
+- 문서끼리 어긋나면 **날짜가 늦은 쪽**이 앞선다. 해석·점검 문서는 판단 재료이며 결정이 아니다.
+
+### 현재 상태 (2026-09-29 11:0x KST)
+- Mac branch `redesign-v1` (미푸시). 결정 25 반영 커밋은 이 절 아래 "Next Steps" 참조.
+- **결정 23 "main OOF 착수 승인" (09-28)** → A–D main OOF 완료: h197 `$D/main_oof/20260928_1cd4054_main_a2/` (`ALL_RC=0`, WI-07 완료 기준 전부 충족). attempt 1 `…_main` 은 fit 0 으로 멈춘 판 (남겨 둠).
+- **결정 24** → 보조 비교 (S 4 후보·NG·SG) 완료: `$D/main_oof/20260928_1cd4054_aux_a1/` (`ALL_RC=0`). smoke 판 `$D/main_oof/20260928_aux_smoke/`.
+- 결과 (BA): A 0.877 · B 0.722 · C 0.893 · D 0.790 · S 1.000 · NG 0.889 · SG 0.810.
+  - primary (97.5% CI): **H1 A−B +0.155 [+0.095, +0.214]** (하한 > δ) · **H2 A−C −0.016 [−0.052, +0.020] 불확실** → 두 기여를 함께 주장할 수 없음 (§8).
+  - 보조 (95% CI): interaction +0.052 [+0.004, +0.099] · A−S −0.123 [−0.163, −0.083] · A−NG −0.012 [−0.052, +0.028] · A−SG +0.067 [+0.016, +0.119].
+  - sha256 앞자리: `statistics.json` `f0a9847bb61c` · `comparison_statistics.json` `a62e6239fbab`.
+- **gate evidence 는 rev73** — 09-28 실행 기록과 결정 25-1 gate 표기가 반영됐다 (보고서 부록 BT–BX).
+- 구동기는 gitignore 영역 (버전 관리 밖): Mac `.backup/slot_thr_0928/` — `main_driver.py`·`main_setup.sh`·`main_check.py`·`aux_driver.py` (v2)·`aux_driver_v1.py` (결함판)·`aux_setup.sh`·`aux_resume.sh`·`thr_{driver,setup,compare}`. h197 산출 root 에도 driver 사본이 있다.
+- 스레드 고정: 프로세스당 `OMP/MKL/OPENBLAS/NUMEXPR_NUM_THREADS=2` + 동시 k=4. pilot 96 fit 창 예측·checkpoint 바이트 동일, fit 당 벽시계 158.9 s → 73.5 s. main inner 480 은 2 h 44 m, outer 60 은 26.4 분 (`resource_budget.md` 9.2).
+
+### 선생님 결정 25 (2026-09-29, 선택 TUI) — 정한 것
+1. **gate 표기**: 권고 1–6 전부 적용 → rev73 에 반영 완료.
+2. **H2 방향**: **(다)** — 현 버전에서 WI-09 만 먼저 (PIOP2 미사용) 하고 그 뒤 (나) 판단.
+3. **PIOP2 외부 평가 (WI-08)**: **지금 승인하지 않음.** 외부 S·NG·SG 포함 여부와 U17 해소 판단도 승인 시점에 함께 정한다.
+4. **A−S**: 추가 분석 후 판단하되, 그 분석은 **새 학습 없는 진단**으로 한정 (기존 산출물만 읽음).
+5. **WI-09 일정**: 기록·커밋을 마친 뒤 착수 (seed 1730–1733, C/D 120 fit, 재튜닝 없음).
+- 이어진 지시: "claude.ai Project 에 올리는 일은 하지말고 docs/handoff 문서 갱신만.., 그리고 개발 진행은 승인".
+- **정하지 않은 것**: PIOP2 개방, G1 fail 2건 해소, 새 탐색 버전 설계 착수. main 결과를 본 뒤의 설계·grid·δ·N 변경은 새 exploratory version (계획서 §3·§4-5·§8).
+
+### 작업 규칙 (선생님 지시 — 모든 세션 공통)
+- 한국어·간결·쉬운 말. 수치·시각·상태는 명령으로 확인한 값만 쓰고, 확인하지 못한 것은 따로 적는다.
+- 1시간 넘는 작업은 시작부터 매시 상태 보고 (① 지금 단계 ② 완료·진행 ③ 계획 ④ 다음 보고). 09-28 까지 쓰던 claude.ai 예약 작업 (시간별 슬롯) 은 비활성 — 이 세션이 직접 보고한다.
+- 가역 결정은 진행하고 보고, 되돌리기 어려운 결정만 올리고 그 가지만 멈춘다.
+- 결정은 원문 그대로 인용하고 범위를 넓히지 않는다 ("정한 것 / 정하지 않은 것").
+- 기록·메모를 먼저 찾아본 뒤 질문한다 (대부분 이미 답이 있다).
+- 커밋: Conventional Commits (영문), `git commit -F`, **푸시하지 않음**. git lock 으로 막히면 `.git/*.lock` 을 to-delete 폴더로 **옮기고** (삭제 아님) 다시 시도.
+- **h197 의 azcopy (NFS → Azure, 선생님 작업) 가 언제 끝나는지는 확인·보고하지 않는다** (09-28 지시).
+- h197 부하 진단: load 가 높아도 로컬 디스크 포화로 단정하지 않는다 — 09-28 load 약 70 은 NFS (`/mnt/NAS`) 대기였고 로컬 md1 은 한가했다. 장치별 busy % 와 NFS/로컬 구분부터 본다.
+- 새 구동기는 CLI 인자 값을 코드 상수에서 가져오거나 첫 fit smoke 를 먼저 돌린다 (09-28 aux v1 이 S 후보 이름을 줄여 써 480 호출 rc=2).
+- 코드 사본 대조는 `diff -r` 가 아니라 **추적 파일 sha256** (미추적 파일 때문에 main attempt 1 이 멈춤).
+
+### 저장소에 없는 컨텍스트 (알려진 누락)
+- 09-28 실행·결과: 보고서 부록·gate evidence 에 없음 (위 "결정 없이 해도 되는 것").
+- 구동기 `.backup/slot_thr_0928/` 는 gitignore — 버전 관리 밖.
+- Notion Work Log (`MOBSE`) 에 09-28·09-29 작업이 기록됐는지 확인하지 못함.
+- Cowork 대화 원문은 저장소에 없다 — 결정 원문은 docs/handoff 문서에 인용돼 있다.
 
 ## Project
 MoBSE (Mixture of Brain-State Experts): fMRI 시계열을 dFC 유래 전문가 하위망으로 라우팅하는 그래프 신경망. PI: Dr. Hwon Heo, Asan Medical Center Seoul.
@@ -56,26 +108,23 @@ MoBSE (Mixture of Brain-State Experts): fMRI 시계열을 dFC 유래 전문가 �
 - split_hash `ace5f4a4…` (불변). 외부 최종 선택용 main pool 3-fold (seed 20262000) 는 별도 `external_folds.json` (42/42/42, external_split_hash `40e50350…`, 결정 17).
 - h197 경로 (data root 상대): subjects `derivatives_v3/cohort_piop1/subjects.jsonl`, 분할 `derivatives_v3/splits_piop1_p7/{folds.json, external_folds.json}`.
 
-## Gate 현황 (gate_evidence.json revision 72 — G2 check 5건 추가, 나머지 판정은 rev66 과 같음, 2026-09-26 재측정)
+## Gate 현황 (gate_evidence.json revision 73 — 09-28 실행 기록 + 결정 25-1 gate 표기, 2026-09-29)
 
 | Gate | 상태 |
 |---|---|
-| G0 Provenance | **conditionally_cleared** (검사 10건: pass 10 — rev66 결정 22 로 [2]·[7]·[8] pass; status 는 그대로) |
-| G1 Measurement lock | **in_progress** (검사 8건: pass 6 · fail 2 — group_id 구성, δ=0.02 정밀도; 자원 계획 rev64·네임스페이스 rev66 pass) |
-| G2 Implementation lock | planned (검사 5건 — pass 5; status·"blocked by G0" 는 그대로) |
+| G0 Provenance | **cleared** (검사 10건: pass 10) |
+| G1 Measurement lock | **cleared_with_limitations** (검사 8건: pass 6 · fail 2 — group_id 구성, δ=0.02 정밀도. 둘 다 계획서 P4·§8 이 정한 알려진 한계) |
+| G2 Implementation lock | **cleared** (검사 5건: pass 5) |
+| G3 Internal release | **cleared** (검사 3건: pass 3 — §7 fit 예산 · A–D main OOF 완료 기준 · 보조 비교 완료) |
+| G4 External release | planned (검사 1건 pass. `unresolved` 는 U17 만 — PIOP2 착수는 결정 25-3 으로 보류) |
 | G5 Interpretation | planned (검사 0건) |
-| G3 Internal release · G4 External release | planned (검사 각 1건, pass) |
 
 - 정본은 `results/redesign_v1/20260917_3c458d507e82_nocfg/gate_evidence.json` 이며 **revision이 올라가면 이전 판정표를 인용하지 말 것.** 순서는 revision 번호로만 봄 (`timestamp_utc` 는 거꾸로 간 적 있음).
-- "pilot 측정 기반 자원 계획" 은 rev58 에서 pilot 실측 예산을 만들었으나 **판정은 fail 그대로** — 바꿀지는 선생님 결정 대기 (인수인계 문서). rev61 (부록 BI): 칸당 3회 반복 — 같은 인자에서 s/epoch 최대 2.7 배 변동 (칸 차이 아님), pilot 규모 k=4 동시 실행 처리량 2.23 배, 순차 학습 상한 34.0 h. **선생님 결정 19 (09-26) 로 `pass` — rev64 반영 (부록 BL, note 에 한계: S 후보 시간 미측정·반복 변동 원인 미확인·main 규모 미측정).**
-- 결정 20 보고 (부록 BK, rev63): G1 fail 4건 중 group_id·네임스페이스는 개정 P4·P5 로 처리된 관측 기록, δ=0.02 정밀도는 §8 명시 항목. 작업 지침서 WI-06 "이 gate 전에는 main 학습을 시작하지 않는다" — G2 는 check 0건, `locks/implementation_lock.json` 없음 (선생님 판단 대기 → 결정 21 로 구현 잠금 작성).
-- 결정 22 (부록 BN, rev66): G0 [2]·[7]·[8]·G1 [1] pass, G1 `unresolved` 에서 pilot fit·band-pass 상한·P8 구현 항목 제거. G0 `status` 와 G2·G3·G5 "blocked by G0"·G4 "blocked by G0/G1" 표기는 그대로 (범위 밖).
-- 결정 21 명세 1 (부록 BO, rev67): T01–T16 ↔ `tests/v2` 대응표 `reports/acceptance_map_t01_t16.json` — 전부 13, 부분 3 (T03 bank 금지 subject 실패·T04 bank hash 전후·T11 single class fold), 없음 0. G2 check 는 아직 0건.
-- 결정 21 명세 2 (부록 BP, rev68): `templates.build_bank(allowed_subjects=)` (T03)·`train_fold` 두 class 검사 (T11)·bank hash 전후 시험 (T04), 돌연변이 8/8. 갱신 판 `reports/acceptance_map_t01_t16_v2.json` — 전부 16. G2 check 는 아직 0건.
-- 결정 21 명세 3 (부록 BQ, rev69): pilot 기술 분할로 CLI 전 경로 prepare → split → fit 540 (inner 480 · outer 60) → select-ad 5 → evaluate → report, `ALL_RC=0`, 실패 0. CLI 에 상한 인자가 없어 감싸개가 프로세스 안에서만 `MAX_EPOCHS` 2000 으로 덮음 (cli 먼저 import). 산출물 h197 data root `pilot_e2e/20260926_1515c/` (sha 는 gate 블록 `data_root_outputs`). 성능 해석 안 함.
-- 결정 21 명세 4 (부록 BR, rev70·rev71): `scripts/h197/27_build_implementation_lock.py` 가 `locks/implementation_lock.json` 생성 (lock_hash `bcf1fec22676`, 환경·pip freeze·code_hash·config·CLI `--help` 12·acceptance 대응표 + junit·pilot e2e sha 재측정·측정 잠금 참조). 검증은 같은 스크립트 `--verify` (38건). G2 check 는 아직 0건 (명세 5).
-- 결정 21 명세 5 (부록 BS, rev72): G2 check 5건 — acceptance T01–T16 · config/code/environment hashes · runnable CLI `--help` · pilot end-to-end · leakage/연산/endpoint (T-ID 묶음은 구현 선택) — 전부 pass. G2 `status` 는 `planned` 그대로. main OOF 착수는 선생님 승인 필요.
-- 측정 잠금 현행 `9b7b11cf8576…` (locked_at 2026-09-26T05:22:16Z, 결정 21 명세 2), 옛 판 37개는 `locks/superseded/` 에 보존. 잠금은 `mobse/v2/*.py` 를 해시한다 — **`mobse/v2` 를 바꾸면 잠금 재생성 + gate evidence 새 revision** (`scripts/h197/18_build_measurement_lock.py --overwrite --reason "..."`). `scripts/h197/`·`tests/v2` 만 바꾸면 잠금 재생성은 불요, gate evidence 해시만.
+- rev73 이 바꾼 것 (결정 25-1 = main_oof 문서 "gate 표기 권고" 1–6): G0 `conditionally_cleared`→`cleared` (U3·U6 삭제, U10 은 G1 로), G1 `in_progress`→`cleared_with_limitations` (**check 판정은 불변**), G2·G3 `planned`→`cleared`, G3 check 1→3, "blocked by G0"·"blocked by G0/G1" 표기 전부 삭제. G4·G5 `status` 는 planned 그대로. 보고서 부록 BX.
+- rev73 이 더한 기록: `thread_pinning_rev73` (부록 BT) · `decision23_main_oof_rev73` (부록 BU·BV) · `decision24_aux_comparison_rev73` (부록 BW) · `decision25_gate_status_rev73` (부록 BX). 09-28 산출물은 data root 에 있어 17번 해시 검사 대상이 아니며 `data_root_outputs` 에만 적는다.
+- rev72 `not_done` 의 "명세 6" 은 09-27 커밋 `1cd4054` (마감 6단계 추가) 로 끝났다 — rev73 `decision25_gate_status_rev73.corrections` 에 정정해 적었다 (과거 revision 블록은 다시 쓰지 않는다).
+- G1 의 fail 2건은 없애지 않는다: [0] group_id 는 개정 P4 (1 subject = 1 group), [6] δ=0.02 정밀도는 §8 의 "불확실 가능성 명시" 항목. main OOF 는 이 잠금으로 실행됐다.
+- 측정 잠금 현행 `9b7b11cf8576…` (locked_at 2026-09-26T05:22:16Z), 구현 잠금 `bcf1fec22676…`. 잠금은 `mobse/v2/*.py` 를 해시한다 — **`mobse/v2` 를 바꾸면 잠금 재생성 + gate evidence 새 revision** (`scripts/h197/18_build_measurement_lock.py --overwrite --reason "..."`). `scripts/h197/`·`tests/v2` 만 바꾸면 잠금 재생성은 불요, gate evidence 해시만.
 
 ## 실행 호스트와 경로
 
@@ -123,7 +172,7 @@ python -B scripts/h197/27_build_implementation_lock.py --verify --data-root $D -
 `release_id` = `YYYYMMDD_<short-code-hash>_<config-hash-prefix>`. **같은 release 결과를 덮어쓰지 않으며** 실패 재시도는 attempt 번호를 덧붙임. 데이터·run 단위 provenance 는 커밋하지 않음.
 
 ## 고정 운영 규칙
-- **잠긴 분할(main pool)을 소비하는 fit 을 시작하지 않음** — 선생님의 main OOF 착수 승인 원문이 인수인계 문서에 생기기 전까지. 결정 17 (외부 분할) 도 외부 선택·최종 fit 실행 승인이 아님.
+- main OOF 는 **결정 23 (2026-09-28) 으로 실행 완료**, 보조 비교는 결정 24 로 완료. **null 민감도 (WI-09) 는 결정 25-2·25-5 로 승인** (기록·커밋 뒤 착수). **외부 선택/최종 fit·PIOP2 평가 (WI-08) 는 결정 25-3 으로 보류 — 선생님 원문 승인 전 시작하지 않음.** 결정 17 (외부 분할) 도 외부 실행 승인이 아님.
 - 공용 저장소(NAS, bmc-storage 등)에 쓰지 않음. `/tmp` 에 정본 산출물을 두지 않음.
 - 돌연변이 시험은 bytecode 없이 (`python -B` + `PYTHONDONTWRITEBYTECODE=1`), 돌연변이 뒤·rsync 전·잠금 재생성 전에 `find mobse scripts tests -name '*.pyc'` 0 확인.
 - 커밋 메시지는 Conventional Commits (영문), 파일로 써서 `git commit -F` (zsh heredoc 사고).
@@ -136,7 +185,7 @@ python -B scripts/h197/27_build_implementation_lock.py --verify --data-root $D -
 - main 성능 접근 뒤의 설계 변경은 새 exploratory version으로 분리
 
 ## 기록 체계
-- 재설계 진행 상태·선생님 결정 원문: claude.ai Project "MoBSE" 인수인계 문서 (위).
+- 재설계 진행 상태·선생님 결정 원문: 저장소 `docs/handoff/` 가 **정본**이다. claude.ai Project "MoBSE" 사본 동기화는 하지 않는다 (2026-09-29 지시). 새 결정은 `docs/handoff/` 문서에 원문으로 적는다.
 - 작업 기록은 Notion `📓 Work Logs` 시리즈 **`MOBSE`** 에 남김 (`/bmc-records:bmc-work-log`). 물리 경로는 `🗄️ Data Assets` 에만 기재하고 Work Log 본문에는 쓰지 않음 (리포 상대 경로는 예외).
 
 ## Legacy (v1) — 참고용
@@ -156,10 +205,11 @@ python -B scripts/h197/27_build_implementation_lock.py --verify --data-root $D -
 - expert collapse 수정: `_routing_weights()` 의 `scatter_(values)` → `weights * mask`
 
 ## Next Steps
-정본은 인수인계 문서 "남은 작업". 2026-09-25 20:1x 기준 요지:
-1. 결정 18 (A−NG·A−SG 보조 contrast, 계획서 P12) 은 rev65 반영 완료 · 결정 19 는 rev64 반영 완료 · 결정 22 는 rev66 반영 완료 · 다음: **결정 21** (G2 구현 잠금 — 대응표 rev67 완료 → 빈틈 보강 rev68 완료 → pilot end-to-end rev69 완료 → `implementation_lock.json` rev71 완료 → G2 check rev72 완료 (pass 5), 지침서 WI-06) → **선생님의 main OOF 착수 승인 대기**.
-2. **main OOF 착수 승인 대기** — 승인 전에는 합성 시험·pilot 창 측정만.
-3. 결정 불요 후보: 재추출 창의 통과대역 밖 잔여 전력 점검 (범위 확인 먼저), h197 정리 (삭제는 선생님 확인 뒤).
+정본은 `docs/handoff/mobse_decisions_2026-09-29.md` "결정 25 이후 진행" 과 위 인수인계 절. 2026-09-29 기준 요지:
+1. **다음 실행: WI-09 null 민감도** (결정 25-2·25-5) — seed 1730–1733, C/D 120 fit, 재튜닝 없음. 기록·커밋을 마친 뒤 착수한다. 결과를 보고 (나) (새 탐색 버전 설계) 를 판단한다.
+2. **A−S 진단** (결정 25-6) — 새 학습 없이 기존 산출물만 읽는 진단. 가역이라 아무 때나 가능.
+3. **선생님 승인 대기**: PIOP2 외부 평가 (WI-08) 착수 — 되돌릴 수 없다. 외부 S·NG·SG 포함 여부와 U17 해소 판단을 함께 정한다. 미구현: (9,9) final fit 배선, PIOP2 평가 경로, `external_lock.json`, 시험, 잠금 새 판·gate revision.
+4. 결정 불요 후보: h197 정리 (삭제는 선생님 확인 뒤 — `pilot_e2e/20260926_1515c/`·`impl_lock/20260926_2215d/`·`main_oof/` 는 지우지 않음).
 
 ## Excluded Datasets (and why)
 - **HCP**: DUA 필요, 데이터 접근 불확실
