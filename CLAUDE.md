@@ -1,6 +1,6 @@
 # CLAUDE.md — MoBSE Project Context
 
-> 최종 갱신 2026-09-29 15:0x KST — **결정 29** (G-a·G-b 는 차단이 아니라 보고 장치; pilot 만·버리는 쪽으로만) 와 **G-a 선별 실행 완료** — 양성 대조 v1 target 1.000 (gate 가 작동함), 나머지 0.52–0.70 이나 pilot 31 규모라 우연과 구분 불가 (`sex` 0.536 이 민감도 경고). gate 는 rev75 그대로. 그 직전: **결정 28: 새 탐색 버전 설계 세 갈래** (축 미정 → 포화 선별 gate 우선 · ROI 구조 둘 다 병행 · null 은 M 축소 + 종류 확대) 와 설계안 초안 `docs/experiments/mobse_exploratory_v2_design_draft_2026-09-29.md`. 착수 전 확인 2건 완료 (등변성·spin). gate 는 **rev75 그대로** (v2 설계 측정은 v1 근거가 아님). 그 직전: **결정 27: 진로 (나) 확정** (현 버전 내부 마감 · PIOP2 미개방 · 새 탐색 버전 설계) + interaction 판독 철회, **A−S 진단** (결정 25-6) → **gate evidence rev75**, 부록 BZ·CA. 그 직전: WI-09 null 민감도 완료 → rev74, 부록 BY. 그 전 같은 날: 결정 25 기록, rev73 (09-28 실행 기록 + gate 표기), 부록 BT–BX, `resource_budget.md` 9.2, 커밋 `97e434a`. claude.ai Project 사본 동기화 중단 — 정본은 저장소 `docs/handoff/`.
+> 최종 갱신 2026-09-29 16:0x KST — **결정 30·31·32**: 새 버전 축은 **T4 저표본 곡선**, 코드는 **새 모듈 `mobse/v3/`** (`mobse/v2` 불변 → v1 잠금·gate rev75 유효), 학습은 **update 예산 5,000 고정·epoch 상한 없음·best checkpoint 선택 자유**. 그 직전: **결정 29** (G-a·G-b 는 차단이 아니라 보고 장치; pilot 만·버리는 쪽으로만) 와 **G-a 선별 실행 완료** — 양성 대조 v1 target 1.000 (gate 가 작동함), 나머지 0.52–0.70 이나 pilot 31 규모라 우연과 구분 불가 (`sex` 0.536 이 민감도 경고). gate 는 rev75 그대로. 그 직전: **결정 28: 새 탐색 버전 설계 세 갈래** (축 미정 → 포화 선별 gate 우선 · ROI 구조 둘 다 병행 · null 은 M 축소 + 종류 확대) 와 설계안 초안 `docs/experiments/mobse_exploratory_v2_design_draft_2026-09-29.md`. 착수 전 확인 2건 완료 (등변성·spin). gate 는 **rev75 그대로** (v2 설계 측정은 v1 근거가 아님). 그 직전: **결정 27: 진로 (나) 확정** (현 버전 내부 마감 · PIOP2 미개방 · 새 탐색 버전 설계) + interaction 판독 철회, **A−S 진단** (결정 25-6) → **gate evidence rev75**, 부록 BZ·CA. 그 직전: WI-09 null 민감도 완료 → rev74, 부록 BY. 그 전 같은 날: 결정 25 기록, rev73 (09-28 실행 기록 + gate 표기), 부록 BT–BX, `resource_budget.md` 9.2, 커밋 `97e434a`. claude.ai Project 사본 동기화 중단 — 정본은 저장소 `docs/handoff/`.
 > 이전 갱신 2026-09-29 09:2x KST — "인수인계 — 2026-09-29" 절 추가 (Cowork 세션 → 터미널 Claude Code), 정본 포인터를 저장소 `docs/handoff/` 로 옮김 (그때 gate 는 rev72). 그 이전 (2026-09-26 23:3x, rev60–rev72 의 세부) 은 `.backup/CLAUDE_2026092*.md` 에 있다. 모든 수치는 실측값이며 출처를 함께 적음.
 > 이전판(2026-09-18)은 `.backup/CLAUDE_20260925_201635.md` 에, 2026-04-17판은 `.backup/CLAUDE.md_20260918_*.md` 에 보존됨.
 > **현행 상태의 정본은 이 파일이 아님** — 저장소 `docs/handoff/` 의 문서 (읽는 순서는 아래 "인수인계 — 2026-09-29" 절) 와 가장 높은 revision 의 `gate_evidence.json`. 이 파일은 저장소에 들어온 사람을 위한 방향 안내다.
@@ -81,6 +81,14 @@
   - **그러나 우연과 구분되지 않는다** — 라벨당 25–30 명, 우연 변동 SD 약 0.09 [추정], 게다가 C 최댓값을 취한 낙관. **`sex` 가 0.536** 인 것이 민감도 경고다 (FC 로 성별은 잘 맞히는 축인데도).
   - **설계 함의**: 새 자료 없이 닿는 target 공간은 한쪽이 포화, 다른 쪽이 pilot 규모에서 구분 불가 — **가운데가 비어 있다.**
 - **다음 판단 (선생님)**: T4 저표본 곡선 / T1 새 task fetch / T2 창 재설계 / 선별을 더 큰 표본에서 다시 (결정 29-2 재개방) 중 택일.
+
+### 결정 30·31·32 (2026-09-29) — v3 의 축과 학습 규칙
+
+- **축 = T4 저표본 곡선** (결정 30): target 은 그대로, **학습 subject 수를 줄여 가며** A−C·A−S 를 본다.
+- **코드 = 새 모듈 `mobse/v3/`** (결정 31-2). **`mobse/v2` 는 손대지 않는다** → v1 잠금 (`9b7b11cf`·`bcf1fec22676`) 과 gate rev75 가 그대로 유효하다. v3 잠금의 `code_hash` 는 `mobse/v3/*.py` + `mobse/v2/*.py` 를 함께 해시한다 (구현 선택).
+- **학습 규칙 (P8-c 후보, 결정 31-1·32)**: update 예산 **5,000 을 모든 N 이 동일하게** · **epoch 상한 없음** · **best checkpoint 는 어느 epoch 에서든** (`min_epoch` 결합 해제).
+  - 결정 32 가 필요했던 이유 [측정]: `fitting.py:613`·`670`, `train.py:288` 이 `min_epoch` 전에는 early stopping·best 선택을 막는다 → 학습 10 명이면 창 80 개를 **1,667 epoch 반복한 뒤에야** checkpoint 를 고르게 되어 저표본이 구조적으로 과적합된다.
+- **v3 에서 바꿀 것**: 학습 규칙 · ROI embedding·ROI 별 readout (28-2) · null 세 종류 (28-3) · config 새 잠금 키 · 학습 subject 부분표집 · `configs/exploratory_v2/` · `tests/v3`.
 
 ### 작업 규칙 (선생님 지시 — 모든 세션 공통)
 - 한국어·간결·쉬운 말. 수치·시각·상태는 명령으로 확인한 값만 쓰고, 확인하지 못한 것은 따로 적는다.
