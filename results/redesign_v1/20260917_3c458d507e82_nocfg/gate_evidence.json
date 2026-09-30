@@ -1,10 +1,10 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "timestamp_utc": "2026-09-30T03:42:27Z",
-  "revision": 79,
-  "supersedes_sha256": "f145cb7171c0fa17d844950b2b0eb69b983956b58f97f9aff16d68fe1cf9150e",
-  "revision_reason": "rev79 (2026-09-30): WI-11 인용 수치 대조 스크립트를 저장소로 들였다. closure 11–14 가 돌리던 그 대조는 h197 ~/slot/wi09_0929/verify_wi11.py 에만 있어 G5 의 check 5 건을 저장소에서 재현할 수 없었다. scripts/h197/28_verify_wi11_citations.py 로 커밋하고 경로를 인자로 뺐으며 (대조 항목은 불변), h197_scripts 에 해시를 등록하고 CLAUDE.md 마감 절차에 3b 단계로 적었다. 음성 대조로 대조가 비어 있지 않음을 확인했다. gate 판정·status 전부 불변",
+  "timestamp_utc": "2026-09-30T04:12:54Z",
+  "revision": 80,
+  "supersedes_sha256": "ebcf9127273343a3894f024a28833aea52faf7d62f296d640956fabeac6cf8ee",
+  "revision_reason": "rev80 (2026-09-30): G5 블록에 checks_verified_by 포인터 필드를 더해, check 1·2·3 의 observed 값을 다시 계산하는 것이 scripts/h197/28_verify_wi11_citations.py (마감 3b) 임을 gates 배열 안에서 보이게 했다. 3b 를 check 로 등록하지는 않았다 (사유는 g5_checks_verified_by_rev80). gate status·check 판정 전부 불변",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -514,6 +514,7 @@
           "note": "보고서 §7. PIOP2 는 새 탐색 버전의 확증용으로 남긴다"
         }
       ],
+      "checks_verified_by": "scripts/h197/28_verify_wi11_citations.py — check 1·2·3 의 observed 값을 산출물에서 다시 계산한다 (마감 3b)",
       "unresolved": [],
       "artifact_hashes": {
         "reports/wi11_research_package_2026-09-29.md": "c7157ce099260582957f3daa0479506bb3b268e1fb8d1fad6a36311e5b6867ff"
@@ -6020,5 +6021,11 @@
     },
     "judgment_changed": "없음 — gate status·check 판정 전부 불변. h197_scripts 에 파일 1 개가 늘었을 뿐이다.",
     "not_done": "3b 를 G5 의 check 로 등록하지는 않았다 — check 구성 변경은 선생님 결정 사항이다."
+  },
+  "g5_checks_verified_by_rev80": {
+    "decision_quote": "\"checks_verified_by\": \"scripts/h197/28_verify_wi11_citations.py — check 1·2·3 의 observed 값을 산출물에서 다시 계산한다 (마감 3b)\" <-- 승인 (2026-09-30)",
+    "what": "G5 블록에 checks 바로 뒤로 포인터 필드를 하나 더했다.",
+    "why_not_a_check": "3b 를 G5 의 6 번째 check 로 올리지 않은 이유 셋. (1) 기존 check 5 건은 source 가 전부 계획서 §10·지침서 WI-11 의 필수 산출물 요구이고, 3b 를 요구하는 조항은 없다. (2) 3b 가 재계산하는 값은 이미 check 1·2·3 의 observed 에 있어 pass 를 두 번 세게 된다. (3) 재현성은 이미 확보됐다 — 스크립트 해시는 h197_scripts 에 있어 마감 2 단계가 매번 대조하고 3b 로 매번 실행된다.",
+    "judgment_changed": "없음 — G5 status·check 5 건의 result 와 observed 값은 전부 그대로다. 다른 gate 도 불변."
   }
 }
