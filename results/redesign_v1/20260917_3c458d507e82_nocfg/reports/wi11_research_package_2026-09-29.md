@@ -113,7 +113,8 @@ PIOP2 의 외부 분할 (`external_folds.json`, 결정 17) 과 미구현 배선�
 
 ## 9. 재현 방법 (실제로 돈 명령만)
 
-호스트 h197, venv `venv-mobse-v2`, python 3.11.5 · torch 2.10.0+cu128 · CUDA 12.8. 코드 HEAD `1cd4054` (main·보조), `97e434a` (WI-09).
+호스트 h197, venv `venv-mobse-v2`, python 3.11.5 · torch 2.10.0+cu128 · CUDA 12.8.
+코드 판본은 커밋 SHA 가 아니라 **잠금**으로 고정된다 — 측정 잠금 `9b7b11cf8576…` 의 `code_hash` `804d6ee17625…` 가 `mobse/v2/*.py` 를 해시하고, 구현 잠금 `bcf1fec22676…` 가 환경·config·CLI 까지 묶는다 (§10). 2026-09-30 에 팀 커밋 규약 (영문 1줄, co-author 태그 미사용) 에 맞춰 이력을 재작성했으므로 예전 커밋 SHA 는 더 이상 가리키는 대상이 없다 — 그래서 이 문서와 gate evidence 에서 커밋 SHA 기록을 지웠다. **잠금 해시는 그대로이며 재현의 기준은 그쪽이다.**
 
 ```bash
 cd /mnt/data/code/MoBSE && PYTHONPATH=.

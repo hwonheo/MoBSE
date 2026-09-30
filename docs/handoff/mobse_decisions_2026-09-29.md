@@ -89,7 +89,7 @@
 
 ## WI-09 null 민감도 — 완료 (2026-09-29, gate rev74, 부록 BY)
 
-- 산출 h197 `$D/null_sens/20260929_97e434a_a1/`. HEAD `97e434a`, preflight 4종 rc=0, 추적 파일 381 사본 동일.
+- 산출 h197 `$D/null_sens/20260929_97e434a_a1/`. HEAD, preflight 4종 rc=0, 추적 파일 381 사본 동일.
 - 착수 전 확인 통과: seed 1730 판 A outer fit 1건이 main 과 **창 예측 208개 전부 동일·checkpoint sha 동일** (다른 것은 `config_hash`·`null_seed` 기록뿐).
 - 실행: outer **240 fit** 01:40:37Z → 03:03:12Z (**1 h 22 m 35 s**, 실패 0) → seed 마다 evaluate·report rc=0 → `ALL_RC=0`.
 - 점검 (네 seed 공통): outer 60 · 고유 checkpoint 60 · 창 예측 12,096 · **누설 0** · 배정 밖 0 · A·B 30건 main 과 차이 0 · report g3 pass.
@@ -442,3 +442,34 @@ G4 (External release) 가 `planned` 로 남아 있는데, 결정 27 로 **이 �
 | G3 Internal release | `cleared` | 3 (pass 3) |
 | G4 External release | `planned` (표기 미정) | 1 (pass 1) |
 | G5 Interpretation | **`cleared_with_limitations`** | 5 (pass 5) |
+
+## 커밋 규약 적용 — 이력 재작성과 SHA 기록 삭제 (2026-09-30, gate rev78)
+
+선생님 회신 원문: **"커밋 이력 전부 수정. 모든 커밋은 내 계정 (Hwon Heo)만 수행 했으므로 수정은 어렵지 않을 것. SHA 문단 기록 삭제."** · **"과거 메시지도 1줄로 줄인다"**
+
+**규약 출처**: `bmc-plugins/README.md` — "커밋 규칙은 팀 규칙을 따름 — 영문 1줄, 20~25단어 이내, 작업 단위로 묶어 5건 이하, co-author 태그 미사용."
+
+### 이력 재작성
+- `git filter-branch --msg-filter "sed -n '1p'"` 로 **161 개 커밋을 제목 1줄만** 남겼다. 본문·co-author 태그 전부 제거.
+- 검증: co-author **0** · 두 줄 이상 메시지 **0** · 25단어 초과 제목 **0** (최대 13단어).
+- **파일은 하나도 바뀌지 않았다** — 재작성 전후 트리 해시가 같다 (`d6ae391cf584`).
+- 되돌릴 수 있게 `backup/pre-msg-rewrite-20260930` branch·tag 를 남겼다.
+
+### SHA 기록 삭제
+재작성으로 예전 커밋 SHA 가 무효가 되어 지웠다.
+- gate evidence **필드 7 개**: `git_head` · `p9_reextraction/git_head` · `decision16_mutation_recheck/head` · `decision21_pilot_e2e_rev69/code_head` · `decision21_implementation_lock_rev71/git_head_at_build` · `decision23_main_oof_rev73/code_head` · `decision26_wi09_null_sensitivity_rev74/code_head`
+- 문서 **토큰 284 개** (CLAUDE.md 3 · 인수인계 3 문서 248 · 실행 보고서 28 · WI-11 2 · resource_budget 2 · timing_audit 1)
+
+### 지우지 않은 것 (지우면 깨지는 것)
+| 대상 | 이유 |
+|---|---|
+| `locks/implementation_lock.json` 의 `git.head` | 고치면 `lock_hash` 가 바뀌어 **구현 잠금 검증 38 건이 깨지고** h197 에서 재생성해야 한다. 잠금은 기록이지 참조가 아니다 |
+| `main_oof/20260928_1cd4054_main_a2` 같은 **산출물 디렉터리 이름** | git 참조가 아니라 **실행 식별자**다. 지우면 경로가 깨진다 |
+| h197 data root 의 `git_head.txt` | 실행 당시 기록이라 손대지 않는다 |
+
+### 코드 판본의 기준은 이제 잠금이다
+커밋 SHA 대신 **측정 잠금 `9b7b11cf8576…`** 의 `code_hash` **`804d6ee17625…`** (= `mobse/v2/*.py` 해시) 와 **구현 잠금 `bcf1fec22676…`** (환경·config·CLI 포함) 이 판본을 고정한다. WI-11 §9 에 그 취지를 적었다.
+
+### 작업 중 스스로 잡은 실수 2건 (기록)
+1. 처음 정리 정규식이 **SHA 와 무관한 공백까지** 건드려 `3.11.5 · torch` 가 `3.11.5· torch` 로 바뀌었다. 백업에서 되돌리고, 삭제 지점 주변에서만 도는 규칙으로 다시 했다.
+2. 토큰만 지우니 `()`·`(, rev29)`·`,,` 같은 잔재가 생겼다. **원본에 없던 패턴만** 골라 정리했고 (`,,` 39 · `커밋 ·` 1), 원본에 있던 `()` 47 · ` ,` 4 는 건드리지 않았다.

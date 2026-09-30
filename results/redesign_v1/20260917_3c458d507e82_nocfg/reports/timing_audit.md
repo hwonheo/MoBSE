@@ -8,7 +8,7 @@
 > 좁혀진다. (E3) sub-0167은 emomatching 하나가 아니라 anticipation·emomatching·faces·gstroop
 > 4개 run 전부가 nuisance 회귀 없이 저장되었다. 원문은 기록 보존을 위해 그대로 둔다.
 
-**작성일 2026-09-17 · release_id `20260917_3c458d507e82_nocfg` · git HEAD `7787ae0`**
+**작성일 2026-09-17 · release_id `20260917_3c458d507e82_nocfg` · git HEAD**
 
 범위: 로컬 연결 폴더(`/Users/hwon/projects/Git/Manuscript/MoBSE`) 안에서 실제로 실행한 명령의 출력만 기록한다. 원격 다운로드는 시도하지 않았다. 확인하지 못한 값은 null 로 두고 사유를 남겼다. 추론값은 쓰지 않는다.
 

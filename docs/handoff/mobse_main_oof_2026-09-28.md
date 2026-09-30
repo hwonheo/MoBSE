@@ -28,7 +28,7 @@
 ## main OOF 실행 — 완료
 
 - 산출 h197 `$D/main_oof/20260928_1cd4054_main_a2/` (**구현 선택** — 저장소 release `fits/` 는 `.gitignore` 밖). attempt 1 (`…_main`) 은 코드 사본 `diff -r` 가 미추적 파일 때문에 멈춤 (fit 0, 남겨 둠) → 추적 파일 sha256 대조로 attempt 2.
-- 구동기 `.backup/slot_thr_0928/main_driver.py` (sha256 `b252d579394a…`) + `main_setup.sh`. preflight: HEAD `1cd4054`, 작업트리 깨끗, 측정 잠금 45/45, 창 파일 rc=0, 구현 잠금 38/38, gate 해시 rc=0.
+- 구동기 `.backup/slot_thr_0928/main_driver.py` (sha256 `b252d579394a…`) + `main_setup.sh`. preflight: HEAD, 작업트리 깨끗, 측정 잠금 45/45, 창 파일 rc=0, 구현 잠금 38/38, gate 해시 rc=0.
 - 입력 sha256 앞 16자: folds `242ba87d6101f704` · subjects `5ab1933922027dee` · windows `0750c81c0670df1f` · main.yaml `ef4b16509f2da80c`.
 - 벽시계: inner 480 **2 h 44 m** (fails 0) · select-ad 5 rc=0 · outer 60 **26.4 분** · evaluate·report rc=0 · `ALLDONE` 09:55:10Z.
 - **WI-07 완료 기준 전부 충족** (`.backup/slot_thr_0928/main_check.py` → `$O/summary/completion_check.json`): primary checkpoint 고유 60, window 예측 12,096 = 126×2×4×3×4, run 예측 1,008, (subject, 칸) 504 쌍 전부 24 행·outer fold 하나, 누설 0, 배정 밖 예측 0, inner best epoch 295–312.

@@ -1,6 +1,6 @@
 # WI-00 / WI-01 실행 보고서 — 재설계 G0 감사
 
-**release_id** `20260917_3c458d507e82_nocfg` · **git HEAD** `7787ae0c9741c22c207032c8bd78fd462ce02b9f` · 2026-09-17
+**release_id** `20260917_3c458d507e82_nocfg` · **git HEAD** · 2026-09-17
 
 적용 문서: [재설계 프로토콜 v1.1](../../../../docs/experiments/mobse_redesign_protocol_2026-09-17.md), [작업 지침서 v1.0](../../../../docs/experiments/mobse_redesign_work_instructions_2026-09-17.md)
 
@@ -648,15 +648,15 @@ h197 venv 실행 결과: **178 passed, 2 warnings in 7.78s**
 | `tests/test_subject_split.py` | collection ERROR | 동일 | **기존 결함** |
 | 나머지 22건 | 22 passed | — | — |
 
-두 collection error 의 근거는 커밋 `52c0f7e`(2026-04-01,
+두 collection error 의 근거는 커밋(2026-04-01,
 "refactor(data): migrate hcp->os pipeline and align configs")다. 이 커밋이
 `mobse/data/hcp.py` 를 삭제했고, 같은 커밋에서 `tests/` 는 **한 파일도 건드리지
-않았다**(`git show --stat 52c0f7e -- tests/` 가 공집합). 즉 2026-04-01 이후
+않았다**(`git show --stat -- tests/` 가 공집합). 즉 2026-04-01 이후
 약 5.5개월 동안 잠복해 있던 결함이며, 이번 작업과 인과가 없다. 확인 명령:
 
 ```
 git log --oneline --diff-filter=D -- mobse/data/hcp.py
-git show --stat 52c0f7e -- tests/
+git show --stat -- tests/
 ```
 
 ### D.4.2 신규(v2) suite — `pytest tests/v2`
@@ -3032,7 +3032,7 @@ h197 의 손실 원장(`~/loss_ledger_20260923.md`)에 MoBSE 항목은 없다.
 
 - **Wave 1**: `provenance/h197_wave1/wave1_files.sha256` 6,058 파일을 `sha256sum -c` 로 대조 — **전부 일치** (rc=0).
 - **Wave 2**: 파일 수 nii.gz 2,590 + 로그 4 로 기록과 같다. 해시 기준선이 없어 내용 대조는 못 했다 (열린 항목 그대로).
-- 기존 4단계 마감(HEAD `5d6677a` 스냅샷)은 전부 기대값이었다.
+- 기존 4단계 마감(HEAD 스냅샷)은 전부 기대값이었다.
 
 ## X.2 E18 — 네 검사가 모두 통과했는데 창 파일이 빠져 있었다
 
@@ -3247,7 +3247,7 @@ rev27 마감 5단계 결과는 순환을 피해 커밋 메시지와 인수인계
 
 ## AA.1 재추출
 
-h197, HEAD `4316ef1`, 2026-09-23T06:20:51Z–06:56:25Z. 출력은 새 디렉터리 `derivatives_v3/`(PIOP1)·`derivatives_v3_piop2/`(PIOP2) — `derivatives_v2*` 는 건드리지 않았다.
+h197, HEAD, 2026-09-23T06:20:51Z–06:56:25Z. 출력은 새 디렉터리 `derivatives_v3/`(PIOP1)·`derivatives_v3_piop2/`(PIOP2) — `derivatives_v2*` 는 건드리지 않았다.
 6개 조합 모두 rc=0, error 0. 여섯 manifest header 가 전부 schema `wi02-extract-0.2`, `bandpass_hz [0.008, 0.2]`, `dry_run false` 이고, ok run 의 `filter_spec.method` 는 전부 `simultaneous_regression` 이다.
 ok run 의 residual DOF 최솟값은 조합별 66 / 82 / 80 (PIOP1 emo·wm·rest), 67 / 87 / 145 (PIOP2) — 모두 `MIN_RESIDUAL_DOF = 30` 초과.
 
@@ -3330,7 +3330,7 @@ rev27 의 caveat("코드와 창이 같은 추출을 가리키지 않는다")는 
 
 # 부록 AC — E22 결정성 적용 (rev30, 2026-09-23 예약 슬롯)
 
-잠긴 config 키 `runtime.deterministic: True`(choices=(True,))는 기록만 되고 torch 에 적용되지 않았다. rev29 뒤 pilot P8 probe 에서 같은 인자(v3 창, inner 0, seed 42, 1,500 update, cuda)를 두 번 돌려 train BA 0.808 / 0.500 이 나왔다 — E21(band-pass 기록만) 과 같은 유형이다. 이 조치는 프로토콜이 이미 True 로 잠근 것을 적용하는 것이라 결정을 요하지 않는다.
+잠긴 config 키 `runtime.deterministic: True`(choices=(True))는 기록만 되고 torch 에 적용되지 않았다. rev29 뒤 pilot P8 probe 에서 같은 인자(v3 창, inner 0, seed 42, 1,500 update, cuda)를 두 번 돌려 train BA 0.808 / 0.500 이 나왔다 — E21(band-pass 기록만) 과 같은 유형이다. 이 조치는 프로토콜이 이미 True 로 잠근 것을 적용하는 것이라 결정을 요하지 않는다.
 
 ## AC.1 구현
 
@@ -3517,7 +3517,7 @@ evaluation.json 의 config_hash, run_predictions sha256 기록과 대조한다. 
 
 - 자료: `derivatives_v3` (0.2 Hz) pilot 창, pilot 기술 분할(`derivatives_v2/pilot_tech/splits/folds.json`, 31명) 5 outer × 3 inner = 15 fold. 창 해시 대조(verify=True).
 - 대상: S1(ROI mean/var 200)·S3(FC 4,950) × C 8개, **현행 `fit_logistic` 그대로** (lbfgs, tol 1e-4, max_iter 10000).
-- 산출물: h197 `MoBSE_dataset/derivatives_v3/pilot_tech_p8/logistic_convergence/` (`fits.jsonl` 240행, `summary.json`, `meta.json`, 측정 스크립트 사본, `git_head.txt` = 87d9804). 벽시계 200 s.
+- 산출물: h197 `MoBSE_dataset/derivatives_v3/pilot_tech_p8/logistic_convergence/` (`fits.jsonl` 240행, `summary.json`, `meta.json`, 측정 스크립트 사본, `git_head.txt` =). 벽시계 200 s.
 
 | 후보 | C | 미수렴 / 15 | 반복 수 중앙값 (최대) | fit 시간 중앙값 (최대) s |
 |---|---|---|---|---|
@@ -3617,7 +3617,7 @@ evaluation.json 의 config_hash, run_predictions sha256 기록과 대조한다. 
 
 - 조건: `grid3000_det` (부록 AG.3) 과 같다 — v3 창(0.2 Hz), cell A, outer 0, inner 0–2 × seed 42–44, 결정적 실행(E22), 100 update(25 epoch)마다 기록, 기록 forward 는 RNG 저장·복원. 6,000 update = pilot 1,500 epoch (update/epoch 4) — 이 프로세스 안에서만 `fitting.MAX_EPOCHS` 를 2000 으로 덮었다 (main 경로 가드·상수 불변). `min_updates 6000`, `max_epochs 1500` → 정확히 1,500 epoch.
 - config (코드 `train.build_grid` 순서로 확인): **config 4** = lr 0.0003·dropout 0.1·wd 0.0001, **config 0** = lr 0.001·dropout 0.1·wd 0.0001. 두 설정을 GPU 0 에서 나란히 돌렸다 (다른 사용자 sglang 약 19 GB 동거).
-- 측정은 시작 시점(HEAD 53211b8) 코드 사본(`grid6000_det/code/`)으로 돌렸다 — 같은 회차의 AH.1 편집이 도중에 섞이지 않게. 각 실행 JSON 에 `fit_module` 경로 기록.
+- 측정은 시작 시점(HEAD) 코드 사본(`grid6000_det/code/`)으로 돌렸다 — 같은 회차의 AH.1 편집이 도중에 섞이지 않게. 각 실행 JSON 에 `fit_module` 경로 기록.
 - 산출물: h197 `MoBSE_dataset/derivatives_v3/pilot_tech_p8/grid6000_det/` (18 실행 JSON, `summary.json`, 스크립트·코드 사본, `git_head.txt`, `git_status.txt`). 벽시계 14:16:48Z–14:33:35Z (16 분 47 초), 실행당 학습 46–93 s.
 
 **결정성 대조**: config 0 의 9 실행 모두 첫 3,000 update 곡선(30 기록)과 val loss 750개가 `grid3000_det` 과 **완전히 같다** (9/9).
@@ -3817,7 +3817,7 @@ evaluation.json 의 config_hash, run_predictions sha256 기록과 대조한다. 
 ## AL.1 조건
 
 - `grid6000_det` (부록 AH.2) 와 같다: v3 창(0.2 Hz), cell A, outer 0, inner 0–2 × seed 42–44, config 0 (lr 0.001) 과 config 4 (lr 0.0003), 결정적 실행(E22), 6,000 update (= pilot 1,500 epoch, 이 프로세스 안에서만 `fitting.MAX_EPOCHS` 덮기), 100 update 마다 기록, 기록 forward 는 RNG 저장·복원.
-- 변형: 측정 시작 시점 코드 사본(HEAD 3d5440b, `headnorm6000_det/code/`)의 `models.build_cell` 을 프로세스 안에서만 감싸 `head = Sequential(norm, 원래 Linear(32→2))`. **BN** = `BatchNorm1d(32)`(주 변형), **LN** = `LayerNorm(32)`(참고), **ID** = `Identity`(대조). BN·LN 초기 affine 은 1/0 이라 RNG 를 쓰지 않아 encoder·graph·head 초기값은 무정규화와 같다. 기록 forward 는 eval 모드 (BN 은 running 통계 — 실제 평가·선택 경로와 같은 모드).
+- 변형: 측정 시작 시점 코드 사본(HEAD, `headnorm6000_det/code/`)의 `models.build_cell` 을 프로세스 안에서만 감싸 `head = Sequential(norm, 원래 Linear(32→2))`. **BN** = `BatchNorm1d(32)`(주 변형), **LN** = `LayerNorm(32)`(참고), **ID** = `Identity`(대조). BN·LN 초기 affine 은 1/0 이라 RNG 를 쓰지 않아 encoder·graph·head 초기값은 무정규화와 같다. 기록 forward 는 eval 모드 (BN 은 running 통계 — 실제 평가·선택 경로와 같은 모드).
 - 규모: BN·LN × 2 config × 9 = 36 실행 + ID 대조 6 (inner 0 × seed 42–44 × 2 config). GPU 0 (다른 사용자 sglang 동거)에서 5 개 나란히. 벽시계 03:16:12Z–03:41:56Z, 실행당 학습 62–91 s. 42/42 rc=0.
 - 산출물: h197 `MoBSE_dataset/derivatives_v3/pilot_tech_p8/headnorm6000_det/` (실행 JSON 42, `summary.json` sha256 `e6aff2d0eb37…`, 스크립트 `d13_headnorm6000.py`, 코드 사본, `git_head.txt`).
 
@@ -4205,7 +4205,7 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 ## AV.1 방법
 
 - 대상 (Mac `.backup` 에서 `ls` 로 확정): `slot_*/mut*.py` 12개 (`slot_0915/mut_mlp`·`slot_1015/mut_comparators`·`slot_1115/mut_consumption`·`slot_1215/mut_d14`·`slot_1315/mut_d14s3`·`slot_1415/mut_d14s4`·`slot_1515/mut_d14s4b`·`slot_1615/mut_d14s4c`·`slot_1715/mut_d15`·`slot_1815/mut_d14s4cii`·`slot_1915/mut_oof`·`slot_2015/mut_select_ad`) + `slot_2315/mut_best_ckpt.sh` (rev35) + 그 이전 회차 틀 `.backup/baselines_mutation.sh` (rev33)·`baselines_mutation_p11.sh` (rev34)·`report_mutation.sh` (rev31)·`prepare_mutation.sh` (rev32). `slot_2215/mut_p11.log` 의 틀은 `baselines_mutation_p11.sh` (gate evidence 인용).
-- 현재 HEAD `9a3e6cd` (작업트리 깨끗) 에 대해 Mac `.venv` 로 실행. 옛 파이썬 틀은 subprocess env 를 `{"PYTHONPATH", "PATH"}` 로 새로 만들어 부모의 `PYTHONDONTWRITEBYTECODE` 가 전달되지 않으므로, 감싸개 `.backup/slot_2115/rerun_d16.py` 가 `subprocess.run` 을 가로채 python 호출에 `-B` 와 env `PYTHONDONTWRITEBYTECODE=1` 을 넣었다. 치환 원문 `assert … .count(…) == 1` 은 틀 사본에서 "NOT-APPLICABLE" 출력 + 다음 돌연변이로 바꿔 (c) 를 돌연변이별로 기록. 셸 틀은 `export PYTHONDONTWRITEBYTECODE=1` (원 틀이 `.backup` 원본 사본을 덮어쓰는 두 틀은 경로만 `slot_2115` 로 바꾼 사본). 치환 문구·시험 선택은 원 틀 그대로.
+- 현재 HEAD (작업트리 깨끗) 에 대해 Mac `.venv` 로 실행. 옛 파이썬 틀은 subprocess env 를 `{"PYTHONPATH", "PATH"}` 로 새로 만들어 부모의 `PYTHONDONTWRITEBYTECODE` 가 전달되지 않으므로, 감싸개 `.backup/slot_2115/rerun_d16.py` 가 `subprocess.run` 을 가로채 python 호출에 `-B` 와 env `PYTHONDONTWRITEBYTECODE=1` 을 넣었다. 치환 원문 `assert … .count(…) == 1` 은 틀 사본에서 "NOT-APPLICABLE" 출력 + 다음 돌연변이로 바꿔 (c) 를 돌연변이별로 기록. 셸 틀은 `export PYTHONDONTWRITEBYTECODE=1` (원 틀이 `.backup` 원본 사본을 덮어쓰는 두 틀은 경로만 `slot_2115` 로 바꾼 사본). 치환 문구·시험 선택은 원 틀 그대로.
 - 틀마다 전후 `find mobse scripts tests -name '*.pyc'` = **0**, `git status --porcelain -- mobse tests configs scripts` 비어 있음 — 17개 틀 전부 확인. 실행 21:17:04–21:31:00 KST. 로그 `.backup/slot_2115/rerun.log`·`rerun_old_sh.log`·`mut_seg.log` (커밋 안 함).
 - 읽는 법 (결정 16 명세): stale pyc 는 "잡았다고 잘못 본" 방향으로만 작용 → 원래 검출이 재실행에서 **생존**으로 바뀐 것이 영향 받은 돌연변이. (c) 는 코드가 그 뒤 바뀐 것이라 판단 불가. 원래 틀이 rc≠0 을 검출로 세므로, 돌연변이 없는 HEAD 에서 해당 시험이 통과함(rev47 마감 908 passed, 같은 HEAD)과 `mut_best_ckpt.sh` 의 `-k` 선택이 4 시험을 모음(collect-only)을 확인했다.
 
@@ -4260,7 +4260,7 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 
 - 공통화 뒤 돌연변이 틀 `.backup/slot_2215b/mut_2c.py` (helper 가드 17개는 **두 시험 파일 각각**이 잡아야 검출, 호출자 가드 13개는 해당 CLI 시험; `-B`·`PYTHONDONTWRITEBYTECODE=1`, 구간 한정 count==1, 원본 복원 확인). 첫 실행 **39/46** — 생존 7: split_hash 대조·config_hash 대조·fit_report fit_id 대조 (두 파일 모두), 예측 행 cell 대조 (`select-comparator` 만). 이 가드들은 rev42·rev47 복사본에도 있었고 시험이 없었다 (공통화가 만든 틈이 아님).
 - 추가: `test_cli_select_ad.py` 24 → **27** (`test_other_split_hash_is_refused`·`test_other_config_hash_is_refused`·`test_report_of_other_fit_is_refused`), `test_cli_select_comparator.py` 22 → **26** (같은 셋 + `test_row_of_other_structure_is_refused`, 파일 안 `_one_bad` 도우미 추가).
-- 재실행 **46/46 검출** (`mut_2c_r2.log`). 동작 불변 확인: 새 53 시험을 **HEAD `ed4668b` 의 `cli.py`** 로도 돌려 53 passed (공통화 전후 같은 판정).
+- 재실행 **46/46 검출** (`mut_2c_r2.log`). 동작 불변 확인: 새 53 시험을 **HEAD 의 `cli.py`** 로도 돌려 53 passed (공통화 전후 같은 판정).
 - 옛 구간 한정 틀 `slot_2015/mut_select_ad.py`·`slot_2115/mut_d14s4b_seg.py` 는 치환 문구가 helper 로 옮겨 가 적용 불가 — `mut_2c.py` 가 그 두 틀의 공통 문구 돌연변이를 helper 구간에서, 나머지를 호출자 구간에서 대신한다.
 
 ## AW.3 잠금·gate
@@ -4321,7 +4321,7 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 
 ## AY.2 시험·돌연변이
 
-- `tests/v2/test_cli_fit.py` 26 → **33** (HEAD `a9fa70e` 판을 `--collect-only` 로 잰 값 26; 인수인계 문서 rev47 행의 "28" 과 다르다 — 이전 기록의 수를 이번에 정정하지는 않음): 외부 inner 0/1/2 fit 이 `external_folds.json` 의 train/val 을 쓰고 (fit_subjects·평가 subject·n_eval), 두 기록 키 값·bank seed 를 확인 (3), 파일 없음 거부, `(9, 9)` 거부, val subject 를 옮긴 변조 파일 거부, 파일이 있어도 outer 0 fit 은 folds.json 경계를 쓰고 두 키가 없음.
+- `tests/v2/test_cli_fit.py` 26 → **33** (HEAD 판을 `--collect-only` 로 잰 값 26; 인수인계 문서 rev47 행의 "28" 과 다르다 — 이전 기록의 수를 이번에 정정하지는 않음): 외부 inner 0/1/2 fit 이 `external_folds.json` 의 train/val 을 쓰고 (fit_subjects·평가 subject·n_eval), 두 기록 키 값·bank seed 를 확인 (3), 파일 없음 거부, `(9, 9)` 거부, val subject 를 옮긴 변조 파일 거부, 파일이 있어도 outer 0 fit 은 folds.json 경계를 쓰고 두 키가 없음.
 - `tests/v2/test_cli_fit_s.py` 17 → **22**: S1 logistic 으로 같은 구성 (외부 inner 0/1/2 · 파일 없음 · outer 0 은 무시). `_ns` 에 `outer` 인자 추가 (기본 0).
 - 합성 fixture: 기존 folds.json 에 `pilot.groups`·`seeds.external` 을 채우고 `splits.build_external_folds` 로 외부 파일을 만든다 (main pool 16 명).
 - 돌연변이 `.backup/slot_1115b/mut_ext_fit.py` (`slot_1015/mut_d17.py` 틀, `-B`·`PYTHONDONTWRITEBYTECODE=1`, count==1, 원본 복원, `-k external`): **13/13 검출** — 게이트 반전 2, 파일 없음 가드, 경로, sha 대상, fit·fit-s 전달 누락 2, 기록 게이트 2, 기록 키 제거 4. 시작 전·끝·rsync 전 Mac `*.pyc` 0.
@@ -4352,7 +4352,7 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 ## AZ.2 시험·돌연변이
 
 - 세 시험 파일의 합성 fit 생성기 `make_fit` 에 `outer` 인자 (기본 0) 와 `_inner_rec`·`_with_external` (rev51 `test_cli_fit.py` 방식: fixture folds.json 에 `pilot.groups`·`seeds.external`, `build_external_folds` 로 옆에 외부 파일) 추가. outer 9 fit 은 rev51 과 같은 두 기록 키를 가진다. `n_eval_subjects` 리터럴 4 → val 수 (outer 0 에서 같은 값).
-- 시험 수 (HEAD `3e0a9a0` 판 81 → 108): `test_cli_select_ad.py` 27 → **36**, `test_cli_select_comparator.py` 26 → **35**, `test_cli_select_s.py` 28 → **37**. 파일마다 같은 9 개: 외부 inner 경계로 선택·기록 필드 (`select-ad` 는 fold subject 수), outer 0 기록에 외부 필드 없음, 파일 없음 거부, 기록 split hash 다름·없음 거부, 기록 파일 sha 다름 거부, fit 뒤 외부 파일 교체 (같은 경계, 다른 바이트) 거부, outer 0 fit 에 외부 기록 거부, outer 9 fit 이 folds.json outer 0 inner 경계로 학습한 경우 거부.
+- 시험 수 (HEAD 판 81 → 108): `test_cli_select_ad.py` 27 → **36**, `test_cli_select_comparator.py` 26 → **35**, `test_cli_select_s.py` 28 → **37**. 파일마다 같은 9 개: 외부 inner 경계로 선택·기록 필드 (`select-ad` 는 fold subject 수), outer 0 기록에 외부 필드 없음, 파일 없음 거부, 기록 split hash 다름·없음 거부, 기록 파일 sha 다름 거부, fit 뒤 외부 파일 교체 (같은 경계, 다른 바이트) 거부, outer 0 fit 에 외부 기록 거부, outer 9 fit 이 folds.json outer 0 inner 경계로 학습한 경우 거부.
 - 동작 확인: 새 시험 파일을 **HEAD 판 `cli.py`** 에 돌리면 기존 81 (`-k "not external"`) 통과 — fixture 변경이 outer 0 경로를 바꾸지 않음; 새 27 중 24 실패 (새 동작), 3 통과 (outer 0 기록에 외부 필드 없음 — HEAD 에서도 참).
 - 돌연변이 `.backup/slot_1215b/mut_sel_ext.py` (`-B`·`PYTHONDONTWRITEBYTECODE=1`, 출현 수 검사 + n 번째 출현 치환, 원본 복원, `-k external`; 공유 가드는 잡아야 할 시험 파일 **각각**이 rc≠0 이어야 검출 — `mut_2c.py` 방식): 첫 실행 12/13 (1 은 치환 원문이 `run_fit_s` 에도 있어 NOT-APPLICABLE → 뒤 문맥 추가), 재실행 **13/13 검출** — 공유 대조 가드 3 + 선택 기록 필드 (세 파일 각각), helper resolve·대조 호출 제거 (ad·comparator 각각), 호출자 전달 누락 2, `ext` 계산 제거 3, `select-s` 대조 호출·resolve 전달 제거 2. 시작 전·끝·rsync 전 Mac `*.pyc` 0.
 - 관련 시험 8 파일 (fit·fit-s·external_folds·config_consumption·split·select 3종) Mac 265 passed (238 + 27).
@@ -4381,7 +4381,7 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 ## BA.2 구현 (`mobse/v2/evaluate.py`)
 
 - `aggregate_runs` 본체를 `_aggregate_grid(..., seeds_for, n_seeds)` 로 옮김. A–D 경로는 `seeds_for → None` 으로 **seed 개수만** 맞추는 기존 동작 그대로 (기존 시험 3 파일 evaluate_cli·cli_evaluate·cli_report 62 통과, seed 값 거부는 CLI 몫 — 시험으로 고정). 추가: `aggregate_runs` 는 `WindowPrediction` 이 아닌 행을 거부 (보조 비교 칸이 A–D 집계로 새지 않게).
-- 새 `COMPARISON_CELLS = ("S", "NG", "SG")` (= `("S",) + baselines.COMPARATOR_ORDER`, 시험 고정), `COMPARISON_CONTRASTS = ("A_minus_S",)`.
+- 새 `COMPARISON_CELLS = ("S", "NG", "SG")` (= `("S") + baselines.COMPARATOR_ORDER`, 시험 고정), `COMPARISON_CONTRASTS = ("A_minus_S")`.
 - 새 `ComparisonWindowPrediction` (cell ∈ COMPARISON_CELLS, `model_seed=None` 은 S 만).
 - 새 `aggregate_comparison_runs(preds, *, cell, seeds_by_subject)`: **구현 선택 (표시함)** — S 는 outer fold 마다 선택 후보가 다를 수 있어 (logistic 은 seed 없이 한 번, MLP 는 `train.MODEL_SEEDS` 3 개 — `baselines.s_outer_plan`, 부록 AS) seed 를 **subject 별 집합** 으로 받고, 그 집합과 **정확히** 같아야 한다 (A–D 는 개수만). 칸 섞임·예측 subject ≠ 지도 subject·빈/중복 seed 목록·None 이 S logistic 단독 밖에 있는 경우를 거부. run 확률은 A–D 와 같은 `statistics.run_probability` (window 안 seed 평균 → window 평균), 기록 `n_seeds` 는 실제 seed 수.
 - 새 `comparison_contrasts(ad_runs, s_runs)`: A−S 의 subject 별 b 차이. subject 집합이 다르면 거부 (paired 불가). CI 계산 (§8 의 95% 기술적 CI) 은 기존 `statistics` 함수를 쓰면 되지만 이번에 배선하지 않았다.
@@ -4443,7 +4443,7 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 ## BC.2 구현 (`mobse/v2/cli.py`)
 
 - 새 `_load_s_outer(report_paths, *, folds, cfg_hash, selections)` + `S_OUTER_NEIGHBOURS = ("s_window_predictions.jsonl", "s_model.npz")` (보고서 옆 고정 이름, U20). 가드 순서·고유 문구는 `_load_comparator_outer` (부록 BB) 틀을 따름.
-- 선택 기록 검사: outer fold 집합 = folds.json 전부, 스키마, outer_fold·split/config hash, 외부 기록 거부, 선택 후보 ∈ S 후보, 계획 행 후보/설정·fold (outer, 9) = 선택 기록. **logistic**: seed·epoch 없는 한 행, `outer_epochs` None → 계획 seed `(None,)`. **MLP**: seed None·중복·빈 목록 거부, **seed 집합 = 호출 시점 잠긴 `train.MODEL_SEEDS`**, outer E 1–`MAX_EPOCHS`, 계획 행 E = outer E.
+- 선택 기록 검사: outer fold 집합 = folds.json 전부, 스키마, outer_fold·split/config hash, 외부 기록 거부, 선택 후보 ∈ S 후보, 계획 행 후보/설정·fold (outer, 9) = 선택 기록. **logistic**: seed·epoch 없는 한 행, `outer_epochs` None → 계획 seed `(None)`. **MLP**: seed None·중복·빈 목록 거부, **seed 집합 = 호출 시점 잠긴 `train.MODEL_SEEDS`**, outer E 1–`MAX_EPOCHS`, 계획 행 E = outer E.
 - 보고서 검사: 스키마·`s_fit_id` 중복·role/eval_role outer·외부 분할 기록 (두 키 각각) 거부·split/config hash·inner_fold 9·선택 기록 없는 outer fold·후보/설정 = 그 fold 선택·seed ∈ 계획·(outer, seed) 중복·**보고서 필드로 `s_fit_id` 재계산**·MLP `fit.epochs_run` = outer E·이웃 파일 2 개·`s_model.npz`·예측 파일 sha256 = 보고서.
 - 예측 행 검사: 스키마 (`s_window_predictions`)·s_fit_id·후보/설정·scope outer_test·model_sha256·학습 subject 누설·outer test 밖·fit 하나가 그 outer test 전부를 덮음. 전체: 계획 (outer, seed) 빠짐 없음·code/env/source hash 한 값·subject·task 당 run 하나 → `ComparisonWindowPrediction(cell="S")` + subject 별 계획 seed → `aggregate_comparison_runs(cell="S")`.
 - **구현 선택 (표시함)**: 행 seed 는 보고서 `model_seed` 에서 가져옴 (행에 seed 자리가 없어서). outer logistic 의 `converged` 는 거부하지 않고 `fits` 에 기록만 (P11 은 inner 선택 규칙 — outer 미수렴 처리는 계획서에 없음). helper 만, 하위 명령·산출물 없음.
@@ -4451,7 +4451,7 @@ h197 `derivatives_v3/splits_piop1_p7/folds.json` (split_hash `ace5f4a4…`) 에�
 
 ## BC.3 시험·돌연변이·잠금
 
-- 새 `tests/v2/test_cli_s_outer.py` **67** (outer 0 = S1 logistic 한 fit, outer 1 = S2 MLP seed 3 fit 의 혼합 합성; 짝수 subject 의 WM 을 틀리게 해 b=0.5/1.0, BA 0.75 손계산; logistic run n_seeds 1·MLP 3; seed 지도 (None,)/(42,43,44); 두 fold 모두 MLP — 정상 경로 4; 선택 기록·계획 가드 23; 보고서 가드 27 (이웃 파일 2·모델 교체 포함); 예측 행 가드 13).
+- 새 `tests/v2/test_cli_s_outer.py` **67** (outer 0 = S1 logistic 한 fit, outer 1 = S2 MLP seed 3 fit 의 혼합 합성; 짝수 subject 의 WM 을 틀리게 해 b=0.5/1.0, BA 0.75 손계산; logistic run n_seeds 1·MLP 3; seed 지도 (None)/(42,43,44); 두 fold 모두 MLP — 정상 경로 4; 선택 기록·계획 가드 23; 보고서 가드 27 (이웃 파일 2·모델 교체 포함); 예측 행 가드 13).
 - 돌연변이 `.backup/slot_1515b/mut_s_outer.py` (`-B`·`PYTHONDONTWRITEBYTECODE=1`, helper 구간 안 count==1, 원본 복원): 첫 실행 **53/54** — 생존 `logi_rows` (위 중복 조건, `mut_s_outer_r1.log`) → 조건 제거·돌연변이 목록 정정 → 재실행 **53/53** (`mut_s_outer_r2.log`). Mac `*.pyc` 0 (돌연변이 뒤·rsync 전).
 - 관련 6 파일 Mac 226 passed.
 - 재잠금 `850e7fce7b0a` → **`c96a74b297ec`** (2026-09-25T06:23:32Z), code_hash `0413a736dca1` → `e7f27665a89f`. 19번 45/45, 25번 창 4,728. split_hash `ace5f4a4…`·external_split_hash `40e50350…`·config_hash 불변. gate evidence **rev55** (`s_outer_loader_rev55`).
@@ -4542,7 +4542,7 @@ bmcws · RTX 3090 Ti · torch 2.10.0+cu128 · float32 (AMP 미사용) · batch 3
 
 ## BF.2 측정
 
-- 틀 `.backup/slot_1815b/pilot_cost.py`·`run_cost.sh` (커밋 안 함): 시작 시점 HEAD `ee0a4d2` 의 `mobse` 사본 (`git archive`), `python -B`, pilot 기술 분할 outer 0 · inner 0 (학습 104창, 평가 56창), config 0, seed 42, 칸 A·B·C·D·NG·SG 각 1회 순차, 정확히 5,000 update (프로세스 안에서만 `MAX_EPOCHS` 덮기, d12 와 같은 우회). 산출물 h197 `$HOME/slot/pc_1815b/cost_*.json` (Mac `.backup/slot_1815b/` 사본). val 성능은 기록하지 않는다.
+- 틀 `.backup/slot_1815b/pilot_cost.py`·`run_cost.sh` (커밋 안 함): 시작 시점 HEAD 의 `mobse` 사본 (`git archive`), `python -B`, pilot 기술 분할 outer 0 · inner 0 (학습 104창, 평가 56창), config 0, seed 42, 칸 A·B·C·D·NG·SG 각 1회 순차, 정확히 5,000 update (프로세스 안에서만 `MAX_EPOCHS` 덮기, d12 와 같은 우회). 산출물 h197 `$HOME/slot/pc_1815b/cost_*.json` (Mac `.backup/slot_1815b/` 사본). val 성능은 기록하지 않는다.
 - s/epoch 0.034–0.060, 고정비 8.6–18.1 s, peak GPU ≤136.4 MiB, peak RSS 1.48–1.49 GiB. A·C (같은 구조) 차이로 보아 반복 1회의 칸 사이 차이는 해석하지 않는다.
 
 ## BF.3 예산 [추정]
@@ -4561,7 +4561,7 @@ bmcws · RTX 3090 Ti · torch 2.10.0+cu128 · float32 (AMP 미사용) · batch 3
 ## BG.1 범위
 
 - 설계행렬만 다시 만든다: `10_wi02_extract.process_run` 과 같은 순서 (`read_confounds_tsv` → `select_acompcor` → `build_design` → `add_stopband` → `summarize_design`), 경로는 그 스크립트의 `run_paths` 를 importlib 로 불러 쓴다. frame 수는 confounds 행 수 (manifest `n_frames` 와 대조). **BOLD·창·라벨·분할을 읽지 않고 fit 하지 않는다** — 추출 때 이미 한 설계 계산의 재현이라 잠긴 분할 소비가 아니다.
-- 대상: v3 manifest 6개의 run 레코드 1,326 (skipped 31 제외 1,295). 틀 `.backup/slot_1915b/design_cond.py`·`summ_dc.py`·`probe_worst.py` (커밋 안 함), h197 HEAD `e8933dc` 사본, `python -B`, 약 19:16–19:26 KST (583 s). 산출물 h197 `$HOME/slot/dc_1915b/` (`design_cond.jsonl` sha256 `e4488380d43d…`, `summary.json` `1888b4a91a97…`; Mac `.backup/slot_1915b/out/` 사본).
+- 대상: v3 manifest 6개의 run 레코드 1,326 (skipped 31 제외 1,295). 틀 `.backup/slot_1915b/design_cond.py`·`summ_dc.py`·`probe_worst.py` (커밋 안 함), h197 HEAD 사본, `python -B`, 약 19:16–19:26 KST (583 s). 산출물 h197 `$HOME/slot/dc_1915b/` (`design_cond.jsonl` sha256 `e4488380d43d…`, `summary.json` `1888b4a91a97…`; Mac `.backup/slot_1915b/out/` 사본).
 - 지표 (run 마다): 특이값 σ; numpy 절단값 τ = σ_max·max(n,p)·ε (`matrix_rank`·`lstsq(rcond=None)` 와 같은 규칙); rank = #(σ > τ); 유효 조건수 κ = σ_max/σ_rank (원 설계, 열 노름 1 로 정규화한 설계 각각); 절단 여유 σ_rank/τ; 잔차 대조 — 고정 seed 난수 Y (n × 100, seed = run_key sha256 앞 8자리) 에 대해 `extract.regress_out` 잔차와 SVD 직교 사영 잔차 `Y − U_r U_rᵀ Y` 의 상대 차이 ‖·‖_F/‖사영 잔차‖_F.
 
 ## BG.2 결과
@@ -4607,7 +4607,7 @@ bmcws · RTX 3090 Ti · torch 2.10.0+cu128 · float32 (AMP 미사용) · batch 3
 - 기준 (같은 run 의 설계·`10_wi02_extract.process_run` 과 같은 함수 순서 `regress_out` → `zscore_rois` → `resample_to_grid` → `cut_windows`, 고정 seed 난수 Y n × 100 — seed = run_key sha256 앞 8자리):
   - **ref_full**: nuisance + 차단대역 DCT 결합 설계로 회귀 — 필터가 적용됐을 때의 기대값.
   - **ref_nuis**: nuisance 만으로 회귀 — 필터가 빠졌을 때 (E21 유형) 의 기대값.
-- 틀 `.backup/slot_2115b/stopband_power.py` (커밋 안 함), h197 HEAD `bbb4e67` 사본, `python -B`, 27 s (약 21:17 KST). 산출물 h197 `$HOME/slot/sp_2115b/` (`stopband_power.jsonl` sha256 `e78828ff728c…`, `summary.json` `9833a505cb99…`; Mac `.backup/slot_2115b/out/` 사본).
+- 틀 `.backup/slot_2115b/stopband_power.py` (커밋 안 함), h197 HEAD 사본, `python -B`, 27 s (약 21:17 KST). 산출물 h197 `$HOME/slot/sp_2115b/` (`stopband_power.jsonl` sha256 `e78828ff728c…`, `summary.json` `9833a505cb99…`; Mac `.backup/slot_2115b/out/` 사본).
 
 ## BH.2 결과
 
@@ -4642,7 +4642,7 @@ bmcws · RTX 3090 Ti · torch 2.10.0+cu128 · float32 (AMP 미사용) · batch 3
 ## BI.1 조건
 
 - 부록 BF 와 같은 틀 `pilot_cost.py` (사본 `.backup/slot_2215c/`), 같은 조건: pilot 기술 분할 `derivatives_v2/pilot_tech/splits/folds.json` outer 0 · inner 0 (학습 104창 = 4 update/epoch, 평가 56창), config 0, seed 42, 정확히 1,250 epoch = 5,000 update (프로세스 안에서만 `MAX_EPOCHS` 덮기), 해시 대조 켬. main pool 미사용. val 성능 기록 안 함.
-- 코드는 시작 시점 HEAD `1e399ec` 사본 (`git archive`), `python -B`. h197 bmcws RTX 3090 Ti (GPU 1장), CPU 12, GPU 0 에 다른 사용자 sglang 19,222 MiB 상주 (사용률 0%, 전후 같음).
+- 코드는 시작 시점 HEAD 사본 (`git archive`), `python -B`. h197 bmcws RTX 3090 Ti (GPU 1장), CPU 12, GPU 0 에 다른 사용자 sglang 19,222 MiB 상주 (사용률 0%, 전후 같음).
 - (1) 반복: 2 라운드 순차 — 1 라운드 A B C D NG SG, 2 라운드 역순 (시간 추세와 칸 순서를 떼기 위해). 13:16:08Z–13:30:08Z. rev58 1회와 합쳐 칸당 3회.
 - (2) 동시 실행: 칸 A 같은 인자로 k = 2, 4 프로세스를 동시에 띄움. 13:30:08Z–13:34:55Z. 틀 `run_rep.sh`, 요약 `summ_rep.py`.
 
@@ -4692,7 +4692,7 @@ bmcws · RTX 3090 Ti · torch 2.10.0+cu128 · float32 (AMP 미사용) · batch 3
 
 ## BJ.1 방법
 
-- 틀 `.backup/slot_2315c/resid_check.py` (h197 HEAD `bf9f6d2` 사본, `python -B`, 14:18:11Z–약 14:22:17Z, 246 s). run 마다 `scripts/h197/10_wi02_extract.py` (importlib) 의 `run_paths`·`load_atlas_on_grid`·`roi_timeseries` 와 `mobse.v2.extract` 의 `build_design`·`add_stopband`·`regress_out`·`zscore_rois`, `mobse.v2.preprocess` 의 `original_times`·`resample_to_grid`·`cut_windows` 를 `process_run` 과 같은 순서로 불러 BOLD 를 원 TR 로 다시 읽는다 (atlas 는 v3 manifest header 경로).
+- 틀 `.backup/slot_2315c/resid_check.py` (h197 HEAD 사본, `python -B`, 14:18:11Z–약 14:22:17Z, 246 s). run 마다 `scripts/h197/10_wi02_extract.py` (importlib) 의 `run_paths`·`load_atlas_on_grid`·`roi_timeseries` 와 `mobse.v2.extract` 의 `build_design`·`add_stopband`·`regress_out`·`zscore_rois`, `mobse.v2.preprocess` 의 `original_times`·`resample_to_grid`·`cut_windows` 를 `process_run` 과 같은 순서로 불러 BOLD 를 원 TR 로 다시 읽는다 (atlas 는 v3 manifest header 경로).
 - (i) 재계산 창을 추출과 같이 float32 로 바꿔 저장된 창 `.npy` 와 바이트 비교 + 최대 절대 차이. 저장 파일 sha256 = manifest 도 함께 대조.
 - (ii) 원 TR 시계열의 DCT-II (orthonormal) 계수 전력 — k ≥ 1 전력 중 차단대역 하단 (f < 0.008 Hz) · 상단 (f > 0.2 Hz) 비율, ROI 마다. 추출이 쓰는 차단대역 기저도 같은 DCT-II 성분 (`dct_stopband_basis`) 이다. 세 가지를 나란히: `series` (회귀 전 ROI 평균), `resid` (결합 설계 = nuisance + 차단대역, 추출과 같음), `resid_nuis` (nuisance 만 — 필터 누락 시 기대값).
 
@@ -4731,7 +4731,7 @@ bmcws · RTX 3090 Ti · torch 2.10.0+cu128 · float32 (AMP 미사용) · batch 3
 
 ## BK.1 방법
 
-- 현행 gate evidence (rev62, Mac HEAD `a95d27d`, 작업트리 깨끗) 의 `gates[*].checks[*]` 를 파이썬으로 세고, `result != "pass"` 인 check 의 `check`·`result`·`note` (·`observed`) 원문을 읽었다 (09-26 09:15 KST).
+- 현행 gate evidence (rev62, Mac HEAD, 작업트리 깨끗) 의 `gates[*].checks[*]` 를 파이썬으로 세고, `result != "pass"` 인 check 의 `check`·`result`·`note` (·`observed`) 원문을 읽었다 (09-26 09:15 KST).
 - 근거 grep: 계획서 `docs/experiments/mobse_redesign_protocol_2026-09-17.md` (§4-1 개정 P4, §3.1 개정 P5, §8, §10), 작업 지침서 `docs/experiments/mobse_redesign_work_instructions_2026-09-17.md` (WI-03, WI-06, WI-07), 이 보고서 부록 F, gate evidence 의 다른 블록.
 
 ## BK.2 G1 check 수
@@ -4965,7 +4965,7 @@ G1 `unresolved` 6 → **3** (U10 · U17 · δ 정밀도).
 
 - 입력: pilot 31 명만 — v3 PIOP1 창 manifest 3 개로 `prepare` → pilot 명단 거르기 (`splits_piop1_p7/folds.json` `pilot.subjects`, 구동기 안에서 — CLI 단계 아님, 구현 선택) → `split` (`configs/redesign_v1/pilot.yaml`). real main pool (`folds_p7`) 과 subject 겹침 0.
 - 최소 규모 (grep 근거): `select-ad` 는 4 cell × 8 config × 3 inner = 96 완비를, `evaluate` 는 A–D × outer 전부 × seed 3 격자 완비를 요구한다 → pilot 기술 분할 전체 격자 **inner 480 (5 outer × 96, seed 42) → `select-ad` 5 → outer 60 (5 × 4 cell × seed 42–44) → `evaluate` → `report`**. S·NG·SG·`report-comparison` 은 넣지 않았다 (명세 3 단계 목록이 A–D 경로 — 구현 선택).
-- 코드: 시작 시점 HEAD `72cc1b3` 의 `git archive HEAD mobse configs` 사본 (작업트리 깨끗). h197 bmcws, python 3.11.5, torch 2.10.0+cu128, CUDA 12.8, `--device cuda`, k=4 동시 (CLI subprocess), `-B`·`PYTHONDONTWRITEBYTECODE=1`.
+- 코드: 시작 시점 HEAD 의 `git archive HEAD mobse configs` 사본 (작업트리 깨끗). h197 bmcws, python 3.11.5, torch 2.10.0+cu128, CUDA 12.8, `--device cuda`, k=4 동시 (CLI subprocess), `-B`·`PYTHONDONTWRITEBYTECODE=1`.
 - **CLI 한계 (기록)**: CLI 에는 학습 상한을 바꿀 인자가 없다. `fitting.train_fold` 가 `n_epochs_planned > MAX_EPOCHS` (400) 를 거부하고, `select-ad`·`train.select_config` 가 best epoch·공통 E 를 1–`train.MAX_EPOCHS` 로 거부한다. pilot 규모 (inner 학습 104–112 창, 4 update/epoch) 는 최소 epoch 1,250 (= 5,000 update / 4) 이라 **CLI 경로 그대로는 실행 불가**다 (결정 15 절 5 와 같은 귀결).
 - **방법 (구현 선택, 표시함)**: 감싸개 `.backup/slot_1515c/e2e_cli.py` 가 `mobse.v2.cli` 를 **먼저 import** 한 뒤 이 프로세스 안에서만 `train.MAX_EPOCHS`·`fitting.MAX_EPOCHS` 를 2000 으로 덮고 `cli.main(argv)` 를 그대로 부른다. config 값 (`train.max_epochs: 400`·`min_updates: 5000`)·다른 규칙 불변. inner `--epochs 2000` (pilot 판 상한). 구동기 `e2e_driver.py`, 설치 `e2e_setup.sh`, prep 대조 `cmp_prep.py`.
 - **첫 시도 거부 (06:19:53Z)**: 덮은 뒤 cli 를 import 하자 `config.FieldSpec(locked_to=train.MAX_EPOCHS)` 가 2000 을 잡아 `prepare` 가 "train.max_epochs: 코드 상수와 불일치 (config=400, 코드=2000)" 로 거부했다 — config 잠금 가드가 작동한 것. import 순서를 바꿔 해결 (config 파일은 400 그대로 검증 통과). 실패 판은 지우지 않고 `pilot_e2e/try1_20260926_1515c_config_guard/` 에 둠.
@@ -5005,7 +5005,7 @@ G1 `unresolved` 6 → **3** (U10 · U17 · δ 정밀도).
 
 - T11 가드 (rev68, training 라벨 두 class): 540 fit 에서 걸리지 않음 (실패 0).
 - T10 (GPU 저장/재로드 근거): CLI `evaluate` 는 `checkpoint.pt` 를 재로드하지 않고 존재·sha256 만 기록한다 (`cli.py` grep — `torch.load`·`load_state_dict` 없음; `fitting.py` 의 `load_state_dict` 는 inner best 가중치 복원). 따라서 이 end-to-end 는 GPU 저장 checkpoint 재로드 근거를 만들지 않는다 — 명세 4 에서 재로드 대조 (cuda 저장 → 로드 → 창 예측 재계산 = `window_predictions.jsonl`) 를 넣을지 구현 선택으로 정한다.
-- fit 없는 상태의 마감 (h197 11:34:25Z–11:44:00Z): 시험 1173 passed / 12 skipped, 해시 192/192, 인용 0, 잠금 45/45, 창 4,728 — 전부 rc=0 (HEAD `72cc1b3`).
+- fit 없는 상태의 마감 (h197 11:34:25Z–11:44:00Z): 시험 1173 passed / 12 skipped, 해시 192/192, 인용 0, 잠금 45/45, 창 4,728 — 전부 rc=0 (HEAD).
 
 ## BQ.7 확인하지 못한 것
 
@@ -5034,8 +5034,8 @@ G1 `unresolved` 6 → **3** (U10 · U17 · δ 정밀도).
 
 ## BR.2 생성 결과 (h197, 2026-09-26T13:28:53Z)
 
-- HEAD `ccb5587` (rev70 커밋), 작업트리 깨끗. 구현 잠금 lock_hash `bcf1fec22676`, 파일 sha256 `f2abd2735164…`, 143,250 bytes.
-- junit 은 마감 1단계 (13:18:59Z–13:27:42Z) 를 `--junitxml` 로 돌려 얻었다. 그 실행은 rev70 커밋 직전 작업트리 (내용이 `82d767e`·`ccb5587` 과 같음) 에서 돌았다. sha256 `6aa7023543a6…`.
+- HEAD (rev70 커밋), 작업트리 깨끗. 구현 잠금 lock_hash `bcf1fec22676`, 파일 sha256 `f2abd2735164…`, 143,250 bytes.
+- junit 은 마감 1단계 (13:18:59Z–13:27:42Z) 를 `--junitxml` 로 돌려 얻었다. 그 실행은 rev70 커밋 직전 작업트리 (내용이 과 같음) 에서 돌았다. sha256 `6aa7023543a6…`.
 - `--verify` 38/38 일치 (13:29:01Z). 스크립트 정정 (BR.3) 뒤 `PYTHONPATH=.` 없이·있이 두 번 다시 돌려 38/38 (13:30:46Z 전후).
 
 ## BR.3 정정: pip freeze 가 호출 방식에 따라 한 줄 달라짐
@@ -5073,7 +5073,7 @@ G1 `unresolved` 6 → **3** (U10 · U17 · δ 정밀도).
 | # | check | 근거 원문 | result | 근거 |
 |---|---|---|---|---|
 | 0 | acceptance tests T01–T16 | §10 필수 산출물 · WI-06 완료 기준 | pass | 대응표 v2 (`reports/acceptance_map_t01_t16_v2.json`, 부록 BP) 전부 16 · 부분 0 · 없음 0. 구현 잠금 `acceptance`: 명명 시험 89 개가 T-ID 16 개 전부에서 통과 (junit 1183 passed / 12 skipped / 0 failed, 부록 BR.2) |
-| 1 | config/code/environment hashes | §10 필수 산출물 · WI-06 출력 | pass | 구현 잠금 lock_hash `bcf1fec22676` (code_hash `804d6ee17625`, config_hash main `2a7d7d7f` · pilot `6498596a` · external `576f6068`, 환경 python 3.11.5 · torch 2.10.0+cu128 · CUDA 12.8 · pip freeze 61 줄 sha). 이번 슬롯 h197 (HEAD `89fd941`, 2026-09-26T14:15Z) `--verify` 38/38 |
+| 1 | config/code/environment hashes | §10 필수 산출물 · WI-06 출력 | pass | 구현 잠금 lock_hash `bcf1fec22676` (code_hash `804d6ee17625`, config_hash main `2a7d7d7f` · pilot `6498596a` · external `576f6068`, 환경 python 3.11.5 · torch 2.10.0+cu128 · CUDA 12.8 · pip freeze 61 줄 sha). 이번 슬롯 h197 (HEAD, 2026-09-26T14:15Z) `--verify` 38/38 |
 | 2 | runnable CLI and actual --help | WI-06 출력 | pass | 구현 잠금 `cli`: 최상위 + 하위 명령 11 = `--help` 12 개 텍스트·sha. 실행 가능성은 pilot end-to-end (check 3) 가 CLI 하위 명령으로 돈 것으로 봄 |
 | 3 | pilot end-to-end | WI-06 완료 기준 | pass | 부록 BQ: prepare → split → fit 540 → select-ad 5 → evaluate → report, `ALL_RC=0`, 실패 0. 구현 잠금 `pilot_end_to_end.outputs_match_gate` true (gate rev69 sha 7 개 재측정 — `--verify` 가 매번 다시 잰다) |
 | 4 | leakage·연산·endpoint verification | §10 다음 단계 조건 | pass | 아래 BS.3 묶음의 T-ID 가 check 0 에서 전부 통과 |
@@ -5147,7 +5147,7 @@ main OOF 착수 전에 처리량만 재는 가역 측정이다. 결정 23 (착�
 - 산출 h197 data root `main_oof/20260928_1cd4054_main_a2/` (**구현 선택** — 저장소 release `fits/` 는 `.gitignore` 밖).
 - attempt 1 (`…_main`) 은 코드 사본 대조를 `diff -r` 로 해서 미추적 파일 때문에 멈췄다 (fit 0). 남겨 두고 **추적 파일 sha256 대조**로 attempt 2 를 돌렸다. 재발 방지: 코드 사본 대조는 추적 파일 sha256 으로 한다.
 - 구동기 `main_driver.py` sha256 `b252d579394a…` + `main_setup.sh`.
-- preflight: HEAD `1cd4054`, 작업트리 깨끗, 측정 잠금 45/45, 창 파일 rc=0, 구현 잠금 38/38, gate 해시 rc=0.
+- preflight: HEAD, 작업트리 깨끗, 측정 잠금 45/45, 창 파일 rc=0, 구현 잠금 38/38, gate 해시 rc=0.
 - 환경 (`env.txt`): python 3.11.5 · torch 2.10.0+cu128 · CUDA 12.8 · cuda 사용 가능 True.
 
 ## BU.3 입력 sha256 (`input_sha256.txt`)
@@ -5363,7 +5363,7 @@ outer 43 = NG 15 + SG 15 + S 13 (S 는 MLP 4 fold × 3 seed + logistic 1 — log
 
 ## BX.4 정정: rev72 `not_done` 의 "명세 6"
 
-rev72 블록 `not_done` 은 "명세 6 마감 5단계에 27 `--verify` 추가 여부" 를 미결로 적었다. 그 뒤 2026-09-27 커밋 `1cd4054` (`docs(claude): add implementation lock verify as closure step 6`) 로 **마감 절차에 6단계로 추가됐다.** rev72 블록 자체는 그때의 기록이므로 고치지 않고, rev73 블록 `corrections` 에 적는다 (구현 선택 — 과거 revision 블록을 다시 쓰지 않는다).
+rev72 블록 `not_done` 은 "명세 6 마감 5단계에 27 `--verify` 추가 여부" 를 미결로 적었다. 그 뒤 2026-09-27 커밋 (`docs(claude): add implementation lock verify as closure step 6`) 로 **마감 절차에 6단계로 추가됐다.** rev72 블록 자체는 그때의 기록이므로 고치지 않고, rev73 블록 `corrections` 에 적는다 (구현 선택 — 과거 revision 블록을 다시 쓰지 않는다).
 
 ## BX.5 구현 선택 (표시)
 
@@ -5410,7 +5410,7 @@ seed 1730 판으로 outer fold 0 의 `A_s42` 한 건을 돌려 main 과 대조�
 
 ## BY.4 실행 (h197, 산출 `null_sens/20260929_97e434a_a1/`)
 
-- HEAD `97e434a` (gate rev73 커밋), 작업트리 깨끗, 추적 파일 381 개 사본 동일.
+- HEAD (gate rev73 커밋), 작업트리 깨끗, 추적 파일 381 개 사본 동일.
 - preflight 전부 rc=0: 측정 잠금 (19) · 창 파일 (25) · 구현 잠금 (27) · gate 해시 (17).
 - 환경: python 3.11.5 · torch 2.10.0+cu128 · CUDA 12.8 · cuda True. k=4, 프로세스당 스레드 2.
 

@@ -1,6 +1,6 @@
 # CLAUDE.md — MoBSE Project Context
 
-> 최종 갱신 2026-09-29 18:0x KST — **WI-11 연구 결과 패키지** 작성 (v1 내부 마감, `reports/wi11_research_package_2026-09-29.md`) → **gate rev76** (G5 check 5 건 pass) → **rev77** (승인으로 G5 `planned` → `cleared_with_limitations`), 인용 수치 독립 대조 실패 0. **결정 33** (v3 config 잠금 키: 8 칸 · 최대 수준에서 한 번 선택 · PCA 10 고정 · null M=20). v3 빌드 1·2·3·5 단계 완료. 그 직전: **결정 30·31·32**: 새 버전 축은 **T4 저표본 곡선**, 코드는 **새 모듈 `mobse/v3/`** (`mobse/v2` 불변 → v1 잠금·gate rev75 유효), 학습은 **update 예산 5,000 고정·epoch 상한 없음·best checkpoint 선택 자유**. 그 직전: **결정 29** (G-a·G-b 는 차단이 아니라 보고 장치; pilot 만·버리는 쪽으로만) 와 **G-a 선별 실행 완료** — 양성 대조 v1 target 1.000 (gate 가 작동함), 나머지 0.52–0.70 이나 pilot 31 규모라 우연과 구분 불가 (`sex` 0.536 이 민감도 경고). gate 는 rev75 그대로. 그 직전: **결정 28: 새 탐색 버전 설계 세 갈래** (축 미정 → 포화 선별 gate 우선 · ROI 구조 둘 다 병행 · null 은 M 축소 + 종류 확대) 와 설계안 초안 `docs/experiments/mobse_exploratory_v2_design_draft_2026-09-29.md`. 착수 전 확인 2건 완료 (등변성·spin). gate 는 **rev75 그대로** (v2 설계 측정은 v1 근거가 아님). 그 직전: **결정 27: 진로 (나) 확정** (현 버전 내부 마감 · PIOP2 미개방 · 새 탐색 버전 설계) + interaction 판독 철회, **A−S 진단** (결정 25-6) → **gate evidence rev75**, 부록 BZ·CA. 그 직전: WI-09 null 민감도 완료 → rev74, 부록 BY. 그 전 같은 날: 결정 25 기록, rev73 (09-28 실행 기록 + gate 표기), 부록 BT–BX, `resource_budget.md` 9.2, 커밋 `97e434a`. claude.ai Project 사본 동기화 중단 — 정본은 저장소 `docs/handoff/`.
+> 최종 갱신 2026-09-30 — **커밋 규약 적용**: 이력 161 개를 영문 1줄로 재작성하고 co-author 태그 제거, 무효가 된 커밋 SHA 기록 삭제 (gate 필드 7 · 문서 토큰 284) → **gate rev78**. 그 직전: **WI-11 연구 결과 패키지** 작성 (v1 내부 마감, `reports/wi11_research_package_2026-09-29.md`) → **gate rev76** (G5 check 5 건 pass) → **rev77** (승인으로 G5 `planned` → `cleared_with_limitations`), 인용 수치 독립 대조 실패 0. **결정 33** (v3 config 잠금 키: 8 칸 · 최대 수준에서 한 번 선택 · PCA 10 고정 · null M=20). v3 빌드 1·2·3·5 단계 완료. 그 직전: **결정 30·31·32**: 새 버전 축은 **T4 저표본 곡선**, 코드는 **새 모듈 `mobse/v3/`** (`mobse/v2` 불변 → v1 잠금·gate rev75 유효), 학습은 **update 예산 5,000 고정·epoch 상한 없음·best checkpoint 선택 자유**. 그 직전: **결정 29** (G-a·G-b 는 차단이 아니라 보고 장치; pilot 만·버리는 쪽으로만) 와 **G-a 선별 실행 완료** — 양성 대조 v1 target 1.000 (gate 가 작동함), 나머지 0.52–0.70 이나 pilot 31 규모라 우연과 구분 불가 (`sex` 0.536 이 민감도 경고). gate 는 rev75 그대로. 그 직전: **결정 28: 새 탐색 버전 설계 세 갈래** (축 미정 → 포화 선별 gate 우선 · ROI 구조 둘 다 병행 · null 은 M 축소 + 종류 확대) 와 설계안 초안 `docs/experiments/mobse_exploratory_v2_design_draft_2026-09-29.md`. 착수 전 확인 2건 완료 (등변성·spin). gate 는 **rev75 그대로** (v2 설계 측정은 v1 근거가 아님). 그 직전: **결정 27: 진로 (나) 확정** (현 버전 내부 마감 · PIOP2 미개방 · 새 탐색 버전 설계) + interaction 판독 철회, **A−S 진단** (결정 25-6) → **gate evidence rev75**, 부록 BZ·CA. 그 직전: WI-09 null 민감도 완료 → rev74, 부록 BY. 그 전 같은 날: 결정 25 기록, rev73 (09-28 실행 기록 + gate 표기), 부록 BT–BX, `resource_budget.md` 9.2, 커밋. claude.ai Project 사본 동기화 중단 — 정본은 저장소 `docs/handoff/`.
 > 이전 갱신 2026-09-29 09:2x KST — "인수인계 — 2026-09-29" 절 추가 (Cowork 세션 → 터미널 Claude Code), 정본 포인터를 저장소 `docs/handoff/` 로 옮김 (그때 gate 는 rev72). 그 이전 (2026-09-26 23:3x, rev60–rev72 의 세부) 은 `.backup/CLAUDE_2026092*.md` 에 있다. 모든 수치는 실측값이며 출처를 함께 적음.
 > 이전판(2026-09-18)은 `.backup/CLAUDE_20260925_201635.md` 에, 2026-04-17판은 `.backup/CLAUDE.md_20260918_*.md` 에 보존됨.
 > **현행 상태의 정본은 이 파일이 아님** — 저장소 `docs/handoff/` 의 문서 (읽는 순서는 아래 "인수인계 — 2026-09-29" 절) 와 가장 높은 revision 의 `gate_evidence.json`. 이 파일은 저장소에 들어온 사람을 위한 방향 안내다.
@@ -102,7 +102,8 @@
 - 가역 결정은 진행하고 보고, 되돌리기 어려운 결정만 올리고 그 가지만 멈춘다.
 - 결정은 원문 그대로 인용하고 범위를 넓히지 않는다 ("정한 것 / 정하지 않은 것").
 - 기록·메모를 먼저 찾아본 뒤 질문한다 (대부분 이미 답이 있다).
-- 커밋: Conventional Commits (영문), `git commit -F`, **푸시하지 않음**. git lock 으로 막히면 `.git/*.lock` 을 to-delete 폴더로 **옮기고** (삭제 아님) 다시 시도.
+- **커밋 규약 (팀 규칙, `bmc-plugins` README)**: 영문 **1줄**, **20~25단어 이내**, 작업 단위로 묶어 **5건 이하**, **co-author 태그 미사용**. Conventional Commits 접두사는 유지. `git commit -F`, **푸시하지 않음**. git lock 으로 막히면 `.git/*.lock` 을 to-delete 폴더로 **옮기고** (삭제 아님) 다시 시도.
+- **커밋 SHA 를 기록의 근거로 쓰지 않는다** — 2026-09-30 이력 재작성으로 예전 SHA 는 무효다. 코드 판본의 기준은 **잠금**이다 (측정 `9b7b11cf8576…` 의 `code_hash` `804d6ee17625…`, 구현 `bcf1fec22676…`).
 - **h197 의 azcopy (NFS → Azure, 선생님 작업) 가 언제 끝나는지는 확인·보고하지 않는다** (09-28 지시).
 - h197 부하 진단: load 가 높아도 로컬 디스크 포화로 단정하지 않는다 — 09-28 load 약 70 은 NFS (`/mnt/NAS`) 대기였고 로컬 md1 은 한가했다. 장치별 busy % 와 NFS/로컬 구분부터 본다.
 - 새 구동기는 CLI 인자 값을 코드 상수에서 가져오거나 첫 fit smoke 를 먼저 돌린다 (09-28 aux v1 이 S 후보 이름을 줄여 써 480 호출 rc=2).
@@ -180,7 +181,7 @@ MoBSE (Mixture of Brain-State Experts): fMRI 시계열을 dFC 유래 전문가 �
 - 정본은 `results/redesign_v1/20260917_3c458d507e82_nocfg/gate_evidence.json` 이며 **revision이 올라가면 이전 판정표를 인용하지 말 것.** 순서는 revision 번호로만 봄 (`timestamp_utc` 는 거꾸로 간 적 있음).
 - rev73 이 바꾼 것 (결정 25-1 = main_oof 문서 "gate 표기 권고" 1–6): G0 `conditionally_cleared`→`cleared` (U3·U6 삭제, U10 은 G1 로), G1 `in_progress`→`cleared_with_limitations` (**check 판정은 불변**), G2·G3 `planned`→`cleared`, G3 check 1→3, "blocked by G0"·"blocked by G0/G1" 표기 전부 삭제. G4·G5 `status` 는 planned 그대로. 보고서 부록 BX.
 - rev73 이 더한 기록: `thread_pinning_rev73` (부록 BT) · `decision23_main_oof_rev73` (부록 BU·BV) · `decision24_aux_comparison_rev73` (부록 BW) · `decision25_gate_status_rev73` (부록 BX). 09-28 산출물은 data root 에 있어 17번 해시 검사 대상이 아니며 `data_root_outputs` 에만 적는다.
-- rev72 `not_done` 의 "명세 6" 은 09-27 커밋 `1cd4054` (마감 6단계 추가) 로 끝났다 — rev73 `decision25_gate_status_rev73.corrections` 에 정정해 적었다 (과거 revision 블록은 다시 쓰지 않는다).
+- rev72 `not_done` 의 "명세 6" 은 09-27 커밋 (마감 6단계 추가) 로 끝났다 — rev73 `decision25_gate_status_rev73.corrections` 에 정정해 적었다 (과거 revision 블록은 다시 쓰지 않는다).
 - G1 의 fail 2건은 없애지 않는다: [0] group_id 는 개정 P4 (1 subject = 1 group), [6] δ=0.02 정밀도는 §8 의 "불확실 가능성 명시" 항목. main OOF 는 이 잠금으로 실행됐다.
 - 측정 잠금 현행 `9b7b11cf8576…` (locked_at 2026-09-26T05:22:16Z), 구현 잠금 `bcf1fec22676…`. 잠금은 `mobse/v2/*.py` 를 해시한다 — **`mobse/v2` 를 바꾸면 잠금 재생성 + gate evidence 새 revision** (`scripts/h197/18_build_measurement_lock.py --overwrite --reason "..."`). `scripts/h197/`·`tests/v2` 만 바꾸면 잠금 재생성은 불요, gate evidence 해시만.
 
@@ -199,7 +200,7 @@ MoBSE (Mixture of Brain-State Experts): fMRI 시계열을 dFC 유래 전문가 �
 
 > **아틀라스 주의**: `~/nilearn_data/schaefer_2018` 은 FSLMNI152 공간이고 h197 `atlas_2009c` 는 MNI152NLin2009cAsym 공간임. **섞어 쓰면 안 됨.**
 
-## v2 구현 현황 (2026-09-25 20:1x KST 실측, HEAD `cbbbb40`)
+## v2 구현 현황 (2026-09-25 20:1x KST 실측, HEAD)
 
 - `mobse/v2/` 파일 18개 · 8,984줄 — manifests · preprocess · splits · features · templates · models · train · fitting · baselines · evaluate · statistics · cli · cohort · config · extract · labels · locks (+ `__init__`)
 - `tests/v2/` 시험 파일 40개 · 12,244줄 · **1,166 시험 수집** (Mac collect-only). **수치가 슬롯마다 바뀌니 인용하지 말고 다시 잴 것.** 마감 결과는 인수인계 문서 "현행".
