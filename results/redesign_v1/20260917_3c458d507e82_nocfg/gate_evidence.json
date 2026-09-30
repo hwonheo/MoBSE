@@ -1,10 +1,10 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "timestamp_utc": "2026-09-30T00:06:39Z",
-  "revision": 78,
-  "supersedes_sha256": "587dd7051982ed35316aedbe788c367e4e72fd583ac35c7a293927fd565df7c5",
-  "revision_reason": "rev78 (2026-09-30): 팀 커밋 규약 (영문 1줄, co-author 태그 미사용) 에 맞춰 커밋 이력 161 개를 제목 1줄로 재작성했다. 그 결과 예전 커밋 SHA 가 무효가 되어 gate evidence 의 SHA 필드 7 개와 문서의 SHA 토큰 284 개를 지웠다. 파일 내용은 재작성 전후 트리 해시가 같아 불변이다. locks/implementation_lock.json 의 git.head 와 산출물 디렉터리 이름의 짧은 SHA 는 남겼다 (잠금 무효화·경로 파손 방지). 코드 판본의 기준은 이제 잠금이다. 바뀐 보고서 4 개의 artifact_hashes 갱신. gate 판정·status 전부 불변",
+  "timestamp_utc": "2026-09-30T03:42:27Z",
+  "revision": 79,
+  "supersedes_sha256": "f145cb7171c0fa17d844950b2b0eb69b983956b58f97f9aff16d68fe1cf9150e",
+  "revision_reason": "rev79 (2026-09-30): WI-11 인용 수치 대조 스크립트를 저장소로 들였다. closure 11–14 가 돌리던 그 대조는 h197 ~/slot/wi09_0929/verify_wi11.py 에만 있어 G5 의 check 5 건을 저장소에서 재현할 수 없었다. scripts/h197/28_verify_wi11_citations.py 로 커밋하고 경로를 인자로 뺐으며 (대조 항목은 불변), h197_scripts 에 해시를 등록하고 CLAUDE.md 마감 절차에 3b 단계로 적었다. 음성 대조로 대조가 비어 있지 않음을 확인했다. gate 판정·status 전부 불변",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -799,6 +799,7 @@
     "25_verify_window_files.py": "22f676808cb88558a34e330b37b1b4f01a701a9d7839a5d7d5c56a539f763e2f",
     "26_write_external_folds.py": "aaf8ee3897479d6ed08609f6c94783f49ada9ac106650e9afe7c6606ff8b528f",
     "27_build_implementation_lock.py": "c7d0fc87d1c7a263c3119ed7e5b9fb6b0b5e4023a001bf3e0f331991d475871e",
+    "28_verify_wi11_citations.py": "3cae834c61e30a90620cf74f8139954690675f322278c52a3f51779bddabbc30",
     "README.md": "f6c57f6701854c45d2654d3a336da6a3be344816a8bd6cc1ab92da74488b0127",
     "requirements-legacy-extra.txt": "c63f8787641608e926c0cc2260e0de1583d53a049d0be793c944669ef9972824",
     "requirements-v2.txt": "8b60c83238593f7430085093b83effbe321956be0cb3f8b0d6372e47c0ceec01"
@@ -5992,5 +5993,32 @@
       "reports/wi11_research_package_2026-09-29.md": "c7157ce09926"
     },
     "judgment_changed": false
+  },
+  "closure_step3b_wi11_citation_check_rev79": {
+    "decision_quote": "ok. 승인할게. (2026-09-30, 권고 1–5 단계)",
+    "why": "G5 를 cleared_with_limitations 로 올린 check 5 건의 근거가 저장소 밖 스크립트 하나에 달려 있었다 — 저장소에 들어온 사람은 그 대조를 다시 돌릴 수 없었다.",
+    "source": {
+      "was": "h197 ~/slot/wi09_0929/verify_wi11.py (gitignore 영역, 버전 관리 밖)",
+      "md5_of_both_copies": "52a18a3ed5e4b9dffdebd50d2e561f74",
+      "now": "scripts/h197/28_verify_wi11_citations.py (h197_scripts 블록에 해시 등록)"
+    },
+    "changes_from_source": [
+      "절대 경로를 --data-root/--repo-root/--release 인자로 뺐다 (기본값은 기존 경로, 동작 동일)",
+      "산출물이 없으면 rc=2 로 멈춘다 — 검사하지 못한 것을 통과로 세지 않는다",
+      "쓰이지 않던 import re 와 f4 helper 를 지웠다"
+    ],
+    "checks_unchanged": "대조 항목은 한 건도 더하거나 빼지 않았다 — 판정 변경이 아니라 기록·재현성 조치다",
+    "verification": {
+      "h197_rerun": "WI-11 인용 수치 대조: 실패 0건 (인자 지정·기본값 호출 모두 rc=0)",
+      "negative_control": "문서의 H1 점추정 +0.1548 을 +0.9999 로 바꾼 사본에 돌리면 rc=1, [MISMATCH] H1 점추정 — 대조가 비어 있지 않음을 확인"
+    },
+    "closure_procedure": {
+      "step": "3b (3 과 4 사이)",
+      "recorded_in": "CLAUDE.md '마감 단계' 절",
+      "runner": "h197 ~/run_closure.sh — setsid nohup 으로 분리 실행 (gitignore 영역)",
+      "also_corrected": "1 단계를 pytest tests/v2 → tests/v2 tests/v3 로 고쳤다 (v3 모듈 추가 뒤의 실제 실행과 문서가 달랐다)"
+    },
+    "judgment_changed": "없음 — gate status·check 판정 전부 불변. h197_scripts 에 파일 1 개가 늘었을 뿐이다.",
+    "not_done": "3b 를 G5 의 check 로 등록하지는 않았다 — check 구성 변경은 선생님 결정 사항이다."
   }
 }
