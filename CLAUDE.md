@@ -1,6 +1,6 @@
 # CLAUDE.md — MoBSE Project Context
 
-> 최종 갱신 2026-09-30 — **커밋 규약 적용**: 이력 161 개를 영문 1줄로 재작성하고 co-author 태그 제거, 무효가 된 커밋 SHA 기록 삭제 (gate 필드 7 · 문서 토큰 284) → **gate rev78**. 그 직전: **WI-11 연구 결과 패키지** 작성 (v1 내부 마감, `reports/wi11_research_package_2026-09-29.md`) → **gate rev76** (G5 check 5 건 pass) → **rev77** (승인으로 G5 `planned` → `cleared_with_limitations`), 인용 수치 독립 대조 실패 0. **결정 33** (v3 config 잠금 키: 8 칸 · 최대 수준에서 한 번 선택 · PCA 10 고정 · null M=20). v3 빌드 1·2·3·5 단계 완료. 그 직전: **결정 30·31·32**: 새 버전 축은 **T4 저표본 곡선**, 코드는 **새 모듈 `mobse/v3/`** (`mobse/v2` 불변 → v1 잠금·gate rev75 유효), 학습은 **update 예산 5,000 고정·epoch 상한 없음·best checkpoint 선택 자유**. 그 직전: **결정 29** (G-a·G-b 는 차단이 아니라 보고 장치; pilot 만·버리는 쪽으로만) 와 **G-a 선별 실행 완료** — 양성 대조 v1 target 1.000 (gate 가 작동함), 나머지 0.52–0.70 이나 pilot 31 규모라 우연과 구분 불가 (`sex` 0.536 이 민감도 경고). gate 는 rev75 그대로. 그 직전: **결정 28: 새 탐색 버전 설계 세 갈래** (축 미정 → 포화 선별 gate 우선 · ROI 구조 둘 다 병행 · null 은 M 축소 + 종류 확대) 와 설계안 초안 `docs/experiments/mobse_exploratory_v2_design_draft_2026-09-29.md`. 착수 전 확인 2건 완료 (등변성·spin). gate 는 **rev75 그대로** (v2 설계 측정은 v1 근거가 아님). 그 직전: **결정 27: 진로 (나) 확정** (현 버전 내부 마감 · PIOP2 미개방 · 새 탐색 버전 설계) + interaction 판독 철회, **A−S 진단** (결정 25-6) → **gate evidence rev75**, 부록 BZ·CA. 그 직전: WI-09 null 민감도 완료 → rev74, 부록 BY. 그 전 같은 날: 결정 25 기록, rev73 (09-28 실행 기록 + gate 표기), 부록 BT–BX, `resource_budget.md` 9.2, 커밋. claude.ai Project 사본 동기화 중단 — 정본은 저장소 `docs/handoff/`.
+> 최종 갱신 2026-09-30 — **커밋 규약 적용**: 이력 161 개를 영문 1줄로 재작성하고 co-author 태그 제거, 무효가 된 커밋 SHA 기록 삭제 (gate 필드 7 · 문서 토큰 284) → **gate rev78**. 선생님 지시로 `origin/redesign-v1` 에 `--force-with-lease` 푸시 (원격 = 로컬, 162 커밋, co-author 0). 그 직전: **WI-11 연구 결과 패키지** 작성 (v1 내부 마감, `reports/wi11_research_package_2026-09-29.md`) → **gate rev76** (G5 check 5 건 pass) → **rev77** (승인으로 G5 `planned` → `cleared_with_limitations`), 인용 수치 독립 대조 실패 0. **결정 33** (v3 config 잠금 키: 8 칸 · 최대 수준에서 한 번 선택 · PCA 10 고정 · null M=20). v3 빌드 1·2·3·5 단계 완료. 그 직전: **결정 30·31·32**: 새 버전 축은 **T4 저표본 곡선**, 코드는 **새 모듈 `mobse/v3/`** (`mobse/v2` 불변 → v1 잠금·gate rev75 유효), 학습은 **update 예산 5,000 고정·epoch 상한 없음·best checkpoint 선택 자유**. 그 직전: **결정 29** (G-a·G-b 는 차단이 아니라 보고 장치; pilot 만·버리는 쪽으로만) 와 **G-a 선별 실행 완료** — 양성 대조 v1 target 1.000 (gate 가 작동함), 나머지 0.52–0.70 이나 pilot 31 규모라 우연과 구분 불가 (`sex` 0.536 이 민감도 경고). gate 는 rev75 그대로. 그 직전: **결정 28: 새 탐색 버전 설계 세 갈래** (축 미정 → 포화 선별 gate 우선 · ROI 구조 둘 다 병행 · null 은 M 축소 + 종류 확대) 와 설계안 초안 `docs/experiments/mobse_exploratory_v2_design_draft_2026-09-29.md`. 착수 전 확인 2건 완료 (등변성·spin). gate 는 **rev75 그대로** (v2 설계 측정은 v1 근거가 아님). 그 직전: **결정 27: 진로 (나) 확정** (현 버전 내부 마감 · PIOP2 미개방 · 새 탐색 버전 설계) + interaction 판독 철회, **A−S 진단** (결정 25-6) → **gate evidence rev75**, 부록 BZ·CA. 그 직전: WI-09 null 민감도 완료 → rev74, 부록 BY. 그 전 같은 날: 결정 25 기록, rev73 (09-28 실행 기록 + gate 표기), 부록 BT–BX, `resource_budget.md` 9.2, 커밋. claude.ai Project 사본 동기화 중단 — 정본은 저장소 `docs/handoff/`.
 > 이전 갱신 2026-09-29 09:2x KST — "인수인계 — 2026-09-29" 절 추가 (Cowork 세션 → 터미널 Claude Code), 정본 포인터를 저장소 `docs/handoff/` 로 옮김 (그때 gate 는 rev72). 그 이전 (2026-09-26 23:3x, rev60–rev72 의 세부) 은 `.backup/CLAUDE_2026092*.md` 에 있다. 모든 수치는 실측값이며 출처를 함께 적음.
 > 이전판(2026-09-18)은 `.backup/CLAUDE_20260925_201635.md` 에, 2026-04-17판은 `.backup/CLAUDE.md_20260918_*.md` 에 보존됨.
 > **현행 상태의 정본은 이 파일이 아님** — 저장소 `docs/handoff/` 의 문서 (읽는 순서는 아래 "인수인계 — 2026-09-29" 절) 와 가장 높은 revision 의 `gate_evidence.json`. 이 파일은 저장소에 들어온 사람을 위한 방향 안내다.
@@ -18,7 +18,7 @@
 - 문서끼리 어긋나면 **날짜가 늦은 쪽**이 앞선다. 해석·점검 문서는 판단 재료이며 결정이 아니다.
 
 ### 현재 상태 (2026-09-29 11:0x KST)
-- Mac branch `redesign-v1` (미푸시). 결정 25 반영 커밋은 이 절 아래 "Next Steps" 참조.
+- Mac branch `redesign-v1`. 2026-09-30 에 `origin/redesign-v1` 로 푸시됨 (이력 재작성분, force-with-lease).
 - **결정 23 "main OOF 착수 승인" (09-28)** → A–D main OOF 완료: h197 `$D/main_oof/20260928_1cd4054_main_a2/` (`ALL_RC=0`, WI-07 완료 기준 전부 충족). attempt 1 `…_main` 은 fit 0 으로 멈춘 판 (남겨 둠).
 - **결정 24** → 보조 비교 (S 4 후보·NG·SG) 완료: `$D/main_oof/20260928_1cd4054_aux_a1/` (`ALL_RC=0`). smoke 판 `$D/main_oof/20260928_aux_smoke/`.
 - 결과 (BA): A 0.877 · B 0.722 · C 0.893 · D 0.790 · S 1.000 · NG 0.889 · SG 0.810.
@@ -102,7 +102,15 @@
 - 가역 결정은 진행하고 보고, 되돌리기 어려운 결정만 올리고 그 가지만 멈춘다.
 - 결정은 원문 그대로 인용하고 범위를 넓히지 않는다 ("정한 것 / 정하지 않은 것").
 - 기록·메모를 먼저 찾아본 뒤 질문한다 (대부분 이미 답이 있다).
-- **커밋 규약 (팀 규칙, `bmc-plugins` README)**: 영문 **1줄**, **20~25단어 이내**, 작업 단위로 묶어 **5건 이하**, **co-author 태그 미사용**. Conventional Commits 접두사는 유지. `git commit -F`, **푸시하지 않음**. git lock 으로 막히면 `.git/*.lock` 을 to-delete 폴더로 **옮기고** (삭제 아님) 다시 시도.
+- **커밋 규약 — 이 절이 정본이다** (팀 규칙, 출처 `~/.claude/plugins/marketplaces/bmc-plugins/README.md`:
+  "커밋 규칙은 팀 규칙을 따름 — 영문 1줄, 20~25단어 이내, 작업 단위로 묶어 5건 이하, co-author 태그 미사용.")
+  1. **영문 1줄.** 본문(body) 을 쓰지 않는다 — 자세한 이유는 `docs/handoff/` 와 gate evidence 에 적는다.
+  2. **20~25단어 이내.**
+  3. 작업 단위로 묶어 5건 이하 — **선택 사항이다** (필수 아님, 2026-09-30 선생님 확인).
+  4. **co-author 태그 미사용.** `Co-Authored-By` 를 붙이지 않는다 (도구 기본값이 붙이려 해도 제거한다).
+  5. Conventional Commits 접두사 (`feat(scope):`·`docs(scope):`·`chore(scope):`) 는 유지.
+  6. 파일로 써서 `git commit -F` (zsh heredoc 사고). git lock 으로 막히면 `.git/*.lock` 을 to-delete 폴더로 **옮기고** (삭제 아님) 다시 시도.
+  7. **푸시는 지시가 있을 때만.** 기본은 로컬 커밋까지다. (2026-09-30: 선생님 지시로 `--force-with-lease` 1 회 푸시 — 이력 재작성분 반영.)
 - **커밋 SHA 를 기록의 근거로 쓰지 않는다** — 2026-09-30 이력 재작성으로 예전 SHA 는 무효다. 코드 판본의 기준은 **잠금**이다 (측정 `9b7b11cf8576…` 의 `code_hash` `804d6ee17625…`, 구현 `bcf1fec22676…`).
 - **h197 의 azcopy (NFS → Azure, 선생님 작업) 가 언제 끝나는지는 확인·보고하지 않는다** (09-28 지시).
 - h197 부하 진단: load 가 높아도 로컬 디스크 포화로 단정하지 않는다 — 09-28 load 약 70 은 NFS (`/mnt/NAS`) 대기였고 로컬 md1 은 한가했다. 장치별 busy % 와 NFS/로컬 구분부터 본다.
@@ -187,7 +195,7 @@ MoBSE (Mixture of Brain-State Experts): fMRI 시계열을 dFC 유래 전문가 �
 
 ## 실행 호스트와 경로
 
-- **정본 저장소는 Mac** `/Users/hwon/projects/Git/Manuscript/MoBSE` (branch `redesign-v1`) — 편집·커밋은 Mac. **푸시하지 않음.**
+- **정본 저장소는 Mac** `/Users/hwon/projects/Git/Manuscript/MoBSE` (branch `redesign-v1`) — 편집·커밋은 Mac. **푸시는 지시가 있을 때만** (커밋 규약 7).
 - **실행 호스트는 h197** (`ssh -o BatchMode=yes h197`). 사본 `/mnt/data/code/MoBSE`, venv `/mnt/data/mp2026/MoBSE_dataset/venv-mobse-v2`. 최종 판정(마감)은 h197.
 - Mac → h197 동기화: `cd /Users/hwon/projects/Git/Manuscript && rsync -a --exclude=/data/ --exclude=/artifacts/ --exclude=/nilearn_cache/ --exclude=__pycache__/ --exclude='*.pyc' MoBSE/ h197:/mnt/data/code/MoBSE/` — **`--delete` 금지, `__pycache__`·`*.pyc` 제외 필수** (2026-09-24 stale pyc 사고).
 - data root: `h197:/mnt/data/mp2026/MoBSE_dataset`
@@ -234,7 +242,7 @@ python -B scripts/h197/27_build_implementation_lock.py --verify --data-root $D -
 - main OOF 는 **결정 23 (2026-09-28) 으로 실행 완료**, 보조 비교는 결정 24 로 완료. **null 민감도 (WI-09) 는 결정 25-2·25-5 로 승인** (기록·커밋 뒤 착수). **외부 선택/최종 fit·PIOP2 평가 (WI-08) 는 결정 27 로 현 버전에서 하지 않음** — 새 탐색 버전의 확증용으로 남긴다. 다시 열려면 선생님 원문 승인이 필요하다. 결정 17 (외부 분할) 도 외부 실행 승인이 아님.
 - 공용 저장소(NAS, bmc-storage 등)에 쓰지 않음. `/tmp` 에 정본 산출물을 두지 않음.
 - 돌연변이 시험은 bytecode 없이 (`python -B` + `PYTHONDONTWRITEBYTECODE=1`), 돌연변이 뒤·rsync 전·잠금 재생성 전에 `find mobse scripts tests -name '*.pyc'` 0 확인.
-- 커밋 메시지는 Conventional Commits (영문), 파일로 써서 `git commit -F` (zsh heredoc 사고).
+- 커밋 메시지는 위 **커밋 규약** 절을 따른다 (영문 1줄·20~25단어·co-author 없음; 5건 이하는 선택). 여기에 다시 적지 않는다.
 
 ## Code Conventions
 - Python 3.9+, type hints, Google-style docstrings, snake_case
