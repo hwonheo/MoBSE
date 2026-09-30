@@ -202,6 +202,27 @@ P8-b (결정 15) 는 `MIN_UPDATES = 5000` 과 `MAX_EPOCHS = 400` 을 함께 잠�
 
 **구현 선택 (표시)**: v3 는 동결된 `mobse/v2` 를 import 해 재사용하고, v3 잠금의 `code_hash` 는 **`mobse/v3/*.py` 와 `mobse/v2/*.py` 를 함께** 해시한다. v2 는 v1 release 로 동결됐으므로 이 참조는 흔들리지 않는다.
 
+**구현 선택 (표시, 2026-09-30) — inner 의 공통 E 를 outer 로 옮기는 단위는 update 다.**
+v1 은 epoch 수를 그대로 옮겼다. 그때는 예산이 epoch (`MAX_EPOCHS 400`) 이고 update 가
+하한이라 문제가 없었다. v3 는 통화가 뒤집혀 update 가 예산이자 상한이므로, epoch 을 그대로
+옮기면 outer 학습 집합이 더 큰 만큼 (inner 의 약 1.5 배) 예산을 넘는다. 넘는 양이 N 에 따라
+달라지므로 곡선의 차이에 다시 "학습량" 이 섞인다 — 결정 31-1 이 없애려던 교란이다. 그래서
+
+```
+공통_update = min(공통_E × inner_upe, update_budget)
+outer_E     = ceil(공통_update / outer_upe)
+```
+
+로 옮긴다 (`mobse.v3.train.carry_epochs_to_outer`). `min(…, 예산)` 은 공통 E 가 inner
+상한에 닿았을 때 올림이 예산을 최대 `inner_upe − 1` 만큼 넘기는 것을 막는다. 그 결과
+outer_E 는 **항상** outer 상한 이하가 되고, `mobse.v3.fitting.train_fold` 의 상한 거부는
+정상 경로에서 걸리지 않는 방어선이 된다.
+
+이것은 결정 31-1 을 바꾸는 것이 아니라 **같은 규칙을 그 규칙이 정한 통화로 적용**하는 것이라
+새 결정 번호를 받지 않았다. 기각한 두 안: (나) 공통 E 를 outer 상한으로 자르고 기록 — 잘리는
+양이 N 의 함수라 교란이 그대로 남는다. (다) inner 선택 자체를 outer 기준 epoch 으로 환산 —
+선택과 재적합을 섞어 "무엇을 근거로 골랐나" 가 흐려진다.
+
 ## 6. 예산 [추정 — main 실측 환산]
 
 main 실측: outer fit 당 약 100 s, k=4 동시·스레드 2 로 60 fit 26.4 분.

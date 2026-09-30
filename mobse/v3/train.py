@@ -53,7 +53,7 @@ __all__ = [
     "GridConfig", "TrainError", "Selection", "CellFoldResult",
     "assert_no_test_leakage", "build_grid", "clipped_log_loss", "early_stop_epoch",
     "epochs_for_budget", "select_config", "subject_equal_loss", "updates_per_epoch",
-    "select_best_epoch",
+    "select_best_epoch", "carry_epochs_to_outer",
 ]
 
 #: 모든 N 이 동일하게 받는 optimizer update 예산 (결정 31-1·32). v1 의 MIN_UPDATES 와
@@ -96,6 +96,45 @@ def select_best_epoch(val_losses: Sequence[float], *, patience: int = PATIENCE,
     """
     return early_stop_epoch(val_losses, patience=patience, min_delta=min_delta,
                             min_epoch=1)
+
+
+def carry_epochs_to_outer(common_epochs: int, n_train_inner: int,
+                          n_train_outer: int, *, batch_size: int = BATCH_SIZE,
+                          update_budget: int = UPDATE_BUDGET) -> int:
+    """inner 에서 고른 공통 E 를 outer fit 의 epoch 수로 옮긴다.
+
+    **옮기는 단위는 epoch 이 아니라 update 다** (구현 선택, 2026-09-30). 결정 31-1
+    이 정한 통화가 update 이기 때문이다. v1 은 epoch 수를 그대로 옮겼지만 그때는
+    예산이 epoch (``MAX_EPOCHS``) 이고 update 가 하한이었다. v3 는 통화가 뒤집혔으므로
+    epoch 을 그대로 옮기면 outer 학습 집합이 더 큰 만큼 예산을 넘는다 — 넘는 양이
+    N 에 따라 달라져, 곡선의 차이가 다시 "학습량" 을 섞게 된다.
+
+    ``min(..., update_budget)`` 으로 자르는 이유: 공통 E 가 inner 상한에 닿아 있으면
+    올림 때문에 예산을 최대 ``inner_upe - 1`` 만큼 넘길 수 있다. 여기서 자르면
+    결과가 **항상** outer 상한 이하가 되어, ``fitting.train_fold`` 의 상한 거부는
+    정상 경로에서 걸리지 않는 방어선이 된다.
+
+    Args:
+        common_epochs: ``select_config`` 이 고른 공통 E.
+        n_train_inner: inner fit 의 학습 창 수.
+        n_train_outer: outer fit 의 학습 창 수.
+        batch_size: 두 fit 이 같은 값을 쓴다.
+        update_budget: 모든 fit 이 같게 받는 예산 (결정 31-1).
+
+    Returns:
+        outer fit 이 정확히 돌 epoch 수 (1 이상).
+
+    Raises:
+        TrainError: 인자가 양수가 아닐 때.
+    """
+    if common_epochs < 1:
+        raise TrainError(f"공통 E 는 1 이상이어야 한다: {common_epochs}")
+    if update_budget <= 0:
+        raise TrainError(f"update 예산은 양수여야 한다: {update_budget}")
+    inner_upe = updates_per_epoch(n_train_inner, batch_size)
+    outer_upe = updates_per_epoch(n_train_outer, batch_size)
+    carried = min(int(common_epochs) * inner_upe, int(update_budget))
+    return max(1, math.ceil(carried / outer_upe))
 
 
 @dataclass(frozen=True)

@@ -161,3 +161,47 @@ def test_selection_still_refuses_an_incomplete_grid():
     rows = _grid()[:-1]
     with pytest.raises(T3.TrainError, match="불완전"):
         T3.select_config(rows)
+
+
+# --------------------------------------------------------------------------- #
+# 공통 E 를 outer 로 옮기기 (구현 선택, 2026-09-30) — 단위는 update 다
+# --------------------------------------------------------------------------- #
+
+
+def test_carry_uses_updates_not_epochs():
+    """outer 학습 집합이 크면 같은 update 를 더 적은 epoch 으로 채운다."""
+    inner, outer = 160, 320          # outer 가 정확히 2 배
+    e_out = T3.carry_epochs_to_outer(10, inner, outer, batch_size=32,
+                                     update_budget=10_000)
+    upe_in = T3.updates_per_epoch(inner, 32)
+    upe_out = T3.updates_per_epoch(outer, 32)
+    assert e_out == math.ceil(10 * upe_in / upe_out)
+    assert e_out < 10                # epoch 을 그대로 옮기지 않는다
+
+
+def test_carry_holds_the_update_count_not_the_epoch_count():
+    inner, outer = 160, 400
+    common_e = 7
+    e_out = T3.carry_epochs_to_outer(common_e, inner, outer, batch_size=32,
+                                     update_budget=100_000)
+    carried = common_e * T3.updates_per_epoch(inner, 32)
+    run = e_out * T3.updates_per_epoch(outer, 32)
+    # 올림 한 번 분량 안에서 같은 update 를 쓴다.
+    assert 0 <= run - carried < T3.updates_per_epoch(outer, 32)
+
+
+def test_carry_never_exceeds_the_outer_budget_ceiling():
+    """공통 E 가 inner 상한에 닿아 있어도 결과는 outer 상한 이하다."""
+    for inner, outer in ((80, 120), (80, 800), (160, 161), (32, 3200)):
+        ceiling_in = T3.epochs_for_budget(inner, batch_size=32, update_budget=5000)
+        ceiling_out = T3.epochs_for_budget(outer, batch_size=32, update_budget=5000)
+        e_out = T3.carry_epochs_to_outer(ceiling_in, inner, outer, batch_size=32,
+                                         update_budget=5000)
+        assert 1 <= e_out <= ceiling_out, (inner, outer, e_out, ceiling_out)
+
+
+def test_carry_refuses_nonsense():
+    with pytest.raises(T3.TrainError, match="공통 E"):
+        T3.carry_epochs_to_outer(0, 80, 160)
+    with pytest.raises(T3.TrainError, match="양수"):
+        T3.carry_epochs_to_outer(3, 80, 160, update_budget=0)
