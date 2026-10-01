@@ -34,15 +34,18 @@ from mobse.v3 import subsample as SUB
 from mobse.v3.config import ConfigError, config_hash, load_config
 from mobse.v3.subsample import SubsampleError
 from mobse.v3.models import ROI_STRUCTURES
+from mobse.v3 import train as TR3
 from mobse.v3.train import TrainError, carry_epochs_to_outer
 
-__all__ = ["CLIError", "SUBCOMMANDS", "build_parser", "fit_id", "main", "run_fit"]
+__all__ = ["CLIError", "SUBCOMMANDS", "build_parser", "fit_id", "main",
+           "run_fit", "run_select"]
 
-SUBCOMMANDS = ("fit",)
+SUBCOMMANDS = ("fit", "select")
 
 #: 하위 명령별 필수 경로. v1 과 같은 규약이다.
 REQUIRED_PATHS: Dict[str, Sequence[str]] = {
     "fit": ("config", "splits", "subjects", "windows", "rest_manifest", "output_dir"),
+    "select": ("config", "output_dir"),
 }
 
 #: fit 산출물. 하나라도 있으면 실행하지 않는다 — 같은 결과를 덮어쓰지 않는다.
@@ -101,6 +104,12 @@ def build_parser() -> argparse.ArgumentParser:
                           "(common_epochs · inner_train_windows)")
     fit.add_argument("--device", default="cpu")
     fit.add_argument("--skip-hash-verify", action="store_true")
+
+    sel = sub.add_parser("select", help="구조마다 A-D 공동 config 와 공통 E 를 고른다")
+    for name in REQUIRED_PATHS["select"]:
+        sel.add_argument(f"--{name.replace('_', '-')}", required=True)
+    sel.add_argument("--fit-dirs", nargs="+", required=True,
+                     help="inner fit 산출물 디렉터리들 (fit_manifest.json + fit_report.json)")
     return parser
 
 
@@ -360,13 +369,117 @@ def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
     }
 
 
+def run_select(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
+    """**구조마다** A-D 공동 config 와 공통 E 를 고른다 (2026-10-01 승인).
+
+    v1 은 A-D 를 공동으로 골랐다 — 칸마다 따로 튜닝하면 "어느 요인이 좋은가" 와
+    "어느 칸이 잘 튜닝됐나" 가 섞이기 때문이다. v3 는 그 논리를 **구조 안에서**
+    유지하고 구조 사이에서는 분리한다. 주 contrast (A-C · A-S) 가 구조 안에서
+    계산되므로 그 공정성은 그대로이고, 파라미터화가 다른 구조끼리 같은 lr ·
+    dropout · weight decay 를 강요하지 않는다. 2026-10-01 진단에서 한 config 가
+    embedding 에 최적이면서 mean · readout 에 최악인 것을 확인했다.
+
+    결정 33 을 뒤집지 않는다 — 그 결정은 **수준** 축에서 "가장 큰 수준에서 한 번"
+    을 정했고, 구조끼리 config 를 공유하는지는 말하지 않았다.
+
+    Returns:
+        구조별 선택 결과. 파일은 ``selection_<structure>.json`` 로 쓴다.
+
+    Raises:
+        CLIError: fit 산출물이 없거나, 한 구조 안에서 수준 · 역할이 섞였거나,
+            고른 공통 E 가 가장 빡빡한 inner fold 의 상한을 넘을 때.
+    """
+    try:
+        cfg = load_config(Path(paths["config"]))
+    except ConfigError as exc:
+        raise CLIError(f"config 검증 실패: {exc}") from exc
+
+    rows: List[Dict[str, Any]] = []
+    for d in args.fit_dirs:
+        base = Path(d)
+        man_p, rep_p = base / "fit_manifest.json", base / "fit_report.json"
+        for q in (man_p, rep_p):
+            if not q.is_file():
+                raise CLIError(f"fit 산출물이 없다: {q}. 대체 탐색하지 않는다 (U20)")
+        man = json.loads(man_p.read_text(encoding="utf-8"))
+        rep = json.loads(rep_p.read_text(encoding="utf-8"))
+        if man["role"] != FIT.ROLE_INNER:
+            raise CLIError(f"inner fit 이 아니다: {base} (role={man['role']})")
+        rows.append({
+            "structure": man["roi_structure"], "cell": man["cell"],
+            "level": int(man["curve"]["n_train_level"]),
+            "inner_fold": int(man["folds"]["inner_fold"]),
+            "config_id": int(rep["config_id"]),
+            "loss": float(rep["eval_loss"]),
+            "ba": float(rep["eval_balanced_accuracy"]),
+            "best_epoch": int(rep["best_epoch"]),
+            "epoch_ceiling": int(rep["epoch_ceiling"]),
+            "n_eval_subjects": int(man["folds"]["n_eval_subjects"]),
+            "n_train_windows": int(rep["n_train_windows"]),
+        })
+    if not rows:
+        raise CLIError("--fit-dirs 가 비었다")
+
+    out_dir = Path(paths["output_dir"])
+    out_dir.mkdir(parents=True, exist_ok=True)
+    written: Dict[str, Any] = {}
+    for structure in sorted({r["structure"] for r in rows}):
+        group = [r for r in rows if r["structure"] == structure]
+        levels = {r["level"] for r in group}
+        if len(levels) != 1:
+            raise CLIError(f"{structure}: 수준이 섞였다 {sorted(levels)} — 선택은 한 "
+                           "수준에서만 한다 (결정 33)")
+        level = levels.pop()
+        # inner fold 마다 학습 집합 크기가 달라 상한도 다를 수 있다. 가장 빡빡한
+        # 쪽을 공통 상한으로 쓴다 — 넉넉한 쪽에 맞추면 어떤 fold 는 예산을 넘는다.
+        ceiling = min(r["epoch_ceiling"] for r in group)
+        over = [r for r in group if r["best_epoch"] > ceiling]
+        if over:
+            raise CLIError(
+                f"{structure}: best epoch {over[0]['best_epoch']} 이 가장 빡빡한 "
+                f"상한 {ceiling} 을 넘는다 — 공통 E 를 고를 수 없다")
+        results = [TR3.CellFoldResult(
+            config_id=r["config_id"], cell=r["cell"], inner_fold=r["inner_fold"],
+            loss=r["loss"], balanced_accuracy=r["ba"], best_epoch=r["best_epoch"],
+            n_subjects=r["n_eval_subjects"], epoch_ceiling=ceiling) for r in group]
+        try:
+            sel = TR3.select_config(results, n_folds=int(cfg["splits.n_inner_folds"]))
+        except TrainError as exc:
+            raise CLIError(f"{structure}: 선택 실패 — {exc}") from exc
+
+        chosen = [r for r in group if r["config_id"] == sel.config_id]
+        windows = sorted(r["n_train_windows"] for r in chosen)
+        mid = len(windows) // 2
+        inner_windows = (windows[mid] if len(windows) % 2
+                         else (windows[mid - 1] + windows[mid]) // 2)
+        payload = {
+            "schema_version": "v3-selection-0.1",
+            "roi_structure": structure, "n_train_level": level,
+            "config_id": sel.config_id, "common_epochs": sel.common_epochs,
+            "inner_train_windows": int(inner_windows),
+            "epoch_ceiling": ceiling, "joint_loss": sel.joint_loss,
+            "joint_ba": sel.joint_ba, "tie_rule": sel.tie_rule,
+            "n_fits": len(group), "config_hash": config_hash(cfg),
+            "selection_scope": "A-D 공동, 구조별 분리 (2026-10-01 승인)",
+        }
+        path = out_dir / f"selection_{structure}.json"
+        if path.exists():
+            raise CLIError(f"이미 존재한다: {path}. 같은 결과를 덮어쓰지 않는다")
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2),
+                        encoding="utf-8")
+        written[structure] = payload
+
+    return {"verdict": "pass", "selected": written,
+            "n_fit_dirs": len(args.fit_dirs), "output_dir": str(out_dir)}
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """CLI 진입점. 결과 요약을 JSON 한 줄로 stdout 에 쓴다."""
     args = build_parser().parse_args(list(argv) if argv is not None else None)
     try:
         paths = resolve_paths(args.command, args)
         check_inputs_exist(paths)
-        summary = run_fit(paths, args)
+        summary = run_fit(paths, args) if args.command == "fit" else run_select(paths, args)
     except (CLIError, FIT.FitError, SubsampleError, TrainError,
             ConfigError) as exc:
         # 규칙 위반은 traceback 이 아니라 판정으로 내보낸다 — 구동기가 읽는다.

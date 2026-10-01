@@ -202,6 +202,31 @@ P8-b (결정 15) 는 `MIN_UPDATES = 5000` 과 `MAX_EPOCHS = 400` 을 함께 잠�
 
 **구현 선택 (표시)**: v3 는 동결된 `mobse/v2` 를 import 해 재사용하고, v3 잠금의 `code_hash` 는 **`mobse/v3/*.py` 와 `mobse/v2/*.py` 를 함께** 해시한다. v2 는 v1 release 로 동결됐으므로 이 참조는 흔들리지 않는다.
 
+**결정 (2026-10-01 승인) — 공동 선택은 구조마다 한 번씩. 각 선택은 A–D 공동.**
+v1 이 A–D 의 config 를 공동으로 고른 이유는 칸마다 따로 튜닝하면 "어느 요인이 좋은가" 와
+"어느 칸이 잘 튜닝됐나" 가 섞이기 때문이다. 구조 축은 성격이 다르다 — embedding 은
+`n_roi × hidden` 개 parameter 를 더하므로, 같은 lr·dropout·weight decay 를 강요하는 것은
+공정이 아니라 제약이다.
+
+**측정 (2026-10-01, N=40 · fold 0 · seed 42, grid 8 config × 3 구조 = 24 fit)**: 어느 구조가
+이기는지가 config 에 따라 뒤집힌다 — config 0 은 embedding 0.897 / mean·readout 0.500,
+config 4 는 embedding 0.559 / mean 0.618 · readout 0.662. 한 config 를 8 칸에 강요하면
+비교가 그 선택에 끌려간다.
+
+주 contrast (A−C · A−S) 는 **구조 안에서** 계산되므로, 구조 안에서 A–D 를 공동으로 고르면
+v1 의 공정성 논리가 그대로 유지된다. 결정 33 을 뒤집지 않는다 — 그 결정은 **수준** 축에서
+"가장 큰 수준에서 한 번" 을 정했고 구조끼리의 공유 여부는 말하지 않았다. 비용은 최상위 수준의
+inner fit 이 구조 수만큼 배가되는 것뿐이다 (8 config × 4 칸 × 3 fold × 2 구조 = 192 fit,
+fit 당 약 15 s [측정]).
+
+구현: `mobse.v3.cli run_select` 가 `roi_structure` 로 묶어 `select_config` 를 구조마다 부른다.
+inner fold 마다 학습 크기가 달라 epoch 상한이 다를 수 있으므로 **가장 빡빡한 상한**을 공통으로
+쓴다 — 넉넉한 쪽에 맞추면 어떤 fold 는 예산을 넘는다.
+
+**readout 축은 유지한다 (같은 측정).** 학습이 실제로 진행되는 config 4·5 에서 `roi_readout` 이
+1e−02 → 8–9.7e−02 로 움직이고 결과도 mean 과 갈린다. 앞선 "readout 은 mean 과 구분되지
+않는다" 는 관측은 **config 0 한 판**을 본 것이었고 일반화할 수 없다.
+
 **구현 선택 (표시, 2026-10-01) — 수준은 먼저 자르고, inner 는 그 안에서 다시 긋는다.**
 h197 실측: outer fold 0 은 test 26 · 학습 pool 100 이고 v1 의 inner 분할은 train 66/67/67 이다.
 학습 pool 이 아니라 *inner* 학습 집합을 자르면 수준 70·100 에 inner fit 이 존재할 수 없어

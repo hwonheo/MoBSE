@@ -349,3 +349,103 @@ def test_report_records_the_budget_not_a_min_epoch(bed, stub_train):
     assert rep["update_budget"] == 5000
     assert "epoch_ceiling" in rep
     assert "min_epoch" not in rep and "min_updates" not in rep
+
+
+# --------------------------------------------------------------------------- #
+# select — 구조마다 A-D 공동 (2026-10-01 승인)
+# --------------------------------------------------------------------------- #
+
+
+def _fake_fit_dir(root, *, structure, cell, inner_fold, config_id, loss, ba,
+                  best_epoch=4, ceiling=9, n_eval=4, n_train_windows=104,
+                  level=20, role="inner"):
+    d = root / f"{structure}_{cell}_c{config_id}_i{inner_fold}"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "fit_manifest.json").write_text(json.dumps({
+        "role": role, "cell": cell, "roi_structure": structure,
+        "curve": {"n_train_level": level},
+        "folds": {"inner_fold": inner_fold, "n_eval_subjects": n_eval}}),
+        encoding="utf-8")
+    (d / "fit_report.json").write_text(json.dumps({
+        "config_id": config_id, "eval_loss": loss, "eval_balanced_accuracy": ba,
+        "best_epoch": best_epoch, "epoch_ceiling": ceiling,
+        "n_train_windows": n_train_windows}), encoding="utf-8")
+    return d
+
+
+def _grid_dirs(root, structure, *, winner, n_configs=8, cells=("A", "B", "C", "D")):
+    """이긴 config 만 손실이 낮은 완전한 grid 를 만든다."""
+    dirs = []
+    for c in range(n_configs):
+        for cell in cells:
+            for f in range(3):
+                loss = 0.30 if c == winner else 0.70
+                dirs.append(_fake_fit_dir(root, structure=structure, cell=cell,
+                                          inner_fold=f, config_id=c, loss=loss,
+                                          ba=0.9 if c == winner else 0.5))
+    return dirs
+
+
+def test_select_picks_a_config_per_structure(bed, tmp_path, capsys):
+    """구조마다 따로 고른다 — 한 config 가 다른 구조에 최악일 수 있기 때문이다."""
+    root = tmp_path / "fits"
+    dirs = _grid_dirs(root, "embedding", winner=0) + _grid_dirs(root, "readout", winner=5)
+    out = tmp_path / "sel"
+    rc = CLI.main(["select", "--config", str(bed["cfg"]), "--output-dir", str(out),
+                   "--fit-dirs", *[str(d) for d in dirs]])
+    assert rc == 0, capsys.readouterr().out
+    emb = json.loads((out / "selection_embedding.json").read_text(encoding="utf-8"))
+    rdt = json.loads((out / "selection_readout.json").read_text(encoding="utf-8"))
+    assert emb["config_id"] == 0 and rdt["config_id"] == 5
+    assert emb["roi_structure"] == "embedding"
+    assert emb["common_epochs"] >= 1
+    assert emb["inner_train_windows"] == 104
+    assert "구조별 분리" in emb["selection_scope"]
+
+
+def test_select_refuses_a_mixed_level(bed, tmp_path, capsys):
+    root = tmp_path / "fits"
+    dirs = _grid_dirs(root, "embedding", winner=0)
+    dirs.append(_fake_fit_dir(root, structure="embedding", cell="A", inner_fold=0,
+                              config_id=0, loss=0.3, ba=0.9, level=40))
+    rc = CLI.main(["select", "--config", str(bed["cfg"]),
+                   "--output-dir", str(tmp_path / "s2"),
+                   "--fit-dirs", *[str(d) for d in dirs]])
+    assert rc == 2
+    assert "수준이 섞였다" in json.loads(capsys.readouterr().out)["error"]
+
+
+def test_select_refuses_an_outer_fit(bed, tmp_path, capsys):
+    root = tmp_path / "fits"
+    d = _fake_fit_dir(root, structure="embedding", cell="A", inner_fold=9,
+                      config_id=0, loss=0.3, ba=0.9, role="outer")
+    rc = CLI.main(["select", "--config", str(bed["cfg"]),
+                   "--output-dir", str(tmp_path / "s3"), "--fit-dirs", str(d)])
+    assert rc == 2
+    assert "inner fit 이 아니다" in json.loads(capsys.readouterr().out)["error"]
+
+
+def test_select_uses_the_tightest_ceiling(bed, tmp_path, capsys):
+    """inner fold 마다 학습 크기가 달라 상한이 다르면 가장 빡빡한 쪽을 쓴다."""
+    root = tmp_path / "fits"
+    dirs = _grid_dirs(root, "embedding", winner=0)
+    # 한 fold 의 상한만 낮추고, 그보다 큰 best epoch 를 가진 fit 을 넣는다.
+    bad = _fake_fit_dir(root, structure="embedding", cell="A", inner_fold=1,
+                        config_id=0, loss=0.3, ba=0.9, best_epoch=8, ceiling=5)
+    rc = CLI.main(["select", "--config", str(bed["cfg"]),
+                   "--output-dir", str(tmp_path / "s4"),
+                   "--fit-dirs", *[str(d) for d in dirs], str(bad)])
+    assert rc == 2
+    assert "가장 빡빡한" in json.loads(capsys.readouterr().out)["error"]
+
+
+def test_selection_file_feeds_the_outer_fit(bed, tmp_path, stub_train):
+    """select 가 쓴 파일을 fit --selection 이 그대로 받는다."""
+    root = tmp_path / "fits"
+    dirs = _grid_dirs(root, "embedding", winner=0)
+    out = tmp_path / "sel"
+    assert CLI.main(["select", "--config", str(bed["cfg"]), "--output-dir", str(out),
+                     "--fit-dirs", *[str(d) for d in dirs]]) == 0
+    sel = out / "selection_embedding.json"
+    assert CLI.main(_argv(bed, tmp_path / "o", inner_fold=9, selection=sel,
+                          n_train_level=20)) == 0
