@@ -1,10 +1,10 @@
 {
   "schema_version": "gate_evidence_v1",
   "release_id": "20260917_3c458d507e82_nocfg",
-  "timestamp_utc": "2026-09-30T04:12:54Z",
-  "revision": 80,
-  "supersedes_sha256": "ebcf9127273343a3894f024a28833aea52faf7d62f296d640956fabeac6cf8ee",
-  "revision_reason": "rev80 (2026-09-30): G5 블록에 checks_verified_by 포인터 필드를 더해, check 1·2·3 의 observed 값을 다시 계산하는 것이 scripts/h197/28_verify_wi11_citations.py (마감 3b) 임을 gates 배열 안에서 보이게 했다. 3b 를 check 로 등록하지는 않았다 (사유는 g5_checks_verified_by_rev80). gate status·check 판정 전부 불변",
+  "timestamp_utc": "2026-10-01T04:57:42Z",
+  "revision": 81,
+  "supersedes_sha256": "5ec0cd2d7d74cce7e5f23423b0bf511434e8dedc9db055a53abb9ffe59d16423",
+  "revision_reason": "rev81 (2026-10-01): exploratory v2 의 구현 잠금 생성기·검증기 scripts/h197/29_build_v3_lock.py 를 저장소에 들이고 h197_scripts 에 해시를 등록했다. v1 의 27 번과 code_hash 를 쓸 수 없는 이유 (해시 범위·파일명 충돌) 를 함께 적었다. 측정 잠금은 새로 만들지 않고 v1 의 9b7b11cf8576 을 참조한다. gate 판정·status 전부 불변",
   "reviewer": "integration owner; 모든 수치를 원 명령으로 재실행해 확인",
   "gates": [
     {
@@ -801,6 +801,7 @@
     "26_write_external_folds.py": "aaf8ee3897479d6ed08609f6c94783f49ada9ac106650e9afe7c6606ff8b528f",
     "27_build_implementation_lock.py": "c7d0fc87d1c7a263c3119ed7e5b9fb6b0b5e4023a001bf3e0f331991d475871e",
     "28_verify_wi11_citations.py": "3cae834c61e30a90620cf74f8139954690675f322278c52a3f51779bddabbc30",
+    "29_build_v3_lock.py": "f1608134969f1b2991c7bdff5150fda59536af620a9e94d69c787a0dea11820b",
     "README.md": "f6c57f6701854c45d2654d3a336da6a3be344816a8bd6cc1ab92da74488b0127",
     "requirements-legacy-extra.txt": "c63f8787641608e926c0cc2260e0de1583d53a049d0be793c944669ef9972824",
     "requirements-v2.txt": "8b60c83238593f7430085093b83effbe321956be0cb3f8b0d6372e47c0ceec01"
@@ -6027,5 +6028,18 @@
     "what": "G5 블록에 checks 바로 뒤로 포인터 필드를 하나 더했다.",
     "why_not_a_check": "3b 를 G5 의 6 번째 check 로 올리지 않은 이유 셋. (1) 기존 check 5 건은 source 가 전부 계획서 §10·지침서 WI-11 의 필수 산출물 요구이고, 3b 를 요구하는 조항은 없다. (2) 3b 가 재계산하는 값은 이미 check 1·2·3 의 observed 에 있어 pass 를 두 번 세게 된다. (3) 재현성은 이미 확보됐다 — 스크립트 해시는 h197_scripts 에 있어 마감 2 단계가 매번 대조하고 3b 로 매번 실행된다.",
     "judgment_changed": "없음 — G5 status·check 5 건의 result 와 observed 값은 전부 그대로다. 다른 gate 도 불변."
+  },
+  "v3_lock_builder_rev81": {
+    "decision_quote": "기록 먼저 하고 5단계 바로 실행 (2026-10-01)",
+    "what": "exploratory v2 (mobse/v3) 의 구현 잠금 생성기·검증기를 저장소에 들였다. **v1 release 의 근거는 하나도 바뀌지 않는다** — 이 블록은 scripts/h197 에 파일이 하나 는 것을 기록할 뿐이다.",
+    "why_not_script_27": "v1 의 27 번은 mobse/v2 만 해시하고 v1 의 acceptance 대응표·pilot e2e 기록을 필수로 요구한다. v3 는 해시 범위가 다르고 (mobse/v3 + mobse/v2 를 함께) 그 두 기록이 아직 없다.",
+    "code_hash_definition": "v1 의 manifests.code_hash 를 쓸 수 없다 — 파일명이 겹치면 거부하는데 v3 가 __init__·cli·config·fitting·models·templates·train 일곱 개를 v2 와 같은 이름으로 쓴다. 그래서 {상대경로: 파일 sha256} 의 canonical JSON sha256 으로 따로 정의했다 (29_build_v3_lock.v3_code_hash). 시험이 두 사실을 고정한다.",
+    "measurement_lock": "새로 만들지 않고 v1 의 9b7b11cf8576 을 참조한다 — v3 는 같은 자료 (derivatives_v3 · splits_piop1_p7) 를 쓴다.",
+    "verification": {
+      "local_round_trip": "생성 → 검증 rc=0, 검사 32건 불일치 0 (모듈 26 · config 1)",
+      "negative_control": "mobse/v3/train.py 에 한 줄을 더하면 [MISMATCH] 2 건 (모듈 해시 · code_hash) 으로 rc=1, 원복하면 다시 0"
+    },
+    "not_done": "v3 잠금 **파일은 아직 만들지 않았다** — v3 는 evaluate·report 가 남아 있어 코드가 더 바뀐다. 본실험 착수 직전에 만든다. 마감 절차의 v3 단계도 그때 켠다 (지금 넣으면 파일이 없어 rc≠0 이다).",
+    "judgment_changed": "없음 — gate status·check 판정 전부 불변."
   }
 }

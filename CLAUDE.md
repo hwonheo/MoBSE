@@ -236,6 +236,14 @@ python scripts/h197/19_verify_measurement_lock.py --data-root $D --repo-root . -
 python scripts/h197/25_verify_window_files.py --data-root $D --lock $R/locks/measurement_lock.json
 python -B scripts/h197/27_build_implementation_lock.py --verify --data-root $D --repo-root . --release $R   # 6: h197 에서만 의미, rc≠0 이면 구현 잠금 새 판 필요
 ```
+**v3 (exploratory v2) 단계는 아직 켜지 않았다.** 잠금 생성기·검증기는
+`scripts/h197/29_build_v3_lock.py` 로 들어와 있으나 **잠금 파일을 아직 만들지 않았다** —
+v3 는 evaluate·report 가 남아 코드가 더 바뀐다. 본실험 착수 직전에 만들고, 그때 아래를
+마감에 7 단계로 더한다 (지금 넣으면 파일이 없어 rc≠0 이다).
+```bash
+python scripts/h197/29_build_v3_lock.py --verify --repo-root . \
+    --out results/exploratory_v2/locks/v3_lock.json          # 7: v3 구현 잠금
+```
 
 ### artifact 계약
 `results/redesign_v1/<release_id>/` 아래 `provenance/ qc/ splits/ locks/ fits/ predictions/ statistics/ reports/`.
