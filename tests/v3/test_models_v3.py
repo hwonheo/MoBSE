@@ -160,3 +160,41 @@ def test_parameter_count_grows_only_by_the_new_structure(structure, extra):
     base = sum(p.numel() for p in MoBSEv3(cfg, bank, roi_structure="mean").parameters())
     got = sum(p.numel() for p in MoBSEv3(cfg, bank, roi_structure=structure).parameters())
     assert got - base == extra
+
+
+# --------------------------------------------------------------------------- #
+# checkpoint — ROI 구조를 함께 적는다 (2026-10-01 추가)
+# --------------------------------------------------------------------------- #
+
+
+def test_checkpoint_round_trip_keeps_the_roi_structure(tmp_path):
+    import torch
+    from mobse.v2.models import BACKEND, ModelConfig
+    from mobse.v3.models import MoBSEv3, load_checkpoint, save_checkpoint
+
+    cfg = ModelConfig(n_roi=8, n_samples=12, pca_dim=4, dropout=0.1)
+    bank = torch.rand(cfg.n_experts, 8, 8)
+    model = MoBSEv3(cfg, bank, routing="dynamic", roi_structure="readout")
+    assert model.backend == BACKEND          # v1 의 save 경로가 요구하는 속성
+
+    path = tmp_path / "ckpt.pt"
+    info = save_checkpoint(model, path)
+    assert info["roi_structure"] == "readout"
+    back = load_checkpoint(path, bank)
+    assert back.roi_structure == "readout"
+    assert back.routing == "dynamic"
+
+
+def test_a_checkpoint_without_the_structure_is_refused(tmp_path):
+    """v1 판본 payload 를 기본값으로 메우지 않는다 — 조용히 다른 모델이 된다."""
+    import torch
+    from mobse.v2.models import BACKEND, ModelConfig
+    from mobse.v3.models import ModelError, load_checkpoint
+
+    cfg = ModelConfig(n_roi=8, n_samples=12, pca_dim=4, dropout=0.1)
+    bank = torch.rand(cfg.n_experts, 8, 8)
+    path = tmp_path / "old.pt"
+    torch.save({"backend": BACKEND, "routing": "dynamic",
+                "config": cfg.as_dict(), "state_dict": {}}, path)
+    with pytest.raises(ModelError, match="roi_structure 가 없다"):
+        load_checkpoint(path, bank)

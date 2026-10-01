@@ -28,6 +28,7 @@ import torch
 from torch import Tensor, nn
 
 from mobse.v2.models import (  # 동결된 v1 부품
+    BACKEND,
     DenseGraphLayer,
     DynamicGate,
     FixedGate,
@@ -36,7 +37,8 @@ from mobse.v2.models import (  # 동결된 v1 부품
     ROIEncoder,
 )
 
-__all__ = ["ROI_STRUCTURES", "MoBSEv3", "ModelConfig", "ModelError"]
+__all__ = ["ROI_STRUCTURES", "MoBSEv3", "ModelConfig", "ModelError",
+           "save_checkpoint", "load_checkpoint"]
 
 #: ROI 정체를 쓰는 방식. ``"mean"`` 은 v1 과 같다 (등변 — 정렬을 쓸 수 없다).
 ROI_STRUCTURES: Tuple[str, str, str] = ("mean", "embedding", "readout")
@@ -79,6 +81,7 @@ class MoBSEv3(nn.Module):
             raise ModelError(f"ROI 수 불일치: {cfg.n_roi} vs {bank.shape[1]}")
 
         self.cfg = cfg
+        self.backend = BACKEND
         self.routing = routing
         self.roi_structure = roi_structure
         self.register_buffer("template_bank", bank)     # optimizer 제외
@@ -142,3 +145,38 @@ class MoBSEv3(nn.Module):
         for layer in self.graph_layers:
             h = layer(h, s)
         return {"logits": self.head(self.readout(h)), "routing": w, "graph": s}
+
+
+def save_checkpoint(model: "MoBSEv3", path) -> Dict[str, object]:
+    """구조 설정·backend·**ROI 정체 구조**를 함께 저장한다.
+
+    v1 의 `mobse.v2.models.save_checkpoint` 를 쓸 수 없다. 그 payload 에는
+    ``roi_structure`` 가 없어서, 되살릴 때 어느 구조였는지 알 수 없다 — embedding
+    판과 readout 판의 checkpoint 가 구분되지 않는다.
+    """
+    payload = {"backend": model.backend, "routing": model.routing,
+               "roi_structure": model.roi_structure,
+               "config": model.cfg.as_dict(), "state_dict": model.state_dict()}
+    torch.save(payload, path)
+    return {"backend": model.backend, "routing": model.routing,
+            "roi_structure": model.roi_structure}
+
+
+def load_checkpoint(path, template_bank: Tensor) -> "MoBSEv3":
+    """checkpoint 를 되살린다. backend·구조가 다르면 **실패한다.**
+
+    Raises:
+        ModelError: backend 가 다르거나 payload 에 ``roi_structure`` 가 없을 때.
+            없는 것을 기본값으로 메우지 않는다 — 조용히 다른 모델이 된다.
+    """
+    payload = torch.load(path, map_location="cpu", weights_only=False)
+    if payload.get("backend") != BACKEND:
+        raise ModelError(f"backend 불일치: {payload.get('backend')!r} vs {BACKEND!r}")
+    if "roi_structure" not in payload:
+        raise ModelError("checkpoint 에 roi_structure 가 없다 — v1 판본이거나 손상됐다. "
+                         "기본값으로 메우지 않는다")
+    cfg = ModelConfig(**payload["config"])
+    model = MoBSEv3(cfg, template_bank, routing=payload["routing"],
+                    roi_structure=payload["roi_structure"])
+    model.load_state_dict(payload["state_dict"])
+    return model
