@@ -38,14 +38,15 @@ from mobse.v3 import train as TR3
 from mobse.v3.train import TrainError, carry_epochs_to_outer
 
 __all__ = ["CLIError", "SUBCOMMANDS", "build_parser", "fit_id", "main",
-           "run_fit", "run_select"]
+           "run_fit", "run_select", "run_evaluate"]
 
-SUBCOMMANDS = ("fit", "select")
+SUBCOMMANDS = ("fit", "select", "evaluate")
 
 #: 하위 명령별 필수 경로. v1 과 같은 규약이다.
 REQUIRED_PATHS: Dict[str, Sequence[str]] = {
     "fit": ("config", "splits", "subjects", "windows", "rest_manifest", "output_dir"),
     "select": ("config", "output_dir"),
+    "evaluate": ("config", "subjects", "output_dir"),
 }
 
 #: fit 산출물. 하나라도 있으면 실행하지 않는다 — 같은 결과를 덮어쓰지 않는다.
@@ -110,6 +111,12 @@ def build_parser() -> argparse.ArgumentParser:
         sel.add_argument(f"--{name.replace('_', '-')}", required=True)
     sel.add_argument("--fit-dirs", nargs="+", required=True,
                      help="inner fit 산출물 디렉터리들 (fit_manifest.json + fit_report.json)")
+
+    ev = sub.add_parser("evaluate", help="곡선 한 점의 endpoint 와 주 contrast")
+    for name in REQUIRED_PATHS["evaluate"]:
+        ev.add_argument(f"--{name.replace('_', '-')}", required=True)
+    ev.add_argument("--fit-dirs", nargs="+", required=True,
+                    help="outer fit 산출물 디렉터리들 (한 구조 · 한 수준 · outer fold 전부)")
     return parser
 
 
@@ -473,13 +480,127 @@ def run_select(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any
             "n_fit_dirs": len(args.fit_dirs), "output_dir": str(out_dir)}
 
 
+def run_evaluate(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
+    """곡선 한 점의 endpoint 와 주 contrast 를 낸다.
+
+    **endpoint 정의는 v1 과 같다** (2026-10-01 승인) — run identity 를 subject 별
+    두 task 로 집계한 balanced accuracy 다. 바꾸지 않는 이유 셋: 곡선 꼭대기를
+    v1 비교 기준으로 쓰려면 endpoint 가 같아야 하고, 창 수준으로 올리면 run 안의
+    창 4 개가 독립이 아니라 거짓 정밀도가 되며, 저표본에서는 부분표집 변동이
+    양자 (1/252 ≈ 0.004) 보다 훨씬 크기 때문이다.
+
+    집계·대조·bootstrap 은 동결된 `mobse.v2.evaluate` · `mobse.v2.statistics` 를
+    그대로 쓴다. 이 함수가 하는 일은 **한 구조 · 한 수준의 outer fit 들을 모아**
+    그 함수들에 넘기고, 곡선 점 하나를 기록하는 것이다.
+
+    Raises:
+        CLIError: outer fit 이 아니거나, 구조·수준이 섞였거나, 집계 격자가
+            채워지지 않았을 때.
+    """
+    from mobse.v2 import evaluate as EV
+    from mobse.v2 import statistics as ST
+
+    try:
+        cfg = load_config(Path(paths["config"]))
+    except ConfigError as exc:
+        raise CLIError(f"config 검증 실패: {exc}") from exc
+
+    group_of: Dict[str, str] = {}
+    for line in Path(paths["subjects"]).read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            rec = json.loads(line)
+            group_of[rec["canonical_subject"]] = rec["group_id"]
+
+    structures, levels, folds_seen = set(), set(), set()
+    preds: List[Any] = []
+    for d in args.fit_dirs:
+        base = Path(d)
+        man_p, pred_p = base / "fit_manifest.json", base / "window_predictions.jsonl"
+        for q in (man_p, pred_p):
+            if not q.is_file():
+                raise CLIError(f"outer fit 산출물이 없다: {q}. 대체 탐색하지 않는다 (U20)")
+        man = json.loads(man_p.read_text(encoding="utf-8"))
+        if man["role"] != FIT.ROLE_OUTER:
+            raise CLIError(f"outer fit 이 아니다: {base} (role={man['role']})")
+        structures.add(man["roi_structure"])
+        levels.add(int(man["curve"]["n_train_level"]))
+        folds_seen.add(int(man["folds"]["outer_fold"]))
+        for line in pred_p.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            if "window_key" not in row:
+                continue                       # 머리 레코드
+            preds.append(EV.WindowPrediction(
+                canonical_subject=row["canonical_subject"],
+                group_id=row["group_id"], task=FIT.task_of(row["run_key"]),
+                window_index=int(row["window_key"].rsplit("win-", 1)[1]),
+                model_seed=int(row["model_seed"]), cell=row["cell"],
+                truth=int(row["truth"]), p_class1=float(row["p_class1"])))
+
+    if len(structures) != 1 or len(levels) != 1:
+        raise CLIError(f"구조·수준이 섞였다 (구조 {sorted(structures)}, "
+                       f"수준 {sorted(levels)}) — 곡선 점 하나씩 평가한다")
+    structure, level = structures.pop(), levels.pop()
+    n_outer = int(cfg["splits.n_outer_folds"])
+    if len(folds_seen) != n_outer:
+        raise CLIError(
+            f"outer fold {sorted(folds_seen)} 만 있다 — endpoint 는 {n_outer} fold 를 "
+            "모은 pooled run 이다 (2026-10-01 승인). 빠진 fold 를 0 으로 세지 않는다")
+
+    try:
+        runs = EV.aggregate_runs(preds, n_seeds=len(cfg["train.model_seeds"]))
+        cells = {c: EV.cell_balanced_accuracy(runs, c) for c in EV.CELLS}
+        diffs = EV.primary_contrasts(runs)
+    except EV.EvaluationError as exc:
+        raise CLIError(f"집계 실패: {exc}") from exc
+
+    subjects = sorted(diffs["H2_A_minus_C"])
+    missing = sorted(set(subjects) - set(group_of))
+    if missing:
+        raise CLIError(f"subjects.jsonl 에 없는 subject: {missing[:5]}")
+    sub_to_group = {s: group_of[s] for s in subjects}
+    indices = ST.bootstrap_indices(sub_to_group, subjects,
+                                   seed=int(cfg["stats.bootstrap_seed"]),
+                                   n_boot=int(cfg["stats.n_bootstrap"]))
+    contrasts: Dict[str, Any] = {}
+    for name, values in diffs.items():
+        pct = (tuple(cfg["stats.familywise_pct"]) if name.startswith(("H1", "H2"))
+               else tuple(cfg["stats.nominal_pct"]))
+        res = ST.paired_bootstrap(values, sub_to_group, indices=indices,
+                                  seed=int(cfg["stats.bootstrap_seed"]),
+                                  n_boot=int(cfg["stats.n_bootstrap"]), pct=pct)
+        contrasts[name] = {"point_estimate": res.point, "ci_lo": res.lo,
+                           "ci_hi": res.hi, "pct": list(pct),
+                           "n_boot": res.n_boot, "n_subjects": res.n_subjects,
+                           "n_groups": res.n_groups}
+
+    payload = {
+        "schema_version": "v3-curve-point-0.1",
+        "roi_structure": structure, "n_train_level": level,
+        "endpoint": "run identity balanced accuracy (v1 과 같은 정의, 2026-10-01 승인)",
+        "n_subjects": len(subjects), "n_outer_folds": len(folds_seen),
+        "cell_balanced_accuracy": cells, "contrasts": contrasts,
+        "delta": float(cfg["stats.delta"]), "config_hash": config_hash(cfg),
+        "n_fit_dirs": len(args.fit_dirs),
+    }
+    out_dir = Path(paths["output_dir"])
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / f"curve_point_{structure}_n{level}.json"
+    if out.exists():
+        raise CLIError(f"이미 존재한다: {out}. 같은 결과를 덮어쓰지 않는다")
+    out.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"verdict": "pass", **payload, "output": str(out)}
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """CLI 진입점. 결과 요약을 JSON 한 줄로 stdout 에 쓴다."""
     args = build_parser().parse_args(list(argv) if argv is not None else None)
     try:
         paths = resolve_paths(args.command, args)
         check_inputs_exist(paths)
-        summary = run_fit(paths, args) if args.command == "fit" else run_select(paths, args)
+        summary = {"fit": run_fit, "select": run_select,
+                   "evaluate": run_evaluate}[args.command](paths, args)
     except (CLIError, FIT.FitError, SubsampleError, TrainError,
             ConfigError) as exc:
         # 규칙 위반은 traceback 이 아니라 판정으로 내보낸다 — 구동기가 읽는다.

@@ -449,3 +449,116 @@ def test_selection_file_feeds_the_outer_fit(bed, tmp_path, stub_train):
     sel = out / "selection_embedding.json"
     assert CLI.main(_argv(bed, tmp_path / "o", inner_fold=9, selection=sel,
                           n_train_level=20)) == 0
+
+
+# --------------------------------------------------------------------------- #
+# evaluate — endpoint 정의는 v1 과 같다 (2026-10-01 승인)
+# --------------------------------------------------------------------------- #
+
+
+def _outer_pred_dir(root, *, structure, level, outer_fold, subjects, correct_cells,
+                    seeds=(42, 43, 44)):
+    """outer fit 하나의 산출물을 만든다. `correct_cells` 의 칸만 정답을 낸다."""
+    from mobse.v2.labels import window_key
+    d = root / f"{structure}_n{level}_o{outer_fold}"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "fit_manifest.json").write_text(json.dumps({
+        "role": "outer", "cell": "A", "roi_structure": structure,
+        "curve": {"n_train_level": level},
+        "folds": {"outer_fold": outer_fold, "inner_fold": 9, "n_eval_subjects":
+                  len(subjects)}}), encoding="utf-8")
+    rows = []
+    for sub in subjects:
+        for task, truth in (("emomatching", 0), ("workingmemory", 1)):
+            rk = f"ds002785/{sub}/na/{task}/na/seq"
+            for cell in ("A", "B", "C", "D"):
+                good = cell in correct_cells
+                p1 = (0.9 if truth == 1 else 0.1) if good else (0.1 if truth == 1 else 0.9)
+                for seed in seeds:
+                    for w in range(4):
+                        rows.append({"canonical_subject": sub, "group_id": sub,
+                                     "run_key": rk, "window_key": window_key(rk, w),
+                                     "truth": truth, "p_class1": p1, "cell": cell,
+                                     "model_seed": seed})
+    with (d / "window_predictions.jsonl").open("w", encoding="utf-8") as fh:
+        for r in rows:
+            fh.write(json.dumps(r) + "\n")
+    return d
+
+
+def _curve_dirs(root, *, structure="embedding", level=20, n_folds=5,
+                correct_cells=("A", "B")):
+    dirs, k = [], 0
+    for f in range(n_folds):
+        subs = [f"ds002785:sub-{i:04d}" for i in range(k, k + 4)]
+        k += 4
+        dirs.append(_outer_pred_dir(root, structure=structure, level=level,
+                                    outer_fold=f, subjects=subs,
+                                    correct_cells=correct_cells))
+    return dirs
+
+
+def _subjects_file(root, dirs):
+    subs = set()
+    for d in dirs:
+        for line in (d / "window_predictions.jsonl").read_text(encoding="utf-8").splitlines():
+            subs.add(json.loads(line)["canonical_subject"])
+    p = root / "subjects.jsonl"
+    p.write_text("".join(json.dumps({"canonical_subject": s, "group_id": s}) + "\n"
+                         for s in sorted(subs)), encoding="utf-8")
+    return p
+
+
+def test_evaluate_pools_all_outer_folds(bed, tmp_path, capsys):
+    root = tmp_path / "ev"
+    dirs = _curve_dirs(root)
+    subj = _subjects_file(root, dirs)
+    out = tmp_path / "curve"
+    rc = CLI.main(["evaluate", "--config", str(bed["cfg"]), "--subjects", str(subj),
+                   "--output-dir", str(out), "--fit-dirs", *[str(d) for d in dirs]])
+    assert rc == 0, capsys.readouterr().out
+    rec = json.loads((out / "curve_point_embedding_n20.json").read_text(encoding="utf-8"))
+    assert rec["n_outer_folds"] == 5
+    assert rec["n_subjects"] == 20
+    # A·B 만 정답을 내게 만들었으므로 BA 가 갈린다.
+    assert rec["cell_balanced_accuracy"]["A"] == 1.0
+    assert rec["cell_balanced_accuracy"]["C"] == 0.0
+    # H2 (A-C) 는 97.5% CI, interaction 은 95% CI 를 쓴다.
+    assert rec["contrasts"]["H2_A_minus_C"]["pct"] == [1.25, 98.75]
+    assert rec["contrasts"]["interaction"]["pct"] == [2.5, 97.5]
+    assert rec["delta"] == 0.02
+
+
+def test_evaluate_refuses_a_missing_outer_fold(bed, tmp_path, capsys):
+    """빠진 fold 를 0 으로 세지 않는다 — endpoint 는 pooled 다."""
+    root = tmp_path / "ev2"
+    dirs = _curve_dirs(root, n_folds=4)
+    subj = _subjects_file(root, dirs)
+    rc = CLI.main(["evaluate", "--config", str(bed["cfg"]), "--subjects", str(subj),
+                   "--output-dir", str(tmp_path / "c2"),
+                   "--fit-dirs", *[str(d) for d in dirs]])
+    assert rc == 2
+    assert "fold" in json.loads(capsys.readouterr().out)["error"]
+
+
+def test_evaluate_refuses_mixed_structures(bed, tmp_path, capsys):
+    root = tmp_path / "ev3"
+    dirs = _curve_dirs(root) + _curve_dirs(tmp_path / "ev3b", structure="readout")
+    subj = _subjects_file(root, dirs)
+    rc = CLI.main(["evaluate", "--config", str(bed["cfg"]), "--subjects", str(subj),
+                   "--output-dir", str(tmp_path / "c3"),
+                   "--fit-dirs", *[str(d) for d in dirs]])
+    assert rc == 2
+    assert "섞였다" in json.loads(capsys.readouterr().out)["error"]
+
+
+def test_evaluate_refuses_an_inner_fit(bed, tmp_path, capsys):
+    root = tmp_path / "ev4"
+    d = _fake_fit_dir(root, structure="embedding", cell="A", inner_fold=0,
+                      config_id=0, loss=0.3, ba=0.9)
+    (d / "window_predictions.jsonl").write_text("", encoding="utf-8")
+    rc = CLI.main(["evaluate", "--config", str(bed["cfg"]),
+                   "--subjects", str(bed["subjects"]),
+                   "--output-dir", str(tmp_path / "c4"), "--fit-dirs", str(d)])
+    assert rc == 2
+    assert "outer fit 이 아니다" in json.loads(capsys.readouterr().out)["error"]

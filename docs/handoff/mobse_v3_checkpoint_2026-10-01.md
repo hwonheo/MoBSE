@@ -1,0 +1,160 @@
+# MoBSE — exploratory v2 (`mobse/v3`) 체크포인트, 2026-10-01
+
+이어서 할 사람을 위한 문서다. **정본은 저장소 `docs/handoff/` 이고, 문서끼리 어긋나면
+날짜가 늦은 쪽이 앞선다.** 이 문서는 v1 (재설계 v1) 마감 이후 시작한 **새 탐색 버전**의
+진행 상태만 다룬다. v1 쪽 상태는 `mobse_decisions_2026-09-29.md` 와 gate evidence 를 본다.
+
+## 0. 한 문단
+
+v1 은 결정 27 로 내부 마감했고 (gate G5 `cleared_with_limitations`), 새 탐색 버전의 축은
+**T4 저표본 곡선** (결정 30) 이다. 코드는 **새 모듈 `mobse/v3/`** 이고 `mobse/v2` 는 손대지
+않는다 — 그래서 v1 의 측정 잠금 `9b7b11cf8576` · 구현 잠금 `bcf1fec22676` 과 gate evidence 가
+그대로 유효하다. 10-01 현재 **설계 미정 사항은 0 이고**, 코드는 `fit`·`select`·`evaluate`
+까지 되어 있으며, 남은 것은 **실험 세 단계 (G-b → G-c null → 본실험)** 다.
+
+## 1. 저장소 상태
+
+- branch `redesign-v1`, HEAD **`b8c3dd0`**, **푸시하지 않았다** (커밋 규약 7).
+- gate evidence **revision 81** (`2026-10-01T04:57:42Z`). **gate 판정·status 는 rev73 이후
+  바뀐 적이 없다** — rev79·80·81 은 전부 기록 추가다.
+- v1 잠금 둘 다 불변: 측정 `9b7b11cf8576`, 구현 `bcf1fec22676`.
+- 마지막으로 통과한 마감은 **closure 24** — 7 단계 전부 rc=0, pytest **1,350 passed**,
+  gate hash **198 건** 일치.
+
+### v3 커밋 (전부 로컬)
+
+| 커밋 | 내용 |
+|---|---|
+| `9521cd6` | `mobse/v3/fitting.py` — update 예산 규칙으로 fold 적합 재작성 |
+| `9ea9efe` | 공통 E 를 outer 로 **update 단위**로 운반 (`carry_epochs_to_outer`) |
+| `de0f93e` | v3 config 스키마 + `smoke.yaml` + 새 잠긴 키 소비 대응표 |
+| `3ca4ad2` | `cli fit` + checkpoint 에 `roi_structure` 기록 |
+| `03da3c2` | **먼저 자르고 나눈다** — pool 을 수준만큼 줄인 뒤 inner 재분할 |
+| `30ba3b2` | `cli select` — 공동 선택을 **구조마다** 한 번씩 |
+| `b8c3dd0` | `scripts/h197/29_build_v3_lock.py` (v3 구현 잠금) + gate rev81 |
+
+### ⚠️ 커밋되지 않은 변경 4 개 (작업 트리에 떠 있다)
+
+```
+ M docs/experiments/mobse_exploratory_v2_design_draft_2026-09-29.md
+ M mobse/v3/cli.py
+ M tests/v3/test_cli_v3.py
+?? configs/exploratory_v2/main.yaml
+```
+
+내용은 **`cli evaluate` 하위 명령 · `main.yaml` · endpoint·G-b 결정 기록** 이다.
+로컬 `tests/v3` **163 passed** 까지 확인했으나 **h197 마감을 통과하지 못했다** (10-01
+closure 25 를 10 % 에서 중지했다). 규칙상 마감 7 단계가 전부 rc=0 이어야 커밋한다.
+
+**재개 첫 작업은 이 변경분의 마감 한 번과 커밋이다.**
+
+## 2. 정해진 것 (v3 설계)
+
+| # | 결정 | 날짜 | 어디에 |
+|---|---|---|---|
+| 30 | 축 = T4 저표본 곡선 | 09-29 | 설계안 §5.3 |
+| 31·32 | update 예산 5,000 고정 · epoch 상한 없음 · best checkpoint 자유 | 09-29 | 설계안 §5.3.2 |
+| 33 | 8 칸 (A–D × 2 구조) · grid 는 가장 큰 수준에서 한 번 · PCA 10 고정 · null M=20 | 09-29 | 설계안 §5.3.2 |
+| — | **공통 E 는 epoch 이 아니라 update 로 옮긴다** (구현 선택) | 09-30 | 설계안 §5.3.2 |
+| — | **수준은 outer pool 을 먼저 자르고 inner 를 그 안에서 다시 긋는다** | 10-01 | 설계안 §5.3.2 |
+| — | **공동 선택은 구조마다 한 번씩** (각 선택은 A–D 공동) | 10-01 | 설계안 §5.3.2 |
+| — | **readout 축 유지** (mean 과 구분됨을 24 fit 으로 확인) | 10-01 | 설계안 §5.3.2 |
+| — | **endpoint 는 v1 그대로 · δ 0.02 유지 · 점마다 outer fold 5 개 전부** | 10-01 | 설계안 §5.3.2 |
+| 29 | G-a·G-b 는 자동 차단 gate 가 아니라 보고 장치 (기준값 두지 않음) | 09-29 | v3 에도 그대로 적용 |
+
+**설계 미정 사항은 없다.**
+
+## 3. 코드 상태
+
+```
+mobse/v3/
+  __init__.py  config.py  fitting.py  models.py  subsample.py  templates.py  train.py  cli.py
+tests/v3/   (163 passed)
+configs/exploratory_v2/   smoke.yaml (config_hash b6541cea) · main.yaml (a720a96f)
+scripts/h197/29_build_v3_lock.py
+```
+
+CLI 하위 명령: **`fit` · `select` · `evaluate`**. `report` (곡선 그림·표) 는 아직 없다 —
+본실험 뒤에 만들어도 된다.
+
+**`mobse/v2` 는 읽기만 한다.** v3 가 `__init__`·`cli`·`config`·`fitting`·`models`·
+`templates`·`train` 일곱 개를 v2 와 같은 이름으로 쓰므로, v1 의 `manifests.code_hash` 를
+쓸 수 없다 (파일명 겹침 거부). v3 는 **상대 경로 기준** 해시를 따로 정의했다
+(`29_build_v3_lock.v3_code_hash`).
+
+## 4. 실측해 둔 것 (추정이 아니다)
+
+- **저표본 fit 당 벽시계 6–15 초** (h197 GPU). 결정 33 의 "미실측" 항목을 닫았다.
+- **update 예산이 한 번도 묶이지 않았다** — 5,000 중 33–560 (0.7–11 %) 만 쓰고 early
+  stopping 이 먼저 걸렸다. 비교 가능성은 유지된다 (patience 도 모든 N 에 동일). 규칙은
+  바꾸지 않고 사실로 기록했다.
+- **config × 구조 교호작용** — config 0 은 embedding 0.897 / mean·readout 0.500,
+  config 4 는 embedding 0.559 / mean 0.618 · readout 0.662. 구조별 선택의 근거다.
+- outer fold 0 실측: test 26 · 학습 pool 100, v1 inner 분할 train 66/67/67. 수준 100 에서
+  다시 그은 inner 가 **66/67/67 로 v1 과 같았다** — 곡선 꼭대기가 v1 비교 기준이 된다.
+- endpoint 양자 = 1/(2×126) ≈ **0.00397**. δ=0.02 는 약 5 양자 (v1 의 알려진 한계 승계).
+
+## 5. h197 상태
+
+- 10-01 에 **백그라운드 프로세스를 전부 중지했다** (마감 25 중단 포함). 남은 프로세스 0.
+- **작업 사본에 `.pyc` 105 개가 남아 있다** (중단된 pytest 가 남긴 것). **재개 전에 지운다**:
+  `find mobse scripts tests -name '*.pyc' -delete` + `__pycache__` 제거.
+- 마감 실행기는 `~/run_closure.sh` 이며 **`setsid nohup` 으로 분리 실행한다** — SSH 가
+  끊기면 붙어 있던 마감이 같이 죽는다 (09-30 closure 14 가 빈 로그로 끝난 원인).
+- v3 산출물: `v3_smoke/20261001_a1` (smoke 4 fit + mean 대조 2) ·
+  `v3_smoke/20261001_diag` (grid 24 fit). 둘 다 Data Asset 등록 완료.
+
+## 6. 재개 절차
+
+```bash
+# 1) h197 pyc 청소 + 동기화
+ssh h197 'cd /mnt/data/code/MoBSE && find mobse scripts tests -name "*.pyc" -delete; \
+          find mobse scripts tests -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null'
+cd /Users/hwon/projects/Git/Manuscript && rsync -a --exclude=/data/ --exclude=/artifacts/ \
+  --exclude=/nilearn_cache/ --exclude=__pycache__/ --exclude='*.pyc' MoBSE/ h197:/mnt/data/code/MoBSE/
+
+# 2) 마감 (분리 실행, 약 13 분)
+ssh h197 'cd $HOME && setsid nohup bash $HOME/run_closure.sh > $HOME/closure26_<날짜>.log 2>&1 < /dev/null &'
+
+# 3) 7 단계 전부 rc=0 이면 커밋 (영문 1줄 20~25 단어, co-author 없음)
+```
+
+## 7. 그 다음 — 실험 세 단계
+
+1. **G-b 검정력 simulation** (학습 0, 분 단위). 기준값은 두지 않는다 (결정 29) — 어느 N 점이
+   애초에 δ 를 탐지할 수 있는지를 **보고**한다.
+2. **G-c null 세 종류 × M=20** — 순열 · spin · degree 보존 rewiring. C·D 만, 한 지점·한
+   fold·한 seed = **120 fit ≈ 0.9 h** [추정].
+3. **T4 본실험** — 수준 {10, 20, 40, 70, 100} × 8 칸. 곡선 점마다 **outer fold 5 개 전부**.
+   inner (grid 선택) 는 **가장 큰 수준에서만** 돈다 (결정 33 + 10-01 결정).
+   점당 outer 40 fit × 약 15 s ≈ 10 분, 다섯 수준이면 1 시간 안쪽 [추정].
+
+**본실험 착수 직전에 v3 잠금 파일을 만든다** — 지금 만들지 않은 이유는 `report` 등으로
+코드가 더 바뀌기 때문이다. 만든 뒤 마감에 7 단계를 켠다 (CLAUDE.md 에 명령이 적혀 있다).
+
+```bash
+python scripts/h197/29_build_v3_lock.py --repo-root . \
+  --out results/exploratory_v2/locks/v3_lock.json \
+  --measurement-lock results/redesign_v1/20260917_3c458d507e82_nocfg/locks/measurement_lock.json \
+  --pytest-junit <마감 1 단계 junit> --reason "본실험 착수"
+```
+
+## 8. 기록 (Notion)
+
+Work Log 시리즈 `MOBSE` 는 **순번 15 까지 밀림 없이** 적혀 있다 — 13 (v3 배선) · 14 (smoke·
+진단·설계 결정) · 15 (v3 잠금 생성기). Data Asset 은 10 건 등록 (v1 산출물 6 + v3 2 + 추출 2).
+
+**다음 Work Log 는 순번 16** 이며, 위 §1 의 커밋되지 않은 변경 (evaluate · main.yaml ·
+endpoint 결정) 이 커밋된 뒤에 적는다.
+
+## 9. 조심할 것
+
+- **커밋 SHA 를 기록의 근거로 쓰지 않는다** — 09-30 이력 재작성으로 그 이전 SHA 는 무효다.
+  판본 기준은 **잠금**이다.
+- **`mobse/v2` 를 고치면** v1 잠금이 깨지고 gate evidence 새 revision 이 필요하다. v3 작업은
+  v2 를 읽기만 하도록 되어 있다 — 그 경계를 유지한다.
+- **`scripts/h197` 에 파일을 더하면** gate evidence `h197_scripts` 에 해시를 등록해야 한다.
+  등록하지 않으면 마감 2 단계가 "미기록" 으로 실패한다 (rev21 사고 방지 장치).
+- YAML 에서 **따옴표 없는 `null` 은 None 으로 파싱된다** — v3 config 의 절 이름이 `nulls` 인
+  이유다.
+- **PIOP2 는 열지 않는다** (결정 27). 새 탐색 버전의 확증용으로 남긴다.
