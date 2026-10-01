@@ -193,13 +193,17 @@ def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
             raise CLIError(f"이미 존재한다: {out_dir / name}. 같은 결과를 덮어쓰지 않는다")
 
     folds = json.loads(Path(paths["splits"]).read_text(encoding="utf-8"))
-    fold = FIT.resolve_fold_subjects(folds, int(args.outer_fold), int(args.inner_fold))
+    # **먼저 자르고, 그 안에서 나눈다** (2026-10-01 구현 선택). v1 분할에서 outer
+    # 경계만 가져오고, 그 학습 pool 을 수준만큼 줄인 뒤 inner 를 다시 긋는다.
+    # 그래야 수준이 role 과 무관하게 같은 뜻이고, 가장 큰 수준에서 grid 를 한 번
+    # 고르는 결정 33 이 성립한다.
+    fold = SUB.curve_fold_subjects(
+        folds, int(args.outer_fold), int(args.inner_fold), int(args.n_train_level),
+        n_inner_folds=int(cfg["splits.n_inner_folds"]),
+        subsample_seed_base=int(cfg["curve.subsample_seed_base"]),
+        inner_split_seed_base=int(cfg["curve.inner_split_seed_base"]))
     is_inner = fold.role == FIT.ROLE_INNER
-
-    # 저표본 수준 적용 — 학습 subject 만 줄인다. 평가 집합은 손대지 않는다.
-    kept = SUB.subsample_train(fold.train, int(args.n_train_level),
-                               outer_fold=int(args.outer_fold),
-                               seed_base=int(cfg["curve.subsample_seed_base"]))
+    kept = list(fold.train)
 
     group_of: Dict[str, Any] = {}
     for line in Path(paths["subjects"]).read_text(encoding="utf-8").splitlines():
@@ -292,8 +296,9 @@ def run_fit(paths: Dict[str, str], args: argparse.Namespace) -> Dict[str, Any]:
         "design_version": str(cfg["meta.design_version"]),
         "role": fold.role, "cell": args.cell, "roi_structure": args.roi_structure,
         "curve": {"n_train_level": int(args.n_train_level),
-                  "n_train_subjects_available": len(fold.train),
+                  "n_train_subjects_in_level_pool": int(args.n_train_level),
                   "n_train_subjects_used": len(kept),
+                  "inner_split_seed_base": int(cfg["curve.inner_split_seed_base"]),
                   "subsample_seed": SUB.subsample_seed(
                       int(args.outer_fold),
                       seed_base=int(cfg["curve.subsample_seed_base"]))},

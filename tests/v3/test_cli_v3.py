@@ -216,28 +216,57 @@ def test_missing_input_path_is_not_searched(bed, capsys):
 # --------------------------------------------------------------------------- #
 
 
-def test_level_is_applied_to_training_only(bed, stub_train):
+def test_level_cuts_the_outer_pool_then_splits_inside_it(bed, stub_train):
+    """수준은 **outer 학습 pool** 을 자르고, inner 는 그 안에서 다시 그어진다."""
     out = bed["tmp"] / "out"
     assert CLI.main(_argv(bed, out)) == 0
     man = json.loads((out / "fit_manifest.json").read_text(encoding="utf-8"))
-    assert man["curve"]["n_train_subjects_used"] == 10
-    assert man["curve"]["n_train_subjects_available"] == 18
-    # 평가 집합은 줄지 않는다.
-    assert man["folds"]["n_eval_subjects"] == 4
-    assert len(man["fit_subjects"]) == 10
-    assert set(man["fit_subjects"]) <= set(bed["canon"][12:])
+    pool_n = man["curve"]["n_train_subjects_in_level_pool"]
+    assert pool_n == 10
+    used = man["curve"]["n_train_subjects_used"]
+    # inner 3-fold 이므로 학습은 pool 의 약 2/3 다. pool 보다 작아야 한다.
+    assert 0 < used < pool_n
+    assert len(man["fit_subjects"]) == used
+    # pool 은 outer 학습 집합 안에서 나온다 — test·pilot 에 닿지 않는다.
+    assert set(man["fit_subjects"]) <= set(bed["canon"][8:])
+    assert set(man["fit_subjects"]).isdisjoint(bed["canon"][4:8])   # outer test
+    assert set(man["fit_subjects"]).isdisjoint(bed["canon"][:4])    # pilot
 
 
-def test_levels_are_nested(bed, stub_train, capsys):
-    """작은 수준은 큰 수준의 부분집합이고, 학습 집합보다 큰 수준은 거부된다."""
-    out10, out20 = bed["tmp"] / "o10", bed["tmp"] / "o20"
+def test_pools_are_nested_and_an_oversized_level_is_refused(bed, stub_train, capsys):
+    """작은 수준의 pool 은 큰 수준 pool 의 부분집합이고, pool 보다 큰 수준은 거부된다."""
+    out10, out20, out40 = (bed["tmp"] / "o10", bed["tmp"] / "o20", bed["tmp"] / "o40")
     assert CLI.main(_argv(bed, out10, n_train_level=10)) == 0
+    assert CLI.main(_argv(bed, out20, n_train_level=20)) == 0
+    pool10 = SUB.subsample_train(bed["canon"][8:], 10, outer_fold=0, seed_base=40000)
+    pool20 = SUB.subsample_train(bed["canon"][8:], 20, outer_fold=0, seed_base=40000)
+    assert set(pool10) < set(pool20), "작은 수준이 큰 수준의 부분집합이 아니다"
     capsys.readouterr()
-    assert CLI.main(_argv(bed, out20, n_train_level=20)) == 2   # 18 명뿐이라 거부
+    assert CLI.main(_argv(bed, out40, n_train_level=40)) == 2   # pool 이 22 명뿐이다
     assert "보다 크다" in json.loads(capsys.readouterr().out)["error"]
-    small = json.loads((out10 / "fit_manifest.json").read_text(encoding="utf-8"))
-    full = SUB.subsample_train(bed["canon"][12:], 18, outer_fold=0, seed_base=40000)
-    assert set(small["fit_subjects"]) <= set(full)
+
+
+def test_inner_folds_partition_the_level_pool(bed, stub_train):
+    """같은 수준의 inner fold 셋이 pool 을 겹침 없이 덮는다."""
+    pool = SUB.subsample_train(bed["canon"][8:], 20, outer_fold=0, seed_base=40000)
+    parts = SUB.inner_split_within(pool, outer_fold=0, n_inner_folds=3)
+    vals = [set(p["val_subjects"]) for p in parts]
+    assert set().union(*vals) == set(pool)
+    assert sum(len(v) for v in vals) == len(pool), "val 조각이 겹친다"
+    for part, val in zip(parts, vals):
+        assert set(part["train_subjects"]) == set(pool) - val
+
+
+def test_outer_role_trains_on_the_whole_level_pool(bed, stub_train):
+    sel = bed["tmp"] / "sel.json"
+    sel.write_text(json.dumps({"common_epochs": 5, "inner_train_windows": 80}),
+                   encoding="utf-8")
+    out = bed["tmp"] / "outer_pool"
+    assert CLI.main(_argv(bed, out, inner_fold=9, selection=sel,
+                          n_train_level=20)) == 0
+    man = json.loads((out / "fit_manifest.json").read_text(encoding="utf-8"))
+    assert man["curve"]["n_train_subjects_used"] == 20       # pool 전체
+    assert man["folds"]["n_eval_subjects"] == 4              # outer test 는 불변
 
 
 # --------------------------------------------------------------------------- #

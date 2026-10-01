@@ -202,6 +202,23 @@ P8-b (결정 15) 는 `MIN_UPDATES = 5000` 과 `MAX_EPOCHS = 400` 을 함께 잠�
 
 **구현 선택 (표시)**: v3 는 동결된 `mobse/v2` 를 import 해 재사용하고, v3 잠금의 `code_hash` 는 **`mobse/v3/*.py` 와 `mobse/v2/*.py` 를 함께** 해시한다. v2 는 v1 release 로 동결됐으므로 이 참조는 흔들리지 않는다.
 
+**구현 선택 (표시, 2026-10-01) — 수준은 먼저 자르고, inner 는 그 안에서 다시 긋는다.**
+h197 실측: outer fold 0 은 test 26 · 학습 pool 100 이고 v1 의 inner 분할은 train 66/67/67 이다.
+학습 pool 이 아니라 *inner* 학습 집합을 자르면 수준 70·100 에 inner fit 이 존재할 수 없어
+(`n_keep 100 이 학습 subject 수 66 보다 크다`), **"가장 큰 수준에서 grid 를 한 번 고른다" 는
+결정 33 이 성립하지 않는다.** 그래서 v1 분할에서 **outer 경계만** 가져오고 (학습 pool 과 test),
+그 pool 을 수준만큼 줄인 뒤 inner 분할을 pool 안에서 다시 긋는다
+(`mobse.v3.subsample.curve_fold_subjects` · `inner_split_within`, seed 바탕 41000).
+
+- 수준이 role 과 무관하게 같은 뜻이 된다 — "이 점이 쓰는 학습 subject 총수".
+- 수준이 pool 전체 (100) 면 **v1 구성과 같아진다** — 다시 그은 inner 가 66/67/67 로 v1 과
+  같은 크기였다 [측정]. 곡선의 꼭대기 점이 v1 비교 기준이 된다.
+- 결정 33 과 맞물리면 **inner fit 은 가장 큰 수준에서만 돈다** — 작은 수준에서 inner pool 이
+  6–7 명이 되는 문제는 발생하지 않는다.
+- §7 의 "분할을 v1 에서 그대로 가져온다" 와 부분적으로 어긋난다. 다만 **누설을 막는 경계
+  (pilot · outer test) 는 건드리지 않고** 학습 pool 내부만 다시 나누므로, 어느 조각도 test 나
+  pilot 에 닿지 않는다 (코드가 방어선으로 확인한다).
+
 **구현 선택 (표시, 2026-09-30) — inner 의 공통 E 를 outer 로 옮기는 단위는 update 다.**
 v1 은 epoch 수를 그대로 옮겼다. 그때는 예산이 epoch (`MAX_EPOCHS 400`) 이고 update 가
 하한이라 문제가 없었다. v3 는 통화가 뒤집혀 update 가 예산이자 상한이므로, epoch 을 그대로

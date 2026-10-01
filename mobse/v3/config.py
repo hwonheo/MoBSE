@@ -131,6 +131,9 @@ SCHEMA: Dict[str, FieldSpec] = {
     "curve.levels": FieldSpec((list, tuple), "학습 subject 수 수준", locked_to=SUB.LOW_SAMPLE_LEVELS),
     "curve.subsample_seed_base": FieldSpec((int,), "fold 별 섞기 seed 바탕",
                                            locked_to=SUB.SUBSAMPLE_SEED_BASE),
+    "curve.inner_split_seed_base": FieldSpec(
+        (int,), "부분표집한 pool 안에서 inner 분할을 다시 그을 때의 seed 바탕",
+        locked_to=SUB.INNER_SPLIT_SEED_BASE),
     "curve.grid_selection_level": FieldSpec(
         (int,), "config grid 를 고르는 수준. 결정 33 — 가장 큰 수준에서 한 번 고르고 "
         "전 수준이 재사용한다", choices=(max(SUB.LOW_SAMPLE_LEVELS),)),

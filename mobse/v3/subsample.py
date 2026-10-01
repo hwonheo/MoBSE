@@ -17,12 +17,13 @@ pilot 은 애초에 outer fold 의 학습 집합에 없다 (분할이 이미 뺐
 
 from __future__ import annotations
 
-from typing import Dict, List, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Sequence, Tuple
 
 import numpy as np
 
-__all__ = ["LOW_SAMPLE_LEVELS", "SUBSAMPLE_SEED_BASE", "SubsampleError",
-           "subsample_seed", "subsample_train", "subsample_curve"]
+__all__ = ["LOW_SAMPLE_LEVELS", "SUBSAMPLE_SEED_BASE", "INNER_SPLIT_SEED_BASE",
+           "SubsampleError", "subsample_seed", "subsample_train", "subsample_curve",
+           "inner_split_within", "curve_fold_subjects"]
 
 
 class SubsampleError(RuntimeError):
@@ -35,6 +36,11 @@ LOW_SAMPLE_LEVELS: Tuple[int, ...] = (10, 20, 40, 70, 100)
 
 #: fold 별 섞기 seed 의 바탕. ``subsample_seed`` 가 fold 를 더한다.
 SUBSAMPLE_SEED_BASE = 40000
+
+#: 부분표집한 pool 안에서 inner 분할을 다시 그을 때의 seed 바탕 (2026-10-01).
+#: ``SUBSAMPLE_SEED_BASE`` 와 다른 값이어야 한다 — 같으면 "누구를 뽑았나" 와
+#: "어느 fold 에 넣었나" 가 같은 난수에서 나와 둘이 얽힌다.
+INNER_SPLIT_SEED_BASE = 41000
 
 
 def subsample_seed(outer_fold: int, *, seed_base: int = SUBSAMPLE_SEED_BASE) -> int:
@@ -93,3 +99,104 @@ def subsample_curve(train_subjects: Sequence[str], *, outer_fold: int,
         raise SubsampleError(f"수준은 중복 없는 오름차순이어야 한다: {lv}")
     return {n: subsample_train(train_subjects, n, outer_fold=outer_fold,
                                seed_base=seed_base) for n in lv}
+
+
+def inner_split_within(pool: Sequence[str], *, outer_fold: int, n_inner_folds: int = 3,
+                       seed_base: int = INNER_SPLIT_SEED_BASE) -> List[Dict[str, List[str]]]:
+    """부분표집한 학습 pool 안에서 inner 분할을 다시 긋는다.
+
+    저표본 곡선은 수준마다 pool 크기가 다르므로 v1 의 `folds.json` 에 적힌 inner
+    분할을 그대로 쓸 수 없다 (그 분할은 pool 100 명 기준이다). **누설을 막는
+    경계 — pilot 과 outer test — 는 건드리지 않는다.** 여기서 나누는 것은 학습
+    pool 내부뿐이라, 어느 조각도 test 나 pilot 에 닿지 않는다.
+
+    Args:
+        pool: 이 수준이 쓰는 학습 subject (정렬 여부 무관).
+        outer_fold: seed 를 fold 로 가른다.
+        n_inner_folds: 조각 수.
+        seed_base: seed 바탕.
+
+    Returns:
+        inner fold 순서대로 ``{"val_subjects", "train_subjects"}`` 목록. 각 조각의
+        합집합은 pool 과 같고 교집합은 비어 있다.
+
+    Raises:
+        SubsampleError: pool 이 조각 수보다 작거나 중복이 있을 때.
+    """
+    names = list(pool)
+    if len(set(names)) != len(names):
+        raise SubsampleError("pool 에 중복 subject 가 있다")
+    if not isinstance(n_inner_folds, int) or isinstance(n_inner_folds, bool) \
+            or n_inner_folds < 2:
+        raise SubsampleError(f"n_inner_folds 는 2 이상의 정수여야 한다: {n_inner_folds!r}")
+    if len(names) < n_inner_folds:
+        raise SubsampleError(
+            f"pool {len(names)} 명이 inner fold {n_inner_folds} 개보다 작다 — "
+            "조용히 fold 수를 줄이지 않는다")
+    rng = np.random.default_rng(int(seed_base) + int(outer_fold))
+    shuffled = [names[i] for i in rng.permutation(len(names))]
+    parts: List[Dict[str, List[str]]] = []
+    for k in range(n_inner_folds):
+        val = sorted(shuffled[k::n_inner_folds])          # 균등 분배
+        train = sorted(set(names) - set(val))
+        parts.append({"val_subjects": val, "train_subjects": train})
+    return parts
+
+
+def curve_fold_subjects(folds: Mapping[str, Any], outer_fold: int, inner_fold: int,
+                        n_level: int, *, outer_inner_marker: int = 9,
+                        n_inner_folds: int = 3,
+                        subsample_seed_base: int = SUBSAMPLE_SEED_BASE,
+                        inner_split_seed_base: int = INNER_SPLIT_SEED_BASE):
+    """곡선 한 점의 fold 를 푼다 — **먼저 자르고, 그 안에서 나눈다.**
+
+    v1 분할에서 **outer 경계만** 가져온다 (학습 pool 과 test). 그 pool 을
+    ``n_level`` 명으로 줄인 뒤, inner 분할을 그 안에서 다시 긋는다. 이렇게 해야
+    ``n_level`` 이 role 과 무관하게 같은 뜻 ("이 점이 쓰는 학습 subject 총수") 이
+    되고, 가장 큰 수준에서 grid 를 한 번 고르는 결정 33 이 성립한다.
+
+    ``n_level`` 이 pool 전체와 같으면 **v1 구성과 같아진다** (pool 100, inner
+    train 약 66) — 곡선의 꼭대기 점이 v1 비교 기준이 된다.
+
+    Args:
+        folds: v1 `folds.json` 내용.
+        outer_fold: outer fold 번호.
+        inner_fold: inner fold 번호. ``outer_inner_marker`` 면 outer 최종 적합.
+        n_level: 이 점이 쓰는 학습 subject 수.
+
+    Returns:
+        `mobse.v2.fitting.FoldSubjects`.
+
+    Raises:
+        SubsampleError: 수준이 pool 보다 크거나 inner fold 번호가 범위 밖일 때,
+            또는 학습·평가 집합이 겹칠 때 (방어선).
+    """
+    from mobse.v2.fitting import (ROLE_INNER, ROLE_OUTER, FoldSubjects,
+                                  resolve_fold_subjects)
+
+    base = resolve_fold_subjects(folds, int(outer_fold), int(outer_inner_marker))
+    pool = subsample_train(base.train, int(n_level), outer_fold=int(outer_fold),
+                           seed_base=int(subsample_seed_base))
+    if int(inner_fold) == int(outer_inner_marker):
+        train, evaluate = pool, list(base.evaluate)
+        role, eval_role = ROLE_OUTER, base.eval_role
+    else:
+        if not 0 <= int(inner_fold) < int(n_inner_folds):
+            raise SubsampleError(
+                f"inner fold {inner_fold} 가 0–{int(n_inner_folds) - 1} 밖이다")
+        parts = inner_split_within(pool, outer_fold=int(outer_fold),
+                                   n_inner_folds=int(n_inner_folds),
+                                   seed_base=int(inner_split_seed_base))
+        part = parts[int(inner_fold)]
+        train, evaluate = part["train_subjects"], part["val_subjects"]
+        role, eval_role = ROLE_INNER, "inner_validation"
+
+    overlap = sorted(set(train) & set(evaluate))
+    if overlap:  # 방어선 — 위 구성으로는 닿지 않는다.
+        raise SubsampleError(f"학습·평가 집합이 겹친다: {overlap[:5]}")
+    leaked = sorted(set(train) & set(base.evaluate))
+    if leaked:   # 방어선 — pool 이 outer train 의 부분집합이므로 닿지 않는다.
+        raise SubsampleError(f"학습 집합이 outer test 와 겹친다: {leaked[:5]}")
+    return FoldSubjects(role=role, outer_fold=int(outer_fold),
+                        inner_fold=int(inner_fold), train=sorted(train),
+                        evaluate=sorted(evaluate), eval_role=eval_role)

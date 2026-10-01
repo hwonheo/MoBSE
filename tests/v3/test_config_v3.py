@@ -166,6 +166,8 @@ V3_CONSUMERS = {
     "nulls.swaps_per_edge": ("SWAPS_PER_EDGE", (T3.degree_preserving_rewire,)),
     "curve.levels": ("LOW_SAMPLE_LEVELS", (SUB.subsample_curve,)),
     "curve.subsample_seed_base": ("SUBSAMPLE_SEED_BASE", (SUB.subsample_seed,)),
+    "curve.inner_split_seed_base": ("INNER_SPLIT_SEED_BASE",
+                                    (SUB.inner_split_within,)),
     # v1 의 값을 그대로 쓰지만 키 이름이 바뀐 둘 — 그래서 여기서도 대조한다.
     "cells.names": ("CELLS", (TR3.select_config,)),
     "nulls.primary_seed": ("NULL_SEED_PRIMARY", (T3.make_null_bank,)),

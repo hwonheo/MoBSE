@@ -74,6 +74,7 @@ train:
 curve:
   levels: [10, 20, 40, 70, 100]   # 결정 30
   subsample_seed_base: 40000
+  inner_split_seed_base: 41000   # pool 안에서 inner 분할을 다시 긋는다 (2026-10-01)
   grid_selection_level: 100       # 결정 33 — 가장 큰 수준에서 한 번 고른다
 
 stats:
