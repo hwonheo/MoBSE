@@ -158,3 +158,63 @@ endpoint 결정) 이 커밋된 뒤에 적는다.
 - YAML 에서 **따옴표 없는 `null` 은 None 으로 파싱된다** — v3 config 의 절 이름이 `nulls` 인
   이유다.
 - **PIOP2 는 열지 않는다** (결정 27). 새 탐색 버전의 확증용으로 남긴다.
+
+## 10. 2026-10-01 실험 세 단계 승인과 그 뒤 진행
+
+**선생님 원문 (2026-10-01 16:2x KST)**: "남은 일은 실험 세 단계입니다: G-b 검정력 simulation →
+G-c null 세 종류 × M=20 → T4 본실험. <-- 승인"
+
+- **정한 것**: G-b · G-c · T4 를 이 순서로 실행한다.
+- **정하지 않은 것**: 결과를 본 뒤의 설계 변경 (수준 · grid · δ · 구조), PIOP2 개방 (결정 27 그대로),
+  곡선 여러 점의 다중성 처리 (아래 G-b 참고 — 보고만 한다).
+
+### 10.1 재개 첫 작업 — 끝남
+
+- closure 26 (h197, 16:30–16:44 KST): 7 단계 전부 rc=0 — pytest 1,354 passed · 13 skipped,
+  gate hash 198 일치, 측정 잠금 45 일치, 창 파일 6 묶음 일치, 구현 잠금 38 일치.
+- 커밋 `b3a258c` — `cli evaluate` · `main.yaml` · 설계안 endpoint·G-b 결정 · 이 문서.
+
+### 10.2 착수 전에 확인된 빠진 배선 세 가지 (구현함)
+
+체크포인트 §0 의 "설계 미정 0, 남은 것은 실험" 은 **코드 배선 셋을 빠뜨렸다** [측정 — 코드 확인]:
+
+1. **G-b simulation 스크립트가 없었다** → `scripts/exploratory_v2/gb_power_curve.py`.
+2. **null 세 종류가 `fit` 에 이어져 있지 않았다** — `mobse.v3.templates.make_null_bank` 는
+   있었으나 `cli fit` 은 v1 경로 (순열 seed 1729) 만 썼다 → `fit --null-kind/--null-index/--atlas`.
+3. **결정 30 의 A−S 를 수준마다 잴 S 경로가 없었다** → `cli fit-s` · `select-s` ·
+   `evaluate --s-fit-dirs`.
+
+### 10.3 구현 선택 (표시 — 결정 아님)
+
+| # | 선택 | 이유 |
+|---|---|---|
+| a | null seed = 1729 + 100 × index (index 0..19) | index 0 이 v1 주 null 과 같다. rewire 는 template k 마다 seed + k 를 쓰므로 간격이 k (=3) 보다 커야 표본끼리 seed 가 겹치지 않는다 |
+| b | 주 null (순열, index 0) 이 아닌 fit 은 `select`·`evaluate` 가 거부 | G-c 표본이 곡선 점에 섞이지 않게 |
+| c | A·B 는 주 null 만 받는다 | 두 칸은 brain bank 를 써서 null 을 바꿔도 같은 fit 이 나온다 |
+| d | spin 은 `--atlas` 의 sha256 을 `atlas_spec_2009c.json` 기록과 대조 | 아틀라스 공간 혼용 방지 (FSLMNI152 판과 섞지 않는다) |
+| e | **S 는 logistic (S1 · S3) 만** | MLP S (S2 · S4) 는 v1 학습 규칙 (`MIN_UPDATES`·`MAX_EPOCHS`) 을 쓰는데 그 규칙이 학습 subject 약 50 명 아래에서 성립하지 않는다 (설계안 §5.3.1). v3 규칙을 S MLP 로 옮기는 일은 정하지 않았다. **한계**: v1 의 S 선택은 대부분 S4 였으므로 (o0·o1·o2·o4) v3 의 A−S 는 v1 의 A−S 와 같은 비교가 아니다 |
+| f | S 선택은 가장 큰 수준 (100) 에서 outer fold 마다 한 번, 모든 수준이 재사용 | 결정 33 과 같은 모양 |
+| g | G-c 지점 = outer fold 0 · 수준 100 · seed 42 · **구조 둘 다** · C·D | 설계안 §6 의 "한 지점·한 fold·한 seed" 를 구조 2 개로 늘림 (결정 33 의 8 칸). 순열 index 0 은 T4 의 같은 fit 을 그대로 쓴다 → 새 fit 59 × 2 칸 × 2 구조 = **236** |
+| h | 실행 순서: T4 inner (grid 선택) → G-c → T4 outer → evaluate | G-c 의 outer fit 은 선택된 config · 공통 E 가 필요하다. inner 선택은 test 를 보지 않으므로 "G-c 먼저" 순서와 어긋나지 않는다 |
+| i | 실험 구동기는 `scripts/exploratory_v2/` (h197 아님) | v1 gate evidence 의 `h197_scripts` 등록 대상이 아니다 — v3 측정은 v1 gate evidence 에 넣지 않는다 (결정 28) |
+
+### 10.4 G-b 검정력 simulation — 끝남 (Mac, 학습 0, 1,251 s)
+
+산출 `results/exploratory_v2/gb/20261001_gb_power_curve.json` (스크립트
+`scripts/exploratory_v2/gb_power_curve.py`). 생성 모형 · bootstrap 은 v1 WI-03
+(`scripts/h197/20_precision_simulation.py`) 함수를 그대로 불렀다. replicate 2,000 · n_boot 10,000.
+
+- **N 은 모든 수준에서 126** — 곡선 점마다 outer fold 5 개 pooled. 수준이 바꾸는 것은 두 칸
+  판정이 갈리는 비율 **π** 다. 그래서 grid 축을 π 로 두고, **v1 main 실측 π** 를 기준점으로 넣었다
+  [측정, `main_a2/evaluate/run_predictions.jsonl` 252 run]: A−C **0.0794** (A 만 맞음 8 · C 만 맞음 12) ·
+  A−S **0.1230** · A−B **0.2341**.
+- **보정 확인**: δ=0 에서 점마다 규칙 (97.5%) 의 P(하한>0) 0.007–0.018 (이론 0.0125).
+- **δ=0.02 의 P(하한>0)**: π 0.05–0.50 · ρ 0/0.5 에서 **0.03–0.19**. v1 A−C 기준점 π=0.079 에서 **0.11**.
+- **50 % 탐지에 필요한 효과 (MDE)**, 점마다 규칙: π=0.079 에서 **0.040–0.043**, π=0.20 에서
+  0.064–0.073, π=0.50 에서 0.102–0.123. 80 % 는 그보다 30–40 % 크다.
+- **곡선 10 점 동시 규칙** (읽기 보조, 99.75%) 을 쓰면 MDE 가 약 1.3 배 커진다 (π=0.079 에서 50 % MDE 0.052–0.055).
+
+**읽는 법**: 설계상 **δ=0.02 를 탐지할 수 있는 곡선 점은 없다.** 저표본 점은 π 가 커질수록 더
+나빠진다. 탐지 가능한 크기는 대략 **0.04 (꼭대기) – 0.10 (π 가 큰 저표본 점)** 이다. v1 의 알려진
+한계 (G1 fail [6]) 와 같은 종류이며, 결정 29 에 따라 차단하지 않고 **보고 · 결정 요청**으로 올린다.
+fit 은 δ 와 무관하므로 (δ 는 판독에만 쓰인다) G-c · T4 실행은 이 결정을 기다리지 않는다.

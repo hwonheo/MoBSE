@@ -15,6 +15,7 @@ import numpy as np
 import pytest
 import yaml
 
+from mobse.v2 import baselines as BL
 from mobse.v3 import cli as CLI
 from mobse.v3 import fitting as FIT
 from mobse.v3 import subsample as SUB
@@ -562,3 +563,302 @@ def test_evaluate_refuses_an_inner_fit(bed, tmp_path, capsys):
                    "--output-dir", str(tmp_path / "c4"), "--fit-dirs", str(d)])
     assert rc == 2
     assert "outer fit 이 아니다" in json.loads(capsys.readouterr().out)["error"]
+
+
+# --------------------------------------------------------------------------- #
+# G-c — null 세 종류를 fit 에 잇는다 (결정 28-3, 2026-10-01 실험 승인)
+# --------------------------------------------------------------------------- #
+
+
+def test_primary_null_keeps_the_old_fit_id_and_other_nulls_split():
+    base = dict(role="outer", cell="C", roi_structure="embedding", n_train_level=100,
+                outer_fold=0, inner_fold=9, model_seed=42, config_id=0,
+                split_hash="x", cfg_hash="y")
+    old = CLI.fit_id(**base)
+    assert CLI.fit_id(**base, null_kind="permutation", null_index=0) == old
+    ids = {CLI.fit_id(**base, null_kind=k, null_index=i)
+           for k in ("permutation", "spin", "rewire") for i in range(3)}
+    assert len(ids) == 9 and old in ids
+    assert "-r02-" in CLI.fit_id(**base, null_kind="rewire", null_index=2)
+
+
+def test_null_seed_starts_at_the_primary_seed_and_never_overlaps_rewire_templates():
+    assert CLI.null_seed(1729, 0) == 1729
+    seeds = [CLI.null_seed(1729, i) + k for i in range(20) for k in range(3)]
+    assert len(seeds) == len(set(seeds))      # rewire 는 template k 마다 seed + k
+
+
+@pytest.mark.parametrize("over, message", [
+    ({"cell": "C", "null_kind": "spin"}, "--atlas"),
+    ({"cell": "C", "null_index": 20}, "0..19"),
+    ({"cell": "A", "null_kind": "rewire"}, "C·D 만"),
+    ({"cell": "B", "null_index": 1}, "C·D 만"),
+    ({"cell": "C", "atlas": "x.nii.gz"}, "spin 에서만"),
+])
+def test_null_arguments_are_checked_against_the_locked_config(bed, stub_train, over,
+                                                              message, capsys):
+    rc = CLI.main(_argv(bed, bed["tmp"] / "o_null", **over))
+    assert rc == 2
+    assert message in json.loads(capsys.readouterr().out)["error"]
+
+
+def _outer_args(bed, out, **over):
+    sel = bed["tmp"] / "sel_outer.json"
+    sel.write_text(json.dumps({"common_epochs": 3, "inner_train_windows": 80}),
+                   encoding="utf-8")
+    return _argv(bed, out, inner_fold=9, selection=sel, **over)
+
+
+def test_rewire_null_replaces_only_the_null_bank(bed, stub_train):
+    a = bed["tmp"] / "c_primary"
+    b = bed["tmp"] / "c_rewire"
+    assert CLI.main(_outer_args(bed, a, cell="C")) == 0
+    assert CLI.main(_outer_args(bed, b, cell="C", null_kind="rewire", null_index=2)) == 0
+    ma = json.loads((a / "fit_manifest.json").read_text(encoding="utf-8"))
+    mb = json.loads((b / "fit_manifest.json").read_text(encoding="utf-8"))
+    assert ma["null"]["kind"] == "permutation" and ma["null"]["seed"] == 1729
+    assert mb["null"] == {**mb["null"], "kind": "rewire", "index": 2, "seed": 1929}
+    assert ma["bank_id"] == mb["bank_id"]                    # brain bank 는 같다
+    assert ma["null"]["null_bank_id"] != mb["null"]["null_bank_id"]
+    assert ma["fit_id"] != mb["fit_id"]
+    row = json.loads((b / "window_predictions.jsonl").read_text(
+        encoding="utf-8").splitlines()[1])
+    assert (row["null_kind"], row["null_index"]) == ("rewire", 2)
+
+
+def _toy_atlas(tmp_path):
+    """좌 50 · 우 50 parcel. x = 2i − 19 라 정중선 (x = 0) 이 없다."""
+    nib = pytest.importorskip("nibabel")
+    data = np.zeros((20, 10, 2), dtype=np.int16)
+    for idx in range(100):
+        hemi, r = divmod(idx, 50)
+        data[(r % 5) + (0 if hemi == 0 else 15), r // 5, idx % 2] = idx + 1
+    aff = np.diag([2.0, 2.0, 2.0, 1.0])
+    aff[0, 3] = -19.0
+    p = tmp_path / "toy_dseg.nii.gz"
+    nib.save(nib.Nifti1Image(data, aff), str(p))
+    return p
+
+
+def _cfg_with_atlas_spec(bed, sha):
+    raw = yaml.safe_load(bed["cfg"].read_text(encoding="utf-8"))
+    spec = bed["tmp"] / "atlas_spec.json"
+    spec.write_text(json.dumps({"image": {"sha256": sha}}), encoding="utf-8")
+    raw["paths"]["atlas_spec"] = str(spec)
+    cfg = bed["tmp"] / "cfg_atlas.yaml"
+    cfg.write_text(yaml.safe_dump(raw, allow_unicode=True), encoding="utf-8")
+    return cfg
+
+
+def test_spin_null_reads_the_atlas_only_when_its_hash_matches(bed, stub_train, capsys):
+    atlas = _toy_atlas(bed["tmp"])
+    good = hashlib.sha256(atlas.read_bytes()).hexdigest()
+    bad_cfg = _cfg_with_atlas_spec(bed, "0" * 64)
+    rc = CLI.main(_outer_args(bed, bed["tmp"] / "s_bad", cell="D", null_kind="spin",
+                              null_index=1, atlas=atlas, config=bad_cfg))
+    assert rc == 2
+    assert "atlas_spec" in json.loads(capsys.readouterr().out)["error"]
+    cfg = _cfg_with_atlas_spec(bed, good)
+    out = bed["tmp"] / "s_ok"
+    rc = CLI.main(_outer_args(bed, out, cell="D", null_kind="spin", null_index=1,
+                              atlas=atlas, config=cfg))
+    assert rc == 0, capsys.readouterr().out
+    man = json.loads((out / "fit_manifest.json").read_text(encoding="utf-8"))
+    assert (man["null"]["kind"], man["null"]["seed"]) == ("spin", 1829)
+
+
+def test_select_and_evaluate_refuse_a_g_c_null_sample(bed, tmp_path, capsys):
+    d = _fake_fit_dir(tmp_path / "sel_null", structure="embedding", cell="C",
+                      inner_fold=0, config_id=0, loss=0.3, ba=0.9)
+    man = json.loads((d / "fit_manifest.json").read_text(encoding="utf-8"))
+    man["null"] = {"kind": "spin", "index": 3}
+    (d / "fit_manifest.json").write_text(json.dumps(man), encoding="utf-8")
+    rc = CLI.main(["select", "--config", str(bed["cfg"]),
+                   "--output-dir", str(tmp_path / "so"), "--fit-dirs", str(d)])
+    assert rc == 2
+    assert "주 null" in json.loads(capsys.readouterr().out)["error"]
+
+    dirs = _curve_dirs(tmp_path / "ev_null")
+    man = json.loads((dirs[0] / "fit_manifest.json").read_text(encoding="utf-8"))
+    man["null"] = {"kind": "rewire", "index": 0}
+    (dirs[0] / "fit_manifest.json").write_text(json.dumps(man), encoding="utf-8")
+    subj = _subjects_file(tmp_path / "ev_null", dirs)
+    rc = CLI.main(["evaluate", "--config", str(bed["cfg"]), "--subjects", str(subj),
+                   "--output-dir", str(tmp_path / "eo"),
+                   "--fit-dirs", *[str(d) for d in dirs]])
+    assert rc == 2
+    assert "주 null" in json.loads(capsys.readouterr().out)["error"]
+
+
+# --------------------------------------------------------------------------- #
+# S — 결정 30 의 A−S (logistic 만, 구현 선택 2026-10-01)
+# --------------------------------------------------------------------------- #
+
+
+def _s_argv(bed, out, **over):
+    args = ["fit-s", "--config", str(bed["cfg"]), "--splits", str(bed["splits"]),
+            "--subjects", str(bed["subjects"]), "--windows", str(bed["windows"]),
+            "--output-dir", str(out), "--task-manifests", *[str(p) for p in bed["tasks"]],
+            "--candidate", BL.S1, "--setting-id", "C=1", "--n-train-level", "10",
+            "--outer-fold", "0", "--inner-fold", "0"]
+    for key, value in over.items():
+        flag = "--" + key.replace("_", "-")
+        if value is None:
+            i = args.index(flag)
+            del args[i:i + 2]
+        elif flag in args:
+            args[args.index(flag) + 1] = str(value)
+        else:
+            args += [flag, str(value)]
+    return args
+
+
+def test_fit_s_trains_a_logistic_on_the_same_level_pool_as_a(bed, stub_train, capsys):
+    out = bed["tmp"] / "s1"
+    assert CLI.main(_s_argv(bed, out)) == 0, capsys.readouterr().out
+    rep = json.loads((out / "s_fit_report.json").read_text(encoding="utf-8"))
+    a_out = bed["tmp"] / "a_same"
+    assert CLI.main(_argv(bed, a_out)) == 0
+    man = json.loads((a_out / "fit_manifest.json").read_text(encoding="utf-8"))
+    assert sorted(rep["fit_subjects"]) == sorted(man["fit_subjects"])
+    assert rep["curve"]["n_train_subjects_used"] == len(man["fit_subjects"])
+    assert rep["role"] == "inner" and rep["candidate"] == BL.S1
+    assert len(rep["eval_run_probs"]) == 2 * rep["folds"]["n_eval_subjects"]
+    assert (out / "s_model.npz").is_file()
+
+
+@pytest.mark.parametrize("over, message", [
+    ({"candidate": BL.S4, "setting_id": "config=0"}, "MLP"),
+    ({"setting_id": "C=7"}, "grid 밖"),
+    ({"n_train_level": 15}, "curve.levels"),
+    ({"inner_fold": 9}, "--selection"),
+])
+def test_fit_s_refuses_what_v3_does_not_run(bed, over, message, capsys):
+    rc = CLI.main(_s_argv(bed, bed["tmp"] / "s_bad", **over))
+    assert rc == 2
+    assert message in json.loads(capsys.readouterr().out)["error"]
+
+
+def _fake_s_dir(root, *, candidate, setting_id, inner_fold, loss_shift, level=100,
+                outer_fold=0, cfg_hash):
+    """S inner 기록 하나. ``loss_shift`` 가 작을수록 정답 확률이 높다."""
+    d = root / f"{candidate}_{setting_id}_i{inner_fold}"
+    d.mkdir(parents=True, exist_ok=True)
+    subs = [f"ds002785:sub-{inner_fold * 10 + i:04d}" for i in range(4)]
+    probs = {}
+    for s in subs:
+        sub = s.split(":")[1]
+        probs[f"ds002785/{sub}/na/emomatching/na/seq"] = 0.1 + loss_shift
+        probs[f"ds002785/{sub}/na/workingmemory/na/seq"] = 0.9 - loss_shift
+    (d / "s_fit_report.json").write_text(json.dumps({
+        "schema_version": CLI.S_FIT_SCHEMA, "role": "inner", "candidate": candidate,
+        "setting_id": setting_id, "converged": True,
+        "curve": {"n_train_level": level},
+        "folds": {"outer_fold": outer_fold, "inner_fold": inner_fold},
+        "eval_run_probs": probs, "config_hash": cfg_hash}), encoding="utf-8")
+    return d
+
+
+def test_select_s_needs_the_full_logistic_grid_and_picks_the_lowest_loss(bed, tmp_path,
+                                                                        capsys):
+    from mobse.v3.config import config_hash, load_config
+    h = config_hash(load_config(bed["cfg"]))
+    dirs = []
+    for cand, sid, _ in BL.logistic_settings():
+        shift = 0.05 if (cand, sid) == (BL.S3, "C=10") else 0.3
+        dirs += [_fake_s_dir(tmp_path / "sg", candidate=cand, setting_id=sid,
+                             inner_fold=i, loss_shift=shift, cfg_hash=h)
+                 for i in range(3)]
+    base = ["select-s", "--config", str(bed["cfg"]), "--outer-fold", "0"]
+    rc = CLI.main(base + ["--output-dir", str(tmp_path / "s_part"),
+                          "--fit-dirs", *[str(d) for d in dirs[:-1]]])
+    assert rc == 2
+    assert "완비" in json.loads(capsys.readouterr().out)["error"]
+    rc = CLI.main(base + ["--output-dir", str(tmp_path / "s_full"),
+                          "--fit-dirs", *[str(d) for d in dirs]])
+    assert rc == 0, capsys.readouterr().out
+    rec = json.loads((tmp_path / "s_full" / "selection_s_o0.json").read_text(
+        encoding="utf-8"))
+    assert (rec["candidate"], rec["setting_id"]) == (BL.S3, "C=10")
+    assert rec["n_fits"] == 48
+
+
+def test_select_s_refuses_a_level_other_than_the_grid_level(bed, tmp_path, capsys):
+    from mobse.v3.config import config_hash, load_config
+    h = config_hash(load_config(bed["cfg"]))
+    d = _fake_s_dir(tmp_path / "sl", candidate=BL.S1, setting_id="C=1", inner_fold=0,
+                    loss_shift=0.1, level=40, cfg_hash=h)
+    rc = CLI.main(["select-s", "--config", str(bed["cfg"]), "--outer-fold", "0",
+                   "--output-dir", str(tmp_path / "slo"), "--fit-dirs", str(d)])
+    assert rc == 2
+    assert "grid_selection_level" in json.loads(capsys.readouterr().out)["error"]
+
+
+def _s_outer_dirs(root, curve_dirs, *, level, cfg_hash, correct=False):
+    from mobse.v2.labels import window_key
+    out = []
+    for f, cd in enumerate(curve_dirs):
+        subs = sorted({json.loads(l)["canonical_subject"] for l in
+                       (cd / "window_predictions.jsonl").read_text(
+                           encoding="utf-8").splitlines()})
+        d = root / f"s_o{f}"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "s_fit_report.json").write_text(json.dumps({
+            "schema_version": CLI.S_FIT_SCHEMA, "role": "outer", "candidate": BL.S3,
+            "setting_id": "C=10", "s_fit_id": f"s{f}",
+            "curve": {"n_train_level": level}, "folds": {"outer_fold": f},
+            "config_hash": cfg_hash}), encoding="utf-8")
+        rows = []
+        for s in subs:
+            sub = s.split(":")[1]
+            for task, truth in (("emomatching", 0), ("workingmemory", 1)):
+                rk = f"ds002785/{sub}/na/{task}/na/seq"
+                p1 = float(truth) if correct else 1.0 - truth
+                rows += [{"canonical_subject": s, "group_id": s, "run_key": rk,
+                          "window_key": window_key(rk, w), "truth": truth,
+                          "p_class1": p1} for w in range(4)]
+        (d / "s_window_predictions.jsonl").write_text(
+            "".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+        out.append(d)
+    return out
+
+
+def test_evaluate_adds_a_minus_s_with_the_nominal_ci(bed, tmp_path, capsys):
+    from mobse.v3.config import config_hash, load_config
+    h = config_hash(load_config(bed["cfg"]))
+    root = tmp_path / "ev_s"
+    dirs = _curve_dirs(root)
+    subj = _subjects_file(root, dirs)
+    s_dirs = _s_outer_dirs(tmp_path / "sd", dirs, level=20, cfg_hash=h)
+    rc = CLI.main(["evaluate", "--config", str(bed["cfg"]), "--subjects", str(subj),
+                   "--output-dir", str(tmp_path / "evs"),
+                   "--fit-dirs", *[str(d) for d in dirs],
+                   "--s-fit-dirs", *[str(d) for d in s_dirs]])
+    assert rc == 0, capsys.readouterr().out
+    rec = json.loads((tmp_path / "evs" / "curve_point_embedding_n20.json").read_text(
+        encoding="utf-8"))
+    aux = rec["auxiliary"]
+    assert aux["S_balanced_accuracy"] == 0.0
+    assert aux["A_minus_S"]["point_estimate"] == 1.0
+    assert aux["A_minus_S"]["pct"] == [2.5, 97.5]
+    assert aux["A_minus_S"]["primary"] is False
+
+
+def test_evaluate_refuses_s_from_another_level_or_a_missing_fold(bed, tmp_path, capsys):
+    from mobse.v3.config import config_hash, load_config
+    h = config_hash(load_config(bed["cfg"]))
+    root = tmp_path / "ev_s2"
+    dirs = _curve_dirs(root)
+    subj = _subjects_file(root, dirs)
+    wrong = _s_outer_dirs(tmp_path / "sw", dirs, level=40, cfg_hash=h)
+    base = ["evaluate", "--config", str(bed["cfg"]), "--subjects", str(subj),
+            "--fit-dirs", *[str(d) for d in dirs]]
+    rc = CLI.main(base + ["--output-dir", str(tmp_path / "e1"),
+                          "--s-fit-dirs", *[str(d) for d in wrong]])
+    assert rc == 2
+    assert "수준" in json.loads(capsys.readouterr().out)["error"]
+    part = _s_outer_dirs(tmp_path / "sp", dirs, level=20, cfg_hash=h)[:4]
+    rc = CLI.main(base + ["--output-dir", str(tmp_path / "e2"),
+                          "--s-fit-dirs", *[str(d) for d in part]])
+    assert rc == 2
+    assert "fold" in json.loads(capsys.readouterr().out)["error"]
