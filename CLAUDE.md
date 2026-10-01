@@ -236,10 +236,10 @@ python scripts/h197/19_verify_measurement_lock.py --data-root $D --repo-root . -
 python scripts/h197/25_verify_window_files.py --data-root $D --lock $R/locks/measurement_lock.json
 python -B scripts/h197/27_build_implementation_lock.py --verify --data-root $D --repo-root . --release $R   # 6: h197 에서만 의미, rc≠0 이면 구현 잠금 새 판 필요
 ```
-**v3 (exploratory v2) 단계는 아직 켜지 않았다.** 잠금 생성기·검증기는
-`scripts/h197/29_build_v3_lock.py` 로 들어와 있으나 **잠금 파일을 아직 만들지 않았다** —
-v3 는 evaluate·report 가 남아 코드가 더 바뀐다. 본실험 착수 직전에 만들고, 그때 아래를
-마감에 7 단계로 더한다 (지금 넣으면 파일이 없어 rc≠0 이다).
+**7 단계 (v3 구현 잠금) 는 2026-10-01 에 켰다.** 잠금 `results/exploratory_v2/locks/v3_lock.json`
+(lock_hash `c0c8ed77db50`, code_hash `48737b31e0b2`) 은 본실험 (G-c · T4) 착수 직전에 h197 에서
+만들었다. **`mobse/v3`·`mobse/v2`·`configs/exploratory_v2` 를 바꾸면 rc7≠0** 이 되므로 잠금 새 판이
+필요하다. `~/run_closure.sh` 는 `JUNIT=<경로>` 를 주면 1 단계 junit 을 남긴다 (잠금 생성에 쓴다).
 ```bash
 python scripts/h197/29_build_v3_lock.py --verify --repo-root . \
     --out results/exploratory_v2/locks/v3_lock.json          # 7: v3 구현 잠금
