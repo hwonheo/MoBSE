@@ -75,3 +75,37 @@ PIOP1→PIOP2 상태 template 재현성.
 - I2: 실제 sparse 실행 경로 (PyTorch sparse / block-sparse) 와 같은 장비 지연 측정 방법. 비뇌 benchmark 선택.
 - I3: 20–30 s 창 또는 ETS 에서 FC 추정 안정성, emomatching trial 간격 (약 5 s) 대비 분리 가능성 — pilot 31 명에서 먼저.
 - 공통: 핵심 선행 (Brain-MoE 2609.10947 · Dhiman 2604.04033 · BrainPrompt 2504.16096 · Han 2026) 본문 확인.
+
+## 5. I1 후보 모델의 자원 요구 (2026-10-02 조사 — 결정 36 뒤)
+
+조사: 공식 저장소 6 개의 코드 · 설정 · 이슈 (`gh api`) 와 논문 5 편 본문. **코드는 실행하지 않았다.**
+[논문] 보고값 · [계산] 기본 설정 코드에서 센 값 · [추정] 근거를 붙인 어림값 · [실측] 우리 h197 측정.
+
+| 모델 | parameter (V=100) | fit 1 회 | 3090 Ti | 라이선스 | 재현 위험 |
+|---|---:|---|---|---|---|
+| MoBSE v3 | 6.6k–9.7k | 13–14 s 벽시계 (학습 6–7 s), GPU 145 MiB [실측] | 됨 | — | — |
+| S3 FC logistic | 4,951 | 4 s [실측] | — | — | — |
+| BNT (Kan, NeurIPS 2022) — Wayfear/BrainNetworkTransformer | 1,368,690 [계산] (V=200 3.98M = [논문] 4.0M) | [논문] ABIDE V=200 200 epoch 1.98 분 (RTX 8000) | torch 1.12.1 · cu113 — 됨 [추정] | MIT | 중간 (stratified split 에서 val/test 크기 뒤바뀜 #11 #14) |
+| BQN (Yang, ICML 2025) — LYWJUN/BQN-demo | 759,934 [계산] | [논문] RTX 3090 100 epoch full batch ABIDE 11.31 s | torch 2.0 — 됨 [추정] | 없음 | 높음 (논문 AUC 79.85, 사용자 73.1–76.0) |
+| BrainGB GCN · GAT (Cui, TMI 2022) — HennyJie/BrainGB | 793,906 · 1,115,746 [계산] | README 로그 ABIDE V=200 5-fold × 100 epoch 약 1 h 43 m | **cu101 고정 — 안 됨** (올려야 함) | MIT | 중간~높음 (val 없이 마지막 epoch test, 라벨 반전 지적 #28, GAT 버전 오류) |
+| BrainGNN (Li, MedIA 2021) — xxlya/BrainGNN_Pytorch | 62,882 [계산] | 보고 없음. BNT 논문에서 ABCD 360 ROI OOM (48 GB) | **torch 1.7 — 안 됨** (Ampere 미지원, 이슈 #13) | 없음 | 높음 (ABIDE 사용자 0.50–0.57) |
+| Han 2026 LM+GAT — LearningKeqi/RethinkingBCA | 약 19.8k [계산] | 보고 없음 | torch 1.12.1+cu116 — 됨 [추정] | 없음 | 중간 |
+| Contrasformer (Xu, CIKM 2024) — AngusMonroe/Contrasformer | 341,077 [계산] | 보고 없음. step 당 비용 ∝ N_train² (코드 구조) | DGL 버전 확인 못 함 | GPL-3.0 | 중간~높음 |
+
+- 비용은 대부분 V² 항 (BNT · BQN 의 DEC encoder `Linear(V², 32)`) 이다 — V=100 이 V=200 보다 3–4 배 싸다 [계산].
+- **등변성 구분** [코드 근거]: BNT · BQN (평탄화) · BrainGB concat pooling · BrainGNN (one-hot ROI 입력) · Han (concat) 은
+  기본 설정에서 ROI 순서에 **의존**한다 — 정렬 검정이 의미 있다. BrainGB 의 mean/sum pooling 과 v1 MoBSE 는 **등변**이다.
+  I1 의 등변성 정리는 "등변 구성에서만 정렬 검정이 퇴화" 로 범위를 갈라야 한다.
+- I1 기본 단위 예시 5 fold × (정렬 1 + null 3 × 10) × seed 3 = 465 fit [추정]: MoBSE 약 0.5 h · BNT/BQN 4–16 h ·
+  BrainGB GCN 40–80 h. BrainGNN · Contrasformer 는 1 fit 실측 뒤 판단.
+- h197 RAM 31 GB (사용 가능 약 8 GB, 10-02 실측) — 학습셋 전체를 매번 올리는 모델 (Contrasformer) 은 창 단위 표본에서 제약 [추정].
+
+**ABIDE 받음 (2026-10-02 04:08Z–04:13Z, 선생님 지시 "ABIDE ASD 쪽도 h197 에 받아줘")**: h197 data root `abide_pcp/`
+— PCP CPAC · filt_global · CC200, 파일 있는 1,035 명 전원 (ASD 505 · TC 530, 20 site), 385 MiB, 실패 0 · 모양 이상 0.
+nilearn QC 규칙 통과는 ASD 405 · TC 468 (기록만, 선택 규칙은 I1 설계에서). 시점 수 78–316. phenotype sha256 `009f01a8…`.
+Mac 판 468 개는 h197 판의 **QC 통과 TC 집합과 정확히 같고 sha256 468/468 일치**. 스크립트 `scripts/i1/fetch_abide_pcp.py`
+(표준 라이브러리만, v2 venv 불변).
+
+**받기 전 자료 현황 (10-02 실측)**: h197 data root 에는 AOMIC 만 (원본 210 GB · 추출본). Mac `~/nilearn_data/ABIDE_pcp` 는
+CPAC · filt_global · CC200 시계열 **468 명 전원 정상 대조군 (DX=2)**, 20 site — ASD 대 TC 벤치마크에는 ASD 쪽을 더 받아야 한다.
+`development_fmri` (151 명, Pixar 영화) 있음. `schaefer_2018` 은 FSLMNI152 공간 (2009c 판과 섞지 않는다).
