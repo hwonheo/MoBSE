@@ -14,6 +14,10 @@
 - T4: **S3 가 학습 10 명에서도 0.984** — 저표본에서 S 가 천장에서 내려온다는 전제가 이 target 에서 깨짐.
   H2 (A−C) 는 수준마다 부호가 오르내려 일관된 곡선이 없다 (하한>0 두 점 · 상한<0 세 점 · 나머지 0 포함).
 - 오늘 구현 선택: null seed 1729+100×index, S 는 logistic (S1·S3) 만, 구동기 `scripts/exploratory_v2/`.
+- **결정 35 (10-02)**: v3 음성 마감 + 학습 변동 측정 → 0 을 벗어났던 네 점의 재학습 28 판 평균이 모두 0 근처, 재학습 SD ≈ bootstrap 반폭.
+  마감 보고서 `results/exploratory_v2/reports/v3_closing_report_2026-10-02.md`.
+- **결정 36 (10-02)**: 다음 방향 = **I1 뇌 그래프 prior 검증 프로토콜 (본 트랙) + I3 ETS 상태 routing (탐색)**. 후보 문서
+  `docs/experiments/mobse_next_directions_2026-10-02.md`. 대상 모델 · 자료 · 설계는 미정.
 
 ## 인수인계 — 2026-09-29 (Cowork 세션 → 터미널 Claude Code)
 
