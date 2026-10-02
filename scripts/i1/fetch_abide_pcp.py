@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """ABIDE I Preprocessed Connectomes Project (PCP) ROI 시계열을 받는다 — I1 공개 자료 축 (결정 36).
 
-받는 판: **CPAC · filt_global (band-pass + 전역 신호 회귀) · CC200 (200 ROI)**. Mac `~/nilearn_data/ABIDE_pcp`
-에 있던 판 (정상 대조군 468 명) 과 같은 판이며, ASD 와 TC 를 모두 받아 한 판으로 맞춘다.
+받는 판: **CPAC · CC200 (200 ROI)**, 전략은 ``--strategy`` — 기본 ``filt_global`` (band-pass + 전역 신호 회귀,
+Mac `~/nilearn_data/ABIDE_pcp` 의 판) 과 ``filt_noglobal`` (band-pass 만, BrainGB · BNT · BQN 의 표준 ABIDE 판).
+ASD 와 TC 를 모두 받는다. ``filt_global`` 은 ``<out>/`` 바로 아래 (먼저 받은 판), ``filt_noglobal`` 은 ``<out>/filt_noglobal/`` 아래에 따로 두어 섞지 않는다.
 
 출처: `s3://fcp-indi/data/Projects/ABIDE_Initiative` (공개 버킷, HTTPS). 표준 라이브러리만 쓴다 —
 v2 venv 에 아무것도 설치하지 않기 위해서다 (구현 잠금이 그 환경을 기록한다).
@@ -33,7 +34,8 @@ from pathlib import Path
 
 BASE = "https://s3.amazonaws.com/fcp-indi/data/Projects/ABIDE_Initiative"
 PHENO = "Phenotypic_V1_0b_preprocessed1.csv"
-PIPELINE, STRATEGY, DERIV = "cpac", "filt_global", "rois_cc200"
+PIPELINE, DERIV = "cpac", "rois_cc200"
+STRATEGIES = ("filt_global", "filt_noglobal")
 QC_COLS = ("qc_rater_1", "qc_anat_rater_2", "qc_func_rater_2", "qc_anat_rater_3", "qc_func_rater_3")
 
 
@@ -68,8 +70,10 @@ def main(argv) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument("--strategy", default="filt_global", choices=STRATEGIES)
     args = ap.parse_args(argv[1:])
-    out = args.out
+    STRATEGY = args.strategy
+    out = args.out if STRATEGY == "filt_global" else args.out / STRATEGY
     (out / "phenotype").mkdir(parents=True, exist_ok=True)
     roi_dir = out / PIPELINE / STRATEGY / DERIV
     roi_dir.mkdir(parents=True, exist_ok=True)

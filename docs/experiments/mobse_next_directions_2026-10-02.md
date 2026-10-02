@@ -109,3 +109,42 @@ Mac 판 468 개는 h197 판의 **QC 통과 TC 집합과 정확히 같고 sha256 
 **받기 전 자료 현황 (10-02 실측)**: h197 data root 에는 AOMIC 만 (원본 210 GB · 추출본). Mac `~/nilearn_data/ABIDE_pcp` 는
 CPAC · filt_global · CC200 시계열 **468 명 전원 정상 대조군 (DX=2)**, 20 site — ASD 대 TC 벤치마크에는 ASD 쪽을 더 받아야 한다.
 `development_fmri` (151 명, Pixar 영화) 있음. `schaefer_2018` 은 FSLMNI152 공간 (2009c 판과 섞지 않는다).
+
+## 6. 1 fit 실측 (2026-10-02, 선생님 승인 "승인" — 사전 점검)
+
+**환경**: h197 별도 venv `venv-i1` (v2 venv 불변) — torch 2.4.0+cu121 · torch-geometric 2.6.1 · torch_scatter 2.1.2 ·
+torch_sparse 0.6.18 · nilearn 0.14.1 · networkx 2.8.8 · hydra-core 1.3.7 · wandb 0.30 (비활성) · nni 3.0 · deepdish 0.3.7.
+저장소 commit: BrainGNN `1e337e7` · BNT `8a588aa` · BrainGB `f042694` · BQN `5dc31b7` · RethinkingBCA (Han) `cde613f` ·
+Contrasformer `352960f`. 각 모델은 **저장소 복사본에서 자체 학습 스크립트를 그대로** 돌렸다 (`scripts/i1/probe_models.sh`).
+
+**자료**: 표준 ABIDE 판을 우리가 받은 PCP 로 다시 만들었다 (`scripts/i1/build_abide_npy.py`, BrainGB get_abide 01–03 정의 그대로) —
+filt_noglobal · CC200 · 1,035 명 중 시점 100 미만 26 명 제외 → **1,009 명** (19 site), 앞 100 시점, nilearn
+`ConnectivityMeasure` (Ledoit-Wolf) 상관 → arctanh. 라벨 `DX_GROUP − 1` → **ASD 0 (493) · TC 1 (516)** — BrainGB README 의
+"ASD 516 명이 양성" 은 실제로 TC 의 수다 (라벨 반전 이슈 #28 이 수치로 확인됨). `abide.npy` sha256 `d81bb42063d6cb50`.
+
+**측정 조건 주의**: 모든 실측 동안 **외부 GPU 작업 2 개** (계정 hwon 의 sglang 서버 · `run_path_a.py --backend cupy`) 가
+함께 돌았다 (`ext_gpu_time_frac` 1.00). 벽시계는 단독 사용보다 길 수 있다 — BNT 는 1 차 98.6 s, 2 차 147.6 s.
+GPU 메모리는 venv-i1 에서 뜬 프로세스만 셌다 (1 차 시도의 BrainNetCNN 9,646 MiB 는 외부 작업이 섞인 값이라 버렸다).
+
+| 모델 | 1 fit 정의 | 벽시계 | GPU (우리 것) | 최대 RAM | 점검 AUC | 돌리기 위해 필요했던 것 |
+|---|---|---|---|---|---|---|
+| MoBSE v3 (참고) | outer 1 fit, AOMIC V=100 | 13–14 s | 145 MiB | — | — | — |
+| **BNT** | 200 epoch | **98.6 – 147.6 s** | 672 MiB | 1.7 GB | 0.79 | **호환 수정 1 줄** (`_sa_block` 에 `is_causal`, torch ≥ 2.0) |
+| **BQN** | 200 epoch × 1 run | **약 90 s** (5 run 452 s) | 480 MiB | 1.7 GB | 5 run 중 **2 run 붕괴** (0.500), 나머지 0.73–0.76, 평균 0.62 ± 0.12 (논문 0.80) | `--runs` 를 넘기면 실패 (타입 없는 인자) → 기본 5 회. `BQN_Demo` 경로 symlink |
+| **Han dual-pathway** | 100 epoch | **270 s** (학습 136 s + 자료 준비) | 2,216 MiB | 3.0 GB | 0.69 | matplotlib · seaborn 설치, `exp_results/split_with_valid` 폴더 생성. 학습 뒤 모델 저장에서 `exp_results/trained_models` 없음 오류 (학습 결과에는 영향 없음) |
+| **BrainGB GCN · concat** (순서 의존) | fold 1 개 · 100 epoch | **약 686 s** (epoch 6.86 s, 45 분에 fold 3 개) | 6,660 MiB | 2.9 GB | 0.72 · 0.70 | node2vec 설치 (requirements 에 없음), **networkx < 3** (`from_numpy_matrix`) |
+| **BrainGB GCN · mean** (등변) | 같음 | **약 694 s** | 6,662 MiB | 2.9 GB | 0.65 · 0.70 | 같음. 이슈 #30 의 crash 는 hidden 256 에서는 나지 않았다 |
+| **BrainNetCNN** (BNT 저장소 판) | 200 epoch | **1,077 s (18 분)** | 1,702 MiB | 1.7 GB | 0.72 | 없음 |
+| BrainGNN | — | 돌리지 않음 | — | — | — | 2 차 대상 — deepdish h5 per subject 형식 · 옛 PyG API (`TopKPooling.weight`) 로 코드 수정 없이는 돌지 않을 것 [조사] |
+| Contrasformer | — | **설치 실패** | — | — | — | DGL: 공식 휠 서버 HTTP 403, PyPI 판 (2.1.0) 은 torch 2.4 용 graphbolt 라이브러리 없음 |
+
+**I1 기본 단위 (465 fit = 5 fold × 정렬 1 + null 30 × seed 3) 로 바꾸면** [순차 기준, 실측 × 465]:
+MoBSE 약 1.8 h (k=4 병렬 0.5 h) · BQN 약 12 h · BNT 13–19 h · Han 약 35 h · BrainGB GCN 약 89 h · BrainNetCNN 약 139 h.
+GPU 메모리가 작아 (0.5–6.7 GB) 동시 실행으로 줄일 여지가 있다 — 24 GB 에 BNT · BQN 은 여러 개, BrainGB 는 2–3 개 [추정].
+
+**읽을 것**
+1. **"있는 그대로" 돈 모델은 BrainNetCNN 하나뿐**이다. 나머지는 호환 수정 · 누락 의존성 · 없는 폴더 · 인자 버그 중 하나 이상이
+   필요했다. 이것 자체가 I1 의 재현성 근거다.
+2. **BQN 의 붕괴 (2/5)** 는 재학습 변동 문제 (v3 §6) 와 같은 종류다 — 단일 학습 결과를 보고하면 어느 판을 고르느냐로 0.50–0.76 이 갈린다.
+3. 비용은 BrainGB · BrainNetCNN 이 압도적이다. I1 의 다중 null × 재학습을 전 모델에 같은 크기로 걸면 수백 시간이 든다 —
+   **모델마다 단위를 다르게 잡거나 (예: BrainGB 는 null 을 줄임), 대상을 BNT · BQN · Han · BrainGB 1 구성으로 좁혀야** 한다.
