@@ -1,0 +1,57 @@
+{
+ "schema_version": "i1-d1-0.3",
+ "state": "random init (학습 전)",
+ "n_subj": 8,
+ "rows": {
+  "bnt": {
+   "max_abs_diff": 0.001256763469427824,
+   "self_diff": 0.0,
+   "median_abs_diff": 0.0005519718397408724,
+   "output_scale": 0.08831948041915894,
+   "n_perm": 20,
+   "n_params": 3976042
+  },
+  "brainnetcnn": {
+   "max_abs_diff": 0.033119626343250275,
+   "self_diff": 0.0,
+   "median_abs_diff": 0.01431404147297144,
+   "output_scale": 0.05582253634929657,
+   "n_perm": 20,
+   "n_params": 933277
+  },
+  "bqn": {
+   "max_abs_diff": 0.0004896894097328186,
+   "self_diff": 0.0,
+   "median_abs_diff": 0.0002849772572517395,
+   "output_scale": 0.10859169065952301,
+   "n_perm": 20,
+   "n_params": 2982034
+  },
+  "braingb_gcn_mean": {
+   "max_abs_diff": 85.16085052490234,
+   "self_diff": 0.0,
+   "median_abs_diff": 46.54737854003906,
+   "output_scale": 12.231130599975586,
+   "n_perm": 20,
+   "n_params": 792932,
+   "node_only_max_abs_diff": 0.000152587890625
+  },
+  "braingb_gcn_concat": {
+   "max_abs_diff": 30.65182113647461,
+   "self_diff": 0.0,
+   "median_abs_diff": 12.891093730926514,
+   "output_scale": 2.41176176071167,
+   "n_perm": 20,
+   "n_params": 1087676,
+   "node_only_max_abs_diff": 33.35157012939453
+  },
+  "braingb_gcn_mean_degree": {
+   "max_abs_diff": 0.0018310546875,
+   "self_diff": 0.0,
+   "median_abs_diff": 0.0009765625,
+   "output_scale": 390.69842529296875,
+   "n_perm": 20,
+   "n_params": 741988
+  }
+ }
+}

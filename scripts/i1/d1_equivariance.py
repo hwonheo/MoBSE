@@ -68,20 +68,22 @@ def bqn_model(repos: Path, n_roi: int, t: int):
 
 def braingb_models(repos: Path, n_roi: int):
     """BrainGB GCN (기본 설정 + README 명령의 mp_type · hidden 256). 자료 처리는 저장소 그대로:
-    `dense_to_ind_val` 로 모든 (i, j) 를 edge 로, `Adj` transform 으로 node 특성 = FC 행."""
+    `dense_to_ind_val` 로 모든 (i, j) 를 edge 로, `Adj` transform 으로 node 특성 = FC 행.
+    결정 40 (2026-10-03) 의 등변 대표 = mean pooling + `Degree` transform (node 특성 = 연결 강도 합, 1 차원)."""
     sys.path.insert(0, str(repos / "BrainGB"))
     from src.models import GCN, BrainNN, MLP
     from src.dataset.brain_dataset import dense_to_ind_val
-    from src.dataset.transforms import Adj
+    from src.dataset.transforms import Adj, Degree
     from torch_geometric.data import Batch, Data
     out = {}
-    for pooling in ("mean", "concat"):
+    for pooling, feat in (("mean", "adj"), ("concat", "adj"), ("mean", "degree")):
         a = types.SimpleNamespace(pooling=pooling, gcn_mp_type="edge_node_concate", hidden_dim=256,
                                   n_GNN_layers=2, n_MLP_layers=1, edge_emb_dim=256, bucket_sz=0.05,
                                   gat_hidden_dim=8, dropout=0.5, variant="gcn")
-        model = BrainNN(a, GCN(n_roi, a, n_roi, num_classes=2),
+        in_dim = n_roi if feat == "adj" else 1                   # example_main 처럼 dataset[0].x.shape[1]
+        model = BrainNN(a, GCN(in_dim, a, n_roi, num_classes=2),
                         MLP(2 * n_roi, a.hidden_dim, a.n_MLP_layers, torch.nn.ReLU, n_classes=2))
-        adj = Adj()
+        adj = Adj() if feat == "adj" else Degree()
 
         def fwd(m, x, s, adj=adj, col_inv=None):
             # col_inv 를 주면 node 특성 (= FC 행) 의 열만 원래 ROI 순서로 되돌린다 — node 순서만 바뀐 입력.
@@ -93,7 +95,7 @@ def braingb_models(repos: Path, n_roi: int):
                     g.x = g.x[:, col_inv]
                 graphs.append(g)
             return m(Batch.from_data_list(graphs))
-        out[f"braingb_gcn_{pooling}"] = (model, fwd)
+        out[f"braingb_gcn_{pooling}" + ("" if feat == "adj" else f"_{feat}")] = (model, fwd)
     return out
 
 
@@ -128,7 +130,7 @@ def main(argv) -> int:
                 Xp = X[:, p]
                 torch.manual_seed(0)
                 diffs.append(float((fwd(m, Xp, Sp) - base).abs().max()))
-                if name.startswith("braingb"):
+                if name.startswith("braingb") and not name.endswith("_degree"):
                     # node 특성이 FC 행이면 순열이 특성 차원 (열 = ROI 정체) 까지 섞는다. 열을 되돌려
                     # node 순서만 바꾼 차이를 따로 잰다 — 구조 (message passing + pooling) 자체의 대칭성.
                     torch.manual_seed(0)
@@ -142,7 +144,7 @@ def main(argv) -> int:
         print(f"{name:12s} max |f(Px)−f(x)| = {max(diffs):.3e}  자기 차 {self_diff:.1e}  (출력 크기 {float(base.abs().mean()):.3e}, "
               f"parameter {rows[name]['n_params']:,})", flush=True)
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps({"schema_version": "i1-d1-0.2", "state": "random init (학습 전)",
+    args.out.write_text(json.dumps({"schema_version": "i1-d1-0.3", "state": "random init (학습 전)",
                                     "n_subj": args.n_subj, "rows": rows}, ensure_ascii=False, indent=1))
     return 0
 
