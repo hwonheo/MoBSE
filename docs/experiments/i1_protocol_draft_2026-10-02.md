@@ -153,6 +153,10 @@ D1–D5 의 정의, 조건 목록, K · R, 분할, 지표 (AUC 주 · BA 보조)
    유지 (공식 기본값 고정 원칙 §7 의 예외) / (다) 둘 다 (BrainGB 비용 약 2 배).
    → **결정 40 (2026-10-03, 선택 TUI): (나) degree 특성으로 교체.** D1 학습 전 판에서 등변 확인 (§3 표). `adj` 판은 D1 측정에만 남긴다.
    degree 판의 1 fit 시간은 아직 재지 않았다 (입력 차원 1 이라 adj 판보다 짧을 것 [추정]).
+8. **(10-03 추가) N2 의 정중선 parcel** — CC200 은 반구를 걸친 parcel 이 22 개 (25 % 초과). 중심 x 부호로 반구를 정하는 v3 규칙을 그대로 쓸지,
+   반구 구분 없이 전뇌 회전할지, 걸친 parcel 을 따로 묶을지.
+9. **(10-03 추가) 공통 fold 를 넣는 방법** — §9.1 표. 메모리 안 wrapper (파일 수정 없음) / 복사본 수정 / 저장소 자체 분할 + seed 만 제어.
+10. **(10-03 추가) dense FC 의 N3 정의** — 가중치 · 부호 있는 null (예: Rubinov–Sporns 2011 의 strength 근사 보존) / 임계화 뒤 이진 rewire / N3 를 MoBSE 에만.
 
 ## 9. 착수 전 확인 (되돌릴 수 있는 사전 작업)
 
@@ -162,3 +166,26 @@ D1–D5 의 정의, 조건 목록, K · R, 분할, 지표 (AUC 주 · BA 보조)
   남은 것: Han 을 harness 에 넣기 (hydra 설정 조립 · `.cuda()` 고정이라 GPU 필요), checkpoint 불러오기.
 - 재학습 시 seed 를 바꾸는 법 — BNT · Han (hydra 설정), BQN (`fix_seed` 가 주석 처리돼 있어 실행마다 무작위 — 재현 가능한 seed 를 넣으려면 인자만으로는 안 될 수 있다), BrainGB (`--seed` 는 있지만 실행마다 `random.randint` 로 덮음).
 - 외부 GPU 작업 (sglang 서버 · cupy 작업) 과의 동시 실행 — 시간 측정을 비교에 쓸 때 주의 (공정성).
+
+### 9.1 사전 작업 결과 (2026-10-03)
+
+**CC200 좌표** [측정] — `scripts/i1/cc200_coords.py` (v3 의 `roi_centroids` 를 import 만 함), 결과 `results/i1/cc200_coords.json`.
+atlas `abide_pcp/resources/cc200_roi_atlas.nii.gz` (sha `9467afce23ad`, 63×75×61 · 3 mm · LAS, label 1..200 연속) 와
+`CC200_ROI_labels.csv` (sha `b4ba242e926d`). 두 파일은 10-02 17:46 에 받았으나 받은 경위가 기록에 없다 (PCP `Resources/` 로 추정 [추정]).
+- 중심 좌표가 PCP CSV 의 center of mass 와 최대 0.08 mm 차 — 일치. `.1D` 열 머리 `#1…#200` = label 1..200 순서 — 일치.
+- 좌 94 · 우 106 (중심 x 부호). **CC200 은 반구를 나눠 만든 atlas 가 아니다** — 반대쪽 반구 voxel 이 10 % 넘는 parcel 30 개,
+  25 % 넘는 parcel 22 개, 최대 59 %. 중심 |x| 최소 0.01 mm. → N2 (반구 안 회전) 의 반구 판정이 이 parcel 들에서 임의적이다 (§8-8).
+
+**seed · 분할** [코드, 저장소 commit 은 `i1/repos_commits.txt`]
+
+| 저장소 | 분할 (저장소 기본) | seed |
+|---|---|---|
+| BNT | `stratified: True` → train 70 % 는 `StratifiedShuffleSplit(random_state=42)` — **반복해도 같은 train 집합**. val 10 / test 20 은 seed 없음 | 모델 초기화 seed 를 어디서도 두지 않음 |
+| BQN | train 은 `random_state=args.seed` (기본 42) 로 고정, val / test 는 seed 없음 | `fix_seed(args.seed)` 가 주석 처리 → 초기화 무작위 |
+| Han | 70 / 10 / 20 무작위 (층화 아님), `np.random.shuffle` | `set_seed(338)` 을 시작에 한 번 (상수 고정) |
+| BrainGB | `StratifiedKFold(5, shuffle=True)`, val 없음 | 반복마다 `seed_everything(random.randint(…))` — `--seed` 무시 |
+
+→ 결정 38 의 "층화 무작위 5-fold (공통)" 을 쓰는 저장소가 없다. 공통 fold 를 쓰려면 분할을 **밖에서 넣어야** 한다 (§8-9).
+→ D2 에 쓸 N3 (degree 보존 rewire) 는 v3 의 `degree_preserving_rewire` (이진 edge swap) 를 dense FC 에 그대로 못 쓴다 —
+  모든 edge 가 이미 있어 swap 이 전부 거절된다 [코드]. dense · 부호 있는 FC 용 정의가 필요하다 (§8-10).
+  또 시계열을 함께 받는 모델 (BNT · BQN · Han) 은 rewire 된 FC 와 시계열이 서로 맞지 않게 된다.
