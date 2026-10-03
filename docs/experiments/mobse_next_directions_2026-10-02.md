@@ -96,6 +96,8 @@ PIOP1→PIOP2 상태 template 재현성.
 - **등변성 구분** [코드 근거]: BNT · BQN (평탄화) · BrainGB concat pooling · BrainGNN (one-hot ROI 입력) · Han (concat) 은
   기본 설정에서 ROI 순서에 **의존**한다 — 정렬 검정이 의미 있다. BrainGB 의 mean/sum pooling 과 v1 MoBSE 는 **등변**이다.
   I1 의 등변성 정리는 "등변 구성에서만 정렬 검정이 퇴화" 로 범위를 갈라야 한다.
+  **정정 (2026-10-03, D1 실측)**: BrainGB mean 은 기본 node 특성 `adj` (FC 행) 에서는 **등변이 아니다** — 구조는 불변이나 특성 열이
+  ROI 정체를 담는다. 세부는 I1 계획서 초안 §2 · §3.
 - I1 기본 단위 예시 5 fold × (정렬 1 + null 3 × 10) × seed 3 = 465 fit [추정]: MoBSE 약 0.5 h · BNT/BQN 4–16 h ·
   BrainGB GCN 40–80 h. BrainGNN · Contrasformer 는 1 fit 실측 뒤 판단.
 - h197 RAM 31 GB (사용 가능 약 8 GB, 10-02 실측) — 학습셋 전체를 매번 올리는 모델 (Contrasformer) 은 창 단위 표본에서 제약 [추정].
