@@ -67,3 +67,4 @@ docs/.pdca-status.json
 
 # release outputs: brief only in repo, raw provenance stays local / on the storage server
 results/**/provenance/
+.bkit/agent-state.json
