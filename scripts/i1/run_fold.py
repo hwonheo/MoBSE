@@ -30,7 +30,7 @@ from pathlib import Path
 
 import numpy as np
 
-MODELS = ("bqn",)
+MODELS = ("bqn", "bnt")
 
 
 def seed_all(seed: int) -> None:
@@ -141,6 +141,86 @@ def run_bqn(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
             "epochs_arg": args.epochs, "batch_size": args.batch_size}
 
 
+def run_bnt(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
+    """BrainNetworkTransformer — README 의 ABIDE 명령 설정을 hydra compose 로 조립해 ``model_training`` 을 부른다."""
+    import importlib
+    import os
+
+    import torch
+    import torch.nn.functional as F
+    import wandb
+    from hydra import compose, initialize_config_dir
+    from omegaconf import open_dict
+
+    repo = a.repos / "BrainNetworkTransformer"
+    sys.path.insert(0, str(repo))
+    overrides = ["dataset=ABIDE", "model=bnt", "repeat_time=1", "preprocess=mixup", "datasz=100p",
+                 f"dataset.path={a.npy}"]
+    if a.epochs:
+        overrides.append(f"training.epochs={a.epochs}")
+    with initialize_config_dir(config_dir=str(repo / "source/conf"), version_base=None):
+        cfg = compose(config_name="config", overrides=overrides)
+
+    from source.models.BNT.components import transformer_encoder as te
+    orig_sa = te.InterpretableTransformerEncoder._sa_block
+
+    def _sa_block(self, x, attn_mask, key_padding_mask, is_causal=False):   # torch ≥ 2.0 호환 (D1 과 같음)
+        return orig_sa(self, x, attn_mask, key_padding_mask)
+    te.InterpretableTransformerEncoder._sa_block = _sa_block
+
+    import source.dataset as ds
+    from source.training.training import Train
+    entry = importlib.import_module("source.__main__")
+    held = {}
+
+    def init_stratified_dataloader(cfg, final_timeseires, final_pearson, labels_t, stratified):
+        held["ts"], held["pc"] = final_timeseires, final_pearson
+        if not np.array_equal(labels_t.numpy().astype(int), labels):
+            raise SystemExit("저장소가 읽은 label 이 fold 파일의 label 과 다르다")
+        onehot = F.one_hot(labels_t.to(torch.int64))
+        tr, va, te_ = (torch.as_tensor(fold[k]) for k in ("train", "val", "test"))
+        with open_dict(cfg):                                     # 원래 함수가 하는 lr schedule 설정을 그대로
+            cfg.steps_per_epoch = (len(tr) - 1) // cfg.dataset.batch_size + 1
+            cfg.total_steps = cfg.steps_per_epoch * cfg.training.epochs
+        mk = lambda idx: torch.utils.data.TensorDataset(  # noqa: E731
+            final_timeseires[idx], final_pearson[idx], onehot[idx])
+        dl = torch.utils.data.DataLoader
+        bs = cfg.dataset.batch_size
+        return [dl(mk(tr), batch_size=bs, shuffle=True, drop_last=cfg.dataset.drop_last),
+                dl(mk(va), batch_size=bs, shuffle=True, drop_last=False),
+                dl(mk(te_), batch_size=bs, shuffle=True, drop_last=False)]
+
+    def probs(model, idx):
+        out = []
+        with torch.no_grad():
+            for s in range(0, len(idx), 64):
+                b = torch.as_tensor(idx[s:s + 64])
+                out.append(F.softmax(model(held["ts"][b].cuda(), held["pc"][b].cuda()), dim=1)[:, 1].cpu().numpy())
+        return np.concatenate(out)
+
+    orig_tpe = Train.test_per_epoch
+
+    def test_per_epoch(self, dataloader, loss_meter, acc_meter):
+        res = orig_tpe(self, dataloader, loss_meter, acc_meter)
+        if dataloader is self.test_dataloader:                   # 저장소 순서: val → test. test 뒤에 한 번 기록
+            self.model.eval()
+            rec.add(probs(self.model, rec.val_idx), probs(self.model, rec.test_idx))
+        return res
+
+    ds.init_stratified_dataloader = init_stratified_dataloader
+    Train.test_per_epoch = test_per_epoch
+    os.chdir(a.out)                                              # 저장소가 log_path (result/…) 에 쓰는 것을 출력 폴더 안으로
+    wandb.init(mode="disabled")
+    seed_all(a.seed)
+    entry.model_training(cfg)
+    return {"repo_reported": {"rule": "repo: 선택 없음 (매 epoch 기록만)"},
+            "patches": ["source.dataset.init_stratified_dataloader → 공통 fold (steps_per_epoch · total_steps 는 원래 식)",
+                        "Train.test_per_epoch → 원래 함수 + test 뒤 순서 고정 평가 기록",
+                        "InterpretableTransformerEncoder._sa_block ← is_causal 인자 받기 (torch ≥ 2.0 호환)",
+                        "wandb.init(mode=disabled)", "seed: wrapper seed_all (저장소는 seed 를 두지 않음)"],
+            "hydra_overrides": overrides, "epochs_arg": int(cfg.training.epochs), "batch_size": int(cfg.dataset.batch_size)}
+
+
 def main(argv) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--model", required=True, choices=MODELS)
@@ -165,7 +245,7 @@ def main(argv) -> int:
         raise SystemExit(f"표본 수 {len(labels)} ≠ fold 파일 {folds['n_subj']}")
     rec = Recorder(fold, labels)
     t0 = time.time()
-    extra = {"bqn": run_bqn}[a.model](a, fold, labels, rec)
+    extra = {"bqn": run_bqn, "bnt": run_bnt}[a.model](a, fold, labels, rec)
     extra.update({"model": a.model, "fold": a.fold, "seed": a.seed, "npy": str(a.npy), "folds_file": str(a.folds),
                   "folds_draw": folds["draw"], "wall_s": round(time.time() - t0, 1)})
     s = rec.finish(a.out, extra)
