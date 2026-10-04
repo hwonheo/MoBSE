@@ -30,7 +30,7 @@ from pathlib import Path
 
 import numpy as np
 
-MODELS = ("bqn", "bnt", "braingb")
+MODELS = ("bqn", "bnt", "braingb", "han")
 
 
 def seed_all(seed: int, deterministic: bool = True) -> None:
@@ -308,6 +308,134 @@ def run_braingb(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
                             "train DataLoader shuffle=False (저장소 그대로)"]}
 
 
+HAN_OVERRIDES = [  # 사전 점검 (probe_models.sh) 의 Han dual-pathway ABIDE 명령 그대로 — 저자 명령 [후보 문서 §6]
+    "datasz=100p", "model=mixed_model", "dataset=ABIDE", "repeat_time=1", "preprocess=mixup", "training.epochs=100",
+    "dataset.measure=Autism", "dataset.node_feature_type=learnable_time_series", "model.pooling=[False,False]",
+    "model.sizes=[200,100]", "model.dim_reduction=False", "exp_name=dual_pathway_abide", "model.one_layer_fc=True",
+    "dataset.only_positive_corr=True", "dataset.sparse_ratio=1", "dataset.feature_orig_or_sparse=orig",
+    "dataset.binary_sparse=True", "dataset.time_series_hidden_size=32", "dataset.time_series_encoder=cnn",
+    "dataset.node_feature_dim=32", "dataset.gnn_hidden_channels=32", "dataset.gnn_num_layers=1",
+    "model.has_nonaggr_module=True", "model.nonaggr_type=input", "model.has_aggr_module=True", "model.aggr_module=gat",
+    "model.aggr_combine_type=concat", "tune_new_learning_rates=[[1.0e-4,1.0e-5]]", "dataset.plot_figures=False",
+    "dataset.tune_gnn_num_layers=[2]", "dataset.batch_size=16", "tune_combine_learning_rates=[[1.0e-4,1.0e-5]]",
+    "pretrain_lower_epoch=50", "pretrain_nonaggr_coef=1", "nonaggr_coef=1", "dataset.tune_gnn_hidden_channels=[32]",
+    "save_mlp_weight=False", "draw_heatmap=False", "new_weight_decay=1.0e-4"]
+
+
+def run_han(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
+    """Han dual-pathway (RethinkingBCA) — hydra main 의 grid 전처리 (조합 1 개) 를 그대로 하고 ``model_training`` 을 부른다."""
+    import importlib
+    import os
+
+    import torch
+    import torch.nn.functional as F
+    import wandb
+    from hydra import compose, initialize_config_dir
+    from omegaconf import OmegaConf, open_dict
+
+    repo = a.repos / "RethinkingBCA"
+    sys.path.insert(0, str(repo))
+    overrides = [o for o in HAN_OVERRIDES if not o.startswith("training.epochs=")]
+    overrides += [f"dataset.path={a.npy}", f"training.epochs={a.epochs or 100}"]
+    with initialize_config_dir(config_dir=str(repo / "source/conf"), version_base=None):
+        cfg = compose(config_name="config", overrides=overrides)
+
+    # torch ≥ 2.0 호환 — probe 의 COMPAT_SA 가 고친 세 파일의 _sa_block 을 메모리에서만 같은 방식으로 감싼다
+    compat = []
+    for mod_name in ("exp_transformer_encoder", "gatv2_transformer_encoder", "transformer_encoder"):
+        mod = importlib.import_module(f"source.models.Mixed_model.components.{mod_name}")
+        for cls in [c for c in vars(mod).values()                # torch 에서 import 한 클래스는 빼고 그 파일의 클래스만
+                    if isinstance(c, type) and c.__module__ == mod.__name__ and "_sa_block" in vars(c)]:
+            orig_sa = cls._sa_block
+
+            def _sa_block(self, x, attn_mask, key_padding_mask, is_causal=False, _orig=orig_sa):
+                return _orig(self, x, attn_mask, key_padding_mask)
+            cls._sa_block = _sa_block
+            compat.append(f"{mod_name}.{cls.__name__}")
+    if len(compat) != 3:
+        raise SystemExit(f"_sa_block 정의 클래스가 3 개가 아니다: {compat}")
+
+    import source.dataset as ds
+    from source.training.training import Train
+    entry = importlib.import_module("source.__main__")
+    held, state = {}, {"trained": False}
+
+    def init_stratified_dataloader(cfg, final_timeseires, final_pearson, labels_t, stratified,
+                                   orig_connection, saved_eigenvectors, sparse_connection, used_subjectids):
+        if not np.array_equal(used_subjectids.numpy(), np.arange(len(labels))):
+            raise SystemExit("used_subjectids 가 0..n−1 이 아니다")
+        if not np.array_equal(labels_t.numpy().astype(int), labels):
+            raise SystemExit("저장소가 읽은 label 이 fold 파일의 label 과 다르다")
+        onehot = F.one_hot(labels_t.to(torch.int64))
+        held["t"] = (final_timeseires, final_pearson, orig_connection, saved_eigenvectors, sparse_connection)
+        tr, va, te_ = (torch.as_tensor(fold[k]) for k in ("train", "val", "test"))
+        with open_dict(cfg):                                     # 원래 식 (train 길이 기준)
+            cfg.steps_per_epoch = (len(tr) - 1) // cfg.dataset.batch_size + 1
+            cfg.total_steps = cfg.steps_per_epoch * cfg.training.epochs
+        mk = lambda idx: torch.utils.data.TensorDataset(  # noqa: E731
+            final_timeseires[idx], final_pearson[idx], onehot[idx], orig_connection[idx],
+            saved_eigenvectors[idx], sparse_connection[idx], used_subjectids[idx])
+        dl = torch.utils.data.DataLoader
+        bs = cfg.dataset.batch_size
+        return [dl(mk(tr), batch_size=bs, shuffle=True, drop_last=cfg.dataset.drop_last),
+                dl(mk(va), batch_size=bs, shuffle=True, drop_last=False),
+                dl(mk(te_), batch_size=bs, shuffle=True, drop_last=False)]
+
+    def probs(model, idx):
+        ts, nf, oc, ev, sc = held["t"]
+        out = []
+        with torch.no_grad():
+            for s in range(0, len(idx), 64):
+                b = torch.as_tensor(idx[s:s + 64])
+                o = model(ts[b].cuda(), nf[b].cuda(), None, None, False, oc[b].cuda(), ev[b].cuda(), sc[b].cuda())
+                p = torch.sigmoid(o).squeeze(-1) if cfg.log_reg else F.softmax(o, dim=1)[:, 1]
+                out.append(p.cpu().numpy())
+        return np.concatenate(out)
+
+    orig_tpe, orig_train_pe = Train.test_per_epoch_cog, Train.train_per_epoch
+
+    def train_per_epoch(self, *args, **kwargs):
+        res = orig_train_pe(self, *args, **kwargs)
+        state["trained"] = True
+        return res
+
+    def test_per_epoch_cog(self, dataloader, *args, **kwargs):
+        res = orig_tpe(self, dataloader, *args, **kwargs)
+        if dataloader is self.test_dataloader and state["trained"]:   # 학습 전 성능 보기 (show_initial_performance) 는 빼고
+            self.model.eval()
+            rec.add(probs(self.model, rec.val_idx), probs(self.model, rec.test_idx))
+            state["trained"] = False
+        return res
+
+    ds.init_stratified_dataloader = init_stratified_dataloader
+    Train.train_per_epoch = train_per_epoch
+    Train.test_per_epoch_cog = test_per_epoch_cog
+    # hydra main 의 조합 전처리 (조합 1 개여야 한다)
+    combos = entry.generate_param_combinations(entry.find_tune_keys(OmegaConf.to_container(cfg, resolve=True)))
+    if len(combos) != 1:
+        raise SystemExit(f"grid 조합이 1 개가 아니다: {len(combos)}")
+    for key, value in combos[0].items():
+        OmegaConf.update(cfg, key, value)
+    with open_dict(cfg):
+        entry.set_optimizer_param(cfg)
+        cfg.common_save = f"{cfg.exp_name}_{cfg.dataset.measure}_{cfg.dataset.name}_param0"
+        cfg.dataset.cur_repeat = 0
+    for d in ("exp_results/split_with_valid", "exp_results/trained_models"):   # 저장소가 있다고 가정하는 폴더
+        (a.out / d).mkdir(parents=True, exist_ok=True)
+    os.chdir(a.out)
+    wandb.init(mode="disabled")
+    seed_all(a.seed)                                             # 저장소의 set_seed(338) 자리
+    test_auc, test_acc, *_ = entry.model_training(cfg)
+    return {"repo_reported": {"test_auc": float(test_auc), "test_acc": float(test_acc), "rule": "repo: val AUC 최대 epoch"},
+            "patches": ["source.dataset.init_stratified_dataloader → 공통 fold (steps 식은 원래 식)",
+                        "Train.train_per_epoch · Train.test_per_epoch_cog → 원래 함수 + 학습 epoch 뒤 test 평가 때 순서 고정 평가 기록",
+                        f"_sa_block ← is_causal 인자 받기 (torch ≥ 2.0 호환): {', '.join(compat)}",
+                        "hydra main 의 grid 전처리를 그대로 옮겨 부름 (조합 1 개)", "wandb.init(mode=disabled)",
+                        "seed: wrapper seed_all (저장소 set_seed(338) 대신)", "exp_results 폴더 생성"],
+            "hydra_overrides": overrides, "grid_combo": combos[0], "epochs_arg": int(cfg.training.epochs),
+            "batch_size": int(cfg.dataset.batch_size), "deterministic": True}
+
+
 def main(argv) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--model", required=True, choices=MODELS)
@@ -334,7 +462,7 @@ def main(argv) -> int:
         raise SystemExit(f"표본 수 {len(labels)} ≠ fold 파일 {folds['n_subj']}")
     rec = Recorder(fold, labels)
     t0 = time.time()
-    extra = {"bqn": run_bqn, "bnt": run_bnt, "braingb": run_braingb}[a.model](a, fold, labels, rec)
+    extra = {"bqn": run_bqn, "bnt": run_bnt, "braingb": run_braingb, "han": run_han}[a.model](a, fold, labels, rec)
     extra.update({"model": a.model, "fold": a.fold, "seed": a.seed, "npy": str(a.npy), "folds_file": str(a.folds),
                   "folds_draw": folds["draw"], "wall_s": round(time.time() - t0, 1)})
     s = rec.finish(a.out, extra)

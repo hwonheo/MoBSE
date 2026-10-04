@@ -184,7 +184,7 @@ atlas `abide_pcp/resources/cc200_roi_atlas.nii.gz` (sha `9467afce23ad`, 63×75×
 |---|---|---|
 | BNT | `stratified: True` → train 70 % 는 `StratifiedShuffleSplit(random_state=42)` — **반복해도 같은 train 집합**. val 10 / test 20 은 seed 없음 | 모델 초기화 seed 를 어디서도 두지 않음 |
 | BQN | train 은 `random_state=args.seed` (기본 42) 로 고정, val / test 는 seed 없음 | `fix_seed(args.seed)` 가 주석 처리 → 초기화 무작위 |
-| Han | 70 / 10 / 20 무작위 (층화 아님), `np.random.shuffle` | `set_seed(338)` 을 시작에 한 번 (상수 고정) |
+| Han | ~~70 / 10 / 20 무작위 (층화 아님)~~ → **정정 (10-04)**: ABIDE 설정은 `stratified: True` 라 `init_stratified_dataloader` — site 층화 70 / 10 / 20, `StratifiedShuffleSplit` 에 seed 없음 (전역 RNG). 앞의 서술은 쓰이지 않는 `init_dataloader` 경로였다 | `set_seed(338)` 을 시작에 한 번 (상수 고정) |
 | BrainGB | `StratifiedKFold(5, shuffle=True)`, val 없음 | 반복마다 `seed_everything(random.randint(…))` — `--seed` 무시 |
 
 → 결정 38 의 "층화 무작위 5-fold (공통)" 을 쓰는 저장소가 없다. 공통 fold 를 쓰려면 분할을 **밖에서 넣어야** 한다 (§8-9).
@@ -231,3 +231,25 @@ atlas `abide_pcp/resources/cc200_roi_atlas.nii.gz` (sha `9467afce23ad`, 63×75×
 층 = label × site 38 개 (최소 13 명), outer `StratifiedKFold(5)`, 안쪽 val = train fold 의 층화 10 %.
 fold 당 train 726–727 · val 81 · test 201–202, test 의 label 1 비율 0.507–0.515. test 가 전체를 한 번씩 덮음 (assert).
 R 반복에서 fold 를 다시 뽑을지는 정하지 않았다 (`--draw`).
+
+### 9.5 실행 wrapper (2026-10-04)
+
+`scripts/i1/run_fold.py --model {bqn,bnt,braingb,han}` — 결정 41-1 · 42. 저장소 파일은 그대로, 분할 · 평가 함수만 메모리에서 바꿔 끼운다
+(바꾼 목록은 각 fit 의 `summary.json` `patches`). 출력: `predictions.jsonl` (test 피험자 index · label · p1) · `epochs.jsonl` · `summary.json`.
+
+smoke [측정] — ABIDE 표준 파일 · fold 0 · seed 1 · **3 epoch**, 같은 seed 로 두 번 (h197 `i1/wrapper_smoke/20261004*`):
+
+| 모델 | 진입 | 저장소 값과 대조 | 같은 seed 재실행 |
+|---|---|---|---|
+| BQN | `main.run` 직접 | 고른 epoch 의 test AUC 0.4043 = 저장소 반환값 (규칙이 같음) | 예측 바이트 동일 |
+| BNT | hydra compose → `model_training` | epoch 2 test AUC 0.6957 = 저장소 로그 | 동일 |
+| BrainGB (mean · degree) | runpy 로 `examples.example_main` | 마지막 epoch test AUC 0.4882 = 저장소 "Last Epoch" | **다름** — 아래 |
+| Han | hydra compose + grid 전처리 → `model_training` | epoch 2 test AUC 0.5139 = 저장소 로그. 저장소 보고 0.5152 는 val AUC 최대 epoch (규칙 차이) | 동일 |
+
+- 결정성: wrapper 가 `torch.use_deterministic_algorithms(True)` 를 켠다 (BQN · BNT 는 켜기 전후 값이 같음). **BrainGB 는 끈다** —
+  켜면 PyG scatter 가 결정적 경로로 바뀌어 24 GB GPU 에서 OOM (9.77 GiB 할당), 저장소 mixup 이 `.cuda()` 고정이라 CPU 로도 못 돈다.
+  그래서 BrainGB 는 같은 seed 재실행도 값이 다르다 (3 epoch smoke 에서 마지막 epoch AUC 0.488 대 0.452). 이 비결정성은 D3 재학습 변동에 포함해 보고한다.
+- BrainGB 처리 캐시 (`processed/ABIDE_0_Degree.pt`) 이름이 자료 내용과 무관하다 — 조건이 바뀌어도 옛 캐시를 쓸 수 있어, wrapper 는 fit 마다 새 root 를 만든다.
+- 저장소 그대로 둔 동작 (D5 기록 대상): BrainGB 는 둘째 epoch 부터 eval 모드로 학습 (`model.train()` 을 한 번만 부름) · train loader shuffle 없음.
+  BNT · Han 은 시계열 표준화에 전체 표본의 평균 · 표준편차 (스칼라 하나) 를 쓴다.
+- 아직 안 한 것: 전체 epoch smoke (fit 당 시간은 사전 점검 값 — BQN 약 90 s · BNT 99–148 s · Han 270 s, BrainGB degree 판은 미측정), null 입력 (n0–n3) 으로 wrapper 실행.
