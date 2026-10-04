@@ -58,6 +58,31 @@ def auc_ba(p: np.ndarray, y: np.ndarray) -> dict:
     return {"auc": float(roc_auc_score(y, p)), "ba": float(balanced_accuracy_score(y, (p > 0.5).astype(int)))}
 
 
+D1_N, D1_PERMS, D1_SEED = 8, 20, 1729        # 계획서 §3 D1 · 결정 43 §3.9 (순열 생성은 d1_equivariance.py 와 같음)
+
+
+def permute_roi(t, p, v: int):
+    """배치 축을 뺀 모든 크기 v 축 (ROI 축) 에 같은 순열을 준다 — FC 는 행 · 열, 시계열 · 고유벡터는 ROI 축."""
+    for ax in range(1, t.dim()):
+        if t.shape[ax] == v:
+            t = t.index_select(ax, p)
+    return t
+
+
+def d1_measure(fwd, inputs: tuple, v: int) -> dict:
+    """학습이 끝난 모델 (마지막 epoch) 의 등변성 — test 앞 D1_N 명, ROI 순열 D1_PERMS 개, class 1 확률의 최대 차."""
+    import torch
+    rng = np.random.default_rng(D1_SEED)
+    base = fwd(inputs)
+    self_diff = float(np.max(np.abs(fwd(inputs) - base)))
+    diffs = []
+    for _ in range(D1_PERMS):
+        p = torch.as_tensor(rng.permutation(v))
+        diffs.append(float(np.max(np.abs(fwd(tuple(permute_roi(t, p, v) for t in inputs)) - base))))
+    return {"state": "학습 끝 (마지막 epoch)", "n_subj": len(base), "n_perm": D1_PERMS, "max_abs_diff_p1": max(diffs),
+            "median_abs_diff_p1": float(np.median(diffs)), "self_diff": self_diff, "p1_mean": float(np.mean(base))}
+
+
 class Recorder:
     """epoch 마다 순서 고정 val · test 확률을 모은다."""
 
@@ -72,6 +97,8 @@ class Recorder:
         self.rows.append({"epoch": len(self.rows), "val_loss": mean_ce(p_val, self.y_val),
                           "val": auc_ba(p_val, self.y_val), "test": auc_ba(p_test, self.y_test),
                           "_p_test": p_test.astype(float)})
+        if model is not None:
+            self.model_ref = model                               # --d1 이 학습 끝 모델을 쓴다
         if self.keep_last and model is not None:
             self.last_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
 
@@ -150,6 +177,11 @@ def run_bqn(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
     bqn_main.val_test = val_test
     seed_all(a.seed)
     acc, roc, sen, spec = bqn_main.run(args, dataset)
+    if a.d1:
+        b = torch.as_tensor(rec.test_idx[:D1_N])
+        m = rec.model_ref.eval()
+        rec.d1 = d1_measure(lambda T: F.softmax(m(T[0].to(dev), T[1].to(dev)), dim=1)[:, 1].detach().cpu().numpy(),
+                            (ts[b], pc[b]), ts.shape[1])
     return {"repo_reported": {"test_acc": float(acc), "test_auc": float(roc), "rule": "repo: val loss 최소 epoch"},
             "patches": ["main.init_stratified_dataloader → 공통 fold", "main.val_test → 원래 함수 + 순서 고정 평가 기록",
                         "seed: wrapper seed_all (저장소 fix_seed 는 주석 처리돼 있음)", "runs = 1"],
@@ -228,6 +260,12 @@ def run_bnt(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
     wandb.init(mode="disabled")
     seed_all(a.seed)
     entry.model_training(cfg)
+    if a.d1:
+        b = torch.as_tensor(rec.test_idx[:D1_N])
+        m = rec.model_ref.eval()
+        with torch.no_grad():
+            rec.d1 = d1_measure(lambda T: F.softmax(m(T[0].cuda(), T[1].cuda()), dim=1)[:, 1].cpu().numpy(),
+                                (held["ts"][b], held["pc"][b]), held["ts"].shape[1])
     return {"repo_reported": {"rule": "repo: 선택 없음 (매 epoch 기록만)"},
             "patches": ["source.dataset.init_stratified_dataloader → 공통 fold (steps_per_epoch · total_steps 는 원래 식)",
                         "Train.test_per_epoch → 원래 함수 + test 뒤 순서 고정 평가 기록",
@@ -305,6 +343,24 @@ def run_braingb(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
     os.chdir(a.out)                                              # result.log 를 출력 폴더 안으로
     seed_all(a.seed, deterministic=False)              # 저장소는 seed_everything(random.randint(…)) — random 을 먼저 고정하므로 randint 값이 --seed 로 정해진다
     runpy.run_module("examples.example_main", run_name="__main__", alter_sys=True)
+    if a.d1:                                                     # 순열 FC 로 저장소 처리 (dense_to_ind_val → Data → degree) 를 다시
+        from torch_geometric.data import Batch, Data
+        from src.dataset.brain_dataset import dense_to_ind_val
+        from examples.get_transform import get_transform
+        tf = get_transform("degree")
+        corr = torch.as_tensor(np.asarray(np.load(a.npy, allow_pickle=True).item()["corr"])[rec.test_idx[:D1_N]],
+                               dtype=torch.float32)
+        m = rec.model_ref.eval()
+        dev = next(m.parameters()).device
+
+        def fwd(T):
+            gs = []
+            for adj in T[0]:
+                ei, ea = dense_to_ind_val(adj)
+                gs.append(tf(Data(num_nodes=adj.shape[0], edge_index=ei, edge_attr=ea)))
+            with torch.no_grad():
+                return torch.exp(m(Batch.from_data_list(gs).to(dev)))[:, 1].cpu().numpy()
+        rec.d1 = d1_measure(fwd, (corr,), corr.shape[1])
     return {"repo_reported": {"rule": "repo: 마지막 epoch (val 없음)", "result_log": "result.log"},
             "patches": ["src.dataset.BrainDataset → root 를 fit 출력 폴더로 (처리 캐시가 자료 내용과 무관)",
                         "sklearn.model_selection.StratifiedKFold → 공통 fold 하나 (val 은 학습에서 뺌)",
@@ -436,6 +492,15 @@ def run_han(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
     wandb.init(mode="disabled")
     seed_all(a.seed)                                             # 저장소의 set_seed(338) 자리
     test_auc, test_acc, *_ = entry.model_training(cfg)
+    if a.d1:
+        b = torch.as_tensor(rec.test_idx[:D1_N])
+        m = rec.model_ref.eval()
+
+        def fwd(T):
+            with torch.no_grad():
+                o = m(T[0].cuda(), T[1].cuda(), None, None, False, T[2].cuda(), T[3].cuda(), T[4].cuda())
+                return (torch.sigmoid(o).squeeze(-1) if cfg.log_reg else F.softmax(o, dim=1)[:, 1]).cpu().numpy()
+        rec.d1 = d1_measure(fwd, tuple(t[b] for t in held["t"]), held["t"][0].shape[1])
     return {"repo_reported": {"test_auc": float(test_auc), "test_acc": float(test_acc), "rule": "repo: val AUC 최대 epoch"},
             "patches": ["source.dataset.init_stratified_dataloader → 공통 fold (steps 식은 원래 식)",
                         "Train.train_per_epoch · Train.test_per_epoch_cog → 원래 함수 + 학습 epoch 뒤 test 평가 때 순서 고정 평가 기록",
@@ -457,6 +522,7 @@ def main(argv) -> int:
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--epochs", type=int, default=None, help="smoke 용 — 주지 않으면 저장소 기본값")
     ap.add_argument("--save-last", action="store_true", help="마지막 epoch 의 모델 상태를 저장 (D1 학습판용)")
+    ap.add_argument("--d1", action="store_true", help="학습이 끝난 모델로 D1 (등변성) 을 재어 summary 와 d1.json 에 남긴다")
     a = ap.parse_args(argv[1:])
     import os
     os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")    # 결정적 cuBLAS (torch 문서의 요구)
@@ -477,6 +543,9 @@ def main(argv) -> int:
     extra = {"bqn": run_bqn, "bnt": run_bnt, "braingb": run_braingb, "han": run_han}[a.model](a, fold, labels, rec)
     extra.update({"model": a.model, "fold": a.fold, "seed": a.seed, "npy": str(a.npy), "folds_file": str(a.folds),
                   "folds_draw": folds["draw"], "wall_s": round(time.time() - t0, 1)})
+    if a.d1:
+        extra["d1"] = rec.d1
+        (a.out / "d1.json").write_text(json.dumps(rec.d1, ensure_ascii=False, indent=1))
     s = rec.finish(a.out, extra)
     print(json.dumps({k: s[k] for k in ("selected_epoch", "n_epochs", "test", "last_epoch_test", "repo_reported", "wall_s")},
                      ensure_ascii=False))
