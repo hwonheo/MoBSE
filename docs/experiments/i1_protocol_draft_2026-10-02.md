@@ -221,3 +221,13 @@ atlas `abide_pcp/resources/cc200_roi_atlas.nii.gz` (sha `9467afce23ad`, 63×75×
 | BrainGB | 없음 | **마지막 epoch** 의 test (`example_main.py` "Initial Performance Last Epoch") |
 
 → 공통 fold wrapper 가 피험자별 test 예측을 어느 epoch 에서 꺼낼지 정해야 한다 (§8-11). 층화 기준 (label 만 / label × site) 도 함께 (§8-12).
+
+→ **결정 42 (2026-10-04, 선택 TUI)**: §8-11 = **공통 val loss 최소** epoch 의 test 예측 (네 모델 모두, BrainGB 도 안쪽 val 을 씀) ·
+§8-12 = **label × site** 층화.
+
+### 9.4 공통 fold (2026-10-04)
+
+`scripts/i1/make_folds.py` → `results/i1/folds_draw0.json` (h197 `i1/data/folds_draw0.json`). 표준 `abide.npy` (sha `d81bb42063d6`) 1,009 명,
+층 = label × site 38 개 (최소 13 명), outer `StratifiedKFold(5)`, 안쪽 val = train fold 의 층화 10 %.
+fold 당 train 726–727 · val 81 · test 201–202, test 의 label 1 비율 0.507–0.515. test 가 전체를 한 번씩 덮음 (assert).
+R 반복에서 fold 를 다시 뽑을지는 정하지 않았다 (`--draw`).
