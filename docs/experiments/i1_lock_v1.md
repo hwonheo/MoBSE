@@ -17,15 +17,16 @@
 | BNT | BrainNetworkTransformer `8a588aa` | README ABIDE 명령 (`model=bnt preprocess=mixup datasz=100p`) | 200 | 순서 의존 |
 | BQN | BQN-demo `5dc31b7` | 기본 인자 | 200 | 순서 의존 |
 | Han dual-pathway | RethinkingBCA `cde613f` | 저자 ABIDE 명령 (`run_fold.py` `HAN_OVERRIDES`) | 100 | 순서 의존 [코드] |
-| BrainGB GCN | BrainGB `f042694` | `--pooling mean --node_features degree --gcn_mp_type edge_node_concate --hidden_dim 256` (결정 40) | 100 | **등변** |
+| ~~BrainGB GCN~~ | BrainGB `f042694` | **제외 (결정 47)** — `--pooling mean --node_features degree …` (결정 40) 가 원판 5 fold 에서 학습되지 않음 (§9) | 100 | 등변 |
 | MoBSE mean | v1 `mobse/v2` (측정 잠금 `9b7b11cf`) | v1 main 그대로 (결정 44) | v1 | 등변 |
 | MoBSE embedding | v3 (`c0c8ed77db50`) | v3 본 실행의 구조별 선택 | v3 | 순서 의존 |
 
-- 튜닝하지 않는다. 예외는 BrainGB 의 특성 (결정 40 — 공식 기본 `adj` 는 FC 행이라 등변이 아니다).
+- 튜닝하지 않는다. (예외였던 BrainGB 특성 (결정 40) 은 BrainGB 제외 (결정 47) 로 해당 없음.)
+- **결정 47 (2026-10-04)**: BrainGB 팔을 뺀다 — 공개 모델은 BNT · BQN · Han 셋. 그래서 ABIDE 에는 **등변 공개 모델이 없다**;
+  등변 대표는 MoBSE mean (AOMIC 만) 이 남는다. BrainGB 저장소는 `abide.npy` 피험자 목록의 출처라 잠금의 저장소 해시에는 남긴다.
 - 실행은 메모리 wrapper `scripts/i1/run_fold.py` — 저장소 파일은 고치지 않고 (잠금이 clone 의 `git status` 를 확인한다) 분할 · 평가 함수만
   바꿔 끼운다. 바꾼 목록은 fit 마다 `summary.json` `patches`.
-- 결정성: `torch.use_deterministic_algorithms(True)`. **BrainGB 만 끈다** (결정적 PyG scatter 가 OOM, 저장소 mixup 이 `.cuda()` 고정이라
-  CPU 불가) — BrainGB 는 같은 seed 재실행도 값이 다르고, 그 변동은 D3 에 포함된다.
+- 결정성: `torch.use_deterministic_algorithms(True)` (세 모델 모두 켬 — 끄던 BrainGB 는 제외됨).
 
 ## 3. 자료 · 분할
 
@@ -58,7 +59,7 @@ embedding 은 v3 의 `permutation` · `spin` · `rewire` (index 0–4). 이름�
 | 대상 | K (null 수) | R (seed) | fold | 비고 |
 |---|---:|---:|---:|---|
 | BNT · BQN · Han | 5 | 3 | 5 | orig · n0 은 k0 만 → (1+1+3×5)×3×5 = 255 fit / 자료 |
-| BrainGB | 3 | 2 | 5 | (1+1+3×3)×2×5 = 110 fit / 자료 |
+| ~~BrainGB~~ | — | — | — | 제외 (결정 47) |
 | MoBSE mean | 5 (순열만) | 3 | 5 | 새 학습 없음 (v1 결과) |
 | MoBSE embedding | 5 × 3 종 | 3 | 5 | 새 fit 196 (나머지는 v3 본 실행 재사용) |
 | 기준선 | — | FC logistic · S1 1 (결정적), FC-MLP 3 | 5 | 원판만 |
@@ -66,14 +67,14 @@ embedding 은 v3 의 `permutation` · `spin` · `rewire` (index 0–4). 이름�
 
 ### 5.1 비용 [실측 1 fit × 계획 fit 수, 순차]
 
-전체 epoch smoke (2026-10-04, ABIDE fold 0 · seed 1, h197 RTX 3090 Ti, sglang 이 쉬는 동안): BQN 152 s · BNT 194 s · Han 517 s · BrainGB 728 s.
-ABIDE 순차 합 = 255×152 + 255×194 + 255×517 + 110×728 s ≈ **83 h** (10.8 + 13.7 + 36.6 + 22.2) [계산] — 계획서 §5 의 54–57 h 보다 크다
-(Han · BrainGB 가 사전 점검보다 길다: 전체 epoch · val 평가 추가). 동시 2–3 개면 약 30–45 h [추정]. AOMIC (창 30 시점 · ROI 100) 은 더 짧다 [추정, 미측정].
+전체 epoch smoke (2026-10-04, ABIDE fold 0 · seed 1, h197 RTX 3090 Ti, sglang 이 쉬는 동안): BQN 152 s · BNT 194 s · Han 517 s (BrainGB 728 s — 제외).
+ABIDE 순차 합 = 255×152 + 255×194 + 255×517 s ≈ **61 h** (10.8 + 13.7 + 36.6) [계산] — BrainGB 를 넣었을 때는 83 h 였다 (결정 47 로 22.2 h 줄어듦).
+(Han 이 사전 점검보다 길다: 전체 epoch · val 평가 추가). 동시 2–3 개면 약 20–30 h [추정]. AOMIC (창 30 시점 · ROI 100) 은 더 짧다 [추정, 미측정].
 n3 입력 생성 약 17 h (CPU, 8 병렬) [추정]. GPU 를 sglang 과 함께 써서 그 작업이 활성일 때는 OOM 재시도 · 대기가 생긴다.
 
 ## 6. 지표 · 추정량 · CI (결정 42 · 43)
 
-- test 예측 = 안쪽 val loss (확률의 평균 CE) 최소 epoch, 같으면 앞 epoch. 네 공개 모델 · 기준선 FC-MLP 모두 같은 규칙.
+- test 예측 = 안쪽 val loss (확률의 평균 CE) 최소 epoch, 같으면 앞 epoch. 세 공개 모델 · 기준선 FC-MLP 모두 같은 규칙.
 - 단위 (조건, k, r) 마다 5 fold 의 test 예측을 모은 OOF. 지표 AUC 주 · BA (문턱 0.5) 보조.
 - Δ_{c,k,r} = AUC(orig, r) − AUC(c, k, r), 같은 seed 짝.
 - CI (2,000 회, 95 % percentile, 원판 · null 에 같은 피험자 재표집): **단일 학습 CI** (가장 작은 r · k=0 짝) 와 **재학습 포함 CI**
@@ -95,13 +96,13 @@ n3 입력 생성 약 17 h (CPU, 8 병렬) [추정]. GPU 를 sglang 과 함께 �
 
 다시 돌리지 않고 센다. 붕괴 = test 예측 표준편차 < 1e−6 또는 예측 class 하나 — 붕괴 fit 이 있는 단위를 표시하고, 뺀 결과를 민감도로.
 프로세스 오류 (rc ≠ 0) 는 같은 seed 로 한 번 재시도 (구동기), 다시 실패하면 실패로 기록. GPU 메모리 부족도 같은 규칙이다
-(h197 GPU 는 다른 작업 (sglang) 과 함께 쓴다 — 그 작업이 GPU 18.7 GB 를 쓰는 동안 Han · BrainGB 는 OOM, 2026-10-04 실측).
+(h197 GPU 는 다른 작업 (sglang) 과 함께 쓴다 — 그 작업이 GPU 18.7 GB 를 쓰는 동안 Han 은 OOM, 2026-10-04 실측).
 
 ## 9. 알려진 한계 (잠금 시점)
 
 - CC200 은 반구를 나눠 만든 atlas 가 아니다 — 반구 걸친 parcel 22 개 (25 % 초과), n2 의 반구 판정이 그 parcel 에서 임의적.
 - n3 에서 시계열을 받는 모델 (BNT · BQN · Han) 은 FC 와 시계열이 어긋난다.
-- BrainGB 비결정성. BrainGB 는 저장소 그대로 둘째 epoch 부터 eval 모드로 학습한다.
+- **ABIDE 에 등변 공개 모델이 없다** (결정 47 로 BrainGB 제외). 등변 대조는 MoBSE mean 의 AOMIC 결과뿐이다.
 - AOMIC 은 30 시점 창 — 공개 모델의 원래 쓰임 (긴 시계열) 과 다르다.
 - MoBSE mean 은 spin · rewire 가 없다 (v1 에 없음, 결정 44).
 - **잠금 전에 본 결과**: 분석 파이프라인 smoke 로 MoBSE mean 팔 (기존 v1 결과) 을 I1 방식으로 계산했다 (잠금 초안 §7.1). 그 값으로 설계를 바꾸지 않았다.
@@ -136,7 +137,8 @@ n3 입력 생성 약 17 h (CPU, 8 병렬) [추정]. GPU 를 sglang 과 함께 �
 
   test AUC 0.448–0.527 (평균 0.479 [계산]), train AUC 는 여전히 55 미만, loss 0.0443 → 0.0439. **정규화로 바뀌지 않는다** →
   원인 후보 ② (입력 크기) 는 기각되고, ① (1 차원 strength + mean pooling 이라 ROI 정체 없이 남는 정보가 적음) 또는 저장소 학습 루프 특성
-  (둘째 epoch 부터 eval 모드 학습 등, 위 한계) 이 남는다 — 둘을 가르는 측정은 하지 않았다.
+  (저장소가 둘째 epoch 부터 eval 모드로 학습함) 이 남는다 — 둘을 가르는 측정은 하지 않았다.
+  → **결정 47 (2026-10-04)**: BrainGB 팔 제외. 이 10 fit 은 잠금 대상 결과가 아니며 Δ 는 재지 않았다.
 
 ## 10. 잠금 뒤 바꾸면
 

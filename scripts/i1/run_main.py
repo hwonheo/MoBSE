@@ -4,7 +4,7 @@
 단계 (``--phase``):
 * ``nulls``     — null 입력 생성 (``null_inputs.py``): n0 k0 · n1–n3 k0..K−1 (K 는 모델 최댓값 5). ABIDE 는 CC200 좌표,
                   AOMIC 은 Schaefer 좌표. n3 는 ``--n3-workers`` 병렬.
-* ``fits``      — 공개 모델 (``run_fold.py``). 모델마다 K · R (결정 38-3: BrainGB K=3 · R=2, 나머지 K=5 · R=3), 조건 orig · n0 (k0) ·
+* ``fits``      — 공개 모델 (``run_fold.py``). 모델마다 K · R (결정 38-3: K=5 · R=3; BrainGB 는 결정 47 로 제외), 조건 orig · n0 (k0) ·
                   n1–n3 (k0..K−1), seed r = 1..R, fold 0–4. D1 학습판용으로 orig · r=1 · fold 0–2 는 ``--save-last --d1`` (결정 43 §3.9 — 학습 끝 모델로 바로 잰다).
 * ``site``      — site 민감도 (결정 43 §3.5): BQN · ``folds_site.json`` · orig + n1 (k0..4) · R=3. ABIDE 만.
 * ``baselines`` — FC logistic · S1 (결정적이라 r=1 만) · FC-MLP (r=1..3), 원판만 (결정 43 §3.8).
@@ -30,8 +30,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-MODELS = ("bqn", "bnt", "han", "braingb")
-KR = {"bqn": (5, 3), "bnt": (5, 3), "han": (5, 3), "braingb": (3, 2)}
+MODELS = ("bqn", "bnt", "han")                                  # BrainGB 는 결정 47 로 제외 (원판 5 fold 학습 안 됨)
+KR = {"bqn": (5, 3), "bnt": (5, 3), "han": (5, 3)}
 NULLS = ("n1", "n2", "n3")
 N_FOLDS = 5
 D1_FOLDS = (0, 1, 2)

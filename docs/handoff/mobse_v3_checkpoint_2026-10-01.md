@@ -508,3 +508,14 @@ MoBSE 팔의 mean 은 v1 main OOF + WI-09 결과 (순열 prior 5 × seed 3 × fo
 
 - 결정 46 측정 결과 (10-04 23:12–10-05 00:14 KST, rc 전부 0): test AUC 0.459 · 0.527 · 0.448 · 0.463 · 0.497, train AUC 여전히 55 미만 —
   **정규화로 바뀌지 않는다** (입력 크기 원인 기각). 표는 잠금 문서 §9 "잠금 전에 본 결과 (4)". BrainGB 구성 결정 대기.
+
+**결정 47 (2026-10-05, 선택 TUI)** — 선생님 선택 원문 "BrainGB 팔 제외 (Recommended)".
+- **정한 것**: I1 공개 모델에서 BrainGB 를 뺀다 → BNT · BQN · Han 셋. ABIDE 순차 비용 83 h → 약 61 h [계산].
+- **정하지 않은 것**: 잠금 생성, 본 실행 (결정 39), 다른 등변 공개 모델로 대체할지.
+- 결과: ABIDE 에 등변 공개 모델이 없다 — 등변 대조는 MoBSE mean (AOMIC) 만. 잠금 문서 §2 · §5 · §5.1 · §6 · §8 · §9 반영,
+  구동기 `scripts/i1/run_main.py` `MODELS` · `KR` 에서 braingb 를 뺐다. BrainGB 저장소는 `abide.npy` 피험자 목록 출처라 잠금 저장소 해시에 남김 [구현 선택].
+  `run_fold.py` 의 braingb 경로와 `--braingb-degree-norm` 은 측정 재현용으로 둔다.
+
+| # | 일시 (KST) | 원문 | 방식 | 정한 것 | 정하지 않은 것 | 그 승인으로 실제로 한 일 |
+|---|---|---|---|---|---|---|
+| 20 | 10-05 | "BrainGB 팔 제외 (Recommended)" | TUI | 결정 47 — BrainGB 제외 | 잠금, 본 실행, 대체 모델 | 잠금 문서 · 구동기 갱신 |
