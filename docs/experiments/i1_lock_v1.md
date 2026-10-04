@@ -64,6 +64,13 @@ embedding 은 v3 의 `permutation` · `spin` · `rewire` (index 0–4). 이름�
 | 기준선 | — | FC logistic · S1 1 (결정적), FC-MLP 3 | 5 | 원판만 |
 | site 민감도 | n1 5 | 3 | 5 | BQN, orig + n1 |
 
+### 5.1 비용 [실측 1 fit × 계획 fit 수, 순차]
+
+전체 epoch smoke (2026-10-04, ABIDE fold 0 · seed 1, h197 RTX 3090 Ti, sglang 이 쉬는 동안): BQN 152 s · BNT 194 s · Han 517 s · BrainGB 728 s.
+ABIDE 순차 합 = 255×152 + 255×194 + 255×517 + 110×728 s ≈ **83 h** (10.8 + 13.7 + 36.6 + 22.2) [계산] — 계획서 §5 의 54–57 h 보다 크다
+(Han · BrainGB 가 사전 점검보다 길다: 전체 epoch · val 평가 추가). 동시 2–3 개면 약 30–45 h [추정]. AOMIC (창 30 시점 · ROI 100) 은 더 짧다 [추정, 미측정].
+n3 입력 생성 약 17 h (CPU, 8 병렬) [추정]. GPU 를 sglang 과 함께 써서 그 작업이 활성일 때는 OOM 재시도 · 대기가 생긴다.
+
 ## 6. 지표 · 추정량 · CI (결정 42 · 43)
 
 - test 예측 = 안쪽 val loss (확률의 평균 CE) 최소 epoch, 같으면 앞 epoch. 네 공개 모델 · 기준선 FC-MLP 모두 같은 규칙.
@@ -98,6 +105,8 @@ embedding 은 v3 의 `permutation` · `spin` · `rewire` (index 0–4). 이름�
 - AOMIC 은 30 시점 창 — 공개 모델의 원래 쓰임 (긴 시계열) 과 다르다.
 - MoBSE mean 은 spin · rewire 가 없다 (v1 에 없음, 결정 44).
 - **잠금 전에 본 결과**: 분석 파이프라인 smoke 로 MoBSE mean 팔 (기존 v1 결과) 을 I1 방식으로 계산했다 (잠금 초안 §7.1). 그 값으로 설계를 바꾸지 않았다.
+- **잠금 전에 본 결과 (2)**: 전체 epoch smoke 의 원판 fold 0 · seed 1 test AUC — BQN 0.676 · BNT 0.757 · Han 0.751 · **BrainGB (degree) 0.461**.
+  BrainGB degree 판이 이 한 fold 에서 우연 수준 아래다 (선택 epoch 93/100). 한 fold · 한 seed 라 판단 근거로 약하다.
 
 ## 10. 잠금 뒤 바꾸면
 
