@@ -291,6 +291,9 @@ def run_braingb(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
     sys.path.insert(0, str(repo))
     import src.dataset as gbds
     import examples.train_and_evaluate as tae
+    import examples.get_transform as gtf
+    from torch_geometric.data import Data
+    from src.dataset.brain_dataset import dense_to_ind_val
 
     root_dir = a.out / "braingb_root"                           # 처리 캐시 이름이 자료 내용과 무관 → fit 마다 새 root
     root_dir.mkdir()
@@ -332,6 +335,31 @@ def run_braingb(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
             rec.add(probs(model, rec.val_idx), probs(model, rec.test_idx), model=model)
         return res
 
+    orig_gt = gtf.get_transform
+    norm = None
+    if a.braingb_degree_norm == "train_z":                       # 결정 46 확인용: degree (행 가중합) 를 train fold 통계로 전역 z-score.
+        corr_all = torch.as_tensor(np.asarray(np.load(a.npy, allow_pickle=True).item()["corr"]), dtype=torch.float32)
+        tf0 = orig_gt("degree")                                  # 저장소 변환을 그대로 써서 통계를 낸다 (정의가 어긋나지 않게)
+        xs = []
+        for i in fold["train"]:
+            ei, ea = dense_to_ind_val(corr_all[i])
+            xs.append(tf0(Data(num_nodes=corr_all.shape[1], edge_index=ei, edge_attr=ea)).x)
+        xs = torch.cat(xs)
+        norm = {"mode": "train_z", "mean": float(xs.mean()), "sd": float(xs.std())}
+
+        class DegreeTrainZ(type(tf0)):                           # 상수 affine — 정보량 · 등변성은 그대로, 크기만 바뀐다
+            def __call__(self, data):
+                data = super().__call__(data)
+                data.x = (data.x - norm["mean"]) / norm["sd"]
+                return data
+
+            def __str__(self):
+                return "DegreeTrainZ"
+
+        def get_transform(name):
+            return DegreeTrainZ() if name == "degree" else orig_gt(name)
+        gtf.get_transform = get_transform
+
     gbds.BrainDataset = BrainDataset
     skms.StratifiedKFold = OneFold
     tae.evaluate = evaluate
@@ -344,10 +372,8 @@ def run_braingb(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
     seed_all(a.seed, deterministic=False)              # 저장소는 seed_everything(random.randint(…)) — random 을 먼저 고정하므로 randint 값이 --seed 로 정해진다
     runpy.run_module("examples.example_main", run_name="__main__", alter_sys=True)
     if a.d1:                                                     # 순열 FC 로 저장소 처리 (dense_to_ind_val → Data → degree) 를 다시
-        from torch_geometric.data import Batch, Data
-        from src.dataset.brain_dataset import dense_to_ind_val
-        from examples.get_transform import get_transform
-        tf = get_transform("degree")
+        from torch_geometric.data import Batch
+        tf = gtf.get_transform("degree")                         # 정규화 판이면 같은 정규화 변환
         corr = torch.as_tensor(np.asarray(np.load(a.npy, allow_pickle=True).item()["corr"])[rec.test_idx[:D1_N]],
                                dtype=torch.float32)
         m = rec.model_ref.eval()
@@ -365,7 +391,9 @@ def run_braingb(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
             "patches": ["src.dataset.BrainDataset → root 를 fit 출력 폴더로 (처리 캐시가 자료 내용과 무관)",
                         "sklearn.model_selection.StratifiedKFold → 공통 fold 하나 (val 은 학습에서 뺌)",
                         "examples.train_and_evaluate.evaluate → 원래 함수 + train 평가 뒤 순서 고정 평가 기록",
-                        "seed: wrapper seed_all 뒤 저장소 seed_everything(random.randint) 그대로"],
+                        "seed: wrapper seed_all 뒤 저장소 seed_everything(random.randint) 그대로"]
+                       + (["examples.get_transform.get_transform → degree 를 train fold 통계로 전역 z-score (결정 46 확인용)"] if norm else []),
+            "degree_norm": norm,
             "deterministic": False,
             "nondeterminism_note": "GPU scatter 비결정 — 결정적 모드는 OOM, mixup 의 .cuda() 고정으로 CPU 불가. 같은 seed 재실행 값이 다를 수 있다",
             "argv": argv[1:],
@@ -522,6 +550,8 @@ def main(argv) -> int:
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--epochs", type=int, default=None, help="smoke 용 — 주지 않으면 저장소 기본값")
     ap.add_argument("--save-last", action="store_true", help="마지막 epoch 의 모델 상태를 저장 (D1 학습판용)")
+    ap.add_argument("--braingb-degree-norm", choices=("none", "train_z"), default="none",
+                    help="BrainGB 만 — train_z 는 degree 특성을 train fold 평균 · SD 로 표준화 (결정 46 확인용, 잠금 구성은 none)")
     ap.add_argument("--d1", action="store_true", help="학습이 끝난 모델로 D1 (등변성) 을 재어 summary 와 d1.json 에 남긴다")
     a = ap.parse_args(argv[1:])
     import os

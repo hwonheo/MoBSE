@@ -494,3 +494,14 @@ MoBSE 팔의 mean 은 v1 main OOF + WI-09 결과 (순열 prior 5 × seed 3 × fo
 
 - 결정 45 측정 결과 (10-04 19:12–19:59 KST, rc 전부 0): fold 1–4 test AUC 0.486 · 0.467 · 0.523 · 0.529 (fold 0 은 0.461) —
   **train AUC 도 100 epoch 내내 47–55** 라 학습이 되지 않는 판이다. 표 · 원인 후보는 잠금 문서 `docs/experiments/i1_lock_v1.md` §9 "잠금 전에 본 결과 (3)". BrainGB 구성 결정 대기.
+
+**결정 46 (2026-10-04, 선택 TUI)** — 선생님 선택 원문 "정규화 판 확인 후 정함 (Recommended)".
+- **정한 것**: degree 특성 표준화만 바꾼 판으로 원판 fold 0–4 · seed 1 을 다시 재고 BrainGB 구성을 다시 묻는다 (null 없음).
+- **정하지 않은 것**: BrainGB 구성 (유지 · 정규화 채택 · 제외), 잠금, 본 실행.
+- 구현 선택: 표준화 = **train fold 의 strength 평균 · SD 로 전역 z-score** (상수 affine → 정보량 · 등변성 불변, test 누설 없음).
+  `run_fold.py --braingb-degree-norm train_z` (기본값 `none` = 잠금 구성 그대로). smoke (2 epoch, fold 0): 입력 평균 −0.01 · SD 0.99, D1 최대 차 6.0e−8.
+  산출 h197 `i1/braingb_check/20261004_z/`.
+
+| # | 일시 (KST) | 원문 | 방식 | 정한 것 | 정하지 않은 것 | 그 승인으로 실제로 한 일 |
+|---|---|---|---|---|---|---|
+| 19 | 10-04 | "정규화 판 확인 후 정함 (Recommended)" | TUI | 결정 46 — 정규화 판 5 fit 측정 | BrainGB 구성, 잠금, 본 실행 | `run_fold.py` 플래그 · smoke · fold 0–4 실행 |
