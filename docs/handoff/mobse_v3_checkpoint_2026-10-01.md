@@ -491,3 +491,6 @@ MoBSE 팔의 mean 은 v1 main OOF + WI-09 결과 (순열 prior 5 × seed 3 × fo
 | # | 일시 (KST) | 원문 | 방식 | 정한 것 | 정하지 않은 것 | 그 승인으로 실제로 한 일 |
 |---|---|---|---|---|---|---|
 | 18 | 10-04 | "5 fold 더 재고 정함 (Recommended)" | TUI | 결정 45 — BrainGB 원판 4 fit 추가 측정 | BrainGB 구성, 잠금, 본 실행 | h197 BrainGB 원판 fold 1–4 (GPU 여유를 기다려 실행) |
+
+- 결정 45 측정 결과 (10-04 19:12–19:59 KST, rc 전부 0): fold 1–4 test AUC 0.486 · 0.467 · 0.523 · 0.529 (fold 0 은 0.461) —
+  **train AUC 도 100 epoch 내내 47–55** 라 학습이 되지 않는 판이다. 표 · 원인 후보는 잠금 문서 `docs/experiments/i1_lock_v1.md` §9 "잠금 전에 본 결과 (3)". BrainGB 구성 결정 대기.
