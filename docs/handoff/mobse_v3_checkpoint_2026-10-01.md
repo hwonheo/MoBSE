@@ -531,3 +531,16 @@ MoBSE 팔의 mean 은 v1 main OOF + WI-09 결과 (순열 prior 5 × seed 3 × fo
 | # | 일시 (KST) | 원문 | 방식 | 정한 것 | 정하지 않은 것 | 그 승인으로 실제로 한 일 |
 |---|---|---|---|---|---|---|
 | 21 | 10-05 | 위 네 선택 | TUI | 결정 48 — 대체 없음 · GPU 대기 · 잠금 생성 · 본 실행 전 단계 | 결과 뒤 설계 변경, PIOP2, 해석 | 구동기 GPU 대기 · 잠금 생성 · 본 실행 |
+
+### 11.3 I1 잠금과 본 실행 착수 (2026-10-05)
+
+- **잠금**: `results/i1/locks/i1_lock.json` — lock_hash `ac3bad06f6ef` · code_hash `a5738888b83c` · data_hash `b50b69aa8c4c` · v1 묶음 `08385bf94c3f`,
+  문서 sha `e418cbf78562` (`docs/experiments/i1_lock_v1.md`), h197 03:04 KST 생성 · `--verify` rc=0. 생성 직후 h197 사본의 `.pyc` 105 개를
+  `to-delete/pycache_20261005/` 로 옮겼다 (10-02 캐시 — 잠금 전 0 확인을 빠뜨린 것, 해시는 `.py` 만 보므로 잠금 값 불변 · 재검증 rc=0 · v3 잠금 rc=0).
+- **a1 중지** (h197 `i1/main/20261005_ac3bad06_a1/`): 구동 스크립트가 `PYTHONPATH=.` 를 내보내 잠금 검증의 `pip freeze` 에 저장소
+  `mobse.egg-info` 의 `mobse==0.1.0` 이 끼어 `environment` 불일치 → 공개 모델 단계 전부 rc=3 (실행 0). 잠금 검증이 없는 MoBSE embedding
+  fit 이 시작됐다가 운영자가 멈춤 (fit_report 0). 상태 파일에 중지 사유를 적었다.
+- **a2 실행 중** (h197 `i1/main/20261005_ac3bad06_a2/`, 구동 스크립트 `orchestrate.sh` — 저장소 밖, scripts/i1 에 두면 잠금이 바뀜):
+  PYTHONPATH 를 내보내지 않고 MoBSE 팔 명령에만 붙임 · 맨 앞 잠금 검증 (실패 시 아무것도 시작 안 함) · 단계 rc=3 이면 전체 중단.
+  순서 = ABIDE nulls (CPU, 병행) ‖ AOMIC nulls → fits → baselines → MoBSE mean 수집 · embedding 196 fit (venv-mobse-v2, v3 잠금 환경) → AOMIC 분석
+  → ABIDE nulls 끝나면 ABIDE fits → site → baselines → 분석. 10-05 03:16 KST 잠금 검증 rc=0 · null 단계 착수.
