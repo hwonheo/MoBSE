@@ -197,7 +197,7 @@ atlas `abide_pcp/resources/cc200_roi_atlas.nii.gz` (sha `9467afce23ad`, 63×75×
 `scripts/i1/null_inputs.py` — 표준 `abide.npy` 를 조건 (n0–n3) · 번호 k 마다 변환한다. 출력은 `abide.npy` (`pcorr` 는 뺌 — 네 저장소가 읽지 않음 [코드]) ·
 `perms.npy` (n0–n2) · `meta.json` (seed 규칙 · 입출력 sha · 검사). 이미 있으면 덮어쓰지 않는다.
 
-- **bctpy 버그** [측정]: `null_model_und_sign` (0.6.0 설치판, 0.6.1 도 같은 코드 [코드]) 이 음수 쪽 가중치에 `s = −1` 을 곱해 **양수로** 넣는다 —
+- **bctpy 버그** [측정]: `null_model_und_sign` (설치판 = **0.6.1** — 모듈은 `__version__` 을 0.6.0 으로 보고한다. 10-04 정정) 이 음수 쪽 가중치에 `s = −1` 을 곱해 **양수로** 넣는다 —
   ABIDE 첫 피험자에서 음수 edge 3,029 → 0. 생성기는 이진 단계만 bctpy `randmio_und_signed` 를 쓰고, 가중치 배정은 부호별 크기로 고친 사본을 쓴다.
 - smoke (8 명 · k=0, h197 `i1/null_smoke/20261004/`):
 
