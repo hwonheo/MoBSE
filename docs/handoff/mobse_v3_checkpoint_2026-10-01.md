@@ -480,3 +480,14 @@ MoBSE 팔의 mean 은 v1 main OOF + WI-09 결과 (순열 prior 5 × seed 3 × fo
 |---|---|---|---|---|---|---|
 | 16 | 10-04 | "ok" (잠금 전 구현 진행) | 채팅 | 잠금 전 구현 1–7 | 본 실행 | AOMIC 입력 · wrapper 보완 · 기준선 · 분석 · MoBSE 팔 스크립트 (smoke 만) |
 | 17 | 10-04 | "v1 결과 재사용 (Recommended)" | TUI | 결정 44 | 본 실행 | v1 결과 수집 · embedding 계획 · smoke 1 fit |
+
+**결정 45 (2026-10-04, 선택 TUI)** — 선생님 선택 원문 "5 fold 더 재고 정함 (Recommended)".
+전체 epoch smoke 에서 BrainGB degree 판 (등변 대표) 의 원판 fold 0 test AUC 가 0.461 (우연 수준 아래). 잠금 전에 원판만 fold 1–4 · seed 1 을
+더 돌려 학습이 되는지 보고 다시 묻는다. null 은 돌리지 않는다 (Δ 를 보지 않음). 본 값은 잠금 문서 §9 "잠금 전에 본 결과" 에 기록한다.
+- **정하지 않은 것**: BrainGB 구성 유지 여부, 잠금 생성, 본 실행.
+- 함께 기록: 전체 epoch fit 시간 BQN 152 s · BNT 194 s · Han 517 s · BrainGB 728 s → ABIDE 순차 약 83 h [계산] (잠금 문서 §5.1).
+  h197 GPU 를 sglang (Unlimited-OCR) 과 함께 쓴다 — 그 작업이 GPU 18.7 GB 를 쓸 때 Han · BrainGB 는 OOM (10-04 실측). sglang 은 건드리지 않았다.
+
+| # | 일시 (KST) | 원문 | 방식 | 정한 것 | 정하지 않은 것 | 그 승인으로 실제로 한 일 |
+|---|---|---|---|---|---|---|
+| 18 | 10-04 | "5 fold 더 재고 정함 (Recommended)" | TUI | 결정 45 — BrainGB 원판 4 fit 추가 측정 | BrainGB 구성, 잠금, 본 실행 | h197 BrainGB 원판 fold 1–4 (GPU 여유를 기다려 실행) |
