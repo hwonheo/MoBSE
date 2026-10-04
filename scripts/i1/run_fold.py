@@ -65,11 +65,15 @@ class Recorder:
         self.val_idx, self.test_idx = np.asarray(fold["val"]), np.asarray(fold["test"])
         self.y_val, self.y_test = labels[self.val_idx], labels[self.test_idx]
         self.rows: list = []
+        self.keep_last = False                                   # --save-last: D1 학습판용 마지막 epoch 상태
+        self.last_state = None
 
-    def add(self, p_val: np.ndarray, p_test: np.ndarray) -> None:
+    def add(self, p_val: np.ndarray, p_test: np.ndarray, model=None) -> None:
         self.rows.append({"epoch": len(self.rows), "val_loss": mean_ce(p_val, self.y_val),
                           "val": auc_ba(p_val, self.y_val), "test": auc_ba(p_test, self.y_test),
                           "_p_test": p_test.astype(float)})
+        if self.keep_last and model is not None:
+            self.last_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
 
     def finish(self, out: Path, extra: dict) -> dict:
         if not self.rows:
@@ -84,6 +88,12 @@ class Recorder:
                 fh.write(json.dumps({k: v for k, v in r.items() if not k.startswith("_")}) + "\n")
         summary = {"selected_epoch": best, "n_epochs": len(self.rows), "val_loss": self.rows[best]["val_loss"],
                    "test": self.rows[best]["test"], "last_epoch_test": self.rows[-1]["test"], **extra}
+        if self.keep_last:
+            import torch
+            if self.last_state is None:
+                raise RuntimeError("--save-last 인데 저장할 상태가 없다")
+            torch.save(self.last_state, out / "last_epoch_state.pt")
+            summary["last_epoch_state"] = "last_epoch_state.pt"
         (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=1))
         return summary
 
@@ -133,7 +143,7 @@ def run_bqn(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
     def val_test(model, args, val_loader, test_loader):
         res = orig_val_test(model, args, val_loader, test_loader)   # 저장소 평가 그대로 (로그 · 선택 목록)
         model.eval()
-        rec.add(probs(model, rec.val_idx), probs(model, rec.test_idx))
+        rec.add(probs(model, rec.val_idx), probs(model, rec.test_idx), model=model)
         return res
 
     bqn_main.init_stratified_dataloader = init_stratified_dataloader
@@ -209,7 +219,7 @@ def run_bnt(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
         res = orig_tpe(self, dataloader, loss_meter, acc_meter)
         if dataloader is self.test_dataloader:                   # 저장소 순서: val → test. test 뒤에 한 번 기록
             self.model.eval()
-            rec.add(probs(self.model, rec.val_idx), probs(self.model, rec.test_idx))
+            rec.add(probs(self.model, rec.val_idx), probs(self.model, rec.test_idx), model=self.model)
         return res
 
     ds.init_stratified_dataloader = init_stratified_dataloader
@@ -281,7 +291,7 @@ def run_braingb(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
     def evaluate(model, device, loader, test_loader=None):
         res = orig_eval(model, device, loader, test_loader)
         if len(loader.dataset) == n_train:                       # 매 epoch 끝의 train 평가 = epoch 하나 끝
-            rec.add(probs(model, rec.val_idx), probs(model, rec.test_idx))
+            rec.add(probs(model, rec.val_idx), probs(model, rec.test_idx), model=model)
         return res
 
     gbds.BrainDataset = BrainDataset
@@ -403,7 +413,7 @@ def run_han(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
         res = orig_tpe(self, dataloader, *args, **kwargs)
         if dataloader is self.test_dataloader and state["trained"]:   # 학습 전 성능 보기 (show_initial_performance) 는 빼고
             self.model.eval()
-            rec.add(probs(self.model, rec.val_idx), probs(self.model, rec.test_idx))
+            rec.add(probs(self.model, rec.val_idx), probs(self.model, rec.test_idx), model=self.model)
             state["trained"] = False
         return res
 
@@ -446,6 +456,7 @@ def main(argv) -> int:
     ap.add_argument("--seed", required=True, type=int)
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--epochs", type=int, default=None, help="smoke 용 — 주지 않으면 저장소 기본값")
+    ap.add_argument("--save-last", action="store_true", help="마지막 epoch 의 모델 상태를 저장 (D1 학습판용)")
     a = ap.parse_args(argv[1:])
     import os
     os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")    # 결정적 cuBLAS (torch 문서의 요구)
@@ -461,6 +472,7 @@ def main(argv) -> int:
     if len(labels) != folds["n_subj"]:
         raise SystemExit(f"표본 수 {len(labels)} ≠ fold 파일 {folds['n_subj']}")
     rec = Recorder(fold, labels)
+    rec.keep_last = a.save_last
     t0 = time.time()
     extra = {"bqn": run_bqn, "bnt": run_bnt, "braingb": run_braingb, "han": run_han}[a.model](a, fold, labels, rec)
     extra.update({"model": a.model, "fold": a.fold, "seed": a.seed, "npy": str(a.npy), "folds_file": str(a.folds),
