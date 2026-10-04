@@ -24,6 +24,7 @@ import json
 import os
 import subprocess
 import sys
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -37,6 +38,9 @@ N_FOLDS = 5
 D1_FOLDS = (0, 1, 2)
 BASELINES = {"fc_logistic": (1,), "s1_logistic": (1,), "fc_mlp": (1, 2, 3)}
 SITE = {"model": "bqn", "conds": ("orig", "n1"), "K": 5, "R": 3}
+GPU_FREE_MIB = 10240        # 결정 48: GPU fit 은 여유 메모리가 이만큼 될 때 시작한다 (sglang 과 GPU 공유 — OOM 이 실패로 세지지 않게)
+GPU_SETTLE_S = 120          # 시작한 fit 이 메모리를 잡을 때까지 다음 시작을 미룬다 (동시 작업이 같은 여유를 보고 함께 시작하지 않게)
+GPU_POLL_S = 60
 
 
 def now() -> str:
@@ -59,6 +63,7 @@ class Main:
         self.out = a.out
         self.out.mkdir(parents=True, exist_ok=True)
         self.logf = self.out / f"driver_{a.dataset}.log"
+        self.gpu_gate = threading.Lock()
 
     def log(self, msg: str) -> None:
         line = f"{now()} {msg}"
@@ -69,6 +74,24 @@ class Main:
     def input_npy(self, cond: str, k: int) -> Path:
         return self.npy if cond == "orig" else self.out / "inputs" / self.a.dataset / f"{cond}_k{k}" / "abide.npy"
 
+    def gpu_free_mib(self) -> int:
+        try:
+            out = subprocess.run(["nvidia-smi", "--query-gpu=memory.free", "--format=csv,noheader,nounits"],
+                                 capture_output=True, text=True, timeout=60).stdout
+            return int(out.split()[0])
+        except (OSError, subprocess.SubprocessError, ValueError, IndexError):
+            return -1                                            # 읽지 못하면 여유 없음으로 보고 기다린다
+
+    def wait_gpu(self, name: str) -> None:
+        """결정 48 — GPU 여유 메모리가 GPU_FREE_MIB 이상이 될 때까지 기다린다 (호출자가 gpu_gate 를 쥔 채 부른다)."""
+        t0, warned = time.time(), 0
+        while (free := self.gpu_free_mib()) < GPU_FREE_MIB:
+            waited = time.time() - t0
+            if waited >= 600 * (warned + 1):                     # 10 분마다 한 줄
+                warned += 1
+                self.log(f"   GPU 대기 {name}: 여유 {free} MiB < {GPU_FREE_MIB} — {waited / 60:.0f} 분째")
+            time.sleep(GPU_POLL_S)
+
     def run_jobs(self, label: str, jobs: list, k: int) -> int:
         env = {**os.environ, "PYTHONPATH": str(ROOT), "PYTHONDONTWRITEBYTECODE": "1", "WANDB_MODE": "disabled"}
         todo = [j for j in jobs if not (Path(j["done"]).exists())]
@@ -78,7 +101,16 @@ class Main:
 
         def one(j):
             with (self.out / "logs" / f"{j['name']}.log").open("w") as fh:
-                return j, subprocess.run(j["cmd"], cwd=ROOT, env=env, stdout=fh, stderr=subprocess.STDOUT).returncode
+                if not j.get("gpu"):
+                    return j, subprocess.run(j["cmd"], cwd=ROOT, env=env, stdout=fh, stderr=subprocess.STDOUT).returncode
+                with self.gpu_gate:                              # 결정 48: 여유 대기 → 시작 → 메모리를 잡을 때까지, 한 번에 하나씩
+                    self.wait_gpu(j["name"])
+                    p = subprocess.Popen(j["cmd"], cwd=ROOT, env=env, stdout=fh, stderr=subprocess.STDOUT)
+                    try:
+                        p.wait(timeout=GPU_SETTLE_S)
+                    except subprocess.TimeoutExpired:
+                        pass
+                return j, p.wait()
 
         with ThreadPoolExecutor(max_workers=k) as ex:
             for i, fut in enumerate(as_completed([ex.submit(one, j) for j in todo]), 1):
@@ -114,7 +146,7 @@ class Main:
         if cond == "orig" and r == 1 and f in D1_FOLDS and tag is None:
             cmd += ["--save-last", "--d1"]
         return {"name": f"{tag or self.a.dataset}_{model}_{cond}_k{k}_r{r}_f{f}", "cmd": cmd,
-                "done": str(out / "summary.json")}
+                "done": str(out / "summary.json"), "gpu": True}
 
     def phase_fits(self) -> int:
         rc = 0
