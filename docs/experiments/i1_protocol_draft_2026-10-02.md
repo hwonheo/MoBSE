@@ -210,3 +210,14 @@ atlas `abide_pcp/resources/cc200_roi_atlas.nii.gz` (sha `9467afce23ad`, 63×75×
 
 - n3 비용 [측정]: 1 행렬 23 s (1 프로세스), 8 프로세스 병렬이면 행렬당 약 95–101 s (BLAS 스레드 1 고정해도 같음, 출력 바이트 동일).
   전량 (1,009 명 × K=5 = 5,045 행렬) 은 8 병렬로 약 17 h [추정]. 본 실행 전에 줄일지 (구현 가속 · 병렬 수) 는 따로 본다.
+
+### 9.3 test 성능을 고르는 규칙 (저장소 기본, 2026-10-04) [코드]
+
+| 저장소 | val | 보고하는 test 값 |
+|---|---|---|
+| BNT | 10 % | **고르지 않는다** — 매 epoch 의 val · test AUC 를 기록만 (`training_process`) |
+| BQN | 10 % | val **loss 최소** epoch 의 test (`main.py` `index_max = argmin(val_loss)`) |
+| Han | 10 % | val **AUC 최대** epoch 의 test (`training.py` 분류 경로 `best_auc`) |
+| BrainGB | 없음 | **마지막 epoch** 의 test (`example_main.py` "Initial Performance Last Epoch") |
+
+→ 공통 fold wrapper 가 피험자별 test 예측을 어느 epoch 에서 꺼낼지 정해야 한다 (§8-11). 층화 기준 (label 만 / label × site) 도 함께 (§8-12).
