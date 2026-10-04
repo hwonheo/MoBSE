@@ -87,3 +87,31 @@ null 은 v3 의 세 종류 (순열 · spin · rewire) 를 K=5 · R=3. 자료는 
 ## 5. 잠금 뒤 바꾸면
 
 잠금 뒤의 설계 · 모델 · 지표 변경은 새 판 (v2 잠금) 과 사유 기록이 필요하다 (v1 의 §8 이탈 기록과 같은 방식). 버그 수정은 잠금 재생성 + 사유.
+
+## 6. 결정 44 (2026-10-04) — MoBSE 팔의 mean 구조
+
+v3 잠금 config 의 구조는 `embedding` · `readout` 뿐이라 (`configs/exploratory_v2/main.yaml` `cells.roi_structures`) §3.7 의 "v3 의 A (mean)" 는
+그대로 할 수 없었다 [측정]. 선생님 선택 원문 "v1 결과 재사용 (Recommended)":
+- mean = **v1 main OOF 의 A (원판) 와 C (순열 prior null)** — null seed 1729 (main) · 1730–1733 (WI-09) 이 k0–k4, model seed 42–44, outer fold 0–4.
+  새 학습 없음. spin · rewire 는 v1 에 없어 mean 에는 순열만.
+- embedding = v3 잠금 CLI 로 C 의 permutation · spin · rewire × index 0–4 × seed 3 × fold 5. 이미 있는 v3 fit 은 재사용 → **새 fit 196 개**
+  (smoke 1 개 89 s). 구현 `scripts/i1/mobse_arm.py`.
+
+## 7. 구현 진행 (2026-10-04) — 잠금 전 만들 것 1–5
+
+| # | 무엇 | 파일 | 확인 |
+|---|---|---|---|
+| 1 | AOMIC 창 입력 | `scripts/i1/build_aomic_npy.py` → h197 `i1/data/aomic_win/` | 126 명 · 창 1,008 (label 504/504) · 창 sha 대조 · **v1 outer fold 그대로** (MoBSE 팔과 같은 test 피험자 — 구현 선택), 안쪽 val = train 피험자 10 % |
+| 2 | wrapper 보완 | `run_fold.py --save-last` | 네 모델 AOMIC 3 epoch smoke 통과, 마지막 epoch 상태 저장 |
+| 3 | 기준선 · site fold | `baselines.py` · `make_folds.py --by-site` | fold 0: ABIDE FC logistic AUC 0.756 · FC-MLP 0.726 · S1 0.618 / AOMIC (창 수준) 0.9999 · 0.9997 · 0.681. site fold test 189–213 명 |
+| 4 | 분석 | `analyze.py` | 합성 자료 (Δ 0 · Δ>0 · 붕괴 1 · run 평균) 에서 기대대로 |
+| 5 | MoBSE 팔 | `mobse_arm.py` | mean 수집 18,144 행 (= 창 1,008 × 단위 18), embedding 계획 196 fit, smoke 1 fit 변환 208 행 |
+
+- 기준선 FC-MLP 는 고정 설정 하나 (은닉 32 · dropout 0.1 · AdamW lr 1e−3 · wd 1e−4 · batch 32 · 최대 200 epoch) [구현 선택].
+- `make_folds.py` 가 이제 fold 마다 `test_sites` 를 더 적는다 — 이미 만든 `folds_draw0.json` 에는 없다 (fold 내용은 같음).
+
+### 7.1 잠금 전에 본 결과 (투명성 기록)
+
+분석 파이프라인 smoke 로 **기존 v1 결과 (MoBSE mean 팔) 를 I1 방식으로 계산했다** (run 단위 AUC, bootstrap 500 회 — 잠금값 2,000 이 아님):
+원판 AUC 0.956 · 순열 prior Δ +0.0151, 재학습 CI [+0.0033, +0.0266], 단일 CI [+0.006, +0.053], 단일 CI 가 0 을 벗어난 비율 0.33.
+자료는 이미 분석 · 보고된 v1 산출물이지만, 잠금 전에 I1 지표로 본 것이므로 여기 적는다. 해석하지 않았고 이 값으로 설계를 바꾸지 않는다.
