@@ -30,10 +30,10 @@ from pathlib import Path
 
 import numpy as np
 
-MODELS = ("bqn", "bnt")
+MODELS = ("bqn", "bnt", "braingb")
 
 
-def seed_all(seed: int) -> None:
+def seed_all(seed: int, deterministic: bool = True) -> None:
     import torch
     random.seed(seed)
     np.random.seed(seed)
@@ -41,6 +41,11 @@ def seed_all(seed: int) -> None:
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+    # GPU scatter 합산 (torch_geometric) 등은 위 설정만으로는 비결정적이다 — 결정적 구현을 요구하고, 없으면 경고만 (로그에 남는다).
+    # CUBLAS_WORKSPACE_CONFIG 는 main 이 CUDA 초기화 전에 넣는다.
+    # BrainGB 는 끈다 — PyG scatter 가 결정적 모드에서 메모리를 크게 쓰는 경로로 바뀌어 24 GB GPU 에서 OOM (2026-10-04 smoke),
+    # 저장소 mixup 이 .cuda() 고정이라 CPU 로도 못 돈다. 그래서 BrainGB 는 같은 seed 재실행도 값이 다를 수 있다 (D3 에 포함).
+    torch.use_deterministic_algorithms(deterministic, warn_only=True)
 
 
 def mean_ce(p: np.ndarray, y: np.ndarray) -> float:
@@ -138,7 +143,7 @@ def run_bqn(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
     return {"repo_reported": {"test_acc": float(acc), "test_auc": float(roc), "rule": "repo: val loss 최소 epoch"},
             "patches": ["main.init_stratified_dataloader → 공통 fold", "main.val_test → 원래 함수 + 순서 고정 평가 기록",
                         "seed: wrapper seed_all (저장소 fix_seed 는 주석 처리돼 있음)", "runs = 1"],
-            "epochs_arg": args.epochs, "batch_size": args.batch_size}
+            "epochs_arg": args.epochs, "batch_size": args.batch_size, "deterministic": True}
 
 
 def run_bnt(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
@@ -218,7 +223,89 @@ def run_bnt(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
                         "Train.test_per_epoch → 원래 함수 + test 뒤 순서 고정 평가 기록",
                         "InterpretableTransformerEncoder._sa_block ← is_causal 인자 받기 (torch ≥ 2.0 호환)",
                         "wandb.init(mode=disabled)", "seed: wrapper seed_all (저장소는 seed 를 두지 않음)"],
-            "hydra_overrides": overrides, "epochs_arg": int(cfg.training.epochs), "batch_size": int(cfg.dataset.batch_size)}
+            "hydra_overrides": overrides, "epochs_arg": int(cfg.training.epochs), "batch_size": int(cfg.dataset.batch_size),
+            "deterministic": True}
+
+
+def run_braingb(a, fold: dict, labels: np.ndarray, rec: Recorder) -> dict:
+    """BrainGB — 공식 진입점 ``examples.example_main`` 을 runpy 로 그대로 실행한다 (인자 parser 가 ``__main__`` 블록 안).
+
+    구성은 결정 40: GCN · mean pooling · ``--node_features degree`` + README 의 ABIDE 명령 (edge_node_concate · hidden 256).
+    바꿔 끼우는 것은 그 모듈이 실행 중에 import 하는 이름뿐이다.
+    """
+    import os
+    import runpy
+
+    import sklearn.model_selection as skms
+    import torch
+
+    repo = a.repos / "BrainGB"
+    sys.path.insert(0, str(repo))
+    import src.dataset as gbds
+    import examples.train_and_evaluate as tae
+
+    root_dir = a.out / "braingb_root"                           # 처리 캐시 이름이 자료 내용과 무관 → fit 마다 새 root
+    root_dir.mkdir()
+    (root_dir / "abide.npy").symlink_to(a.npy)
+    held = {}
+    orig_bd = gbds.BrainDataset
+
+    def BrainDataset(*args, root=None, **kw):                   # 저장소가 준 root (examples/datasets/ABIDE) 는 쓰지 않는다
+        ds = orig_bd(*args, root=str(root_dir), **kw)
+        held["ds"] = ds
+        return ds
+
+    class OneFold:                                               # StratifiedKFold(5) 자리에 공통 fold 하나
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def split(self, X, y):
+            if not np.array_equal(np.asarray(y).astype(int), labels):
+                raise SystemExit("저장소가 읽은 label 이 fold 파일의 label 과 다르다")
+            yield np.asarray(fold["train"]), np.asarray(fold["test"])
+
+    n_train = len(fold["train"])
+    if n_train == len(fold["test"]):
+        raise SystemExit("train 과 test 크기가 같으면 evaluate 호출을 구분할 수 없다")
+    orig_eval = tae.evaluate
+
+    def probs(model, idx):
+        from torch_geometric.loader import DataLoader
+        dev = next(model.parameters()).device
+        out = []
+        with torch.no_grad():
+            for batch in DataLoader(held["ds"][torch.as_tensor(idx)], batch_size=64, shuffle=False):
+                out.append(torch.exp(model(batch.to(dev)))[:, 1].cpu().numpy())   # 출력이 log_softmax
+        return np.concatenate(out)
+
+    def evaluate(model, device, loader, test_loader=None):
+        res = orig_eval(model, device, loader, test_loader)
+        if len(loader.dataset) == n_train:                       # 매 epoch 끝의 train 평가 = epoch 하나 끝
+            rec.add(probs(model, rec.val_idx), probs(model, rec.test_idx))
+        return res
+
+    gbds.BrainDataset = BrainDataset
+    skms.StratifiedKFold = OneFold
+    tae.evaluate = evaluate
+    argv = ["example_main", "--dataset_name", "ABIDE", "--model_name", "gcn", "--pooling", "mean",
+            "--node_features", "degree", "--gcn_mp_type", "edge_node_concate", "--hidden_dim", "256", "--repeat", "1"]
+    if a.epochs:
+        argv += ["--epochs", str(a.epochs)]
+    sys.argv = argv
+    os.chdir(a.out)                                              # result.log 를 출력 폴더 안으로
+    seed_all(a.seed, deterministic=False)              # 저장소는 seed_everything(random.randint(…)) — random 을 먼저 고정하므로 randint 값이 --seed 로 정해진다
+    runpy.run_module("examples.example_main", run_name="__main__", alter_sys=True)
+    return {"repo_reported": {"rule": "repo: 마지막 epoch (val 없음)", "result_log": "result.log"},
+            "patches": ["src.dataset.BrainDataset → root 를 fit 출력 폴더로 (처리 캐시가 자료 내용과 무관)",
+                        "sklearn.model_selection.StratifiedKFold → 공통 fold 하나 (val 은 학습에서 뺌)",
+                        "examples.train_and_evaluate.evaluate → 원래 함수 + train 평가 뒤 순서 고정 평가 기록",
+                        "seed: wrapper seed_all 뒤 저장소 seed_everything(random.randint) 그대로"],
+            "deterministic": False,
+            "nondeterminism_note": "GPU scatter 비결정 — 결정적 모드는 OOM, mixup 의 .cuda() 고정으로 CPU 불가. 같은 seed 재실행 값이 다를 수 있다",
+            "argv": argv[1:],
+            "repo_quirks": ["train_and_evaluate 가 model.train() 을 첫 epoch 전에 한 번만 부르고 매 epoch evaluate 가 "
+                            "model.eval() 로 바꿔, 둘째 epoch 부터 eval 모드로 학습한다 (저장소 그대로 둠)",
+                            "train DataLoader shuffle=False (저장소 그대로)"]}
 
 
 def main(argv) -> int:
@@ -232,6 +319,8 @@ def main(argv) -> int:
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--epochs", type=int, default=None, help="smoke 용 — 주지 않으면 저장소 기본값")
     a = ap.parse_args(argv[1:])
+    import os
+    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")    # 결정적 cuBLAS (torch 문서의 요구)
     if a.npy.name != "abide.npy":
         raise SystemExit("--npy 의 파일 이름은 abide.npy 여야 한다")
     if (a.out / "summary.json").exists():
@@ -245,7 +334,7 @@ def main(argv) -> int:
         raise SystemExit(f"표본 수 {len(labels)} ≠ fold 파일 {folds['n_subj']}")
     rec = Recorder(fold, labels)
     t0 = time.time()
-    extra = {"bqn": run_bqn, "bnt": run_bnt}[a.model](a, fold, labels, rec)
+    extra = {"bqn": run_bqn, "bnt": run_bnt, "braingb": run_braingb}[a.model](a, fold, labels, rec)
     extra.update({"model": a.model, "fold": a.fold, "seed": a.seed, "npy": str(a.npy), "folds_file": str(a.folds),
                   "folds_draw": folds["draw"], "wall_s": round(time.time() - t0, 1)})
     s = rec.finish(a.out, extra)
