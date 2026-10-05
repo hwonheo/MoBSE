@@ -544,3 +544,15 @@ MoBSE 팔의 mean 은 v1 main OOF + WI-09 결과 (순열 prior 5 × seed 3 × fo
   PYTHONPATH 를 내보내지 않고 MoBSE 팔 명령에만 붙임 · 맨 앞 잠금 검증 (실패 시 아무것도 시작 안 함) · 단계 rc=3 이면 전체 중단.
   순서 = ABIDE nulls (CPU, 병행) ‖ AOMIC nulls → fits → baselines → MoBSE mean 수집 · embedding 196 fit (venv-mobse-v2, v3 잠금 환경) → AOMIC 분석
   → ABIDE nulls 끝나면 ABIDE fits → site → baselines → 분석. 10-05 03:16 KST 잠금 검증 rc=0 · null 단계 착수.
+
+**결정 49 (2026-10-05 09:1x, 선택 TUI)** — 선생님 질문 "abide를 지금부터 gpu로 다시 돌리면?" 에 대한 답 뒤 선택 원문 "n3 끝난 뒤 병행 (Recommended)".
+- 근거 [측정]: fit 은 CPU 에 묶여 있다 (fit 당 CPU 약 190 % · GPU 사용률 6 % · load 13.9 / 12 코어, ABIDE n3 생성이 8 코어 사용).
+  지금 더하면 처리량은 그대로이고, 구동기에 조건 선택이 없어 n3 k2–k4 입력 전에 차례가 오면 실패로 세진다.
+- **정한 것**: ABIDE n3 이 끝나면 ABIDE fit → site → 기준선 → 분석을 AOMIC 사슬과 나란히 돌린다 (운영 방식만, 잠금 · 설계 불변).
+- **정하지 않은 것**: 동시 수 이상의 변경 (스레드 수 등), 잠금 · 설계.
+- 구현: h197 a2 폴더의 `switch.sh` 가 `END abide_nulls rc=0` 을 기다려 `orchestrate.sh` 본체 (PID 1996670) 만 멈추고 (자식인 AOMIC fits 구동기는 유지)
+  `chain_aomic.sh` (그 구동기가 끝나길 기다린 뒤 AOMIC 남은 단계 · MoBSE 팔 · 분석) 와 `chain_abide.sh` 를 띄운다. 공통 정의 `common.sh`. 동시 GPU fit 2 + 2.
+
+| # | 일시 (KST) | 원문 | 방식 | 정한 것 | 정하지 않은 것 | 그 승인으로 실제로 한 일 |
+|---|---|---|---|---|---|---|
+| 22 | 10-05 09:1x | "n3 끝난 뒤 병행 (Recommended)" | TUI | 결정 49 — ABIDE 를 n3 뒤 AOMIC 과 병행 | 스레드 등 다른 운영 변경, 설계 | 전환 스크립트 (h197) 대기 실행 |
