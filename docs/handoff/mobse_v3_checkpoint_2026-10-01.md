@@ -580,6 +580,12 @@ h197 `i1/main/20261005_ac3bad06_a2/` 의 `status.txt` · `driver_*.log` · `fail
 - 장비: load 14.6 / 12 코어, GPU 사용률 92 % · 메모리 5.8 / 24.5 GB (sglang 1 GB 포함), `/mnt/data` 여유 1.0 TB.
 - 완료 예상 [추정, 지금 속도로 외삽]: AOMIC fits 10-06 14–15 시 → 그 뒤 기준선 · MoBSE mean 수집 · embedding 196 fit · 분석.
   ABIDE 는 bnt 약 19 h + han + site + 기준선 + 분석이라 **10-08 이후**. AOMIC fit 이 끝나 CPU 가 비면 앞당겨질 수 있다.
+- **10-06 15:40 갱신**: AOMIC fits 는 **15:26 KST 완료** (han 255, 실패 0 · `fails_fits_han.json` 빈 목록) → `CHAIN aomic start` ·
+  `aomic_fits` rc=0 (끝난 것 건너뜀) · `aomic_baselines` 시작 (잠금 검증 통과, 25 작업 중 FC logistic 5 · S1 5 는 1–2 분에 끝,
+  FC-MLP 15 는 fit 당 약 6 분 · k=2). 새 추정: AOMIC 기준선 약 16:15 → MoBSE mean 수집 · embedding 196 fit (k=4, 부하 아래 속도 미측정)
+  · 분석 → **AOMIC_DONE 약 10-06 17:30** [추정, MoBSE 팔 속도가 가장 불확실]. ABIDE bnt 100/255 (14:53 KST, 실효 약 233 s/fit) →
+  **bnt 약 10-07 01 시** → han 255 (AOMIC 에서 han/bnt 시간비 1.77 → 약 29 h, smoke 비 2.67 이면 약 44 h) → site 90 fit (약 6 h) →
+  기준선 · 분석 → **ABIDE_DONE 약 10-08 13 시 – 10-09 04 시** [추정, 폭이 큼].
 
 **완료 시 할 일** (판정 · 해석은 하지 않고 선생님께 올린다)
 1. `status.txt` 의 단계별 rc · `fails_*.json` · 로그의 Traceback/OOM 을 확인. rc ≠ 0 이나 `ABORT` 가 있으면 다시 돌리지 않고 즉시 보고 (재시도는 구동기 규칙 1 회뿐, 잠금 §8).
