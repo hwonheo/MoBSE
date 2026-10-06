@@ -561,3 +561,29 @@ MoBSE 팔의 mean 은 v1 main OOF + WI-09 결과 (순열 prior 5 × seed 3 × fo
 | # | 일시 (KST) | 원문 | 방식 | 정한 것 | 정하지 않은 것 | 그 승인으로 실제로 한 일 |
 |---|---|---|---|---|---|---|
 | 22 | 10-05 09:1x | "n3 끝난 뒤 병행 (Recommended)" | TUI | 결정 49 — ABIDE 를 n3 뒤 AOMIC 과 병행 | 스레드 등 다른 운영 변경, 설계 | 전환 스크립트 (h197) 대기 실행 |
+
+### 11.4 I1 a2 진행 상태 (2026-10-06 09:1x KST 확인)
+
+h197 `i1/main/20261005_ac3bad06_a2/` 의 `status.txt` · `driver_*.log` · `fails_*.json` · `ps` · `nvidia-smi` 로 확인한 값.
+
+| 단계 | 끝난 시각 (KST) | 결과 |
+|---|---|---|
+| 잠금 검증 | 10-05 03:16 | rc=0 |
+| AOMIC null (11 + n3 5) | 10-05 06:41 | rc=0, 실패 0 |
+| ABIDE null (11 + n3 5, n3 에 44,988 s) | 10-05 15:48 | rc=0, 실패 0 |
+| 결정 49 전환 (`switch.sh`) | 10-05 15:49 | 본체 PID 1996670 만 멈춤, 두 사슬 시작 |
+| AOMIC fits bqn 255 · bnt 255 | 10-05 23:57 | 실패 0 |
+| ABIDE fits bqn 255 | 10-06 08:22 | 실패 0 (59,588 s) |
+
+- 진행 중: AOMIC han 약 158/255 (구동기 PID 2037407, `orchestrate.sh` 가 남긴 자식) · ABIDE bnt 약 11/255 (`chain_abide.sh`). GPU fit 2 + 2.
+- `chain_aomic.sh` 는 설계대로 AOMIC fits 구동기가 끝나길 기다리는 중. 로그 969 개에 Traceback · OOM 0, `fails_*.json` 전부 빈 목록.
+- 장비: load 14.6 / 12 코어, GPU 사용률 92 % · 메모리 5.8 / 24.5 GB (sglang 1 GB 포함), `/mnt/data` 여유 1.0 TB.
+- 완료 예상 [추정, 지금 속도로 외삽]: AOMIC fits 10-06 14–15 시 → 그 뒤 기준선 · MoBSE mean 수집 · embedding 196 fit · 분석.
+  ABIDE 는 bnt 약 19 h + han + site + 기준선 + 분석이라 **10-08 이후**. AOMIC fit 이 끝나 CPU 가 비면 앞당겨질 수 있다.
+
+**완료 시 할 일** (판정 · 해석은 하지 않고 선생님께 올린다)
+1. `status.txt` 의 단계별 rc · `fails_*.json` · 로그의 Traceback/OOM 을 확인. rc ≠ 0 이나 `ABORT` 가 있으면 다시 돌리지 않고 즉시 보고 (재시도는 구동기 규칙 1 회뿐, 잠금 §8).
+2. `AOMIC_DONE`: `analysis/aomic/*.json` 존재 · sha256 앞자리, 모델별 Δ (재학습 포함 CI) 와 기준선 성능을 잠금 §6 문장 형식으로 정리,
+   붕괴 fit 수 (§8) · D3 수치. 이 절 아래 11.5 에 기록하고 로컬 커밋.
+3. `ABIDE_DONE`: 같은 정리를 `analysis/abide/` · `analysis/abide_site/` 로.
+4. `ALL_DONE`: Notion Work Log 25 를 완료로 바꾸고 결과는 26 에 (11.3 위 Work Log 행의 약속), Data Asset 에 산출 경로 갱신.
