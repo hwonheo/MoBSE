@@ -657,6 +657,8 @@ n3 (10) +0.0256 [+0.0134, +0.0403] · BNT n1 (2 짝) +0.4477 [+0.3915, +0.5012] 
   Han 끝난 fit 22 / 255. Traceback 로그 148 개 **전부 GPU OOM** (`OutOfMemoryError` 또는 `RuntimeError: CUDA error: out of memory`).
   - **범위 주의**: 승인 문구는 "실패한 2 개" 였으나 그사이 실패가 80 으로 늘었다. 원인이 같은 OOM 이고 구동기는 `summary.json` 이 없는
     fit 을 모두 다시 돌리므로, **80 개 전부 k=1 에서 새로 돈다.** 이 확장이 맞는지 선생님 확인을 받는다 (아니면 멈추고 목록을 고른다).
+  - **확인 (10-07, 원문)**: 보고 문장 "실패분은 다시 돌리지 말아야 한다면 말씀해 주십시오 — 멈추고 목록을 골라 다시 걸겠습니다." 에
+    "**ok**". → 반대 없음으로 읽고 **80 개 재실행을 그대로 둔다** (사슬은 손대지 않음). 정하지 않은 것: 최종 보고에서 k=2 실패분을 어떻게 표기할지.
 - **조치**: 09:19 KST `chain_abide.sh` 프로세스 그룹 (pgid 2166855) SIGTERM → run_fold 0 개 · GPU 는 sglang 만 확인. `status.txt` 에 `STOP` 행.
   증거 보존 `han_oom_k2_20261007/` (driver 로그 사본 · 재시도 87 개 로그 · `retried.txt` · `retry_ok.txt` · `final_failed.txt`).
   09:19 KST `chain_abide_k1.sh` 를 `setsid nohup` 으로 시작 — `chain_abide.sh` 와 같고 **fits 만 `--k 1`** (site · baselines · analyze 는 그대로).
