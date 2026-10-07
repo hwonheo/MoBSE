@@ -645,3 +645,22 @@ n3 (10) +0.0256 [+0.0134, +0.0403] · BNT n1 (2 짝) +0.4477 [+0.3915, +0.5012] 
 문장 형식 판정은 빼기 전후로 바뀌지 않는다. (붕괴 단위 이름은 각 json 의 `collapsed_units`.)
 
 - 남은 것: D1 학습 뒤 등변성 · D5 재현 마찰 표는 이 절에 넣지 않았다 (`analysis/` 산출이 아니다). ABIDE 는 §11.4 추정대로 진행 중.
+
+### 11.6 ABIDE Han GPU OOM → 사슬 중지 · Han k=1 재개 (2026-10-06 22:34 – 10-07 09:21 KST)
+
+- **발견 (10-06 22:34 KST 매시 점검)**: ABIDE `fits_han` (k=2) 첫 fit 들에서 `torch.OutOfMemoryError`. Han ABIDE fit 하나가 GPU 를
+  5–11 GB 쓰고, 구동기 재시도 (`run_main.py` `run_jobs`) 는 주 스레드에서 돌아 **재시도 중에는 동시 Han 이 3 개**가 된다
+  (OOM 메시지에 python 프로세스 3 개 + sglang 1 GB). 게이트 (결정 48, 여유 10,240 MiB · 120 s) 는 시작 시점만 본다.
+- **선생님 선택 (선택 TUI, 원문)**: "**ABIDE 멈추고 Han k=1 재개**" — 선택지 설명: "chain_abide 를 멈추고 fits_han 만 k=1 로 다시 시작.
+  끝난 fit 은 건너뛰고, 실패한 2 개는 새로 돈다 (§8 재시도 1 회를 넘는 재실행이라 승인 필요)."
+- **답을 받기까지 (10-07 09:18 KST)** 사슬은 계속 돌았다: Han 재시도 87 건 중 재시도 성공 7 · **최종 실패 80** (중지 때 돌던 것 포함),
+  Han 끝난 fit 22 / 255. Traceback 로그 148 개 **전부 GPU OOM** (`OutOfMemoryError` 또는 `RuntimeError: CUDA error: out of memory`).
+  - **범위 주의**: 승인 문구는 "실패한 2 개" 였으나 그사이 실패가 80 으로 늘었다. 원인이 같은 OOM 이고 구동기는 `summary.json` 이 없는
+    fit 을 모두 다시 돌리므로, **80 개 전부 k=1 에서 새로 돈다.** 이 확장이 맞는지 선생님 확인을 받는다 (아니면 멈추고 목록을 고른다).
+- **조치**: 09:19 KST `chain_abide.sh` 프로세스 그룹 (pgid 2166855) SIGTERM → run_fold 0 개 · GPU 는 sglang 만 확인. `status.txt` 에 `STOP` 행.
+  증거 보존 `han_oom_k2_20261007/` (driver 로그 사본 · 재시도 87 개 로그 · `retried.txt` · `retry_ok.txt` · `final_failed.txt`).
+  09:19 KST `chain_abide_k1.sh` 를 `setsid nohup` 으로 시작 — `chain_abide.sh` 와 같고 **fits 만 `--k 1`** (site · baselines · analyze 는 그대로).
+  잠금 검증 통과 (`lock_hash_matches: true`), `fits_han: 255 작업 · 남은 것 233 (k=1)`, 이 단계 이름은 `abide_fits_k1`.
+- **기록에 남길 것**: 잠금 §8 의 "실패는 다시 돌리지 않고 센다" 에서 벗어난 재실행이다 (사유: 실행기 동시성이 만든 OOM). 최종 보고의
+  D5 (재현 마찰) 와 이탈 목록에 넣는다. AOMIC Han 은 k=2 에서 OOM 0 (자료가 작다).
+- 새 추정 [Han smoke 517 s/fit × 233, 순차]: Han 약 33 h → 10-08 18–19 시, site · 기준선 · 분석 뒤 **ABIDE_DONE 약 10-09 새벽** — 첫 몇 시간 실측으로 고친다.
