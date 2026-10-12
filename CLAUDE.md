@@ -5,6 +5,17 @@
 > 이전판(2026-09-18)은 `.backup/CLAUDE_20260925_201635.md` 에, 2026-04-17판은 `.backup/CLAUDE.md_20260918_*.md` 에 보존됨.
 > **현행 상태의 정본은 이 파일이 아님** — 저장소 `docs/handoff/` 의 문서 (읽는 순서는 아래 "인수인계 — 2026-09-29" 절) 와 가장 높은 revision 의 `gate_evidence.json`. 이 파일은 저장소에 들어온 사람을 위한 방향 안내다.
 
+## I1 (뇌 그래프 prior 검증 프로토콜) — 2026-10-12 결과 · 최종 문장 확정
+
+정본은 `docs/handoff/mobse_v3_checkpoint_2026-10-01.md` §10.11–§11.12 (결정 37–56 원문 · 승인 대장 1–31 행). 요지만 적는다.
+- 잠금 `results/i1/locks/i1_lock.json` (lock_hash `ac3bad06f6ef`), 잠금 문서 `docs/experiments/i1_lock_v1.md`. 본 실행 h197
+  `i1/main/20261005_ac3bad06_a2/` — **10-08 22:52 KST `ALL_DONE`**, 전 단계 rc=0 · 실패 0 (ABIDE Han k=2 GPU OOM 149 는 결정 50 으로 실패에 넣지 않음).
+- 공개 모델 BQN · BNT · Han (BrainGB 는 결정 47 로 제외) × AOMIC (포화 양성 대조) · ABIDE (비포화, 1,009 명) × null n0–n3. 결과 §11.5 (AOMIC) · §11.10 (ABIDE).
+- **C1–C5 최종 문장 확정 (결정 55 · 56)**: `docs/experiments/i1_final_statements_draft_2026-10-12.md` §1 (D1 학습판 표 · D5 재현 마찰 표 포함).
+  C2 지지 안 됨 (판정은 null 종류와 무관, 크기만 다름) · C3 는 작은 효과에서만 · C1 실측은 AOMIC MoBSE mean 하나이고 부호가 지표 의존.
+- 붕괴 fit (ABIDE BQN 74 · BNT 41 · site 33) 진단과 표기는 §11.11 · 결정 55-1. Notion Work Log 25 (실행) · 26 (AOMIC 검토) · 27 (ABIDE · 최종 문장).
+- **결정 53**: redesign-v1 → main 은 PR + 병합 커밋 (`--no-ff`). 푸시 · 병합은 그때마다 승인.
+
 ## v3 (exploratory v2) 실험 — 2026-10-01 실행 완료
 
 정본은 `docs/handoff/mobse_v3_checkpoint_2026-10-01.md` §10. 요지만 적는다.
