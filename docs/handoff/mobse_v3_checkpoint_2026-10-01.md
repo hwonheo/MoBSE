@@ -939,3 +939,20 @@ Data Asset "I1 본 실행 산출물" — 이름을 "a2 완료" 로, 파일수 12
 | # | 일시 (KST) | 원문 | 방식 | 정한 것 | 정하지 않은 것 | 그 승인으로 실제로 한 일 |
 |---|---|---|---|---|---|---|
 | 31 | 10-12 14:0x | "ok" | 채팅 | Notion 기록 진행 | 결정 53 푸시 · 병합, CLAUDE.md 갱신 | WL 25 완료 · WL 27 생성 · Data Asset 갱신 · 이 절 기록 |
+
+### 11.13 결정 53 실행 · 결정 57 (2026-10-12 14:1x KST) — main 통합
+
+- 선생님 "진행" (채팅, "결정 53 의 푸시와 PR 생성을 진행할까요?" 에 대한 답) → CLAUDE.md 에 I1 안내 절 (`446c24e`) · main 을 redesign-v1 에 병합
+  (`c78bb13`, 충돌 3 파일: README = redesign 판, `.gitignore` · CHANGELOG = 두 쪽 합침). **main 쪽 내용이 이미 redesign 판에 들어 있어 병합 결과 tree 는
+  redesign-v1 과 같다** (`50eb35b2`) — 이 커밋은 이력만 합치고 추적 파일을 바꾸지 않는다. 잠금 대상 경로 변경 0.
+- 푸시: Claude Code 자동 권한 판정이 `git push` 를 막아 (외부 게시), **선생님이 직접 실행** (`! git push origin redesign-v1`, `48fc0f7..c78bb13`).
+- PR https://github.com/hwonheo/MoBSE/pull/1 생성 (MERGEABLE · CLEAN, CI 검사 없음, main 대비 262 파일).
+- **결정 57 (선택 TUI)** — 원문 "**지금 병합 커밋으로 병합 (Recommended)**" · "**남겨 둠 (Recommended)**".
+  → 2026-10-12 05:06:47Z `gh pr merge 1 --merge` — 병합 커밋 `a68efc4` (부모 `7787ae0` · `c78bb13`), **origin/main tree = redesign-v1 tree** (`50eb35b2`).
+  redesign-v1 은 로컬 · 원격 모두 남김.
+- **정하지 않은 것**: 이후 작업을 main 에서 할지 redesign-v1 에서 이어갈지, 기본 브랜치 정책, 이 절 커밋의 푸시 (커밋 규약 7 — 지시가 있을 때만).
+
+| # | 일시 (KST) | 원문 | 방식 | 정한 것 | 정하지 않은 것 | 그 승인으로 실제로 한 일 |
+|---|---|---|---|---|---|---|
+| 32 | 10-12 14:1x | "진행" | 채팅 | 결정 53 실행 착수 (푸시 · PR) | 병합 실행, 브랜치 처리 | CLAUDE.md 커밋 · main 병합 커밋 · PR 생성 (푸시는 선생님 직접) |
+| 33 | 10-12 14:1x | "지금 병합 커밋으로 병합 (Recommended)" · "남겨 둠 (Recommended)" | TUI | 결정 57 — PR #1 병합 커밋 · redesign-v1 유지 | 이후 작업 브랜치, 이 절 푸시 | `gh pr merge 1 --merge` (`a68efc4`) · 이 절 기록 |
