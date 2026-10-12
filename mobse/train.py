@@ -25,6 +25,40 @@ def _cycle(loader: Iterable):
             yield item
 
 
+def _load_balance_loss(routing_weights: torch.Tensor) -> torch.Tensor:
+    """Entropy-based load balancing loss for MoE routing.
+
+    Combines two fully-differentiable terms:
+    1. Negative entropy of mean routing (encourages uniform expert usage)
+    2. Negative mean entropy per sample (encourages diverse per-sample routing)
+
+    L = -H(mean(routing)) - mean(H(routing_i))
+
+    Both terms are minimized (most negative) when routing is uniform.
+    We return the negative so that minimizing this loss maximizes entropy.
+
+    Args:
+        routing_weights: [batch_size, num_experts] softmax probabilities.
+
+    Returns:
+        Scalar loss (lower = more balanced routing).
+    """
+    eps = 1e-8
+    k = routing_weights.shape[1]
+    max_entropy = torch.log(torch.tensor(float(k), device=routing_weights.device))
+
+    # Term 1: entropy of the mean routing distribution (batch-level balance)
+    mean_routing = routing_weights.mean(dim=0)  # [k]
+    batch_entropy = -(mean_routing * torch.log(mean_routing + eps)).sum()
+
+    # Term 2: mean per-sample entropy (sample-level diversity)
+    sample_entropy = -(routing_weights * torch.log(routing_weights + eps)).sum(dim=-1).mean()
+
+    # Normalize by max entropy so loss is in [0, 1] range per term
+    # Return negative (we want to MAXIMIZE entropy, optimizer MINIMIZES loss)
+    return -(batch_entropy + sample_entropy) / (2 * max_entropy)
+
+
 def _canonical_task(task: str) -> str:
     return "os" if task == "hcp" else task
 
@@ -249,12 +283,17 @@ def _train_one_seed(
                 batch = next(os_iter) if task == "os" else next(etth_iter)
                 weight = cfg.train.os_loss_weight if task == "os" else cfg.train.etth1_loss_weight
                 with torch.amp.autocast(device_type=device.type, enabled=(cfg.train.use_amp and device.type == "cuda")):
-                    loss, _, _, _ = _forward_loss(model, batch, task, device, cfg)
+                    loss, _, _, routing = _forward_loss(model, batch, task, device, cfg)
                     normalized = loss / task_loss_scales[task]
                     weighted = weight * normalized
                 total_loss = total_loss + weighted
                 running_raw[task].append(float(loss.item()))
                 running_norm[task].append(float(normalized.item()))
+
+                # Load balancing loss (Switch Transformer, Fedus et al. 2021)
+                if cfg.train.balance_loss_weight > 0 and routing is not None:
+                    bal_loss = _load_balance_loss(routing)
+                    total_loss = total_loss + cfg.train.balance_loss_weight * bal_loss
 
             scaler.scale(total_loss).backward()
             scaler.unscale_(optimizer)

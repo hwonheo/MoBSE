@@ -1,0 +1,104 @@
+# MoBSE exploratory v2 runtime config — smoke
+#
+# 이 파일은 코드 상수를 **다시 적어 잠그는** 문서다. 값을 바꿔서 동작을 바꾸는
+# 용도가 아니다. mobse/v3/config.py 의 검증기가 각 값을 해당 모듈의 상수와
+# 대조하고, 어긋나면 실패시킨다. 미지의 키는 오타로 보고 거부한다.
+#
+# **역할**: T4 저표본 곡선 본실험 (결정 30).
+#
+# endpoint 는 v1 과 같은 정의를 유지한다 (2026-10-01 승인) — run identity 를 subject 별
+# 두 task 로 집계한 balanced accuracy, 252 run pooled. 곡선 점마다 outer fold 5 개를
+# 전부 돌려 그 pooled endpoint 를 만든다. 바꾸지 않는 이유는 설계안 §5.3.2 에 있다.
+#
+# G-b 검정력은 기준값을 두지 않는다 (결정 29) — 반드시 재고 반드시 보고해 결정
+# 요청으로 올리는 보고 장치다.
+
+meta:
+  name: "exploratory_v2_main"
+  design_version: "exploratory_v2"
+  role: "main"
+
+timing:
+  analysis_start_s: 12.0
+  analysis_end_s: 252.0
+  target_grid_s: 2.0
+  window_len_s: 60.0
+  window_starts_s: [12.0, 72.0, 132.0, 192.0]
+  samples_per_window: 30
+
+qc:
+  fd_mean_max: 0.2
+  fd_spike: 0.5
+  fd_spike_ratio_max: 0.1
+  min_residual_dof: 30
+
+splits:
+  pilot_seed: 20260917
+  outer_seed: 20260918
+  inner_seed_base: 20261000
+  pilot_cap: 32
+  pilot_fraction: 0.2
+  n_outer_folds: 5
+  n_inner_folds: 3
+
+bank:
+  k: 3
+  n_init: 50
+  max_iter: 500
+  edge_density: 0.2
+  seed_base: 30000
+  pca_components: 10      # 결정 33 — 10 고정, grid 를 열지 않는다
+
+# YAML 은 따옴표 없는 null 을 None 으로 읽는다 — 절 이름은 nulls 다.
+nulls:
+  kinds: ["permutation", "spin", "rewire"]   # 결정 28-3
+  m_per_kind: 20                             # 결정 33
+  swaps_per_edge: 10
+  primary_seed: 1729
+
+cells:
+  names: ["A", "B", "C", "D"]
+  # 결정 33 은 "A–D × 2 구조 = 8 칸" 만 정했고 **어느 둘인지는 정하지 않았다.**
+  # 여기 값은 결정 28-2 의 문구 ("ROI embedding + ROI 별 readout 병행 비교") 를
+  # 따른 smoke 용 선택이며, 본실험 config 에서 다시 확인해야 한다.
+  roi_structures: ["embedding", "readout"]
+
+train:
+  learning_rates: [0.001, 0.0003]
+  dropouts: [0.1, 0.3]
+  weight_decays: [0.0001, 0.001]
+  batch_size: 32
+  update_budget: 5000        # 결정 31-1·32 — 모든 N 이 동일하게 받는다
+  epoch_sanity_ceiling: 20000
+  carry_unit: "update"       # 설계안 §5.3.2 구현 선택 (2026-09-30)
+  patience: 5
+  min_delta: 0.0005
+  grad_clip: 1.0
+  model_seeds: [42, 43, 44]
+
+curve:
+  levels: [10, 20, 40, 70, 100]   # 결정 30
+  subsample_seed_base: 40000
+  inner_split_seed_base: 41000   # pool 안에서 inner 분할을 다시 긋는다 (2026-10-01)
+  grid_selection_level: 100       # 결정 33 — 가장 큰 수준에서 한 번 고른다
+
+stats:
+  bootstrap_seed: 9001
+  n_bootstrap: 10000
+  familywise_pct: [1.25, 98.75]
+  nominal_pct: [2.5, 97.5]
+  threshold: 0.5
+  delta: 0.02      # v1 과 같은 값을 유지한다 (2026-09-30 권고 승인)
+
+paths:
+  # 분할은 v1 에서 그대로 가져온다 (설계안 §7) — 재사용해야 pilot 이 계속 pilot 이다.
+  source_manifest: "results/redesign_v1/20260917_3c458d507e82_nocfg/provenance/source_runs.jsonl"
+  split_manifest: "results/redesign_v1/20260917_3c458d507e82_nocfg/splits/folds.json"
+  atlas_spec: "results/redesign_v1/20260917_3c458d507e82_nocfg/provenance/atlas_spec_2009c.json"
+  output_root: "results/exploratory_v2"
+
+runtime:
+  backend: "dense"
+  device: "cuda"
+  deterministic: true
+  num_workers: 4

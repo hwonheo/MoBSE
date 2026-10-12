@@ -1,0 +1,800 @@
+"""fold 범위 적합 — `mobse/v2/fitting.py` (계획서 §4·§5·§6·§7)."""
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from mobse.v2 import fitting as FIT
+from mobse.v2 import templates as T
+from mobse.v2.features import FeatureError
+from mobse.v2.train import TrainError
+
+N_ROI = 100
+N_SAMPLES = 30
+TASKS = ("emomatching", "workingmemory")
+
+
+# --------------------------------------------------------------------------- #
+# 합성 자료
+# --------------------------------------------------------------------------- #
+
+
+def _write_window(path: Path, rng) -> str:
+    arr = rng.standard_normal((N_SAMPLES, N_ROI)).astype(np.float64)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    np.save(path, arr)
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _run_key(sub: str, task: str) -> str:
+    return f"ds002785/{sub}/na/{task}/na/seq"
+
+
+@pytest.fixture
+def synthetic(tmp_path):
+    """subject 20명 × (2 task + rest) × 4창 을 만든다."""
+    rng = np.random.default_rng(7)
+    subs = [f"sub-{i:04d}" for i in range(1, 21)]
+    canon = [f"ds002785:{s}" for s in subs]
+
+    def build(tasks, labelled):
+        records = []
+        for sub in subs:
+            for task in tasks:
+                rk = _run_key(sub, task)
+                wins = []
+                for w in range(4):
+                    p = tmp_path / "deriv" / sub / f"{sub}_{task}_win-{w}.npy"
+                    wins.append({"path": str(p), "sha256": _write_window(p, rng),
+                                 "shape": [N_SAMPLES, N_ROI], "start_sec": 12.0 + 60 * w,
+                                 "source_frame_range": [w, w + N_SAMPLES]})
+                records.append({"record_type": "run", "run_key": rk,
+                                "canonical_subject": f"ds002785:{sub}",
+                                "status": "ok", "windows": wins})
+        return records
+
+    def dump(name, records):
+        p = tmp_path / name
+        with p.open("w", encoding="utf-8") as fh:
+            fh.write(json.dumps({"record_type": "header"}) + "\n")
+            for r in records:
+                fh.write(json.dumps(r) + "\n")
+        return p
+
+    task_paths = [dump(f"wi02_{t}.jsonl", build([t], True)) for t in TASKS]
+    rest_path = dump("wi02_rest.jsonl", build(["restingstate"], False))
+
+    # 창 manifest (label 원천)
+    win_path = tmp_path / "windows.jsonl"
+    with win_path.open("w", encoding="utf-8") as fh:
+        for tp in task_paths:
+            for line in tp.read_text(encoding="utf-8").splitlines():
+                rec = json.loads(line)
+                if rec.get("record_type") != "run":
+                    continue
+                task = FIT.task_of(rec["run_key"])
+                for i, w in enumerate(rec["windows"]):
+                    fh.write(json.dumps({
+                        "schema_version": "wi02-windows-0.1",
+                        "window_key": FIT.window_key(rec["run_key"], i),
+                        "run_key": rec["run_key"], "data_sha256": w["sha256"],
+                        "observed_label": task, "label_source": "task_metadata",
+                        "n_roi": N_ROI, "n_samples": N_SAMPLES,
+                        "start_sec": w["start_sec"], "end_sec": w["start_sec"] + 60,
+                        "source_frame_range": w["source_frame_range"],
+                        "target_grid": 2.0, "qc_flags": []}) + "\n")
+
+    folds = {
+        "pilot": {"subjects": canon[:4]},
+        "main_pool": {"subjects": canon[4:]},
+        "outer_folds": [{
+            "outer_fold": 0,
+            "test_subjects": canon[4:8],
+            "train_subjects": canon[8:],
+            "inner": [{"inner_fold": 0, "val_subjects": canon[8:12],
+                       "train_subjects": canon[12:]}],
+        }],
+    }
+    return {"tmp": tmp_path, "task_paths": task_paths, "rest_path": rest_path,
+            "windows": win_path, "folds": folds, "canon": canon}
+
+
+# --------------------------------------------------------------------------- #
+# 참조·검증
+# --------------------------------------------------------------------------- #
+
+
+def test_refs_and_crosscheck_agree(synthetic):
+    refs = []
+    for tp in synthetic["task_paths"]:
+        refs += FIT.refs_from_extract_manifest(tp, labelled=True)
+    assert len(refs) == 20 * 2 * 4
+    assert FIT.crosscheck_with_windows_manifest(refs, synthetic["windows"])["n_windows"] == len(refs)
+
+
+def test_crosscheck_catches_a_label_mismatch(synthetic, tmp_path):
+    refs = []
+    for tp in synthetic["task_paths"]:
+        refs += FIT.refs_from_extract_manifest(tp, labelled=True)
+    bad = tmp_path / "bad_windows.jsonl"
+    lines = synthetic["windows"].read_text(encoding="utf-8").splitlines()
+    first = json.loads(lines[0])
+    first["observed_label"] = "workingmemory" if first["observed_label"] == "emomatching" else "emomatching"
+    bad.write_text("\n".join([json.dumps(first)] + lines[1:]) + "\n", encoding="utf-8")
+    with pytest.raises(FIT.FitError, match="label"):
+        FIT.crosscheck_with_windows_manifest(refs, bad)
+
+
+def test_crosscheck_catches_a_hash_mismatch(synthetic, tmp_path):
+    refs = []
+    for tp in synthetic["task_paths"]:
+        refs += FIT.refs_from_extract_manifest(tp, labelled=True)
+    bad = tmp_path / "bad2.jsonl"
+    lines = synthetic["windows"].read_text(encoding="utf-8").splitlines()
+    first = json.loads(lines[0]); first["data_sha256"] = "0" * 64
+    bad.write_text("\n".join([json.dumps(first)] + lines[1:]) + "\n", encoding="utf-8")
+    with pytest.raises(FIT.FitError, match="해시"):
+        FIT.crosscheck_with_windows_manifest(refs, bad)
+
+
+def test_read_window_verifies_the_hash(synthetic):
+    refs = FIT.refs_from_extract_manifest(synthetic["task_paths"][0], labelled=True)
+    tampered = FIT.WindowRef(**{**refs[0].__dict__, "sha256": "1" * 64})
+    with pytest.raises(FIT.FitError, match="해시"):
+        FIT.read_window(tampered)
+    assert FIT.read_window(refs[0]).shape == (N_SAMPLES, N_ROI)
+
+
+def test_rest_manifest_refs_carry_no_label(synthetic):
+    refs = FIT.refs_from_extract_manifest(synthetic["rest_path"], labelled=False)
+    assert refs and all(r.label is None for r in refs)
+
+
+def test_labelled_manifest_rejects_rest(synthetic):
+    with pytest.raises(FIT.FitError, match="분류 대상이 아닌"):
+        FIT.refs_from_extract_manifest(synthetic["rest_path"], labelled=True)
+
+
+# --------------------------------------------------------------------------- #
+# fold 해석
+# --------------------------------------------------------------------------- #
+
+
+def test_inner_fold_resolves_to_validation(synthetic):
+    f = FIT.resolve_fold_subjects(synthetic["folds"], 0, 0)
+    assert f.role == FIT.ROLE_INNER and f.eval_role == "inner_validation"
+    assert len(f.train) == 8 and len(f.evaluate) == 4
+    assert not set(f.train) & set(f.evaluate)
+
+
+def test_outer_fit_uses_the_reserved_inner_number(synthetic):
+    f = FIT.resolve_fold_subjects(synthetic["folds"], 0, T.OUTER_FIT_INNER_FOLD)
+    assert f.role == FIT.ROLE_OUTER and f.eval_role == "outer_test"
+    assert len(f.train) == 12 and len(f.evaluate) == 4
+
+
+def test_pilot_leaking_into_a_fold_is_rejected(synthetic):
+    folds = json.loads(json.dumps(synthetic["folds"]))
+    folds["outer_folds"][0]["train_subjects"].append(folds["pilot"]["subjects"][0])
+    with pytest.raises(FIT.FitError, match="pilot"):
+        FIT.resolve_fold_subjects(folds, 0, T.OUTER_FIT_INNER_FOLD)
+
+
+def test_unknown_fold_numbers_fail(synthetic):
+    with pytest.raises(FIT.FitError, match="outer fold"):
+        FIT.resolve_fold_subjects(synthetic["folds"], 3, 0)
+    with pytest.raises(FIT.FitError, match="inner fold"):
+        FIT.resolve_fold_subjects(synthetic["folds"], 0, 2)
+
+
+# --------------------------------------------------------------------------- #
+# 변환·bank 경계 (T03 / T04)
+# --------------------------------------------------------------------------- #
+
+
+def test_transform_is_fit_only_on_training_subjects(synthetic):
+    fold = FIT.resolve_fold_subjects(synthetic["folds"], 0, 0)
+    rest = FIT.refs_from_extract_manifest(synthetic["rest_path"], labelled=False)
+    tr = FIT.fit_fold_transform(rest, fold.train, bank_seed=T.bank_seed(0, 0))
+    assert set(tr.fit_subjects) == set(fold.train)
+    assert not set(tr.fit_subjects) & set(fold.evaluate)
+    assert tr.n_rest_windows == len(fold.train) * 4
+
+
+def test_allowed_subjects_is_actually_passed_through(synthetic, monkeypatch):
+    """T03 의 방어선은 인자다. 넘기지 않으면 경계가 사라진다."""
+    seen = {}
+    import mobse.v2.features as Fmod
+    real = Fmod.fit_transform_on_training_rest
+
+    def spy(rest_features, fit_subjects, **kw):
+        seen.update(kw)
+        seen["n_fit_subjects"] = len(set(fit_subjects))
+        return real(rest_features, fit_subjects, **kw)
+
+    monkeypatch.setattr(FIT.F, "fit_transform_on_training_rest", spy)
+    fold = FIT.resolve_fold_subjects(synthetic["folds"], 0, 0)
+    rest = FIT.refs_from_extract_manifest(synthetic["rest_path"], labelled=False)
+    FIT.fit_fold_transform(rest, fold.train, bank_seed=T.bank_seed(0, 0))
+    assert set(seen["allowed_subjects"]) == set(fold.train)
+
+
+def test_transform_fingerprint_is_stable_across_transforms(synthetic):
+    """T04 — transform 호출이 상태를 바꾸지 않는다."""
+    fold = FIT.resolve_fold_subjects(synthetic["folds"], 0, 0)
+    rest = FIT.refs_from_extract_manifest(synthetic["rest_path"], labelled=False)
+    tr = FIT.fit_fold_transform(rest, fold.train, bank_seed=T.bank_seed(0, 0))
+    before = tr.frozen.fingerprint()
+    for _ in range(3):
+        tr.frozen.transform(np.zeros((2, tr.frozen.n_features)))
+    assert tr.frozen.fingerprint() == before
+
+
+def test_bank_seed_is_fold_scoped(synthetic):
+    rest = FIT.refs_from_extract_manifest(synthetic["rest_path"], labelled=False)
+    fold = FIT.resolve_fold_subjects(synthetic["folds"], 0, 0)
+    a = FIT.fit_fold_transform(rest, fold.train, bank_seed=T.bank_seed(0, 0))
+    b = FIT.fit_fold_transform(rest, fold.train, bank_seed=T.bank_seed(0, 1))
+    assert a.brain.seed != b.brain.seed
+    assert a.provenance()["bank_seed"] == 30000
+    assert b.provenance()["bank_seed"] == 30001
+
+
+def test_empty_training_rest_fails_rather_than_falling_back(synthetic):
+    rest = FIT.refs_from_extract_manifest(synthetic["rest_path"], labelled=False)
+    with pytest.raises(FIT.FitError, match="training-rest"):
+        FIT.fit_fold_transform(rest, ["ds002785:sub-9999"], bank_seed=T.bank_seed(0, 0))
+
+
+# --------------------------------------------------------------------------- #
+# 학습 루프
+# --------------------------------------------------------------------------- #
+
+
+def _sets(synthetic, outer=0, inner=0):
+    fold = FIT.resolve_fold_subjects(synthetic["folds"], outer, inner)
+    rest = FIT.refs_from_extract_manifest(synthetic["rest_path"], labelled=False)
+    tr = FIT.fit_fold_transform(rest, fold.train, bank_seed=T.bank_seed(outer, min(inner, 9)))
+    task_refs = []
+    for tp in synthetic["task_paths"]:
+        task_refs += FIT.refs_from_extract_manifest(tp, labelled=True)
+    train_set = FIT.encode_windows(FIT.select_refs(task_refs, fold.train), tr)
+    eval_set = FIT.encode_windows(FIT.select_refs(task_refs, fold.evaluate), tr)
+    return fold, tr, train_set, eval_set
+
+
+def test_encoding_shapes_and_transposition(synthetic):
+    _, tr, train_set, _ = _sets(synthetic)
+    assert train_set.x.shape == (8 * 2 * 4, N_ROI, N_SAMPLES), train_set.x.shape
+    assert train_set.pca.shape == (8 * 2 * 4, 10)
+    assert set(np.unique(train_set.y)) <= {0, 1}
+    # .npy 는 (n_samples, n_roi) 다. 모델은 (B, n_roi, T) 를 받는다.
+    raw = FIT.read_window(train_set.refs[0])
+    assert np.allclose(train_set.x[0], raw.T.astype(np.float32))
+
+
+def test_run_probability_requires_four_windows():
+    refs = [FIT.WindowRef(window_key=f"k{i}", run_key="ds002785/sub-0001/na/emomatching/na/seq",
+                          canonical_subject="ds002785:sub-0001", task="emomatching",
+                          path=Path("/x"), sha256="0" * 64, label=0) for i in range(3)]
+    with pytest.raises(FIT.FitError, match="4개가 아니다"):
+        FIT.run_probabilities(refs, [0.5, 0.5, 0.5])
+
+
+def test_subject_run_true_probs_uses_the_task_as_truth():
+    rp = {"ds002785/sub-0001/na/emomatching/na/seq": 0.2,
+          "ds002785/sub-0001/na/workingmemory/na/seq": 0.9}
+    out = FIT.subject_run_true_probs(rp)
+    # emomatching = class 0 → 정답 확률은 1 - p1
+    assert out["ds002785:sub-0001"] == pytest.approx([0.8, 0.9])
+
+
+def test_inner_fit_runs_and_reports_a_valid_best_epoch(synthetic):
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    res, model = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                                model_seed=42, fold=fold, min_updates=0, max_epochs=4)
+    assert res.role == FIT.ROLE_INNER
+    assert 1 <= res.best_epoch <= res.epochs_run <= 4
+    assert len(res.val_losses) == res.epochs_run
+    assert set(res.eval_window_probs) == {r.window_key for r in eval_set.refs}
+    assert len(res.eval_run_probs) == len(fold.evaluate) * 2
+    assert 0.0 <= res.eval_balanced_accuracy <= 1.0
+    assert res.transform["bank_seed"] == 30000
+    assert res.timing["train_seconds"] > 0
+
+
+def test_outer_fit_refuses_early_stopping(synthetic):
+    fold, tr, train_set, eval_set = _sets(synthetic, inner=T.OUTER_FIT_INNER_FOLD)
+    with pytest.raises(FIT.FitError, match="early stopping"):
+        FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0, model_seed=42,
+                       fold=fold, early_stopping=True, epochs_exact=2)
+
+
+def test_outer_fit_requires_an_exact_epoch_count(synthetic):
+    fold, tr, train_set, eval_set = _sets(synthetic, inner=T.OUTER_FIT_INNER_FOLD)
+    with pytest.raises(FIT.FitError, match="공통 E"):
+        FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                       model_seed=42, fold=fold)
+
+
+def test_outer_fit_runs_exactly_e_epochs_without_validation(synthetic):
+    fold, tr, train_set, eval_set = _sets(synthetic, inner=T.OUTER_FIT_INNER_FOLD)
+    res, _ = FIT.train_fold(train_set, eval_set, tr, cell="B", config_id=3,
+                            model_seed=43, fold=fold, min_updates=0, epochs_exact=3)
+    assert res.role == FIT.ROLE_OUTER
+    assert res.epochs_run == 3 and res.best_epoch == 3
+    assert res.val_losses == [], "outer fit 은 평가 집합으로 loss 를 재지 않는다"
+
+
+def test_bad_config_id_is_rejected(synthetic):
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    with pytest.raises(FIT.FitError, match="config_id"):
+        FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=8,
+                       model_seed=42, fold=fold, min_updates=0, max_epochs=1)
+
+
+def test_encoder_init_is_shared_across_cells_at_the_same_seed(synthetic):
+    """계획서 §7 — 같은 seed 의 공통 encoder 초기화를 맞추고 RNG 차이를 기록한다."""
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    hashes = {}
+    for cell in ("A", "B", "C", "D"):
+        res, _ = FIT.train_fold(train_set, eval_set, tr, cell=cell, config_id=0,
+                                model_seed=42, fold=fold, min_updates=0, max_epochs=1)
+        hashes[cell] = res.encoder_init_hash
+    assert len(set(hashes.values())) == 1, hashes
+    assert "RNG" in res.rng_note
+
+
+def test_a_and_c_differ_only_by_the_bank(synthetic):
+    """A 는 brain bank, C 는 null bank 를 쓴다. 같은 seed·config 에서 예측이 달라야 한다."""
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    a, _ = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                          model_seed=42, fold=fold, min_updates=0, max_epochs=2)
+    c, _ = FIT.train_fold(train_set, eval_set, tr, cell="C", config_id=0,
+                          model_seed=42, fold=fold, min_updates=0, max_epochs=2)
+    assert a.encoder_init_hash == c.encoder_init_hash
+    assert a.eval_window_probs != c.eval_window_probs
+
+
+def test_apply_determinism_turns_every_switch_on(monkeypatch):
+    """E22 — config 의 runtime.deterministic 이 기록만 되고 적용되지 않던 사고."""
+    import torch
+
+    monkeypatch.delenv("CUBLAS_WORKSPACE_CONFIG", raising=False)
+    torch.use_deterministic_algorithms(False)
+    torch.backends.cudnn.deterministic = False
+    torch.backends.cudnn.benchmark = True
+    state = FIT.apply_determinism()
+    assert torch.are_deterministic_algorithms_enabled()
+    assert torch.backends.cudnn.deterministic is True
+    assert torch.backends.cudnn.benchmark is False
+    import os
+    assert os.environ["CUBLAS_WORKSPACE_CONFIG"] == ":4096:8"
+    assert state["use_deterministic_algorithms"] and state["cudnn_deterministic"]
+    assert state["cudnn_benchmark"] is False
+
+
+def test_apply_determinism_keeps_an_equivalent_cublas_setting(monkeypatch):
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":16:8")
+    assert FIT.apply_determinism()["cublas_workspace_config"] == ":16:8"
+
+
+def test_apply_determinism_refuses_a_nondeterministic_cublas_setting(monkeypatch):
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":0:0")
+    with pytest.raises(FIT.FitError, match="CUBLAS_WORKSPACE_CONFIG"):
+        FIT.apply_determinism()
+
+
+def test_train_fold_applies_determinism_before_seeding(synthetic, monkeypatch):
+    """spy — train_fold 가 결정성 설정을 켜고 그 상태를 결과에 남긴다."""
+    import torch
+
+    calls = []
+    real = FIT.apply_determinism
+
+    def spy():
+        calls.append(torch.are_deterministic_algorithms_enabled())
+        return real()
+
+    monkeypatch.setattr(FIT, "apply_determinism", spy)
+    torch.use_deterministic_algorithms(False)
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    res, _ = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                            model_seed=42, fold=fold, min_updates=0, max_epochs=1)
+    assert len(calls) == 1
+    assert res.determinism["use_deterministic_algorithms"] is True
+    assert torch.are_deterministic_algorithms_enabled()
+
+
+@pytest.mark.skipif(not __import__("torch").cuda.is_available(), reason="CUDA 없음")
+def test_fit_is_reproducible_on_cuda(synthetic):
+    """E22 — pilot probe 에서 같은 인자 두 실행이 train BA 0.808 / 0.500 이었다."""
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    kw = dict(cell="B", config_id=1, model_seed=42, fold=fold, min_updates=0,
+              max_epochs=3, device="cuda")
+    a, _ = FIT.train_fold(train_set, eval_set, tr, **kw)
+    b, _ = FIT.train_fold(train_set, eval_set, tr, **kw)
+    assert a.eval_window_probs == b.eval_window_probs
+    assert a.val_losses == b.val_losses
+    assert a.determinism["cublas_workspace_config"] in FIT.CUBLAS_DETERMINISTIC_CONFIGS
+
+
+def test_fit_is_reproducible_at_the_same_seed(synthetic):
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    kw = dict(cell="A", config_id=1, model_seed=42, fold=fold, min_updates=0, max_epochs=2)
+    a, _ = FIT.train_fold(train_set, eval_set, tr, **kw)
+    b, _ = FIT.train_fold(train_set, eval_set, tr, **kw)
+    assert a.eval_window_probs == b.eval_window_probs
+    assert a.val_losses == b.val_losses
+
+
+# --- [개정 P8] 최소 update 보장·상한 200·최소치 이후 early stopping ------------
+
+def test_p8_default_min_updates_is_the_locked_constant():
+    """기본값이 5,000 (P8-b) 이어야 한다 — 빠뜨리면 조용히 최소치가 꺼지는 기본값 금지."""
+    import inspect
+
+    from mobse.v2.train import MIN_UPDATES
+    assert MIN_UPDATES == 5000
+    sig = inspect.signature(FIT.train_fold)
+    assert sig.parameters["min_updates"].default == MIN_UPDATES
+
+
+def test_p8_inner_fit_never_stops_or_selects_before_the_minimum(synthetic):
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    upe = -(-len(train_set) // 32)
+    res, _ = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                            model_seed=42, fold=fold, max_epochs=6,
+                            min_updates=3 * upe)
+    assert res.min_epoch == 3 and res.updates_per_epoch == upe
+    assert 3 <= res.best_epoch <= res.epochs_run <= 6
+    assert res.updates_run == upe * res.epochs_run >= 3 * upe
+
+
+def test_p8_minimum_above_the_epoch_cap_is_refused(synthetic):
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    upe = -(-len(train_set) // 32)
+    with pytest.raises(FIT.FitError, match="pilot 측정으로만"):
+        FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                       model_seed=42, fold=fold, max_epochs=2, min_updates=3 * upe)
+
+
+def test_p8_outer_common_e_below_the_minimum_is_refused(synthetic):
+    fold, tr, train_set, eval_set = _sets(synthetic, inner=T.OUTER_FIT_INNER_FOLD)
+    upe = -(-len(train_set) // 32)
+    with pytest.raises(FIT.FitError, match="공통 E"):
+        FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                       model_seed=42, fold=fold, epochs_exact=2,
+                       min_updates=2 * upe + 1)
+
+
+def test_p8_epoch_cap_is_400(synthetic):
+    from mobse.v2.train import MAX_EPOCHS
+    assert MAX_EPOCHS == 400
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    with pytest.raises(FIT.FitError, match="상한"):
+        FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                       model_seed=42, fold=fold, max_epochs=MAX_EPOCHS + 1,
+                       min_updates=0)
+
+
+# ---------------------------------------------------------------------------
+# 결정 12 — inner fit 은 best checkpoint 로 평가한다 (계획서 §7 "selected best checkpoint")
+# ---------------------------------------------------------------------------
+
+def _record_eval_forwards(monkeypatch, eval_set):
+    """early stopping 평가 forward(평가 집합 크기) 의 확률을 epoch 순서대로 모은다."""
+    orig = FIT._forward_probs
+    seen = []
+
+    def spy(model, x, pca, *, batch_size):
+        p = orig(model, x, pca, batch_size=batch_size)
+        if len(p) == len(eval_set):
+            seen.append(np.asarray(p, dtype=float).copy())
+        return p
+
+    monkeypatch.setattr(FIT, "_forward_probs", spy)
+    return seen
+
+
+def _eval_vector(res, eval_set):
+    return np.array([res.eval_window_probs[r.window_key] for r in eval_set.refs])
+
+
+def test_inner_fit_evaluates_the_best_epoch_not_the_last(synthetic, monkeypatch):
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    seen = _record_eval_forwards(monkeypatch, eval_set)
+    # min_delta 가 커서 epoch 1 이후 개선이 없다 → best 1, patience 2 뒤 epoch 3 에서 멈춤
+    res, model = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                                model_seed=42, fold=fold, min_updates=0,
+                                max_epochs=6, patience=2, min_delta=10.0)
+    assert res.best_epoch == 1 and res.epochs_run == 3 and res.eval_epoch == 1
+    # seen: epoch 1..3 의 early stopping forward + 마지막 평가 forward
+    assert len(seen) == 4
+    final = _eval_vector(res, eval_set)
+    assert np.allclose(final, seen[0], atol=1e-6)
+    assert not np.allclose(seen[0], seen[2], atol=1e-6), "시험이 구별력이 없다"
+    assert not np.allclose(final, seen[2], atol=1e-6)
+    # 반환 모델도 best checkpoint 다
+    again = FIT._forward_probs(model, __import__("torch").as_tensor(eval_set.x),
+                               __import__("torch").as_tensor(eval_set.pca),
+                               batch_size=32)
+    assert np.allclose(np.asarray(again), seen[0], atol=1e-6)
+
+
+def test_inner_fit_with_best_at_the_last_epoch_is_unchanged(synthetic, monkeypatch):
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    seen = _record_eval_forwards(monkeypatch, eval_set)
+    # min_delta 가 매우 음수 → 매 epoch 이 개선 → best = 마지막
+    res, _ = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                            model_seed=42, fold=fold, min_updates=0,
+                            max_epochs=3, min_delta=-1e9)
+    assert res.best_epoch == res.epochs_run == res.eval_epoch == 3
+    assert np.allclose(_eval_vector(res, eval_set), seen[2], atol=1e-6)
+
+
+def test_outer_fit_path_is_unchanged_by_the_best_checkpoint_rule(synthetic, monkeypatch):
+    fold, tr, train_set, eval_set = _sets(synthetic, inner=T.OUTER_FIT_INNER_FOLD)
+    seen = _record_eval_forwards(monkeypatch, eval_set)
+    res, _ = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                            model_seed=43, fold=fold, min_updates=0, epochs_exact=3)
+    assert res.epochs_run == res.best_epoch == res.eval_epoch == 3
+    assert res.val_losses == []
+    assert len(seen) == 1, "outer fit 은 학습 중 평가 forward 가 없어야 한다"
+    assert np.allclose(_eval_vector(res, eval_set), seen[0], atol=1e-6)
+
+
+def test_best_checkpoint_fit_is_deterministic(synthetic):
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    kw = dict(cell="A", config_id=0, model_seed=42, fold=fold, min_updates=0,
+              max_epochs=6, patience=2, min_delta=10.0)
+    a, _ = FIT.train_fold(train_set, eval_set, tr, **kw)
+    b, _ = FIT.train_fold(train_set, eval_set, tr, **kw)
+    assert a.eval_epoch == b.eval_epoch == 1
+    assert a.eval_window_probs == b.eval_window_probs
+    assert a.val_losses == b.val_losses
+
+
+# ---------------------------------------------------------------------------
+# 결정 14 — §6 구조 비교(NG·SG)는 train_fold 한 경로로 학습한다 (두 번째 루프 없음)
+# ---------------------------------------------------------------------------
+
+def _sets_sg(synthetic, outer=0, inner=0):
+    fold = FIT.resolve_fold_subjects(synthetic["folds"], outer, inner)
+    rest = FIT.refs_from_extract_manifest(synthetic["rest_path"], labelled=False)
+    tr = FIT.fit_fold_transform(rest, fold.train, bank_seed=T.bank_seed(outer, min(inner, 9)),
+                                single_graph=True)
+    task_refs = []
+    for tp in synthetic["task_paths"]:
+        task_refs += FIT.refs_from_extract_manifest(tp, labelled=True)
+    train_set = FIT.encode_windows(FIT.select_refs(task_refs, fold.train), tr)
+    eval_set = FIT.encode_windows(FIT.select_refs(task_refs, fold.evaluate), tr)
+    return fold, tr, train_set, eval_set, rest
+
+
+def test_single_graph_is_built_only_when_asked(synthetic):
+    fold, tr, _, _ = _sets(synthetic)
+    assert tr.single is None
+    assert "single_graph_id" not in tr.provenance()
+
+
+def test_single_graph_uses_exactly_the_training_rest_windows(synthetic):
+    """경계: SG graph 는 bank 와 같은 training subject 의 rest 창만으로 만든다."""
+    fold, tr, _, _, rest = _sets_sg(synthetic)
+    used = [r for r in rest if r.canonical_subject in set(fold.train)]
+    corr, _ = FIT.F.stack_window_features([FIT.read_window(r) for r in used])
+    ref = T.build_single_graph(corr, [r.canonical_subject for r in used])
+    assert tr.single is not None
+    assert np.allclose(tr.single.template, ref.template)
+    assert tr.single.n_windows == tr.n_rest_windows == len(used)
+    assert set(tr.single.fit_subjects) == set(fold.train)
+    assert not set(tr.single.fit_subjects) & set(fold.evaluate)
+    prov = tr.provenance()
+    assert prov["single_graph_id"] == tr.single.graph_id
+    assert prov["single_graph_n_windows"] == len(used)
+
+
+def test_single_graph_changes_when_an_evaluate_subject_is_let_in(synthetic):
+    """경계 시험의 구별력: 평가 subject 의 rest 가 섞이면 graph 가 달라진다."""
+    fold, tr, _, _, rest = _sets_sg(synthetic)
+    leaked = FIT.fit_fold_transform(rest, list(fold.train) + list(fold.evaluate)[:1],
+                                    bank_seed=T.bank_seed(0, 0), single_graph=True)
+    assert not np.allclose(leaked.single.template, tr.single.template)
+
+
+def test_single_graph_does_not_change_the_bank(synthetic):
+    _, plain, _, _ = _sets(synthetic)
+    _, sg, _, _, _ = _sets_sg(synthetic)
+    base = plain.provenance()
+    extra = sg.provenance()
+    assert {k: extra[k] for k in base} == base
+
+
+def test_sg_fit_without_a_single_graph_is_refused(synthetic):
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    with pytest.raises(FIT.FitError, match="single average graph"):
+        FIT.train_fold(train_set, eval_set, tr, cell="SG", config_id=0,
+                       model_seed=42, fold=fold, min_updates=0, max_epochs=1)
+
+
+def test_unknown_cell_is_refused(synthetic):
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    with pytest.raises(FIT.FitError, match="알 수 없는 cell"):
+        FIT.train_fold(train_set, eval_set, tr, cell="E", config_id=0,
+                       model_seed=42, fold=fold, min_updates=0, max_epochs=1)
+
+
+@pytest.mark.parametrize("cell", ["NG", "SG"])
+def test_comparator_fit_builds_the_comparator_model(synthetic, cell):
+    from mobse.v2 import models as M
+    fold, tr, train_set, eval_set, _ = _sets_sg(synthetic)
+    res, model = FIT.train_fold(train_set, eval_set, tr, cell=cell, config_id=0,
+                                model_seed=42, fold=fold, min_updates=0, max_epochs=2)
+    want = M.FusionMLPComparator if cell == "NG" else M.SingleGraphComparator
+    assert isinstance(model, want)
+    assert res.cell == cell and res.role == FIT.ROLE_INNER
+    assert set(res.eval_window_probs) == {r.window_key for r in eval_set.refs}
+    if cell == "SG":
+        assert np.allclose(model.graph.cpu().numpy(), tr.single.template)
+
+
+@pytest.mark.parametrize("cell", ["NG", "SG"])
+def test_comparator_encoder_init_matches_the_cells(synthetic, cell):
+    """§6 "동일 encoder" — 같은 seed 에서 encoder 초기값이 A 와 같다."""
+    fold, tr, train_set, eval_set, _ = _sets_sg(synthetic)
+    a, _ = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                          model_seed=42, fold=fold, min_updates=0, max_epochs=1)
+    c, _ = FIT.train_fold(train_set, eval_set, tr, cell=cell, config_id=0,
+                          model_seed=42, fold=fold, min_updates=0, max_epochs=1)
+    assert a.encoder_init_hash == c.encoder_init_hash
+
+
+@pytest.mark.parametrize("cell", ["NG", "SG"])
+def test_comparator_inner_fit_evaluates_the_best_checkpoint(synthetic, monkeypatch, cell):
+    fold, tr, train_set, eval_set, _ = _sets_sg(synthetic)
+    seen = _record_eval_forwards(monkeypatch, eval_set)
+    res, _ = FIT.train_fold(train_set, eval_set, tr, cell=cell, config_id=0,
+                            model_seed=42, fold=fold, min_updates=0,
+                            max_epochs=6, patience=2, min_delta=10.0)
+    assert res.best_epoch == 1 and res.epochs_run == 3 and res.eval_epoch == 1
+    assert len(seen) == 4
+    assert np.allclose(_eval_vector(res, eval_set), seen[0], atol=1e-6)
+    assert not np.allclose(seen[0], seen[2], atol=1e-6), "시험이 구별력이 없다"
+
+
+@pytest.mark.parametrize("cell", ["NG", "SG"])
+def test_comparator_fit_obeys_the_p8_guards(synthetic, cell):
+    fold, tr, train_set, eval_set, _ = _sets_sg(synthetic)
+    upe = -(-len(train_set) // 32)
+    res, _ = FIT.train_fold(train_set, eval_set, tr, cell=cell, config_id=0,
+                            model_seed=42, fold=fold, max_epochs=6, min_updates=3 * upe)
+    assert res.min_epoch == 3 and 3 <= res.best_epoch <= res.epochs_run <= 6
+    with pytest.raises(FIT.FitError, match="pilot 측정으로만"):
+        FIT.train_fold(train_set, eval_set, tr, cell=cell, config_id=0,
+                       model_seed=42, fold=fold, max_epochs=2, min_updates=3 * upe)
+    ofold, otr, otrain, oeval, _ = _sets_sg(synthetic, inner=T.OUTER_FIT_INNER_FOLD)
+    with pytest.raises(FIT.FitError, match="early stopping"):
+        FIT.train_fold(otrain, oeval, otr, cell=cell, config_id=0, model_seed=42,
+                       fold=ofold, early_stopping=True, epochs_exact=2)
+    out, _ = FIT.train_fold(otrain, oeval, otr, cell=cell, config_id=0, model_seed=43,
+                            fold=ofold, min_updates=0, epochs_exact=3)
+    assert out.epochs_run == out.best_epoch == 3 and out.val_losses == []
+
+
+@pytest.mark.parametrize("cell", ["NG", "SG"])
+def test_comparator_fit_is_deterministic_and_applies_determinism(synthetic, monkeypatch, cell):
+    fold, tr, train_set, eval_set, _ = _sets_sg(synthetic)
+    kw = dict(cell=cell, config_id=0, model_seed=42, fold=fold, min_updates=0,
+              max_epochs=6, patience=2, min_delta=10.0)
+    a, _ = FIT.train_fold(train_set, eval_set, tr, **kw)
+    b, _ = FIT.train_fold(train_set, eval_set, tr, **kw)
+    assert a.eval_window_probs == b.eval_window_probs and a.val_losses == b.val_losses
+    calls = []
+    real = FIT.apply_determinism
+    monkeypatch.setattr(FIT, "apply_determinism", lambda: calls.append(1) or real())
+    FIT.train_fold(train_set, eval_set, tr, **kw)
+    assert calls == [1]
+
+
+# 결정 14 3단계 — 구조 비교 fit 의 seed 제약 (A–D 는 CLI 가 검사)
+
+@pytest.mark.parametrize("cell", ["NG", "SG"])
+@pytest.mark.parametrize("seed", [0, 41, 45])
+def test_comparator_fit_rejects_seed_outside_locked_set(synthetic, cell, seed):
+    fold, tr, train_set, eval_set, _ = _sets_sg(synthetic)
+    with pytest.raises(FIT.FitError, match="MODEL_SEEDS"):
+        FIT.train_fold(train_set, eval_set, tr, cell=cell, config_id=0,
+                       model_seed=seed, fold=fold, min_updates=0, max_epochs=1)
+
+
+def test_a_to_d_library_path_keeps_accepting_other_seeds(synthetic):
+    """A–D 라이브러리 경로는 바꾸지 않았다 (pilot 측정 틀). seed 검사는 cli.run_fit."""
+    fold, tr, train_set, eval_set = _sets(synthetic)
+    res, _ = FIT.train_fold(train_set, eval_set, tr, cell="A", config_id=0,
+                            model_seed=7, fold=fold, min_updates=0, max_epochs=1)
+    assert res.model_seed == 7
+
+
+# --------------------------------------------------------------------------- #
+# 결정 21 명세 2 — acceptance 빈틈 보강 (T03·T04·T11)
+# --------------------------------------------------------------------------- #
+
+# T03 — bank fit 에도 허용 집합이 넘어간다
+
+def test_bank_allowed_subjects_is_actually_passed_through(synthetic, monkeypatch):
+    """T03 — fit_fold_transform 은 bank fit 에 training subject 집합을 넘긴다."""
+    seen = {}
+    real = T.build_bank
+
+    def spy(correlations, pca_features, fit_subjects, **kw):
+        seen.update(kw)
+        return real(correlations, pca_features, fit_subjects, **kw)
+
+    monkeypatch.setattr(FIT.T, "build_bank", spy)
+    fold = FIT.resolve_fold_subjects(synthetic["folds"], 0, 0)
+    rest = FIT.refs_from_extract_manifest(synthetic["rest_path"], labelled=False)
+    FIT.fit_fold_transform(rest, fold.train, bank_seed=T.bank_seed(0, 0))
+    assert set(seen["allowed_subjects"]) == set(fold.train)
+
+
+# T04 — val/test 변환·평가 forward 전후 bank hash·parameters 불변
+
+def _bank_buffers(model):
+    return {n: b.detach().cpu().numpy().copy() for n, b in model.named_buffers()
+            if n.endswith("template_bank")}
+
+
+@pytest.mark.parametrize("cell", ["A", "C"])
+def test_bank_hash_is_unchanged_by_eval_transform_and_fit(synthetic, cell):
+    """T04 — 평가 창 인코딩과 학습·평가 forward 전후 bank·null·PCA hash 가 같다."""
+    fold = FIT.resolve_fold_subjects(synthetic["folds"], 0, 0)
+    rest = FIT.refs_from_extract_manifest(synthetic["rest_path"], labelled=False)
+    tr = FIT.fit_fold_transform(rest, fold.train, bank_seed=T.bank_seed(0, 0))
+    before = (tr.brain.fingerprint(), tr.brain.bank_id, tr.null.fingerprint(),
+              tr.null.bank_id, tr.frozen.fingerprint())
+    brain32 = np.asarray(tr.brain.templates, dtype=np.float32).copy()
+    null32 = np.asarray(tr.null.templates, dtype=np.float32).copy()
+    task_refs = []
+    for tp in synthetic["task_paths"]:
+        task_refs += FIT.refs_from_extract_manifest(tp, labelled=True)
+    train_set = FIT.encode_windows(FIT.select_refs(task_refs, fold.train), tr)
+    eval_set = FIT.encode_windows(FIT.select_refs(task_refs, fold.evaluate), tr)
+    _, model = FIT.train_fold(train_set, eval_set, tr, cell=cell, config_id=0,
+                              model_seed=42, fold=fold, min_updates=0, max_epochs=3)
+    after = (tr.brain.fingerprint(), tr.brain.bank_id, tr.null.fingerprint(),
+             tr.null.bank_id, tr.frozen.fingerprint())
+    assert after == before
+    assert tr.brain.fingerprint()[:16] == tr.brain.bank_id
+    bufs = _bank_buffers(model)
+    assert bufs, "bank buffer 가 없다"
+    assert "template_bank" not in dict(model.named_parameters())
+    for name, b in bufs.items():
+        assert (np.array_equal(b, brain32) or np.array_equal(b, null32)), name
+
+
+# T11 — single class fold 거부 (A–D·NG·SG 학습 경로)
+
+@pytest.mark.parametrize("label", [0, 1])
+@pytest.mark.parametrize("cell", ["A", "D", "NG", "SG"])
+def test_single_class_training_set_is_refused(synthetic, cell, label):
+    """T11 — training 라벨이 한 class 뿐이면 train_fold 가 거부한다."""
+    import dataclasses
+    fold, tr, train_set, eval_set, _ = _sets_sg(synthetic)
+    one = dataclasses.replace(train_set, y=np.full_like(train_set.y, label))
+    with pytest.raises(FIT.FitError, match="두 class 가 아니다"):
+        FIT.train_fold(one, eval_set, tr, cell=cell, config_id=0, model_seed=42,
+                       fold=fold, min_updates=0, max_epochs=1)
+
+
+def test_single_class_outer_training_set_is_refused(synthetic):
+    """T11 — outer fit 도 같은 거부 (early stopping 여부와 무관)."""
+    import dataclasses
+    fold, tr, train_set, eval_set = _sets(synthetic, inner=T.OUTER_FIT_INNER_FOLD)
+    one = dataclasses.replace(train_set, y=np.zeros_like(train_set.y))
+    with pytest.raises(FIT.FitError, match="두 class 가 아니다"):
+        FIT.train_fold(one, eval_set, tr, cell="B", config_id=0, model_seed=42,
+                       fold=fold, min_updates=0, epochs_exact=1)

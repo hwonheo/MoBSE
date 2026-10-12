@@ -1,0 +1,48 @@
+{
+  "schema_version": "redesign_fig_manifest_v1",
+  "figure_key": "rd4",
+  "role": "audit",
+  "script": "scripts/make_redesign_protocol_figures.py",
+  "script_sha256": "0c22cf5c3401d54785dd2e2c83457ef48c074a6b5a34bfc03566a85e2ed7d627",
+  "figure_png": "docs/experiments/figures_redesign_2026-09-17/fig_rd4_g0_audit_status.png",
+  "figure_pdf": "docs/experiments/figures_redesign_2026-09-17/fig_rd4_g0_audit_status.pdf",
+  "figure_png_sha256": "8048dd0b81bf214e6e5318d3f98bc4617f225fe776e6fa0c50ab1d3f9190f90c",
+  "figure_pdf_sha256": "b0b2c788fb402e364afe77f59a6e1d56a1b695b238eedeae4d5246e03c49ff90",
+  "sources": [
+    {
+      "path": "results/redesign_v1/20260917_3c458d507e82_nocfg/provenance/source_runs.jsonl",
+      "kind": "file",
+      "sha256": "81645ac323376afc6c3289271fc69401eb35288b6f142402aea8a2ba1a65749c"
+    },
+    {
+      "path": "results/redesign_v1/20260917_3c458d507e82_nocfg/provenance/missing_sources.json",
+      "kind": "file",
+      "sha256": "9c6199d65661d43f59a199a0bc4236fb9e3a5823a1498730fd1636f8a4a0663f"
+    },
+    {
+      "path": "results/redesign_v1/20260917_3c458d507e82_nocfg/reports/timing_audit.md",
+      "kind": "file",
+      "sha256": "73dad66219182ed4b4e217fc5dd215ad7e77c118ce3d90a0fe96ef47d27dbb2d"
+    },
+    {
+      "path": "results/redesign_v1/20260917_3c458d507e82_nocfg/reports/wi00_wi01_execution_report_2026-09-17.md",
+      "kind": "file",
+      "sha256": "98e10f6019f588e8f549848663a2d46a5e1d14c313f1e7d2bbbea1e29b986286"
+    }
+  ],
+  "git_head": "7787ae0c9741c22c207032c8bd78fd462ce02b9f",
+  "created_at_utc": "2026-09-17T09:01:31Z",
+  "style": {
+    "base": "mobse.viz.set_nature_style",
+    "extensions": [
+      "pdf.fonttype=42",
+      "ps.fonttype=42"
+    ],
+    "categorical_palette": [
+      "#10B981",
+      "#4F46E5",
+      "#F59E0B"
+    ]
+  },
+  "notes": "성능 결과를 포함하지 않는 설계·감사 figure. 수치는 계획서 본문과 WI-01 실측값에서만 가져왔다."
+}

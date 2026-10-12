@@ -149,7 +149,23 @@ def build_template_bank(
 
 
 def load_template_bank(path: str | Path, states: List[str]) -> np.ndarray:
+    """Load template bank from NPZ file.
+
+    Supports both Phase 1 (task-labeled) and Phase 2 (dFC) formats.
+    Also supports raw dFC template_bank array (from run_dfc_pipeline output).
+    """
     pack = np.load(path, allow_pickle=True)
+
+    # Direct template_bank array (raw dFC output format)
+    if "template_bank" in pack and f"template::{states[0]}" not in pack:
+        bank = pack["template_bank"].astype(np.float32)
+        if bank.shape[0] != len(states):
+            raise ValueError(
+                f"template_bank has {bank.shape[0]} states but {len(states)} states requested"
+            )
+        return bank
+
+    # Standard keyed format (Phase 1 or dFC bridge export)
     templates = []
     for state in states:
         key = f"template::{state}"

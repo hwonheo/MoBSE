@@ -1,0 +1,19 @@
+# legacy 전용 추가 의존성 — release scope 밖이다.
+#
+# 재설계 v2 release(mobse/v2, tests/v2, scripts/h197, figure 생성기)는 이 중 무엇도
+# import 하지 않는다. 기존 suite 를 그대로 재현해 "기존 failure vs 신규 failure"를
+# 구분하기 위해서만 쓴다. requirements-v2.txt 에 섞지 않는다 — 섞으면 release 환경이
+# 계획서에 없는 패키지를 끌고 들어간다.
+#
+# 버전은 h197 venv 에서 `pip index versions` 로 확인한 값이다 (기억에서 적지 않는다).
+#
+# 근거 (07_verify_import_closure.py repo scope 출력):
+#   networkx <- scripts/analyze_template_networks.py
+#   requests <- mobse/data/prepare.py, scripts/scan_openneuro_ds00.py
+#   thop     <- mobse/profiling.py
+#   tqdm     <- scripts/fetch_ds000030_timeseries.py
+
+networkx==3.6.1
+requests==2.34.2
+thop==0.1.1.post2209072238
+tqdm==4.70.1

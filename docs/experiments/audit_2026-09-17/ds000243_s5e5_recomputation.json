@@ -1,0 +1,8 @@
+{
+  "runs": 80,
+  "seeds_per_condition": 5,
+  "epochs_per_run": 5,
+  "summary_metrics_checked": 48,
+  "tolerance": 1e-10,
+  "errors": []
+}

@@ -1,0 +1,255 @@
+# I1 — 뇌 그래프 prior 검증 프로토콜 · 계획서 **초안 v0.1** (2026-10-02)
+
+> **결정이 아니다.** 결정 36 (본 트랙 I1) · 결정 37 (공개 모델 = BNT · BQN · Han dual-pathway · BrainGB GCN mean) 위에서
+> 쓴 초안이다. §8 의 "결정 필요" 가 정해지기 전에는 실행하지 않는다. 승인 범위는 `docs/handoff/mobse_v3_checkpoint_2026-10-01.md`
+> §11 승인 대장을 따른다. 수치는 실측이며 출처를 적었다. [추정] 은 재지 않은 값이다.
+
+## 0. 한 문단
+
+뇌 그래프 딥러닝 논문은 흔히 "모델이 뇌의 연결 구조를 쓴다 / 해부학적 prior 가 도움이 된다" 를 주장한다. 우리는 MoBSE 를
+엄격히 검증하다가 그 판정이 **평가 설계에 좌우된다**는 증거를 다섯 가지 얻었다 (등변성 때문에 정렬 검정이 원리적으로 퇴화 ·
+null 종류마다 결론이 흔들림 · 단일 학습 CI 의 과신 · 포화된 target · 재현 마찰). I1 은 이것을 **공개 모델 넷과 공개 자료**에
+같은 절차로 적용해, 그 현상이 MoBSE 만의 문제가 아니라 이 분야의 평가 관행 문제인지를 잰다. 산출물은 검증 프로토콜
+(진단 다섯과 보고 형식) 과 그 적용 결과다.
+
+## 1. 질문과 주장 범위
+
+**질문**: 뇌 그래프 딥러닝 모델의 "ROI 정체 / 해부학적 배치를 쓴다" 는 판정은 (a) 모델 구조의 대칭성, (b) null 의 종류,
+(c) 재학습 변동, (d) target 의 포화에 얼마나 좌우되는가?
+
+**주장하려는 것 (검정 대상)**
+- C1 등변 구성 (공유 node encoder + mean/sum readout) 에서는 정렬 그래프 대 ROI 재배열 null 이 **원리적으로 같은 모델**이다 — 정리 + 수치 진단.
+- C2 자료를 그래프로 쓰는 모델에서 "ROI 대응을 쓰는가" 의 판정은 **null 종류에 따라 달라진다**.
+- C3 단일 학습의 bootstrap CI 는 재학습 변동을 빠뜨려, 효과가 없어도 "유의" 를 자주 낸다 — 모델마다 그 비율을 잰다.
+- C4 포화된 target 에서는 구조 비교가 정보를 잃는다 — 단순 FC 기준선이 그 자리를 미리 보여 준다.
+- C5 (기술) 공개 구현을 그대로 돌리는 데 드는 수정 · 실패를 기록한다.
+
+**주장하지 않는 것**: 어느 모델이 가장 좋다 · ASD 진단 성능 · 새 모델 제안 · 효율 우위. 성능 수치는 진단의 재료로만 쓴다.
+
+## 2. 모델 분류 — 무엇을 null 로 깨야 하는가
+
+이 구분이 설계의 핵심이다 (2026-10-02 정리).
+
+| 모델 | 그래프의 출처 | ROI 순서 | 이 모델에서 "해부학을 쓴다" 의 뜻 |
+|---|---|---|---|
+| MoBSE v3 (mean) | **외부 prior** (rest dFC template bank) | 등변 | prior 의 ROI 배치가 성능에 기여 |
+| MoBSE v3 (embedding · readout) | 외부 prior | 순서 의존 | 같음 |
+| BrainGB GCN · mean pooling | **자기 FC** (입력 = 그래프) | ~~등변 (불변)~~ → **기본 설정 (`--node_features adj`) 에서는 순서 의존** [D1 실측, 10-03 정정] | 피험자 사이 ROI 대응을 쓴다 |
+| BNT · BQN | 자기 FC | 순서 의존 (평탄화) [코드] | 같음 |
+| Han dual-pathway | 자기 FC (+ 시계열) | 순서 의존 (concat) [코드] | 같음 |
+
+- **정정 (2026-10-03, D1 실측)**: BrainGB 의 message passing + mean pooling 자체는 node 순서에 불변이지만 (node 순서만 바꾼 차
+  1.5e−4, 출력 크기 12 — 부동소수 수준), 기본 node 특성 `adj` 는 **FC 행**이라 특성의 열이 ROI 정체를 담는다. 같은 순열을
+  S 에 주면 (`P S Pᵀ`) 특성 열도 섞여 출력이 크게 바뀐다 (최대 차 85). 따라서 "구조가 등변" 만으로는 C1 의 등변 구성이 아니며,
+  **node 특성이 ROI 번호를 담지 않아야** (degree 등) 등변 구성이다. 결정 37 의 "BrainGB mean = 등변 대표" 는 기본 설정에서 성립하지
+  않는다 — 어떻게 할지는 §8-7 (결정 필요).
+- **외부 prior 형 (MoBSE)**: null = prior 그래프만 바꾼다 (v3 와 같음: 순열 · spin · rewire). 입력은 그대로.
+- **자기 FC 형 (공개 넷)**: 외부 prior 가 없다. **모든 피험자에 같은 재배열을 주는 null 은 아무것도 검정하지 못한다** —
+  처음부터 학습하는 모델은 순서만 바뀐 같은 자료를 배운다. 그래서 null 을 **피험자 사이 ROI 대응을 깨는 형태**로 정의한다 (§3 D2).
+
+## 3. 진단 다섯 (조작적 정의)
+
+**D1 등변성 진단** — 학습된 모델 f 와 ROI 순열 P 에 대해 `max |f(P·x) − f(x)|` (자기 FC 형은 입력 FC 에 `P S Pᵀ`, 시계열에 `P x`).
+기대: 등변/불변 구성 ≈ 0 (부동소수 수준), 순서 의존 구성 > 0. 모델마다 학습된 checkpoint 3 개 · 순열 20 개.
+정리 (C1) 는 v1 의 `C(x) = A(Pᵀx)` (수치 1.2e−7) 를 일반 형태로 적는다. 정리의 조건에 **node 특성이 ROI 번호를 담지 않음**
+(FC 행 · one-hot identity 는 담는다) 을 넣는다.
+
+**D1 사전 측정 (학습 전 무작위 초기화, 2026-10-02 · 10-03, h197 venv-i1)** — `scripts/i1/d1_equivariance.py`, ABIDE 표준 파일 앞 8 명,
+순열 20 개 (seed 1729), 같은 입력 두 번의 차 (자기 차) 는 모두 0. 결과 `results/i1/d1_init_20261002.json` · `d1_init_20261003_nodeonly.json`.
+
+| 구성 | max \|f(P·) − f(·)\| | 출력 크기 | node 순서만 바꾼 차 | 판독 |
+|---|---:|---:|---:|---|
+| BNT | 1.3e−3 | 0.088 | — | 순서 의존 (작지만 부동소수 수준보다 큼) |
+| BQN | 4.9e−4 | 0.109 | — | 순서 의존 (같음) |
+| BrainNetCNN (제외됨) | 3.3e−2 | 0.056 | — | 순서 의존 |
+| BrainGB GCN mean (`adj` 특성) | **85.2** | 12.2 | **1.5e−4** | 구조는 불변, 특성 열 때문에 순서 의존 |
+| BrainGB GCN concat | 30.7 | 2.4 | 33.4 | 순서 의존 (concat readout) |
+| **BrainGB GCN mean (`degree` 특성, 결정 40)** | 1.8e−3 | 390 | — | **등변** (상대 차 약 5e−6) — `d1_init_20261003_degree.json` |
+| Han dual-pathway | 재지 않음 | | | harness 에 없음. 선형 경로가 `Linear(FC 상삼각)` 이라 구조상 순서 의존 [코드]. 학습판 D1 에서 잰다 |
+
+- 학습 전 값의 크기는 판독에 쓰지 않는다 (가중치가 무작위라 작게 나올 수 있다) — 등변인지 아닌지 (≈ 0 인지) 만 본다. 본 D1 은 학습된 checkpoint 로 잰다.
+
+**D2 대응 파괴 null** — 조건마다 처음부터 다시 학습해 성능 차 Δ = 원판 − null 을 잰다.
+| 조건 | 무엇을 깨나 | 기대 (대응을 쓰는 모델) |
+|---|---|---|
+| N0 일관 재배열 (모든 피험자 같은 P) | 아무것도 (대조) | Δ ≈ 0 — **어느 모델이든** |
+| N1 피험자별 무작위 재배열 | 피험자 사이 ROI 대응 전부 | Δ > 0. **불변 모델은 Δ ≈ 0** (원래 대응을 못 씀) |
+| N2 피험자별 spin (공간 보존 회전 + 일대일 배정) | 대응은 깨고 공간 자기상관은 보존 | N1 과 N0 사이 |
+| N3 피험자별 degree 보존 rewire (FC 의 연결 상대만) | 그래프 구조, degree 는 보존 | 그래프 구조를 쓰는 만큼 Δ > 0 |
+외부 prior 형 (MoBSE) 은 v3 의 null 세 종류를 그대로 쓴다. 공간 null 은 부피 중심 회전 (Váša 2018 계열) 이며, eigenstrapping 은 대안으로만 적는다.
+
+**D3 재학습 변동** — 같은 조건을 seed (와 fold 재추첨) 를 바꿔 R 번 학습. 보고: 조건별 Δ 의 재학습 SD, bootstrap 반폭과의 비,
+"단일 학습 CI 가 0 을 벗어나는 비율" (v3 §6 의 25 % 와 같은 셈법), 재학습을 넣은 CI (반복 평균의 bootstrap + 반복 간 변동).
+BQN 의 붕괴 (5 회 중 2 회, 사전 점검) 같은 실패 판도 빼지 않고 센다.
+
+**D4 포화 · 기준선** — 모든 자료에서 FC logistic (S3 와 같은 정의) · FC-MLP · 시계열 평균 (S1) 을 같은 분할로 돌린다.
+"모델 − FC logistic" 을 함께 보고한다. 포화 선별: 기준선이 천장 (예: BA ≥ 0.95) 에 닿으면 그 자료의 구조 비교는 기술용으로만 쓴다 —
+기준값은 §8 에서 정한다 (결정 29 처럼 보고 장치로 둘 수도 있다).
+
+**D5 재현 마찰** — 모델마다 공식 그대로 돌았는지, 필요한 수정 (호환 · 의존성 · 폴더 · 인자) 과 실패를 표로 낸다.
+사전 점검 실측 (후보 문서 §6) 이 1 차 자료다.
+
+## 4. 자료
+
+| 자료 | 역할 | 규모 | target | 공간 좌표 (D2 N2) |
+|---|---|---|---|---|
+| **ABIDE I PCP** (표준 판) | 주 자료 — 포화되지 않음 (점검 AUC 0.65–0.79) | 1,009 명 · CC200 · 100 시점 | ASD 대 TC (라벨 `DX_GROUP − 1`) | **CC200 parcel 좌표가 필요 — 아직 없음** (§9) |
+| **AOMIC PIOP1** | 포화 양성 대조 | 157 명 (main 126) · Schaefer-100 | emomatching 대 workingmemory (v1 target, S 1.000) | 있음 (2009c atlas) |
+
+- ABIDE 분할은 **두 갈래 중 선택**: (가) 표준처럼 층화 무작위 5-fold — 문헌과 비교 가능, site 가 섞임. (나) site 단위 분할 — site 교란을 막지만 문헌과 다름.
+- AOMIC 은 공개 모델 입력 형식 (피험자 · run 단위 FC + 시계열) 으로 바꿔야 한다. run 하나를 표본으로 하면 252 개다.
+- PIOP2 는 열지 않는다 (결정 27).
+
+## 5. 반복 규모와 예산 [실측 × 반복 수, 순차 기준]
+
+1 fit 실측 (h197, ABIDE V=200, 외부 GPU 작업 동시) — BQN 약 90 s · BNT 99–148 s · Han 270 s · BrainGB mean 약 694 s · MoBSE 13–14 s (AOMIC V=100).
+
+**제안 단위** (모델 · 자료 하나): 5 fold × 조건 (원판 1 + N0 1 + N1 · N2 · N3 각 K) × seed R.
+
+| 모델 | K | R | fit 수 | ABIDE 순차 [추정] |
+|---|---:|---:|---:|---|
+| BQN | 5 | 3 | 255 | 약 6.4 h |
+| BNT | 5 | 3 | 255 | 약 7–10 h |
+| Han | 5 | 3 | 255 | 약 19 h |
+| BrainGB mean | 3 | 2 | 110 | 약 21 h |
+| MoBSE v3 (외부 prior, v3 null) | 5 | 3 | 255 | AOMIC 약 1 h |
+| 기준선 (FC logistic · FC-MLP · S1) | — | 3 | 수십 | 분 단위 |
+
+- ABIDE 합계 약 54–57 h 순차 (6.4 + 7–10 + 19 + 21). GPU 메모리가 작아 (0.5–6.7 GB) 2–3 개 동시 실행이면 약 20–30 h [추정].
+- AOMIC (V=100) 은 연산이 대략 V² 에 비례해 ABIDE 의 1/3–1/4 [추정] — 약 15 h 순차.
+- 실측은 외부 GPU 작업과 함께 쟀다. 단독이면 더 짧을 수 있다.
+
+## 6. 보고 형식 (모델 × 자료마다)
+
+1. D1 수치 (등변이면 ≈ 0).
+2. 조건별 성능 (AUC · BA) 과 Δ — 재학습을 넣은 CI 와 단일 학습 CI 를 나란히.
+3. 단일 학습 CI 가 0 을 벗어나는 비율.
+4. 기준선 대비 차.
+5. 재현 마찰 표.
+판정 문장은 "N1 에서 Δ 가 재학습 CI 기준으로 0 보다 크다 / 아니다" 처럼 조건과 CI 종류를 함께 적는다.
+
+## 7. 사전등록 항목 (초안)
+
+D1–D5 의 정의, 조건 목록, K · R, 분할, 지표 (AUC 주 · BA 보조), CI 계산법, 포화 기준 (또는 보고 장치), 실패 판 처리 규칙,
+모델별 하이퍼파라미터 = 공식 기본값 고정 (튜닝하지 않음 — 튜닝이 재학습 변동을 가린다), 호환 수정 목록.
+예외: BrainGB 는 `--pooling mean --node_features degree` (결정 40 — 등변 대표 역할 때문, 공식 기본 `adj` 는 등변이 아님).
+형식 (OSF · 저장소 내 잠금 문서) 은 §8.
+
+## 8. 결정 필요 (선생님)
+
+> **결정 38 (2026-10-02)** 로 1 · 2 · 3 · 5 가 정해졌다 — 1 = N0–N3 넷 다 · 2 = 층화 무작위 주 + site 민감도 ·
+> 3 = 초안대로 (K=5 · R=3, BrainGB K=3 · R=2) · 5 = 저장소 내 잠금 문서.
+> **결정 39** 로 4 = 보고 장치 · 6 = 공개 넷 + MoBSE + 기준선 모두. §9 사전 작업만 착수 — 본 실행은 잠금 문서 뒤 다시 승인.
+
+
+1. **D2 의 null 정의** — 위 N0–N3 으로 갈지. 특히 자기 FC 형에 "피험자별 재배열" 을 주 null 로 둘지.
+2. **ABIDE 분할** — (가) 층화 무작위 (문헌 비교) / (나) site 단위 / 둘 다 (하나는 민감도).
+3. **반복 규모** — §5 의 K · R 안, 또는 줄이거나 늘림.
+4. **포화 기준** — 기준값 (예: 0.95) 을 둘지, 결정 29 처럼 보고 장치로 둘지.
+5. **사전등록 형식** — OSF 공개 / 저장소 내 잠금 문서 (v1 처럼).
+6. **AOMIC 포함 범위** — 공개 넷 모두에 AOMIC 을 돌릴지, MoBSE 와 기준선만 돌릴지.
+7. **(2026-10-03 추가) BrainGB 구성** — D1 실측으로 기본 `adj` 특성의 mean pooling 이 등변이 아님이 드러났다 (§2 정정).
+   선택지: (가) `adj` 그대로 두고 "순서 의존" 으로 분류, 등변 대표는 MoBSE v1 mean 만 / (나) `--node_features degree` 로 바꿔 등변 대표로
+   유지 (공식 기본값 고정 원칙 §7 의 예외) / (다) 둘 다 (BrainGB 비용 약 2 배).
+   → **결정 40 (2026-10-03, 선택 TUI): (나) degree 특성으로 교체.** D1 학습 전 판에서 등변 확인 (§3 표). `adj` 판은 D1 측정에만 남긴다.
+   degree 판의 1 fit 시간은 아직 재지 않았다 (입력 차원 1 이라 adj 판보다 짧을 것 [추정]).
+8. **(10-03 추가) N2 의 정중선 parcel** — CC200 은 반구를 걸친 parcel 이 22 개 (25 % 초과). 중심 x 부호로 반구를 정하는 v3 규칙을 그대로 쓸지,
+   반구 구분 없이 전뇌 회전할지, 걸친 parcel 을 따로 묶을지.
+9. **(10-03 추가) 공통 fold 를 넣는 방법** — §9.1 표. 메모리 안 wrapper (파일 수정 없음) / 복사본 수정 / 저장소 자체 분할 + seed 만 제어.
+10. **(10-03 추가) dense FC 의 N3 정의** — 가중치 · 부호 있는 null (예: Rubinov–Sporns 2011 의 strength 근사 보존) / 임계화 뒤 이진 rewire / N3 를 MoBSE 에만.
+   → **결정 41 (2026-10-04, 선택 TUI)**: 8 = v3 규칙 그대로 (중심 x 부호) · 9 = 메모리 wrapper · 10 = 가중 부호 null (Rubinov–Sporns).
+
+
+## 9. 착수 전 확인 (되돌릴 수 있는 사전 작업)
+
+- CC200 parcel 좌표 — PCP 저장소의 CC200 atlas 파일 받기와 중심 좌표 계산 (반구 판정 포함).
+- 공개 모델에 null 조건을 넣는 방법 — 저장소 코드를 고치지 않고 **입력 `abide.npy` 를 조건별로 만들어** 넣는다 (N0–N3 는 모두 입력 변환이다).
+- D1 진단 — 각 저장소 checkpoint 를 불러 순열 입력을 넣는 작은 harness (학습 코드는 그대로). **학습 전 판 완료 (§3 표)**.
+  남은 것: Han 을 harness 에 넣기 (hydra 설정 조립 · `.cuda()` 고정이라 GPU 필요), checkpoint 불러오기.
+- 재학습 시 seed 를 바꾸는 법 — BNT · Han (hydra 설정), BQN (`fix_seed` 가 주석 처리돼 있어 실행마다 무작위 — 재현 가능한 seed 를 넣으려면 인자만으로는 안 될 수 있다), BrainGB (`--seed` 는 있지만 실행마다 `random.randint` 로 덮음).
+- 외부 GPU 작업 (sglang 서버 · cupy 작업) 과의 동시 실행 — 시간 측정을 비교에 쓸 때 주의 (공정성).
+
+### 9.1 사전 작업 결과 (2026-10-03)
+
+**CC200 좌표** [측정] — `scripts/i1/cc200_coords.py` (v3 의 `roi_centroids` 를 import 만 함), 결과 `results/i1/cc200_coords.json`.
+atlas `abide_pcp/resources/cc200_roi_atlas.nii.gz` (sha `9467afce23ad`, 63×75×61 · 3 mm · LAS, label 1..200 연속) 와
+`CC200_ROI_labels.csv` (sha `b4ba242e926d`). 두 파일은 10-02 17:46 에 받았으나 받은 경위가 기록에 없다 (PCP `Resources/` 로 추정 [추정]).
+- 중심 좌표가 PCP CSV 의 center of mass 와 최대 0.08 mm 차 — 일치. `.1D` 열 머리 `#1…#200` = label 1..200 순서 — 일치.
+- 좌 94 · 우 106 (중심 x 부호). **CC200 은 반구를 나눠 만든 atlas 가 아니다** — 반대쪽 반구 voxel 이 10 % 넘는 parcel 30 개,
+  25 % 넘는 parcel 22 개, 최대 59 %. 중심 |x| 최소 0.01 mm. → N2 (반구 안 회전) 의 반구 판정이 이 parcel 들에서 임의적이다 (§8-8).
+
+**seed · 분할** [코드, 저장소 commit 은 `i1/repos_commits.txt`]
+
+| 저장소 | 분할 (저장소 기본) | seed |
+|---|---|---|
+| BNT | `stratified: True` → train 70 % 는 `StratifiedShuffleSplit(random_state=42)` — **반복해도 같은 train 집합**. val 10 / test 20 은 seed 없음 | 모델 초기화 seed 를 어디서도 두지 않음 |
+| BQN | train 은 `random_state=args.seed` (기본 42) 로 고정, val / test 는 seed 없음 | `fix_seed(args.seed)` 가 주석 처리 → 초기화 무작위 |
+| Han | ~~70 / 10 / 20 무작위 (층화 아님)~~ → **정정 (10-04)**: ABIDE 설정은 `stratified: True` 라 `init_stratified_dataloader` — site 층화 70 / 10 / 20, `StratifiedShuffleSplit` 에 seed 없음 (전역 RNG). 앞의 서술은 쓰이지 않는 `init_dataloader` 경로였다 | `set_seed(338)` 을 시작에 한 번 (상수 고정) |
+| BrainGB | `StratifiedKFold(5, shuffle=True)`, val 없음 | 반복마다 `seed_everything(random.randint(…))` — `--seed` 무시 |
+
+→ 결정 38 의 "층화 무작위 5-fold (공통)" 을 쓰는 저장소가 없다. 공통 fold 를 쓰려면 분할을 **밖에서 넣어야** 한다 (§8-9).
+→ D2 에 쓸 N3 (degree 보존 rewire) 는 v3 의 `degree_preserving_rewire` (이진 edge swap) 를 dense FC 에 그대로 못 쓴다 —
+  모든 edge 가 이미 있어 swap 이 전부 거절된다 [코드]. dense · 부호 있는 FC 용 정의가 필요하다 (§8-10).
+  또 시계열을 함께 받는 모델 (BNT · BQN · Han) 은 rewire 된 FC 와 시계열이 서로 맞지 않게 된다.
+
+### 9.2 null 입력 생성기 (2026-10-04)
+
+`scripts/i1/null_inputs.py` — 표준 `abide.npy` 를 조건 (n0–n3) · 번호 k 마다 변환한다. 출력은 `abide.npy` (`pcorr` 는 뺌 — 네 저장소가 읽지 않음 [코드]) ·
+`perms.npy` (n0–n2) · `meta.json` (seed 규칙 · 입출력 sha · 검사). 이미 있으면 덮어쓰지 않는다.
+
+- **bctpy 버그** [측정]: `null_model_und_sign` (설치판 = **0.6.1** — 모듈은 `__version__` 을 0.6.0 으로 보고한다. 10-04 정정) 이 음수 쪽 가중치에 `s = −1` 을 곱해 **양수로** 넣는다 —
+  ABIDE 첫 피험자에서 음수 edge 3,029 → 0. 생성기는 이진 단계만 bctpy `randmio_und_signed` 를 쓰고, 가중치 배정은 부호별 크기로 고친 사본을 쓴다.
+- smoke (8 명 · k=0, h197 `i1/null_smoke/20261004/`):
+
+| 조건 | 결과 |
+|---|---|
+| n0 | 자리를 옮긴 ROI 비율 0.985 (같은 순열 하나) |
+| n1 | 0.998. ROI 거리 행렬 상관 (원래 대 순열 뒤) 중앙 −0.00 |
+| n2 | 0.956. 거리 상관 **중앙 0.457** (최소 0.345), 반구를 넘은 배정 0 (assert) — v3 Schaefer 의 0.497 과 비슷 |
+| n3 | 부호별 edge 수 같음 · 가중치 집합 정확히 같음 (8/8). strength 상관 양 ≥ 0.9986 · 음 ≥ 0.9938. edge 상관 중앙 0.31 |
+
+- n3 비용 [측정]: 1 행렬 23 s (1 프로세스), 8 프로세스 병렬이면 행렬당 약 95–101 s (BLAS 스레드 1 고정해도 같음, 출력 바이트 동일).
+  전량 (1,009 명 × K=5 = 5,045 행렬) 은 8 병렬로 약 17 h [추정]. 본 실행 전에 줄일지 (구현 가속 · 병렬 수) 는 따로 본다.
+
+### 9.3 test 성능을 고르는 규칙 (저장소 기본, 2026-10-04) [코드]
+
+| 저장소 | val | 보고하는 test 값 |
+|---|---|---|
+| BNT | 10 % | **고르지 않는다** — 매 epoch 의 val · test AUC 를 기록만 (`training_process`) |
+| BQN | 10 % | val **loss 최소** epoch 의 test (`main.py` `index_max = argmin(val_loss)`) |
+| Han | 10 % | val **AUC 최대** epoch 의 test (`training.py` 분류 경로 `best_auc`) |
+| BrainGB | 없음 | **마지막 epoch** 의 test (`example_main.py` "Initial Performance Last Epoch") |
+
+→ 공통 fold wrapper 가 피험자별 test 예측을 어느 epoch 에서 꺼낼지 정해야 한다 (§8-11). 층화 기준 (label 만 / label × site) 도 함께 (§8-12).
+
+→ **결정 42 (2026-10-04, 선택 TUI)**: §8-11 = **공통 val loss 최소** epoch 의 test 예측 (네 모델 모두, BrainGB 도 안쪽 val 을 씀) ·
+§8-12 = **label × site** 층화.
+
+### 9.4 공통 fold (2026-10-04)
+
+`scripts/i1/make_folds.py` → `results/i1/folds_draw0.json` (h197 `i1/data/folds_draw0.json`). 표준 `abide.npy` (sha `d81bb42063d6`) 1,009 명,
+층 = label × site 38 개 (최소 13 명), outer `StratifiedKFold(5)`, 안쪽 val = train fold 의 층화 10 %.
+fold 당 train 726–727 · val 81 · test 201–202, test 의 label 1 비율 0.507–0.515. test 가 전체를 한 번씩 덮음 (assert).
+R 반복에서 fold 를 다시 뽑을지는 정하지 않았다 (`--draw`).
+
+### 9.5 실행 wrapper (2026-10-04)
+
+`scripts/i1/run_fold.py --model {bqn,bnt,braingb,han}` — 결정 41-1 · 42. 저장소 파일은 그대로, 분할 · 평가 함수만 메모리에서 바꿔 끼운다
+(바꾼 목록은 각 fit 의 `summary.json` `patches`). 출력: `predictions.jsonl` (test 피험자 index · label · p1) · `epochs.jsonl` · `summary.json`.
+
+smoke [측정] — ABIDE 표준 파일 · fold 0 · seed 1 · **3 epoch**, 같은 seed 로 두 번 (h197 `i1/wrapper_smoke/20261004*`):
+
+| 모델 | 진입 | 저장소 값과 대조 | 같은 seed 재실행 |
+|---|---|---|---|
+| BQN | `main.run` 직접 | 고른 epoch 의 test AUC 0.4043 = 저장소 반환값 (규칙이 같음) | 예측 바이트 동일 |
+| BNT | hydra compose → `model_training` | epoch 2 test AUC 0.6957 = 저장소 로그 | 동일 |
+| BrainGB (mean · degree) | runpy 로 `examples.example_main` | 마지막 epoch test AUC 0.4882 = 저장소 "Last Epoch" | **다름** — 아래 |
+| Han | hydra compose + grid 전처리 → `model_training` | epoch 2 test AUC 0.5139 = 저장소 로그. 저장소 보고 0.5152 는 val AUC 최대 epoch (규칙 차이) | 동일 |
+
+- 결정성: wrapper 가 `torch.use_deterministic_algorithms(True)` 를 켠다 (BQN · BNT 는 켜기 전후 값이 같음). **BrainGB 는 끈다** —
+  켜면 PyG scatter 가 결정적 경로로 바뀌어 24 GB GPU 에서 OOM (9.77 GiB 할당), 저장소 mixup 이 `.cuda()` 고정이라 CPU 로도 못 돈다.
+  그래서 BrainGB 는 같은 seed 재실행도 값이 다르다 (3 epoch smoke 에서 마지막 epoch AUC 0.488 대 0.452). 이 비결정성은 D3 재학습 변동에 포함해 보고한다.
+- BrainGB 처리 캐시 (`processed/ABIDE_0_Degree.pt`) 이름이 자료 내용과 무관하다 — 조건이 바뀌어도 옛 캐시를 쓸 수 있어, wrapper 는 fit 마다 새 root 를 만든다.
+- 저장소 그대로 둔 동작 (D5 기록 대상): BrainGB 는 둘째 epoch 부터 eval 모드로 학습 (`model.train()` 을 한 번만 부름) · train loader shuffle 없음.
+  BNT · Han 은 시계열 표준화에 전체 표본의 평균 · 표준편차 (스칼라 하나) 를 쓴다.
+- 아직 안 한 것: 전체 epoch smoke (fit 당 시간은 사전 점검 값 — BQN 약 90 s · BNT 99–148 s · Han 270 s, BrainGB degree 판은 미측정), null 입력 (n0–n3) 으로 wrapper 실행.

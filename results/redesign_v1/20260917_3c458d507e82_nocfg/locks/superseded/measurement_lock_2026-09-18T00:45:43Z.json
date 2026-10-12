@@ -1,0 +1,304 @@
+{
+  "schema_version": "measurement_lock_v1",
+  "release_id": "20260917_3c458d507e82_nocfg",
+  "locked_at_utc": "2026-09-18T00:45:43Z",
+  "gate": "G1 Measurement lock",
+  "work_instruction": "WI-03",
+  "roots": {
+    "data_root": "/mnt/data/mp2026/MoBSE_dataset",
+    "repo_root": "<repository root>"
+  },
+  "cohorts": {
+    "piop1": {
+      "dataset": "ds002785",
+      "role": "primary (pilot + main pool)",
+      "n_subjects": 216,
+      "n_eligible": 157,
+      "required_tasks": [
+        "emomatching",
+        "workingmemory",
+        "restingstate"
+      ],
+      "rule_version": "protocol-1.1-§3.3",
+      "group_id_policy": "1 subject = 1 group (관계 metadata 부재, 개정 P4 / U10)",
+      "manifests": {
+        "emomatching": {
+          "path": "derivatives_v2/wi02_ds002785_emomatching.jsonl",
+          "sha256": "cc1275279754e3e2a9e18fac3c509bac56bbd5ce5ae3c2de3bd8a3e35637c978",
+          "bytes": 621289,
+          "status_counts": {
+            "excluded": 25,
+            "ok": 183,
+            "skipped": 8
+          },
+          "n_runs": 216,
+          "n_ok": 183
+        },
+        "workingmemory": {
+          "path": "derivatives_v2/wi02_ds002785_workingmemory.jsonl",
+          "sha256": "63bd6b93780958cc7c4bd25456d731d7efe0326bd58abff05d7b83cd0d0bf9cc",
+          "bytes": 597812,
+          "status_counts": {
+            "excluded": 31,
+            "ok": 176,
+            "skipped": 9
+          },
+          "n_runs": 216,
+          "n_ok": 176
+        },
+        "restingstate": {
+          "path": "derivatives_v2/wi02_ds002785_restingstate.jsonl",
+          "sha256": "26c702fdcca56d140ca87271f9b8c1cbad558163a9dc8fe9b3d8147de8ba8cdf",
+          "bytes": 669580,
+          "status_counts": {
+            "excluded": 8,
+            "ok": 202,
+            "skipped": 6
+          },
+          "n_runs": 216,
+          "n_ok": 202
+        }
+      },
+      "atlas": {
+        "path": "atlas_2009c/tpl-MNI152NLin2009cAsym_res-02_atlas-Schaefer2018_desc-100Parcels7Networks_dseg.nii.gz",
+        "sha256": "7221cee56943599833dc2b98aac56626584e9c0067f28c768b46f7b7ff7408ac",
+        "bytes": 77904,
+        "atlas_sha256_in_header": "7221cee56943599833dc2b98aac56626584e9c0067f28c768b46f7b7ff7408ac",
+        "space": "MNI152NLin2009cAsym"
+      },
+      "subjects": {
+        "path": "derivatives_v2/cohort_piop1/subjects.jsonl",
+        "sha256": "5ab1933922027dee41ddd4b9aabd0b4e70e8255399e2b06086d1434bb6f7278a",
+        "bytes": 50260,
+        "n_records": 216,
+        "n_eligible": 157
+      },
+      "exclusions": {
+        "path": "derivatives_v2/cohort_piop1/exclusions.jsonl",
+        "sha256": "74a04e31e14f7511608eac55f7da12c043a4a3c83285a76ee5569feadd0fdeba",
+        "bytes": 25724,
+        "n_records": 59
+      },
+      "cohort_summary": {
+        "path": "derivatives_v2/cohort_piop1/cohort_summary.json",
+        "sha256": "993ffb55abdadc31a7ebc17121f1762ac5bf718434664998ba5010b31cd9e93b",
+        "bytes": 3006
+      },
+      "windows": {
+        "path": "derivatives_v2/windows_piop1.jsonl",
+        "sha256": "3c8bb84321965c12ddbb6e58fe02f233aa73156354479185ebb6928ac229fcf2",
+        "bytes": 637859,
+        "n_records": 1436
+      },
+      "folds": {
+        "path": "derivatives_v2/splits_piop1_p7/folds.json",
+        "sha256": "a73875f2a98164f4c8d9dd5406cd0ff98d92e5533728469e71cf466755c1ef59",
+        "bytes": 98462,
+        "split_hash": "ace5f4a41446a5857848290c21cc404196960429fb2b8f483511c49dcb9342d7",
+        "config_hash": "85556f56",
+        "seeds": {
+          "pilot": 20260917,
+          "outer": 20260918,
+          "inner_base": 20261000,
+          "external": 20262000
+        },
+        "invariants": {
+          "pilot_and_main_pool_disjoint": true,
+          "pilot_union_main_pool_is_eligible": true,
+          "n_pilot": 31,
+          "n_main_pool": 126,
+          "n_eligible": 157,
+          "outer_test_train_disjoint": true,
+          "outer_test_union_train_is_main_pool": true,
+          "outer_tests_mutually_disjoint": true,
+          "outer_tests_partition_main_pool": true,
+          "inner_structure_valid": true,
+          "pilot_absent_from_every_fit": true,
+          "outer_test_sizes": [
+            26,
+            25,
+            25,
+            25,
+            25
+          ]
+        },
+        "subjects_manifest_sha256": "5ab1933922027dee41ddd4b9aabd0b4e70e8255399e2b06086d1434bb6f7278a"
+      }
+    },
+    "piop2": {
+      "dataset": "ds002790",
+      "role": "external hold-out (계획서 §9)",
+      "n_subjects": 226,
+      "n_eligible": 189,
+      "required_tasks": [
+        "emomatching",
+        "workingmemory",
+        "restingstate"
+      ],
+      "rule_version": "protocol-1.1-§3.3",
+      "group_id_policy": "1 subject = 1 group (관계 metadata 부재, 개정 P4 / U10)",
+      "manifests": {
+        "emomatching": {
+          "path": "derivatives_v2_piop2/wi02_ds002790_emomatching.jsonl",
+          "sha256": "d29e6dec41c65784987f8f1961fe2fe1a5680eae3e273fc9f64cf235fec39eca",
+          "bytes": 681727,
+          "status_counts": {
+            "excluded": 18,
+            "ok": 204,
+            "skipped": 4
+          },
+          "n_runs": 226,
+          "n_ok": 204
+        },
+        "workingmemory": {
+          "path": "derivatives_v2_piop2/wi02_ds002790_workingmemory.jsonl",
+          "sha256": "08c6e78b972d9131d34696ff966c67325d8ee84d62c0c7dfe48169981077f160",
+          "bytes": 699810,
+          "status_counts": {
+            "excluded": 10,
+            "ok": 214,
+            "skipped": 2
+          },
+          "n_runs": 226,
+          "n_ok": 214
+        },
+        "restingstate": {
+          "path": "derivatives_v2_piop2/wi02_ds002790_restingstate.jsonl",
+          "sha256": "9a1f246561d94fed487864abe4afb196dfd9cf1af8128ce20b7238f241159cf4",
+          "bytes": 683534,
+          "status_counts": {
+            "excluded": 21,
+            "ok": 203,
+            "skipped": 2
+          },
+          "n_runs": 226,
+          "n_ok": 203
+        }
+      },
+      "atlas": {
+        "path": "atlas_2009c/tpl-MNI152NLin2009cAsym_res-02_atlas-Schaefer2018_desc-100Parcels7Networks_dseg.nii.gz",
+        "sha256": "7221cee56943599833dc2b98aac56626584e9c0067f28c768b46f7b7ff7408ac",
+        "bytes": 77904,
+        "atlas_sha256_in_header": "7221cee56943599833dc2b98aac56626584e9c0067f28c768b46f7b7ff7408ac",
+        "space": "MNI152NLin2009cAsym"
+      },
+      "subjects": {
+        "path": "derivatives_v2_piop2/cohort_piop2/subjects.jsonl",
+        "sha256": "a19570288677369a0be41ba2ff29096df077476d0cbea2407bfa94c64604ea07",
+        "bytes": 51841,
+        "n_records": 226,
+        "n_eligible": 189
+      },
+      "exclusions": {
+        "path": "derivatives_v2_piop2/cohort_piop2/exclusions.jsonl",
+        "sha256": "8642ba8492312e66bf2300834298eccbc3671343265eb71123fc4bab0605cd86",
+        "bytes": 14898,
+        "n_records": 37
+      },
+      "cohort_summary": {
+        "path": "derivatives_v2_piop2/cohort_piop2/cohort_summary.json",
+        "sha256": "11d6e2bb16718d89d74cb218e45a776567e7235215a231c4c050da368982e77b",
+        "bytes": 3270
+      },
+      "windows": {
+        "path": "derivatives_v2_piop2/windows_piop2.jsonl",
+        "sha256": "54499c5b08341a2018acea010471839dd31ee3ec58599b37a79685a0ac5e3c08",
+        "bytes": 742906,
+        "n_records": 1672
+      },
+      "folds": null,
+      "no_split_reason": "계획서 §9 — PIOP2 는 held-out 외부 코호트다. fold 를 만들지 않는다."
+    }
+  },
+  "environment": {
+    "protocol": {
+      "path": "docs/experiments/mobse_redesign_protocol_2026-09-17.md",
+      "sha256": "fedc6512f443be2f1954c6a59e815d8bda459a631c59c7b24d50cf0530e580d4",
+      "bytes": 30926
+    },
+    "instructions": {
+      "path": "docs/experiments/mobse_redesign_work_instructions_2026-09-17.md",
+      "sha256": "6007cfb8d9b186aeb03deece7cecb17042da95e3aba476851e635973567dde90",
+      "bytes": 20047
+    },
+    "configs": {
+      "external": {
+        "path": "configs/redesign_v1/external.yaml",
+        "sha256": "51c3a04e43936b05380f72f423b5f091f1dcdfac343268c89bed850dbbfb3348",
+        "bytes": 2103,
+        "config_hash": "7daa536b"
+      },
+      "main": {
+        "path": "configs/redesign_v1/main.yaml",
+        "sha256": "24e092eeaf3ae0f938d8bc423f08354a8d775fc8955c3218a513add2cd910b4d",
+        "bytes": 2075,
+        "config_hash": "85556f56"
+      },
+      "pilot": {
+        "path": "configs/redesign_v1/pilot.yaml",
+        "sha256": "fa86260b43a34e7f2cba1ff4624f539e8b26ea2393b0764c78c5da6b20865fbf",
+        "bytes": 2079,
+        "config_hash": "fd6c8a27"
+      }
+    },
+    "code": {
+      "code_hash": "be04d7ecfd3f9e7041b4dcf4828169ec3e5c23d52d246fcd4dfa4478821e3ec3",
+      "modules": {
+        "__init__.py": "c884876e4717224c87d95b1fd4b3821863307e65f9146eac605bc9a96375c9ab",
+        "cli.py": "1d23265761b198e0720294553e98260260a804c6c1b4021be9a647211dbe460a",
+        "cohort.py": "dfd671bbf367c9552dd298efc232555f371bd4bbe68488001ef3eaae7a7972dd",
+        "config.py": "79375ca9a5b5ffe2b89bf754c60fc360149eacc737c650466231d700c26b23f2",
+        "evaluate.py": "a11a324f851603edb0e93b21c2cafe8b098529a485f17fe0321876825120e9b7",
+        "extract.py": "b725f6aebc82babd802a3b3d625a13f73ead3f9071018ca4cf27977c3ca3c601",
+        "features.py": "f9c81ef8155776f3d1971304ef32baf99b94b5f7bf100c0067f82dd1600b8f10",
+        "labels.py": "89610e87315f7e1e6a1ac85130c89d69f197f47824262389a4eae5571397b3dc",
+        "locks.py": "4a3dae547c0744dbf58e24f2d53ec46c4c71577bc71a502f130bd70b1272a812",
+        "manifests.py": "f6de0f6c6ad55545f1347344eecdf487a30d3280ba8540b9367907805eb5e7f6",
+        "models.py": "8220f8c762a263b246345fb10aaf72da95477c3d6118006c18a705f6fe2e652e",
+        "preprocess.py": "689ed2d8dbf186b12fd3ae4e58ab153693b31f8d59f047efee32d067f9bea7de",
+        "splits.py": "8291021bcad5929f4d4e8900efe6178233a8c0728274b04d32f38231b1f92046",
+        "statistics.py": "99028ff3042b396a6bb6ac9516af3d700a3939bb0cd5d5aa908e61573ad207b1",
+        "templates.py": "bd4e65df4fdf1152237cc58739d517eeeb62ec586353e8c42e711c7ec5a9197a",
+        "train.py": "2eb6f801b0ab5b9020f83fe09881475596469a2bc6874e9c1e19102834053b26"
+      }
+    }
+  },
+  "change_policy": {
+    "why": "개정 P7 로 적격자가 153→157 로 4명 늘자 pilot 31명 중 24명이 교체되고 공통 main pool subject 의 outer fold 가 65% 바뀌었다(보고서 부록 U.3.1). seed 를 고정해도 그룹 목록이 바뀌면 배정이 전부 바뀐다.",
+    "rules": [
+      "잠긴 항목이 하나라도 바뀌면 이 잠금은 무효다. 새 잠금 파일을 만들고 supersedes 에 구 lock_hash 와 변경 사유를 남긴다. 구 파일은 지우지 않는다.",
+      "잠금이 무효가 되면 그 잠금에 의존해 적합된 산출물은 **다시 만든다.** 부분 갱신하지 않는다.",
+      "main OOF 평가를 한 번이라도 수행한 뒤에는 δ 와 분석 N 을 바꾸지 않는다 (계획서 §8).",
+      "pilot 은 모든 main/final fit 에서 제외된다. verify 가 매번 재확인한다.",
+      "PIOP2 는 fold 를 만들지 않는다. 외부 평가 전에 fit·선택·calibration 에 쓰지 않는다 (§9)."
+    ],
+    "verify_command": "python scripts/h197/19_verify_measurement_lock.py --data-root <...> --repo-root <...> --release <...>"
+  },
+  "endpoint": {
+    "statistical_unit": "subject (group = subject, 개정 P4)",
+    "n_primary_oof": 126,
+    "n_pilot_excluded": 31,
+    "n_external": 189,
+    "delta": 0.02,
+    "bootstrap": {
+      "seed": 9001,
+      "n_boot": 10000,
+      "primary_pct": [
+        1.25,
+        98.75
+      ],
+      "secondary_pct": [
+        2.5,
+        97.5
+      ]
+    },
+    "note": "주 contrast 의 N 은 pooled out-of-fold main pool 이다. outer test 한 fold 의 25~26 이 아니다. 계획서 §8 이 'window·seed·fold 수를 N 으로 세지 않는다'고 정한다."
+  },
+  "wi07_completion_targets": {
+    "window_prediction_rows": 12096,
+    "run_prediction_rows": 1008,
+    "checkpoints": 60,
+    "formula": "126 subjects x 2 tasks x 4 windows x 3 seeds x 4 cells"
+  },
+  "lock_hash": "1c1fba957b355f08229cd4ed3517fbf58914e38ffe0c8adf9cc988b9a77e0ba4"
+}

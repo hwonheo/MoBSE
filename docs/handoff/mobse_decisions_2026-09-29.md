@@ -1,0 +1,505 @@
+# MoBSE — 결정 25 (2026-09-29, 터미널 Claude Code 세션)
+
+> **09-29 이후 현행 정본은 이 문서 + `mobse_main_oof_2026-09-28.md`.** 결정 0–22 원문·운영 규칙·마감 절차는 `mobse_redesign_g0_handoff_2026-09-17.md`, 결정 23·24 와 main OOF 실행 기록은 `mobse_main_oof_2026-09-28.md` 를 따른다. 어긋나면 이 문서가 앞선다.
+> 수집 방식: 2026-09-29 09:5x KST, 선택 TUI (AskUserQuestion) 5문항. 선택지 문안은 main_oof 문서 "gate 표기 권고 1–6", midreview 3절 선택지 (가)/(나)/(다), interpretation 3절 (PIOP2·WI-08) 에서 가져왔다.
+> **정본은 이 저장소 `docs/handoff/` 다.** claude.ai Project "MoBSE" 사본 동기화는 하지 않는다 —
+> 선생님 지시 (2026-09-29): "claude.ai Project 에 올리는 일은 하지말고 docs/handoff 문서 갱신만.., 그리고 개발 진행은 승인".
+
+## 결정 25 (선택 결과)
+
+| # | 물음 | 선택 |
+|---|---|---|
+| 25-1 | gate evidence 표기 | **권고 1–6 전부 적용** |
+| 25-2 | H2 (A−C) 방향 | **(다) WI-09 만 먼저 (PIOP2 미사용) 후 (나) 판단** |
+| 25-3 | PIOP2 외부 평가 (WI-08) 착수 | **지금은 승인하지 않음** |
+| 25-4 | A−S (단순 FC 기준선 100%) 처리 | **추가 분석 후 판단** |
+| 25-5 | WI-09 일정 | **기록·커밋 마친 뒤 착수** |
+| 25-6 | A−S 추가 분석 범위 | **새 학습 없는 진단만** |
+
+### 25-1 정한 것 — gate 표기 (main_oof 문서 권고 1–6 그대로)
+1. G3 Internal release → `cleared`
+2. G2 Implementation lock → `planned` → `cleared`
+3. G0 Provenance → `cleared`, `unresolved` 에서 U3·U6 제거, U10 은 G1 한계로 옮겨 적음
+4. "blocked by G0" (G2·G3·G5) · "blocked by G0/G1" (G4) 표기 삭제
+5. G1 Measurement lock → 검사 판정은 `fail` 2건 그대로, `status` 를 새 값 `cleared_with_limitations` 로
+6. G4 (외부) · G5 (해석) 는 `planned` 유지
+
+**정하지 않은 것**: G1 fail 2건 ([0] group_id · [6] δ 정밀도) 을 pass 로 바꾸는 것 (계획서 P4·§8 이 정한 알려진 한계로 남김).
+
+### 25-2·25-5 정한 것 — H2 방향과 WI-09
+- 현 버전에서 **null 민감도 (WI-09) 만** 수행: seed 1730–1733, C/D 120 fit, 재튜닝 없음. null 간 편차를 본 뒤 (나) (새 탐색 버전 설계) 를 다시 판단한다.
+- 착수 시점: **09-28 결과의 기록 (보고서 부록 + gate evidence 새 revision) → 마감 5+1 → 커밋을 마친 뒤.** 산출물 이력이 섞이지 않게 한다.
+
+**정하지 않은 것**: 새 탐색 버전 설계 착수, 현 버전의 설계·grid·δ·N 변경.
+
+### 25-3 정한 것 — PIOP2
+- **PIOP2 외부 평가 (WI-08) 는 지금 착수하지 않는다.** H2 방향 (25-2) 결과를 본 뒤 다시 판단한다.
+- 따라서 외부 S·NG·SG 포함 여부, U17 (PIOP1–PIOP2 참가자 중복) 의 해소 판단도 **미정** — 승인 시점에 함께 정한다.
+- 미구현 항목은 그대로 남는다: (9,9) external final fit 배선, PIOP2 평가 경로, `external_lock.json` 생성·검증, 시험·돌연변이, 측정·구현 잠금 새 판과 gate revision.
+
+### 25-4·25-6 정한 것 — A−S
+- A−S (A 0.877 대 S 1.000, −0.123 [−0.163, −0.083]) 의 논문·다음 단계 처리는 **추가 분석 뒤에 정한다.**
+- 그 추가 분석은 **새 학습 없이 기존 산출물만 읽는 진단**으로 한정한다 (예: S 가 쓴 FC 특징의 변별력, A 의 gate PCA 10 차원이 버리는 정보량, run 별 오답 패턴). 새 fit·설계 변경은 하지 않으므로 새 exploratory version 을 열 필요가 없다.
+
+**정하지 않은 것**: target 난이도·교란 (촬영 순서·움직임 등) 의 본격 조사 — 하려면 별도 exploratory version.
+
+## 이 결정으로 열린 작업 (순서)
+1. 보고서 새 부록 (스레드 측정 · main OOF · primary · 보조 비교) 작성.
+2. gate evidence 새 revision — 기록 부분 (`data_root_outputs` 에 09-28 산출 sha, rev72 `not_done` "명세 6" 정정) + **25-1 의 gate 표기 변경**.
+3. 마감 5+1 단계 (h197, 전부 rc=0) → 커밋 (**푸시 안 함**).
+4. `resource_budget.md` 에 스레드 고정 반영, 인수인계 문서에 결정 23·24·25 행 합치기, CLAUDE.md 포인터 갱신.
+5. 그 뒤 WI-09 (25-5).
+6. A−S 진단 (25-6) — 시점 미정, 가역.
+
+## 결정 25 이후 진행 (2026-09-29)
+
+선생님 승인 원문: **"개발 진행은 승인"** — 위 "이 결정으로 열린 작업" 1–3 (부록 → gate revision → 마감 5+1 → 커밋) 과 그 뒤 WI-09 를 진행한다.
+
+| 항목 | 상태 |
+|---|---|
+| 보고서 부록 BT (스레드 고정)·BU (main OOF 실행)·BV (primary 결과)·BW (보조 비교)·BX (결정 25·gate 표기) | 작성 완료 |
+| gate evidence **rev73** — 09-28 실행 기록 + 결정 25-1 표기 적용 + rev72 `not_done` "명세 6" 정정 | 적용 완료 |
+| `reports/resource_budget.md` 9.2 (스레드 고정·main 규모 실측) | 작성 완료 |
+| 인수인계 문서 (`mobse_redesign_g0_handoff_2026-09-17.md`) 에 결정 23–25 요약 행 | 추가 완료 |
+| 마감 5+1 단계 (h197) → 커밋 (푸시 안 함) | 아래 기록 |
+| WI-09 null 민감도 | 커밋 뒤 착수 |
+
+### gate rev73 판정표
+
+| Gate | status | checks |
+|---|---|---|
+| G0 Provenance | `cleared` | 10 (pass 10) |
+| G1 Measurement lock | `cleared_with_limitations` | 8 (pass 6 · fail 2 — group_id, δ 정밀도) |
+| G2 Implementation lock | `cleared` | 5 (pass 5) |
+| G3 Internal release | `cleared` | 3 (pass 3) |
+| G4 External release | `planned` (U17 만 남음) | 1 (pass 1) |
+| G5 Interpretation | `planned` | 0 |
+
+## 결정 26 — WI-09 구현 방식 (2026-09-29)
+
+세션 보고 (원문 요지): WI-09 는 null seed 1730–1733 로 C/D 를 다시 학습하는데, `fit` CLI 는 null seed 를 config `bank.null_seed` 에서 읽고 `mobse/v2/config.py` 검증기가 그 값을 코드 상수 1729 로 잠가 둔다. seed 를 바꾸면 `config_hash` 가 바뀌고 `evaluate` 는 fit manifest 의 `config_hash` 가 다르면 거부한다 (`cli.py:1738`) → main 의 A·B outer 예측을 그대로 재사용할 수 없다. 선택지 (가) seed 마다 A·B 도 같이 재실행 (코드·잠금 불변) / (나) `config.py` 잠금을 풀고 별도 analysis config (측정 잠금 재생성 + gate 새 revision).
+
+**선생님 회신 (원문): "가. 로 진행"**
+
+**정한 것**: (가) — null seed 마다 A·B·C·D outer 60 fit 을 모두 돌린다. **총 240 fit** (계획서의 "C/D 120 fit" 은 그중 seed 에 실제로 의존하는 부분이고, A·B 120 은 `config_hash` 일치를 위한 재계산이다). `mobse/v2` 와 잠금은 바꾸지 않는다 — null seed 는 구동기가 **프로세스 안에서만** `cli.load_config` 를 감싸 덮는다 (pilot end-to-end 의 `MAX_EPOCHS` 덮기와 같은 방식, 부록 BQ.1).
+
+**정하지 않은 것**: `mobse/v2` 수정, 측정·구현 잠금 재생성, WI-09 의 나머지 항목 (routing 고정/shuffle, nuisance/time 기준선, 비용, window·atlas·GSR·K 민감도) — 이번 범위는 **null 민감도뿐**이다 (결정 25-5).
+
+**착수 전 확인**: A outer fit 1 건을 seed 1730 판으로 돌려 main 과 창 예측 값·checkpoint sha 가 같은지 본다. 다르면 멈추고 보고한다 (A 는 null bank 를 쓰지 않으므로 같아야 한다).
+
+## WI-09 null 민감도 — 완료 (2026-09-29, gate rev74, 부록 BY)
+
+- 산출 h197 `$D/null_sens/20260929_97e434a_a1/`. HEAD, preflight 4종 rc=0, 추적 파일 381 사본 동일.
+- 착수 전 확인 통과: seed 1730 판 A outer fit 1건이 main 과 **창 예측 208개 전부 동일·checkpoint sha 동일** (다른 것은 `config_hash`·`null_seed` 기록뿐).
+- 실행: outer **240 fit** 01:40:37Z → 03:03:12Z (**1 h 22 m 35 s**, 실패 0) → seed 마다 evaluate·report rc=0 → `ALL_RC=0`.
+- 점검 (네 seed 공통): outer 60 · 고유 checkpoint 60 · 창 예측 12,096 · **누설 0** · 배정 밖 0 · A·B 30건 main 과 차이 0 · report g3 pass.
+
+| null seed | C | D | **H2 A−C** (97.5% CI) | interaction (95% CI) |
+|---|---:|---:|---|---|
+| **1729 (primary)** | 0.8929 | 0.7897 | **−0.0159** [−0.0516, +0.0198] | +0.0516 [+0.0040, +0.0992] |
+| 1730 | 0.8770 | 0.7579 | 0.0000 [−0.0238, +0.0238] | +0.0357 [−0.0079, +0.0794] |
+| 1731 | 0.8770 | 0.7579 | 0.0000 [−0.0357, +0.0357] | +0.0357 [−0.0079, +0.0833] |
+| 1732 | 0.8770 | 0.7222 | 0.0000 [−0.0317, +0.0317] | 0.0000 [−0.0397, +0.0437] |
+| 1733 | 0.8929 | 0.7659 | −0.0159 [−0.0437, +0.0119] | +0.0278 [−0.0079, +0.0635] |
+
+A 0.8770 · B 0.7222 · H1 A−B +0.1548 [+0.0952, +0.2143] 은 다섯 판 모두 같다 (A·B 는 null 과 무관).
+
+**두 가지 읽을 거리 (기록 — primary 판정은 바꾸지 않음, 계획서 §8)**
+1. **A−C 는 다섯 판 전부 [−0.016, 0.000] 이고 CI 가 모두 0 을 포함한다.** H2 가 불확실한 것은 하필 고른 순열 (1729) 때문이 아니다.
+2. **보조 interaction 의 판독은 null 에 따라 바뀐다.** primary 판만 하한 +0.0040 > 0 이고, 민감도 네 판은 모두 하한 ≤ 0 이다 — 그 보조 판독은 순열 하나에 기대고 있었다. C 는 거의 안 움직이고 (0.8770–0.8929) D 가 더 흔들린다 (0.7222–0.7897).
+
+**한계**: 순열 5개로는 null 분포를 만들 수 없다 (midreview 2절 약점 4). 공간 보존 null (spin)·degree 보존 rewiring 은 계획 밖이다.
+
+### 이제 선생님 판단이 필요한 것
+결정 25-2 의 (다) 는 "WI-09 결과를 본 뒤 (나) 를 판단" 이었다. WI-09 가 끝났으므로 **(나) — 현 버전을 내부 결과로 마감하고 PIOP2 는 보류한 채 새 탐색 버전을 설계할지** 를 정할 차례다. 판단 재료는 위 두 읽을 거리와 `mobse_h2_midreview_2026-09-29.md` 3절이다.
+
+## 결정 27 — 진로 (나) 확정 · interaction 판독 철회 (2026-09-29, 선택 TUI)
+
+| # | 물음 | 선택 |
+|---|---|---|
+| 27-1 | 결정 25-2 의 (다) 가 예고한 "WI-09 뒤 (나) 판단" | **(나) 로 간다** |
+| 27-2 | WI-09 가 드러낸 보조 interaction 문제 | **주장에서 뺀다** |
+
+**정한 것**: 현 버전 (재설계 v1) 은 **내부 결과로 마감**한다 · **PIOP2 는 열지 않는다** (결정 25-3 의 보류가 확정) · 새 탐색 버전을 설계한다 · 보고서·논문에서 "interaction 이 추가 기여를 지지한다" 는 서술을 쓰지 않는다.
+
+**정하지 않은 것**: 새 탐색 버전의 내용 (target·모델 구조·null 설계·δ·N) — 설계안을 따로 올린다. PIOP2 를 영영 안 쓴다는 뜻은 아니다 (새 버전의 확증용으로 남긴다).
+
+### 사전등록 이탈 — 사유 (부록 CA.3, 최종 보고서 WI-11 에 옮겨 적을 것)
+계획서 §8 은 "내부 결과가 음성이어도 외부 검증 수행" 이라 적었다. (나) 는 그 항목을 수행하지 않으므로 이탈이며, 사유는 넷이다.
+1. WI-09 가 H2 의 불확실이 순열 선택 탓이 아님을 보였다 → 같은 설계로 PIOP2 를 열면 같은 이유로 다시 불확실할 가능성이 크다 [추정].
+2. PIOP2 는 한 번만 열 수 있다 — 확증력 없는 실행에 쓰면 새 설계의 확증 수단이 사라진다.
+3. target 자체가 이 가설에 부적절하다는 증거가 모였다 (S 1.000 · NG ≈ A · 부록 BZ).
+4. 내부 결과 (H1 지지 · H2 불확실) 는 그대로 보고한다 — 음성 결과를 숨기려는 생략이 아니다.
+
+### interaction 철회 (27-2)
+primary 판 (seed 1729) 만 하한 +0.0040 > 0 이고 민감도 네 판은 모두 하한 ≤ 0 이다. 값을 적을 때는 "순열 하나에 기댄 판독" 단서를 함께 적는다. `statistics.json` 의 수치와 그 파일이 낸 판독 문구는 그대로 둔다 (§8 — 민감도를 primary 에 역반영하지 않는다).
+
+## A−S 진단 — 완료 (결정 25-6, gate rev75, 부록 BZ)
+
+새 학습 없이 기존 산출물만 읽었다. 산출 `$D/main_oof/20260928_1cd4054_aux_a1/diagnostic/as_diagnostic.json` (sha256 `e86625d873a9…`).
+
+| 칸 | 두 run 다 틀림 | 한 run 틀림 | 만점 | 틀린 run | emo / wm | 틀린 run 중앙 margin |
+|---|---:|---:|---:|---:|---:|---:|
+| **S** | 0 | 0 | **126** | 0 | — | — |
+| C | 2 | 23 | 101 | 27 | 15 / 12 | 0.101 |
+| NG | 2 | 24 | 100 | — | — | — |
+| **A** | 1 | 29 | 96 | 31 | **26 / 5** | **0.083** |
+| SG | 2 | 44 | 80 | — | — | — |
+| D | 2 | 49 | 75 | 53 | 46 / 7 | 0.145 |
+| B | 4 | 62 | 60 | 70 | 63 / 7 | 0.123 |
+
+- **A 의 오답은 얕다**: 맞힌 run 의 중앙 margin 0.342 대 틀린 run 0.083, 31 개 중 18 개가 margin 0.1 미만. 방향을 자신 있게 틀린 게 아니라 경계에서 흔들린 것이다.
+- **A 에서 감점된 30 명은 S 에서 전원 만점**이다. 틀리는 run 이 본래 어려운 게 아니라, **A 의 경로가 S 가 쓰는 정보 일부를 잃는다**는 뜻이다 (FC 4,950 → gate PCA 10).
+- A 감점자 30 명 중 15 명이 NG 에서도 감점 — 두 경로가 정보를 상당 부분 공유 (A−NG −0.012 와 같은 방향).
+- **관측이며 인과 설명이 아니다.** PCA 차원을 바꿔 다시 학습하는 것은 새 exploratory version 이다.
+- 새 버전 설계에 보탤 것: **gate 입력의 FC 압축 폭 (PCA 10) 을 설계 변수로 다룰 것.**
+
+## 결정 28 — 새 탐색 버전 설계 세 갈래 (2026-09-29, 선택 TUI)
+
+| # | 물음 | 선택 |
+|---|---|---|
+| 28-1 | 새 버전의 **축** | **축을 아직 정하지 않는다** — 포화 선별 gate (G-a) 를 먼저 만들어 후보 target 을 pilot 에서 걸러 본 뒤 정한다 |
+| 28-2 | ROI 정체 구조 변경 (G-d) 의 크기 | **둘 다 병행 비교** — ROI embedding + ROI 별 readout |
+| 28-3 | null 분포 (G-c) 의 규모 | **M 을 줄이고 null 종류를 늘린다** — 순열 + 공간 보존 (spin) + degree 보존 rewiring |
+
+설계안 초안은 `docs/experiments/mobse_exploratory_v2_design_draft_2026-09-29.md` 이며, 결정 28 을 반영해 §3·§5·§6·§8 을 고쳤다.
+
+**정하지 않은 것**: G-a 포화 기준값 · 선별을 어디서 할지 (pilot 31 의 표본 문제) · G-b 검정력 기준값 · G-c 의 M · δ 와 endpoint 해상도 · 후보가 전부 탈락했을 때의 대안.
+
+### 착수 전 확인 두 건 — 둘 다 완료 (2026-09-29)
+
+**① ROI 구조 변경이 순열 등변성을 깨는가** (Mac `.venv`, 저장소 코드 불변 — 덧껍데기만, 학습 전 무작위 가중치·seed 1729)
+
+| 구조 | max │C(x) − A(Pᵀx)│ | max │C(x) − A(x)│ | 정렬을 쓸 수 있나 |
+|---|---:|---:|---|
+| v1 현행 (ROI 평균 readout) | 1.19e−07 | 9.73e−04 | **아니오 — 등변** (midreview 의 1.2e−07 재현) |
+| + ROI embedding | 5.68e−03 | 2.36e−03 | 예 |
+| + ROI 별 readout | 1.27e−03 | 1.14e−03 | 예 |
+
+크기는 성능을 뜻하지 않는다 (학습 전 가중치) — 읽을 수 있는 것은 "0 인가 아닌가" 뿐이다.
+> **정정 (2026-09-29, v3 빌드 2 단계)**: 위 `readout` 의 1.27e−03 은 **무작위 초기화**로 잰 값이다.
+> 실제 구현은 `roi_readout` 을 **0 으로 초기화**했다 (두 구조가 같은 출발점에서 갈라지게 하려는 구현 선택) — 그래서
+> **학습 전에는 `readout` 이 `mean` 과 완전히 같고 등변이다.** 정렬을 쓸 수 있게 되는 것은 학습이 그 가중치를 움직인 뒤다.
+> `embedding` 은 작은 양수로 초기화하므로 처음부터 등변이 아니다. 두 성질 모두 `tests/v3/test_models_v3.py` 가 고정한다.
+기록: `template_bank` 가 buffer 라 `state_dict` 에 들어간다 — A 의 state_dict 를 C 에 통째로 실으면 C 의 null bank 가 덮여 `C(x) = A(x)` 가 된다. 버퍼를 빼고 싣고 assert 로 확인했다.
+
+**② spin (공간 보존 null) 을 Schaefer-100 에 쓸 수 있는가** (h197, venv)
+
+`neuromaps`·`netneurotools` 는 없지만 **numpy + scipy 만으로 가능**하다. parcel 중심 → 반구별 무작위 회전 → `linear_sum_assignment` 일대일 배정.
+
+| 항목 | 값 |
+|---|---|
+| parcel | 100 (좌 50 · 우 50, 정중선 0) |
+| 회전 20 회: 거리행렬 상관 | 중앙 **0.497** (0.322–0.671), 반구 유지 **1.000** |
+| 대조 — 단순 순열 20 회 | 중앙 **0.003** |
+
+한계: 표면 (fsaverage 구면) spin 이 아니라 **부피 중심 회전** (Váša et al. 2018 계열) 이다 — 논문에 그 차이를 적어야 한다.
+
+**예산 영향**: 세 null × M=20 을 C·D 한 지점·한 fold·한 seed 로 돌리면 120 fit ≈ 0.9 h [추정]. 기각된 "순열 하나만 M=100 전면" (3,000 fit ≈ 22 h) 보다 약 20 배 싸다.
+
+**gate evidence 는 바꾸지 않았다** — 이 두 측정은 v1 release 의 근거가 아니라 **새 버전 설계용**이다. v1 의 gate 는 rev75 그대로다.
+
+## 결정 29 — G-a·G-b 를 "차단" 이 아니라 "보고" 장치로 (2026-09-29, 선택 TUI)
+
+| # | 물음 | 선택 |
+|---|---|---|
+| 29-1 | G-a 포화 기준값 | **기준 없이 값만 보고 판단** |
+| 29-2 | 선별을 어느 자료에서 | **pilot 31 만, 버리는 쪽으로만** |
+| 29-3 | G-b 검정력 기준값 | **기준 없이 결정 요청만** |
+| 29-4 | 후보가 전부 탈락하면 | **그때 다시 정한다** |
+
+**정한 것**: G-a 와 G-b 는 **자동 차단 gate 가 아니다.** 대신 두 약속이 남는다 — (i) 선별과 검정력 simulation 을 **반드시 돌린다**, (ii) 값을 **반드시 보고하고 결정 요청으로 올린다**. 선별은 pilot 31 명만 쓰고, 판정은 "명백히 포화면 버린다" 한쪽으로만 쓴다.
+
+**정하지 않은 것**: 기준값 자체 (값을 본 뒤 그때그때 판단), 후보 전부 탈락 시 대안, G-c 의 M, δ·endpoint 해상도.
+
+**한계 (기록)**: 기준값을 미리 박지 않으므로 사전등록 장치로서의 힘은 약해진다. 남는 것은 "반드시 재고 반드시 보고한다" 는 절차적 약속이다.
+
+## G-a 선별 실행 — 완료 (2026-09-29, pilot 31)
+
+산출 h197 `$D/v2_design/20260929_ga_screen/ga_screen.json` (sha256 `7c6c30ac0bdd…`). 스크립트 `.backup/slot_wi09_0929/ga_screen.py` (gitignore) — `mobse.v2` 는 읽기만 했다. pilot 창 248 · FC Fisher-z 4,950 → logistic, subject 단위 5-fold, C grid 최댓값 (낙관 쪽).
+
+| 후보 | S BA | | 후보 | S BA |
+|---|---:|---|---|---:|
+| **v1 emo 대 wm (양성 대조)** | **1.000** | | workingmemory 정확도 | 0.586 |
+| workingmemory 반응시간 | 0.700 | | age | 0.567 |
+| emomatching 정확도 | 0.683 | | NEO_E | 0.552 |
+| raven_score | 0.679 | | **sex** | **0.536** |
+| NEO_O | 0.667 | | NEO_C · emo 반응시간 | 0.533 |
+| BMI · NEO_A | 0.633 | | NEO_N | 0.517 |
+
+**네 가지 읽을 거리**
+1. **양성 대조가 작동한다** — v1 의 target 은 pilot 31 만으로도 1.000 이다. **G-a 가 있었으면 v1 의 target 을 막았다.**
+2. 나머지는 포화가 아니다 → 결정 29-2 대로라면 버릴 후보는 v1 target 하나뿐이다.
+3. **"포화가 아니다" 는 "쓸 만하다" 가 아니다.** 라벨당 25–30 명, fold 당 test 6 명 남짓. 우연 변동의 표준편차가 약 0.09 [추정] 인데 C 5 개 중 최댓값까지 취했다 — **0.70 도 우연과 뚜렷이 갈리지 않는다.**
+4. **민감도 경고**: `sex` 가 0.536 이다. FC 로 성별 맞히기는 문헌에서 잘 되는 축인데 pilot 규모에서 0.536 이면, 이 선별기는 **"신호 없음" 과 "표본 부족" 을 구분하지 못한다.**
+
+**설계에 주는 말**: 새 자료 없이 닿는 target 공간은 한쪽이 포화 (과제 정체), 다른 쪽이 pilot 규모에서 우연과 구분 불가 (개인차) 다 — **가운데가 비어 있다.** 결정 29-4 가 말한 자리에 사실상 도착했다.
+
+### 선생님 판단이 필요한 것 (다음)
+가운데가 비어 있으므로 셋 중 하나를 골라야 한다: **T4 저표본 곡선** (자료 그대로, target 은 포화된 것을 쓰되 학습량을 줄여 regime 을 바꾼다) · **T1 새 task fetch** (후보 풀을 넓힌다) · **T2 창 재설계** (과제 조건 디코딩). 또는 선별을 더 큰 표본에서 다시 하는 방법 (결정 29-2 를 다시 여는 것) 이다.
+
+## 결정 30 — 새 버전의 축은 T4 저표본 곡선 (2026-09-29, 선택 TUI)
+
+G-a 선별이 "포화 아니면 우연과 구분 불가" 로 나온 데 대한 회신: **"T4 저표본 곡선"**.
+
+**정한 것**: target 은 그대로 두고 **학습 subject 수를 줄여 가며 A−C (그리고 A−S) 를 본다.** 새 fetch·새 전처리 없음.
+**정하지 않은 것**: N 수준, 구조 변이 (결정 28-2) 를 곡선에 어떻게 넣을지, null 분포 지점, 아래 두 갈래.
+
+### 착수 전 확인 — 저표본에서 학습 규칙이 깨진다 [측정]
+
+P8-b 는 `MIN_UPDATES = 5000` 과 `MAX_EPOCHS = 400` 을 함께 잠갔다. 창 8 개/명, batch 32 기준:
+
+| 학습 subject | update/epoch | 5,000 update 에 필요한 epoch | 400 안? |
+|---:|---:|---:|---|
+| 10 | 3 | 1,667 | **아니오** |
+| 20 | 5 | 1,000 | **아니오** |
+| 30 | 8 | 625 | **아니오** |
+| 40 | 10 | 500 | **아니오** |
+| 50 | 13 | 385 | 예 |
+| 100 | 25 | 200 | 예 |
+
+**학습 subject 가 약 50 명 아래면 두 상수를 동시에 만족할 수 없다.** 규칙을 그대로 두면 곡선이 50–100 으로 좁아져 "저표본" 이라 부르기 어렵다. 전례: pilot e2e (부록 BQ.1) 도 31 명에서 최소 epoch 1,250 이라 감싸개가 `MAX_EPOCHS` 를 2000 으로 덮었다 — 그때는 기술 검증이었지만 **v2 본 실행은 상수를 정식으로 정해야 한다.**
+
+### 선생님 판단 필요 (둘)
+1. **저표본 하한** — 규칙 유지 (50 이상만) / `MAX_EPOCHS` 인상 / `MIN_UPDATES` 인하 / epoch 상한 없이 update 수로만.
+2. **v2 코드 위치** — `mobse/v2` 를 고치면 v1 의 측정·구현 잠금이 깨진다. v1 release 재현성을 지키려면 새 모듈로 갈지, 같은 모듈을 고치고 v1 은 커밋으로 보존할지 정해야 한다.
+
+## 결정 31·32 — v3 학습 규칙과 코드 위치 (2026-09-29, 선택 TUI)
+
+| # | 물음 | 선택 |
+|---|---|---|
+| 31-1 | 저표본 하한 확보 | **epoch 상한 없이 update 수로만** |
+| 31-2 | v2 코드 위치 | **새 모듈 `mobse/v3/`** |
+| 32 | "update 수로만" 의 해석 (아래 확인 뒤 추가 질문) | **학습은 5,000 update, 선택은 자유** |
+
+### 결정 32 가 필요했던 이유 [측정]
+
+`fitting.py:613` 이 `min_epoch = min_epochs_for(...)` 로 잡고, `fitting.py:670` 과 `train.py:288` 이 **그 전에는 early stopping 도 best epoch 선택도 못 하게** 막는다. 31-1 을 글자 그대로 적용하면 학습 subject 10 명에서 창 80 개를 **1,667 epoch 반복한 뒤에야** best checkpoint 를 고를 수 있다 — 저표본 쪽이 구조적으로 과적합된 모델로 평가되어 곡선의 요점이 무너진다.
+
+### 정해진 v3 학습 규칙 (P8-c 후보)
+
+- **update 예산 5,000 을 모든 N 이 동일하게 받는다** — 곡선의 차이가 "학습량" 이 아니라 "자료의 양" 이 되도록.
+- **epoch 상한은 없다** (update 예산이 상한 역할을 한다).
+- **best checkpoint 는 어느 epoch 에서든 고를 수 있다** — `min_epoch` 결합을 푼다. early stopping 이 일찍 걸리면 학습도 일찍 끝난다.
+
+### v3 모듈 계획
+
+- **`mobse/v2` 는 손대지 않는다** → v1 의 측정 잠금 `9b7b11cf` · 구현 잠금 `bcf1fec22676` 와 gate rev75 가 그대로 유효하고, v1 release 는 언제든 재현된다.
+- `mobse/v3/` 에서 바꿀 것: ① `train`·`fitting` 의 학습 규칙 (위) ② `models` 에 ROI embedding · ROI 별 readout 두 구조 (결정 28-2) ③ `templates` 에 null 세 종류 — 순열 · Váša 회전 (spin) · degree 보존 rewiring (결정 28-3) ④ `config` 에 새 잠금 키 (update 예산 · 구조 · null 종류 · M · PCA 차원 grid) ⑤ 학습 subject 부분표집 (저표본 곡선, 잠긴 seed) ⑥ `configs/exploratory_v2/` ⑦ `tests/v3`.
+- **구현 선택 (표시)**: v3 는 동결된 `mobse/v2` 를 import 해 재사용하고, v3 잠금의 `code_hash` 는 **`mobse/v3/*.py` 와 `mobse/v2/*.py` 를 함께** 해시한다. v2 는 v1 release 로 동결됐으므로 이 참조는 흔들리지 않는다. 9,000 줄을 복사하지 않는 대신 의존을 잠금에 명시한다.
+- v1 의 분할 (`folds.json`, split_hash `ace5f4a4…`)·pilot 경계·마감 6단계·gate revision 방식은 그대로 쓴다. **PIOP2 는 계속 열지 않는다** (결정 27).
+
+## v3 빌드 1 단계 — 학습 규칙 모듈 (2026-09-29)
+
+`mobse/v3/` 를 새로 만들었다. **`mobse/v2` 와 `tests/v2` 는 한 줄도 바뀌지 않았다** (`git status` 0) — v1 의 측정 잠금 `9b7b11cf` · 구현 잠금 `bcf1fec22676` · gate rev75 가 그대로 유효하다.
+
+| 파일 | 줄 | 내용 |
+|---|---:|---|
+| `mobse/v3/__init__.py` | 20 | 모듈 취지와 구현 선택 (무엇을 새로 쓰고 무엇을 v2 에서 import 하는지) |
+| `mobse/v3/train.py` | 212 | 학습 규칙 (P8-c 후보) |
+| `tests/v3/test_train_v3.py` | 163 | 시험 22 개 |
+
+**구현 선택 (표시)**: 크게 바뀌는 모듈만 v3 에 새로 쓰고, 바뀌지 않는 것 (grid·손실·동률 규칙·누설 검사 등) 은 동결된 `mobse.v2.train` 을 import 한다. `_median`·`_require_complete` 같은 비공개 이름도 import 한다 — 사문을 다시 쓰면 두 벌이 갈라질 위험이 더 크다고 보았다.
+
+**새 API**
+- `UPDATE_BUDGET = 5000` — v1 의 `MIN_UPDATES` 와 **같은 수지만 뜻이 다르다**: v1 은 최소치, v3 는 **예산이자 상한**.
+- `epochs_for_budget(n_train)` = `ceil(예산 / update_per_epoch)` — 그 학습 집합의 epoch 상한. 고정 상한은 없다.
+- `EPOCH_SANITY_CEILING = 20000` — 규칙이 아니라 방어선 (지나치게 작은 학습 집합을 잡는다).
+- `select_best_epoch(...)` — `min_epoch` 결합 없이 best epoch 를 고른다 (결정 32).
+- `CellFoldResult` 는 `epoch_ceiling` 을 **반드시** 받는다 (기본값 없음 — 빠뜨리면 조용히 잘못된 상한으로 통과한다).
+- `select_config(...)` — 선택 규칙은 v1 과 **같고** 공통 E 의 상한만 그 학습 집합의 `epoch_ceiling` 이다.
+
+**시험 22 개** (`tests/v3`, 전부 통과). 지키려는 것: ① 예산 산술이 v1 과 같은 수를 낸다 ② 저표본에서 v1 은 충돌하지만 v3 는 그 값이 곧 상한이다 ③ **best epoch 결합이 풀렸다** (v1 이 거부하던 이른 epoch 를 고른다) ④ 선택 규칙은 v1 과 같은 결과를 낸다 (같은 입력으로 v2·v3 를 나란히 돌려 대조).
+
+**돌연변이 시험 6/7 검출** (`.backup/slot_wi09_0929/mut_v3train.py`, gitignore). 놓친 1 건은 "공통 E 상한을 안전 상한으로 바꿈" 인데, `CellFoldResult` 가 이미 `best_epoch ≤ epoch_ceiling` 을 강제하므로 그 중앙값의 올림도 상한을 넘을 수 없다 — **정상 경로로는 닿지 않는 방어선**이다. 지우지 않고 코드에 그 사실을 적었다 (`select_config` 주석).
+
+**다음 (v3 빌드)**: 2 `models` 두 구조 · 3 `templates` null 세 종류 · 4 `config` 새 잠금 키 + `configs/exploratory_v2/` · 5 학습 subject 부분표집 · 6 v3 잠금·pilot e2e.
+
+## v3 빌드 2 단계 — ROI 정체 구조 (2026-09-29)
+
+`mobse/v3/models.py` (147 줄) · `tests/v3/test_models_v3.py` (시험 15 개). 누적 `tests/v3` 37 개 전부 통과. **`mobse/v2` 는 여전히 불변.**
+
+- `ROI_STRUCTURES = ("mean", "embedding", "readout")` — `mean` 은 v1 과 같은 동작으로 남긴 대조군이다.
+- 구조 부품 (encoder · gate · graph layer · `ModelConfig`) 은 동결된 v2 를 그대로 import 한다. 새로 쓴 것은 `MoBSEv3` 한 클래스뿐이다.
+- **구현 선택 (표시)**: `roi_readout` 을 **0 으로 초기화**한다 → 학습 전에는 `readout` 이 `mean` 과 완전히 같다. 두 구조가 같은 출발점에서 갈라지게 하려는 선택이며, 그 결과 **초기 등변성 측정은 0 이 나온다** (설계 기록의 1.27e−03 정정 — 위 결정 28 절).
+- `embedding` 은 `ROI_EMBEDDING_INIT_STD = 0.1` 로 초기화하므로 처음부터 등변이 아니다.
+
+**시험이 고정하는 것**: ① `mean` 은 등변이고 **같은 가중치면 v2 와 수치가 같다** ② `embedding` 은 처음부터 등변성을 깬다 ③ `readout` 은 **초기엔 `mean` 과 같고**, 가중치가 움직이면 깬다 ④ bank 는 buffer 라 optimizer parameter 가 아니다 ⑤ **bank 가 `state_dict` 에 들어간다는 사실 자체** — 09-29 설계 측정에서 A 의 state 를 C 에 통째로 실어 null bank 가 덮인 사고를 되풀이하지 않기 위한 회귀 시험 ⑥ parameter 증가량이 새 구조 몫과 정확히 같다.
+
+**돌연변이 8/8 검출** (`.backup/slot_wi09_0929/mut_v3models.py`, gitignore).
+
+## v3 빌드 3 단계 — null 세 종류 (2026-09-29)
+
+`mobse/v3/templates.py` (약 240 줄) · `tests/v3/test_templates_v3.py` (시험 24 개). 누적 `tests/v3` **61 개** 전부 통과. **`mobse/v2` 불변.**
+
+| kind | 무엇을 보존하나 | 무엇을 깨나 |
+|---|---|---|
+| `permutation` (v1 과 같음) | spectrum · weight 분포 · bank 간 관계 | 해부학 배치 · 공간 인접 · 반구 |
+| `spin` (Váša 회전 + 일대일 배정) | **공간 인접 · 반구** · spectrum · weight 분포 | 해부학 배치 |
+| `rewire` (degree 보존 double-edge swap) | 각 node 의 **연결 수** · weight 다중집합 | 연결 상대 · node strength |
+
+**읽는 법**: A 가 `permutation` 만 이기고 `spin` 을 못 이기면, 모델이 쓰는 것은 해부학 배치가 아니라 공간 통계라는 뜻이다.
+
+**구현 선택 (표시)**
+- `rewire` 는 정규화된 template 을 직접 섞지 않는다. bank 를 만든 길을 **되밟는다**: `raw_centroids` → `sparsify_positive(density)` → rewire → `normalize_with_self_loop`. 정규화된 행렬을 섞으면 `D^(−1/2)(A+I)D^(−1/2)` 관계가 깨진다. 되밟은 edge 수가 bank 기록과 다르면 멈춘다.
+- `rewire` 는 template 마다 seed 를 `seed + k` 로 갈라 재현 가능하게 한다. `permutation`·`spin` 은 v1 처럼 **모든 template 에 같은 순열**을 준다.
+- 정중선 (x = 0) parcel 이 있으면 `roi_centroids` 가 멈춘다 — 반구 안 회전을 정의할 수 없기 때문이다.
+
+**실제 아틀라스 확인 (h197, Schaefer-100 MNI152NLin2009cAsym)**: parcel 100 (좌 50 · 우 50). seed 1730–1749 의 spin 20 개에서 거리행렬 상관 **중앙 0.485** (0.316–0.657), 단순 순열은 **0.007**, 반구 유지 전부 1.0.
+
+**돌연변이 13/14 검출** (`.backup/slot_wi09_0929/mut_v3templates.py`). 초기 12/14 에서 둘을 처리했다.
+- **진짜 구멍 1 건**: "rewire 를 정규화된 template 에서 수행" 이 통과했다. 정규화는 off-diagonal 의 **자리**를 바꾸지 않아 degree 검사로는 잡히지 않고 **값만 틀려진다**. 교환을 항등으로 바꾸면 원래 bank 가 그대로 나와야 한다는 시험을 더해 막았다.
+- 남은 1 건은 `vasa_permutation` 의 치환 검사인데, `linear_sum_assignment` 가 정의상 일대일 배정을 돌려주므로 **정상 경로로는 닿지 않는다**. 코드에 그 사실과 남겨 두는 이유 (반구 분할이 잘못되면 여기서 걸린다) 를 적었다.
+
+**다음**: 4 `config` 새 잠금 키 + `configs/exploratory_v2/` · 5 학습 subject 부분표집 · 6 v3 잠금·pilot e2e.
+
+## v3 빌드 5 단계 — 학습 subject 부분표집 (2026-09-29)
+
+`mobse/v3/subsample.py` (약 100 줄) · `tests/v3/test_subsample_v3.py` (시험 17 개). 누적 `tests/v3` **78 개** 전부 통과. **`mobse/v2` 불변.**
+
+저표본 곡선의 핵심이다. target 도 분할도 바꾸지 않고, **outer fold 의 학습 subject 를 몇 명까지 쓰는가**만 바꾼다.
+
+**설계로 못 박은 두 가지**
+1. **중첩 (nested)** — 작은 수준은 큰 수준의 부분집합이다. 수준마다 따로 뽑으면 곡선의 오르내림에 "누구를 뽑았나" 가 섞여 자료의 양으로 읽을 수 없다. 한 번 섞은 순서의 앞에서 잘라 쓴다.
+2. **fold 마다 다른 순서** — 모든 fold 가 같은 순서를 쓰면 한 번의 운 나쁜 섞기가 곡선 전체를 기울인다. seed 를 fold 로 가른다 (`SUBSAMPLE_SEED_BASE = 40000` + outer_fold).
+
+**잠긴 수준** `LOW_SAMPLE_LEVELS = (10, 20, 40, 70, 100)`. outer fold 의 학습 집합은 **100–101 명** (실측) 이라 100 이 사실상 전부에 가깝다.
+
+**class 균형은 따로 맞추지 않는다** — 이 target (run identity) 은 사람마다 두 class 를 하나씩 가지므로 subject 를 뽑으면 저절로 균형이다. 그 사실을 시험이 지킨다.
+
+**거부하는 것 (조용히 넘기지 않는다)**: `n_keep` 이 학습 집합보다 크면 잘라 맞추지 않고 멈춘다 (수준을 잘못 준 것을 숨기면 곡선이 거짓말을 한다) · 중복·빈 집합 · 오름차순 아닌 수준 · 음수 fold.
+
+**돌연변이 9/9 검출** (`.backup/slot_wi09_0929/mut_v3subsample.py`). 처음 8/9 로 나왔던 "중첩 깨짐" 은 **변이 설계가 잘못된 것**이었다 — fold 당 순열 하나를 다른 것으로 바꿨을 뿐이라 중첩이 그대로 유지됐다. 수준마다 seed 를 가르는 진짜 변이로 고치니 검출됐다.
+
+**남은 v3 빌드**: 4 `config` 새 잠금 키 + `configs/exploratory_v2/` · 6 v3 잠금 (측정·구현)·pilot end-to-end.
+
+## 결정 33 — v3 config 잠금 키 값 (2026-09-29, 선택 TUI)
+
+값이 곧 사전등록이므로 실행 전에 정한다.
+
+| # | 키 | 잠근 값 | 근거·비용 [추정] |
+|---|---|---|---|
+| 33-1 | 칸 구성 | **A–D × 2 구조 (embedding·readout) = 8 칸** | 2×2 설계를 두 구조에서 온전히 유지 → H1·H2·interaction 을 구조별로 읽는다. outer 600 fit ≈ 4.2 h |
+| 33-2 | config grid 선택 | **가장 큰 수준 (N=100) 에서 한 번, 모든 수준에 재사용** | 수준마다 재선택하면 inner 4,800 fit ≈ 33 h. 한 번이면 960 fit ≈ 6.7 h. 저표본에 맞춰 튜닝하지 않으므로 곡선이 "자료의 양" 만 반영한다 |
+| 33-3 | gate 입력 PCA 차원 | **10 고정** (grid 열지 않음) | 저표본 곡선과 ROI 구조에 집중한다. 압축 폭은 다음 버전으로 — 변수를 동시에 둘 바꾸면 원인을 가를 수 없다 |
+| 33-4 | null 분포 M | **20** (종류 3 × 20) | 한 수준·한 fold·한 seed 에서 C·D 계열만 → 120–240 fit ≈ 0.9–1.7 h |
+
+**이미 정해진 것 (결정 30·31·32)**: 수준 `(10, 20, 40, 70, 100)` · 부분표집 seed base 40000 · update 예산 5000 · epoch 상한 없음 · best checkpoint 선택 자유 · null 종류 `(permutation, spin, rewire)`.
+
+**정하지 않은 것**: δ 와 endpoint 해상도 · G-b 검정력 simulation 을 언제 돌릴지 · 저표본에서 fit 당 실제 시간 (update 예산은 같지만 epoch 수가 많아 epoch 당 고정비가 쌓일 수 있다 — **착수 전 실측 필요**).
+
+## WI-11 연구 결과 패키지 — 작성 완료 (2026-09-29, gate rev76)
+
+`results/redesign_v1/20260917_3c458d507e82_nocfg/reports/wi11_research_package_2026-09-29.md` (150 줄, sha256 `c2e758e88205…`). 재설계 v1 을 **내부 결과로 마감**하는 문서다 (결정 27).
+
+**구성**: §2 자료 흐름 · §3 **claim–evidence 10 행** (주장마다 원 artifact sha) · §4 칸별 BA · §5 **비용** · §6 **실패·음성 결과 7 건** · §7 **사전등록 이탈 사유 4** · §8 한계 6 · §9 실제로 돈 명령만 쓴 재현 절 · §10 잠금 · §11 답하지 못한 것.
+
+**§5 가 보조 비교의 `not_reported` 를 닫는다** — 학습 parameter 를 실측했다.
+
+| 모델 | 학습 parameter |
+|---|---:|
+| A · C | 6,469 |
+| B · D | 6,021 |
+| SG | 6,018 |
+| NG | 5,154 |
+| S3 (FC logistic) | 4,951 |
+| **S4 (FC + 32-hidden MLP)** | **158,498** |
+
+→ 가장 자주 뽑힌 S4 가 A 보다 parameter 가 **24.5 배** 많다. MoBSE 가 작은 모델인 것은 사실이나 **효율 우위를 주장할 수 없다** (정확도에서 12 %p 진다). 계획서 §1 이 효율 주장을 제외한 것과 일치한다.
+
+**gate rev76**: 보고서를 G5 `artifact_hashes` 에 등록하고 **G5 check 5 건** 추가 (claim–evidence 표 · 비용 · 제한과 음성 결과 · 실제 구현된 명령만 쓴 재현 절 · 사전등록 이탈 기록) — 전부 pass. **G5 `status` 는 `planned` 그대로 두었다** — status 변경은 선생님 결정 사항이다. 해시 검사 195 → **196 건** 전부 일치.
+
+**독립 대조**: `.backup/slot_wi09_0929/verify_wi11.py` (gitignore) 가 문서의 인용 수치를 산출물에서 다시 계산해 대조한다 — primary 두 contrast · 칸별 BA 7 · 보조 contrast 3 · 완료 기준·누설 (main + null seed 4) · null 범위 · 진단 수치 · 자료 흐름 · 잠금 해시 4. **실패 0 건.**
+- 처음 6 건이 불일치로 나왔는데 **문서 오류가 아니라 대조기 결함**이었다: 문서는 활자용 빼기표 (U+2212) 를 쓰고 대조기는 ASCII 하이픈으로 찾았다. 정규화해 고쳤다.
+
+## G5 status — 권고안 적용 (2026-09-29, gate rev77)
+
+선생님 회신 원문: **"G5 status 올릴지 결정은 권고 사항으로 바로 진행해 주길"**.
+
+**적용**: G5 Interpretation `planned` → **`cleared_with_limitations`**.
+
+**왜 `planned` 이 아닌가**: 계획서 §10 의 G5 필수 산출물 (claim–evidence 표 · 비용 · 제한 · 재현 패키지) 이 모두 있고 check 5 건이 전부 pass 다 (WI-11, rev76). 그대로 두면 결정 22·25 가 고쳤던 **낡은 표기**와 같은 부류가 된다.
+
+**왜 단순 `cleared` 가 아닌가** — 세 가지를 gate 표에서 바로 보이게 하려는 것이다.
+1. 이 해석은 **외부 검증 없이** 내부 결과만으로 내렸다 (PIOP2 미개방, 결정 27).
+2. 그것은 계획서 §8 **사전등록 이탈**이다 (사유 WI-11 §7).
+3. 주가설 둘 중 **H2 는 불확실**이고 보조 interaction 판독은 철회했다 (결정 27-2).
+
+어휘 전례: G1 이 같은 이유 (조건은 충족했으나 알려진 한계가 남음) 로 `cleared_with_limitations` 를 쓴다 (rev73).
+
+**바꾸지 않은 것**: G5 check 5 건의 판정, G0–G4 전부, 측정·구현 잠금, `mobse/v2`.
+
+### 보고 사항 — G4 표기는 정하지 않았다
+G4 (External release) 가 `planned` 로 남아 있는데, 결정 27 로 **이 버전에서는 외부 단계를 수행하지 않는다.** `planned` 는 "아직 오고 있다" 로 읽히므로 정확하지 않다. 어떻게 적을지 (예: `not_pursued_in_this_version` 같은 새 값, 또는 `status_note` 만 보강) 는 **선생님 판단 사항**이라 건드리지 않았다.
+
+### gate rev77 판정표
+
+| Gate | status | checks |
+|---|---|---|
+| G0 Provenance | `cleared` | 10 (pass 10) |
+| G1 Measurement lock | `cleared_with_limitations` | 8 (pass 6 · fail 2) |
+| G2 Implementation lock | `cleared` | 5 (pass 5) |
+| G3 Internal release | `cleared` | 3 (pass 3) |
+| G4 External release | `planned` (표기 미정) | 1 (pass 1) |
+| G5 Interpretation | **`cleared_with_limitations`** | 5 (pass 5) |
+
+## 커밋 규약 적용 — 이력 재작성과 SHA 기록 삭제 (2026-09-30, gate rev78)
+
+선생님 회신 원문: **"커밋 이력 전부 수정. 모든 커밋은 내 계정 (Hwon Heo)만 수행 했으므로 수정은 어렵지 않을 것. SHA 문단 기록 삭제."** · **"과거 메시지도 1줄로 줄인다"**
+
+**규약 출처**: `bmc-plugins/README.md` — "커밋 규칙은 팀 규칙을 따름 — 영문 1줄, 20~25단어 이내, 작업 단위로 묶어 5건 이하, co-author 태그 미사용."
+
+### 이력 재작성
+- `git filter-branch --msg-filter "sed -n '1p'"` 로 **161 개 커밋을 제목 1줄만** 남겼다. 본문·co-author 태그 전부 제거.
+- 검증: co-author **0** · 두 줄 이상 메시지 **0** · 25단어 초과 제목 **0** (최대 13단어).
+- **파일은 하나도 바뀌지 않았다** — 재작성 전후 트리 해시가 같다 (`d6ae391cf584`).
+- 되돌릴 수 있게 `backup/pre-msg-rewrite-20260930` branch·tag 를 남겼다.
+
+### SHA 기록 삭제
+재작성으로 예전 커밋 SHA 가 무효가 되어 지웠다.
+- gate evidence **필드 7 개**: `git_head` · `p9_reextraction/git_head` · `decision16_mutation_recheck/head` · `decision21_pilot_e2e_rev69/code_head` · `decision21_implementation_lock_rev71/git_head_at_build` · `decision23_main_oof_rev73/code_head` · `decision26_wi09_null_sensitivity_rev74/code_head`
+- 문서 **토큰 284 개** (CLAUDE.md 3 · 인수인계 3 문서 248 · 실행 보고서 28 · WI-11 2 · resource_budget 2 · timing_audit 1)
+
+### 지우지 않은 것 (지우면 깨지는 것)
+| 대상 | 이유 |
+|---|---|
+| `locks/implementation_lock.json` 의 `git.head` | 고치면 `lock_hash` 가 바뀌어 **구현 잠금 검증 38 건이 깨지고** h197 에서 재생성해야 한다. 잠금은 기록이지 참조가 아니다 |
+| `main_oof/20260928_1cd4054_main_a2` 같은 **산출물 디렉터리 이름** | git 참조가 아니라 **실행 식별자**다. 지우면 경로가 깨진다 |
+| h197 data root 의 `git_head.txt` | 실행 당시 기록이라 손대지 않는다 |
+
+### 코드 판본의 기준은 이제 잠금이다
+커밋 SHA 대신 **측정 잠금 `9b7b11cf8576…`** 의 `code_hash` **`804d6ee17625…`** (= `mobse/v2/*.py` 해시) 와 **구현 잠금 `bcf1fec22676…`** (환경·config·CLI 포함) 이 판본을 고정한다. WI-11 §9 에 그 취지를 적었다.
+
+### 작업 중 스스로 잡은 실수 2건 (기록)
+1. 처음 정리 정규식이 **SHA 와 무관한 공백까지** 건드려 `3.11.5 · torch` 가 `3.11.5· torch` 로 바뀌었다. 백업에서 되돌리고, 삭제 지점 주변에서만 도는 규칙으로 다시 했다.
+2. 토큰만 지우니 `()`·`(, rev29)`·`,,` 같은 잔재가 생겼다. **원본에 없던 패턴만** 골라 정리했고 (`,,` 39 · `커밋 ·` 1), 원본에 있던 `()` 47 · ` ,` 4 는 건드리지 않았다.
+
+## 푸시 (2026-09-30) 와 커밋 규약 정본화
+
+선생님 지시: **"푸시 도 수행해 주길"** → 이력 재작성 때문에 일반 푸시가 불가했고, 확인 뒤 **"force-with-lease 로 redesign-v1 덮어쓰기"** 로 회신받았다.
+
+**실행 주체**: 자동 승인 분류기가 force 푸시를 `Out-of-Place Publication` 으로 막아 **선생님이 직접 실행**했다 (세션은 lease 를 못 박은 명령만 제시했다).
+
+```
+git push --force-with-lease=redesign-v1:5d6677ab637d6e0e595ee8eacf1662fe6f79ffee origin redesign-v1
+→ + 5d6677a...b0123e2 redesign-v1 -> redesign-v1 (forced update)
+```
+
+**푸시 전 안전 확인**: origin 에만 있고 백업에 없는 커밋 **0** (사라지는 작업 없음) · origin 끝 커밋과 대응 커밋의 **트리 해시 동일** · origin 31 커밋 전부 선생님 계정.
+**푸시 후 확인**: 원격 = 로컬 (`b0123e2`), 원격 커밋 **162**, 원격 co-author **0**.
+
+### 커밋 규약 — CLAUDE.md "고정 운영 규칙" 절을 정본으로
+
+출처 `~/.claude/plugins/marketplaces/bmc-plugins/README.md`: "커밋 규칙은 팀 규칙을 따름 — 영문 1줄, 20~25단어 이내, 작업 단위로 묶어 5건 이하, co-author 태그 미사용."
+
+1. 영문 **1줄** (본문 없음 — 이유는 `docs/handoff/` 와 gate evidence 에)
+2. **20~25단어 이내**
+3. 작업 단위로 묶어 5건 이하 — **선택 사항** (필수 아님, 2026-09-30 확인)
+4. **co-author 태그 미사용**
+5. Conventional Commits 접두사 유지
+6. `git commit -F` 로 파일에서 읽기
+7. **푸시는 지시가 있을 때만** (기본은 로컬 커밋까지)
+
+**정리한 것**: CLAUDE.md 에 흩어져 있던 낡은 중복 (`커밋 메시지는 Conventional Commits…`) 을 정본 가리키기로 바꾸고, 사실과 달라진 "푸시하지 않음" 두 곳과 "(미푸시)" 표기를 정정했다.
+
+**3 번은 선택 사항이다** (2026-09-30 선생님 확인: "5건이하는 (필수 아닌 선택)"). 따라서 09-29 의 12 건·09-30 의 2 건은 위반이 아니다. 이 저장소는 **마감 6 단계 rc=0 과 커밋이 1:1 로 대응**하는 편이 추적에 유리하므로, 묶기보다 단계마다 커밋하는 쪽을 유지한다.

@@ -89,6 +89,7 @@ class ModelConfig:
     num_experts: int = 5
     routing_k: int = 2
     routing_mode: str = "soft"  # soft | hard
+    gate_temperature: float = 1.0  # >1 softens routing, <1 sharpens
     os_num_classes: int = 5
     etth1_in_dim: int = 7
     etth1_out_dim: int = 1
@@ -131,6 +132,7 @@ class TrainConfig:
     normalize_task_losses: bool = True
     task_loss_norm_batches: int = 8
     selection_metric: str = "weighted_normalized_loss"  # raw_loss | weighted_raw_loss | weighted_normalized_loss
+    balance_loss_weight: float = 0.0  # MoE load balancing loss (Switch Transformer style)
     early_stopping_patience: int = 0
     early_stopping_min_delta: float = 0.0
     use_amp: bool = True
