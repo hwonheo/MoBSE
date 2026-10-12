@@ -14,7 +14,7 @@
 - **C1–C5 최종 문장 확정 (결정 55 · 56)**: `docs/experiments/i1_final_statements_draft_2026-10-12.md` §1 (D1 학습판 표 · D5 재현 마찰 표 포함).
   C2 지지 안 됨 (판정은 null 종류와 무관, 크기만 다름) · C3 는 작은 효과에서만 · C1 실측은 AOMIC MoBSE mean 하나이고 부호가 지표 의존.
 - 붕괴 fit (ABIDE BQN 74 · BNT 41 · site 33) 진단과 표기는 §11.11 · 결정 55-1. Notion Work Log 25 (실행) · 26 (AOMIC 검토) · 27 (ABIDE · 최종 문장).
-- **결정 53**: redesign-v1 → main 은 PR + 병합 커밋 (`--no-ff`). 푸시 · 병합은 그때마다 승인.
+- **결정 53 · 57 (10-12 실행)**: PR #1 을 병합 커밋 `a68efc4` 로 main 에 통합 (main tree = redesign-v1 tree). redesign-v1 은 남겨 두었고 **작업은 main 에서 이어간다** (10-12 지시). 기록 §11.13.
 
 ## v3 (exploratory v2) 실험 — 2026-10-01 실행 완료
 
@@ -43,7 +43,7 @@
 - 문서끼리 어긋나면 **날짜가 늦은 쪽**이 앞선다. 해석·점검 문서는 판단 재료이며 결정이 아니다.
 
 ### 현재 상태 (2026-09-29 11:0x KST)
-- Mac branch `redesign-v1`. 2026-09-30 에 `origin/redesign-v1` 로 푸시됨 (이력 재작성분, force-with-lease).
+- Mac branch `redesign-v1` (당시). 2026-09-30 에 `origin/redesign-v1` 로 푸시됨 (이력 재작성분, force-with-lease). **2026-10-12 부터 작업 브랜치는 `main`** (결정 57 뒤 지시).
 - **결정 23 "main OOF 착수 승인" (09-28)** → A–D main OOF 완료: h197 `$D/main_oof/20260928_1cd4054_main_a2/` (`ALL_RC=0`, WI-07 완료 기준 전부 충족). attempt 1 `…_main` 은 fit 0 으로 멈춘 판 (남겨 둠).
 - **결정 24** → 보조 비교 (S 4 후보·NG·SG) 완료: `$D/main_oof/20260928_1cd4054_aux_a1/` (`ALL_RC=0`). smoke 판 `$D/main_oof/20260928_aux_smoke/`.
 - 결과 (BA): A 0.877 · B 0.722 · C 0.893 · D 0.790 · S 1.000 · NG 0.889 · SG 0.810.
@@ -220,7 +220,7 @@ MoBSE (Mixture of Brain-State Experts): fMRI 시계열을 dFC 유래 전문가 �
 
 ## 실행 호스트와 경로
 
-- **정본 저장소는 Mac** `/Users/hwon/projects/Git/Manuscript/MoBSE` (branch `redesign-v1`) — 편집·커밋은 Mac. **푸시는 지시가 있을 때만** (커밋 규약 7).
+- **정본 저장소는 Mac** `/Users/hwon/projects/Git/Manuscript/MoBSE` (branch **`main`**, 2026-10-12 부터 — 그 전은 `redesign-v1`) — 편집·커밋은 Mac. **푸시는 지시가 있을 때만** (커밋 규약 7).
 - **실행 호스트는 h197** (`ssh -o BatchMode=yes h197`). 사본 `/mnt/data/code/MoBSE`, venv `/mnt/data/mp2026/MoBSE_dataset/venv-mobse-v2`. 최종 판정(마감)은 h197.
 - Mac → h197 동기화: `cd /Users/hwon/projects/Git/Manuscript && rsync -a --exclude=/data/ --exclude=/artifacts/ --exclude=/nilearn_cache/ --exclude=__pycache__/ --exclude='*.pyc' MoBSE/ h197:/mnt/data/code/MoBSE/` — **`--delete` 금지, `__pycache__`·`*.pyc` 제외 필수** (2026-09-24 stale pyc 사고).
 - data root: `h197:/mnt/data/mp2026/MoBSE_dataset`
