@@ -17,6 +17,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import base64
 import html
 import re
 import sys
@@ -77,6 +78,18 @@ td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
 .ci small{display:block;color:var(--ink-3);font-size:7pt;}
 table.wide{font-size:7.6pt;}
 table.wide td,table.wide th{padding:1.2mm 1.4mm;}
+figure{margin:3mm 0 5mm;break-inside:avoid;}
+figure img{display:block;width:100%;height:auto;}
+figcaption{font-size:8pt;color:var(--ink-3);margin-top:1.6mm;line-height:1.5;}
+.box{border:.8px solid var(--line);border-left:3.5px solid var(--accent);background:var(--wash);
+     padding:3mm 4mm;margin:3mm 0 4mm;break-inside:avoid;}
+.box .t{display:block;font-weight:700;color:var(--brand);font-size:10.4pt;margin-bottom:1.6mm;}
+.box p:last-child,.box ul:last-child{margin-bottom:0;}
+.box.key{border-left-color:var(--brand);background:var(--brand-soft);}
+.box.key p{font-size:10.6pt;line-height:1.65;}
+.box.warn{border-left-color:var(--warn);background:#FDF6E8;}
+.box.warn .t{color:var(--warn);}
+.pb{break-after:page;height:0;}
 hr{border:0;border-top:.6px solid var(--line);margin:6mm 0;}
 
 /* 표지 */
@@ -104,7 +117,7 @@ hr{border:0;border-top:.6px solid var(--line);margin:6mm 0;}
 /* 목차 */
 .toc{break-after:page;}
 .toc ol{list-style:none;padding:0;margin:4mm 0 0;}
-.toc li{display:flex;gap:3mm;padding:2.2mm 0;border-bottom:.6px solid var(--line);font-size:10pt;}
+.toc li{display:flex;gap:3mm;padding:1.5mm 0;border-bottom:.6px solid var(--line);font-size:9.6pt;}
 .toc .no{font-family:var(--disp);color:var(--accent);width:14mm;flex:none;}
 .toc a{color:var(--ink);text-decoration:none;}
 
@@ -175,8 +188,18 @@ def slug(i: int) -> str:
     return f"s{i}"
 
 
-def render(md: str) -> Tuple[str, str, List[Tuple[str, str]], List[Tuple[str, str]], str]:
-    """md 본문을 HTML 로 바꾼다.
+def figure(src: str, caption: str, base: Path) -> str:
+    """그림 하나를 data URI 로 넣는다 — HTML 한 파일로 돌려 볼 수 있게, SVG 끼리 id 가 부딪히지 않게."""
+    path = base / src
+    mime = "image/svg+xml" if path.suffix == ".svg" else f"image/{path.suffix.lstrip('.')}"
+    data = base64.b64encode(path.read_bytes()).decode()
+    return (f'<figure><img src="data:{mime};base64,{data}" alt="{html.escape(caption)}">'
+            f"<figcaption>{inline(caption)}</figcaption></figure>")
+
+
+def render(md: str, base: Path = Path("."), top: bool = True
+           ) -> Tuple[str, str, List[Tuple[str, str]], List[Tuple[str, str]], str]:
+    """md 본문을 HTML 로 바꾼다. ``top=False`` 는 강조 상자 안쪽 (표지 · 목차를 만들지 않음).
 
     Returns:
         (제목, 본문 HTML, 표지 정보 [(항목, 내용)], 목차 [(id, 제목)], 꼬리말 왼쪽 문구).
@@ -200,6 +223,35 @@ def render(md: str) -> Tuple[str, str, List[Tuple[str, str]], List[Tuple[str, st
             title = ln[2:].strip()
             i += 1
             continue
+        if ln.startswith(">"):
+            close_lists()
+            buf = []
+            while i < len(lines) and lines[i].startswith(">"):
+                buf.append(lines[i][2:] if lines[i].startswith("> ") else lines[i][1:])
+                i += 1
+            kind = ""
+            mk = re.match(r"^\[!(\w+)\]\s*(.*)$", buf[0]) if buf else None
+            if mk:
+                kind, buf[0] = mk.group(1), mk.group(2)
+            head_t = ""
+            mt = re.match(r"^\*\*(.+)\*\*$", buf[0].strip()) if buf else None
+            if mt:
+                head_t, buf = mt.group(1), buf[1:]
+            inner = render("\n".join(buf), base, top=False)[1]
+            t_html = f'<span class="t">{inline(head_t)}</span>' if head_t else ""
+            out.append(f'<div class="box {kind}">{t_html}{inner}</div>')
+            continue
+        mi = re.match(r"^!\[(.*)\]\((.+)\)\s*$", ln)
+        if mi:
+            close_lists()
+            out.append(figure(mi.group(2), mi.group(1), base))
+            i += 1
+            continue
+        if ln.strip() == "<!-- pagebreak -->":
+            close_lists()
+            out.append('<div class="pb"></div>')
+            i += 1
+            continue
         if ln.startswith("```"):
             close_lists()
             buf = []
@@ -217,7 +269,7 @@ def render(md: str) -> Tuple[str, str, List[Tuple[str, str]], List[Tuple[str, st
                 rows.append(split_row(lines[i]))
                 i += 1
             head, body = rows[0], [r for r in rows[2:]]
-            if not meta and [h.strip() for h in head] == ["항목", "내용"] and not toc:
+            if top and not meta and [h.strip() for h in head] == ["항목", "내용"] and not toc:
                 meta = [(r[0].strip(), r[1].strip()) for r in body]
                 continue
             wide = " class=\"wide\"" if len(head) >= 6 else ""
@@ -235,6 +287,8 @@ def render(md: str) -> Tuple[str, str, List[Tuple[str, str]], List[Tuple[str, st
                 tds = []
                 for j, c in enumerate(r):
                     cls, h = cell(c)
+                    if cls == "n" and not (j < ncol and col_num[j]):
+                        cls = ""  # 숫자 열이 아니면 숫자 칸도 왼쪽 정렬
                     if not cls and j < ncol and col_short[j]:
                         cls = "c"
                     tds.append(f'<td class="{cls}">{h}</td>' if cls else f"<td>{h}</td>")
@@ -286,7 +340,7 @@ def render(md: str) -> Tuple[str, str, List[Tuple[str, str]], List[Tuple[str, st
 
 def build_html(md_path: Path) -> str:
     """md 파일 하나로 완결된 HTML 문서를 만든다."""
-    title, body, meta, toc, foot = render(md_path.read_text(encoding="utf-8"))
+    title, body, meta, toc, foot = render(md_path.read_text(encoding="utf-8"), md_path.parent)
     md = dict(meta)
     date_ver = md.get("보고일자 · 판", "")
     head, _, rest = title.partition(" — ")
