@@ -15,7 +15,7 @@
   C2 지지 안 됨 (판정은 null 종류와 무관, 크기만 다름) · C3 는 작은 효과에서만 · C1 실측은 AOMIC MoBSE mean 하나이고 부호가 지표 의존.
 - 붕괴 fit (ABIDE BQN 74 · BNT 41 · site 33) 진단과 표기는 §11.11 · 결정 55-1. Notion Work Log 25 (실행) · 26 (AOMIC 검토) · 27 (ABIDE · 최종 문장).
 - **I1 내부 보고서 (10-13)**: `results/i1/reports/i1_report_2026-10-13.md` (BMC 내부 보고서 형식 · 쉬운 말). 인용 대조 `scripts/h197/30_verify_i1_report_citations.py` (183 항목 불일치 0). 기록 §11.16.
-- **ABIDE MoBSE 팔 (결정 58 · 59, 10-13)**: 잠금 `results/i1_mobse_abide/locks/lock.json` (`64e75f1c9d4f`), 문서 `docs/experiments/i1_mobse_abide_lock_v1.md`, 구동기 `scripts/i1_mobse_abide/`. h197 `i1_mobse_abide/main/20261013_64e75f1c_a1/` **ALL_DONE** (fit 360 실패 0). 963 명 공통 분석 결과 · 해석 미정은 §11.21.
+- **ABIDE MoBSE 팔 (결정 58 · 59, 10-13)**: 잠금 `results/i1_mobse_abide/locks/lock.json` (`64e75f1c9d4f`), 문서 `docs/experiments/i1_mobse_abide_lock_v1.md`, 구동기 `scripts/i1_mobse_abide/`. h197 `i1_mobse_abide/main/20261013_64e75f1c_a1/` **ALL_DONE** (fit 360 실패 0). 963 명 공통 분석 결과 §11.21, 보고서 2.1 판 반영 (결정 60) §11.22.
 - **결정 53 · 57 (10-12 실행)**: PR #1 을 병합 커밋 `a68efc4` 로 main 에 통합 (main tree = redesign-v1 tree). redesign-v1 은 남겨 두었고 **작업은 main 에서 이어간다** (10-12 지시). 기록 §11.13.
 
 ## v3 (exploratory v2) 실험 — 2026-10-01 실행 완료
