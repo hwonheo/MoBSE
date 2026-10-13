@@ -14,6 +14,7 @@
 - **C1–C5 최종 문장 확정 (결정 55 · 56)**: `docs/experiments/i1_final_statements_draft_2026-10-12.md` §1 (D1 학습판 표 · D5 재현 마찰 표 포함).
   C2 지지 안 됨 (판정은 null 종류와 무관, 크기만 다름) · C3 는 작은 효과에서만 · C1 실측은 AOMIC MoBSE mean 하나이고 부호가 지표 의존.
 - 붕괴 fit (ABIDE BQN 74 · BNT 41 · site 33) 진단과 표기는 §11.11 · 결정 55-1. Notion Work Log 25 (실행) · 26 (AOMIC 검토) · 27 (ABIDE · 최종 문장).
+- **I1 내부 보고서 (10-13)**: `results/i1/reports/i1_report_2026-10-13.md` (BMC 내부 보고서 형식 · 쉬운 말). 인용 대조 `scripts/h197/30_verify_i1_report_citations.py` (183 항목 불일치 0). 기록 §11.16.
 - **결정 53 · 57 (10-12 실행)**: PR #1 을 병합 커밋 `a68efc4` 로 main 에 통합 (main tree = redesign-v1 tree). redesign-v1 은 남겨 두었고 **작업은 main 에서 이어간다** (10-12 지시). 기록 §11.13.
 
 ## v3 (exploratory v2) 실험 — 2026-10-01 실행 완료
