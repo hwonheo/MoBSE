@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="scripts/reports/build_bmc_report.py — 원본 i1_report_2026-10-13.md">
+<title>I1 내부 보고서</title>
+<style>
+:root{
+  --brand:#14416E; --brand-soft:#E7EEF6; --accent:#1F8A8C; --accent-soft:#E2F1F1;
+  --ink:#10151C; --ink-2:#3C4654; --ink-3:#6B7787; --line:#D3DBE4;
+  --paper:#FFFFFF; --wash:#F2F5F8; --warn:#B37500;
+  --disp:"Nanum Myeongjo","NanumMyeongjo","AppleMyungjo",serif;
+  --body:"Pretendard","Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;
+  --data:"SF Mono","Menlo","D2Coding","Consolas",monospace;
+}
+*{box-sizing:border-box;}
+html{background:var(--paper);}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);
+     font-size:9.6pt;line-height:1.6;-webkit-font-smoothing:antialiased;word-break:keep-all;}
+p,li{overflow-wrap:anywhere;}
+td{overflow-wrap:break-word;}
+main{max-width:174mm;margin:0 auto;padding:0 0 12mm;}
+@media screen{
+  body{background:#E9EDF1;}
+  .sheet{background:var(--paper);max-width:210mm;margin:16px auto;padding:18mm 16mm 14mm 20mm;
+         box-shadow:0 2px 24px rgba(16,21,28,.12);}
+  @media (max-width:820px){ .sheet{padding:16px;margin:0;} table{display:block;overflow-x:auto;} pre{font-size:7pt;} }
+}
+h2{font-family:var(--disp);font-size:15.5pt;font-weight:700;color:var(--brand);margin:10mm 0 3mm;
+   padding-bottom:2mm;border-bottom:1.6px solid var(--brand);break-after:avoid;}
+h3{font-size:10.8pt;font-weight:700;color:var(--brand);margin:6mm 0 2mm;padding-left:3mm;
+   border-left:3px solid var(--accent);break-after:avoid;}
+p{margin:0 0 2.4mm;}
+ul,ol{margin:0 0 3mm;padding-left:5.5mm;}
+li{margin:0 0 1mm;}
+li::marker{color:var(--accent);}
+ul ul{margin:1mm 0 1.4mm;padding-left:5mm;}
+ul ul li::marker{color:var(--ink-3);content:"– ";}
+b,strong{font-weight:700;color:var(--ink);}
+code{font-family:var(--data);font-size:.86em;background:var(--wash);padding:0 .8mm;border-radius:2px;}
+pre{font-family:var(--data);font-size:7.4pt;line-height:1.5;background:var(--wash);border:.6px solid var(--line);
+    border-left:3px solid var(--accent);padding:3mm;white-space:pre-wrap;overflow-wrap:anywhere;break-inside:avoid;}
+pre code{background:none;padding:0;font-size:inherit;}
+th code{background:rgba(255,255,255,.16);color:#fff;}
+table{width:100%;border-collapse:collapse;font-size:8.3pt;margin:2mm 0 4mm;}
+thead{display:table-header-group;}
+tr{break-inside:avoid;}
+th{background:var(--brand);color:#fff;font-weight:600;text-align:left;padding:1.6mm 2mm;font-size:8pt;}
+td{padding:1.4mm 2mm;border-bottom:.6px solid var(--line);vertical-align:top;}
+tbody tr:nth-child(even) td{background:var(--wash);}
+th.n{text-align:right;}
+td.c,th.c{white-space:nowrap;}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.ci{font-family:var(--data);font-size:7.6pt;white-space:nowrap;}
+.ci small{display:block;color:var(--ink-3);font-size:7pt;}
+table.wide{font-size:7.6pt;}
+table.wide td,table.wide th{padding:1.2mm 1.4mm;}
+hr{border:0;border-top:.6px solid var(--line);margin:6mm 0;}
+
+/* 표지 */
+.cover{position:relative;height:297mm;width:210mm;margin:0 auto;background:var(--wash);overflow:hidden;
+       break-after:page;}
+.cover .bar{height:9mm;background:var(--brand);}
+.cover .inner{padding:20mm 20mm 0;}
+.cover .kicker{font-size:8.4pt;letter-spacing:.3em;color:var(--accent);font-weight:700;}
+.cover .issuer-top{font-size:8.6pt;color:var(--ink-3);margin-top:1.5mm;}
+.cover h1{font-family:var(--disp);font-size:27pt;font-weight:700;line-height:1.36;color:var(--brand);
+          margin:10mm 0 0;letter-spacing:-.02em;max-width:128mm;word-break:keep-all;}
+.cover .sub{font-size:11pt;color:var(--ink-2);margin-top:5mm;max-width:118mm;line-height:1.6;}
+.cover .meta{position:absolute;left:20mm;bottom:42mm;font-size:9pt;color:var(--ink-2);}
+.cover .meta div{margin-bottom:1.4mm;}
+.cover .meta span{display:inline-block;width:26mm;color:var(--ink-3);}
+.cover .issuer{position:absolute;left:20mm;right:20mm;bottom:14mm;padding-top:4mm;border-top:2px solid var(--brand);
+               display:flex;justify-content:space-between;align-items:flex-end;gap:6mm;}
+.cover .issuer .org{font-family:var(--disp);font-size:12pt;color:var(--brand);font-weight:700;}
+.cover .issuer .org small{display:block;font-family:var(--body);font-size:8.2pt;font-weight:400;color:var(--ink-3);margin-top:1mm;}
+.cover .issuer .en{font-size:7.4pt;color:var(--ink-3);text-align:right;max-width:80mm;line-height:1.45;}
+.cover .motif{position:absolute;right:-22mm;top:92mm;width:150mm;height:150mm;}
+@media screen{ .cover{box-shadow:0 2px 24px rgba(16,21,28,.12);margin:16px auto;}
+  @media (max-width:820px){ .cover{width:100%;height:auto;min-height:100vh;} .cover .meta,.cover .issuer{position:static;margin:8mm 20mm 0;} .cover .motif{display:none;} } }
+
+/* 목차 */
+.toc{break-after:page;}
+.toc ol{list-style:none;padding:0;margin:4mm 0 0;}
+.toc li{display:flex;gap:3mm;padding:2.2mm 0;border-bottom:.6px solid var(--line);font-size:10pt;}
+.toc .no{font-family:var(--disp);color:var(--accent);width:14mm;flex:none;}
+.toc a{color:var(--ink);text-decoration:none;}
+
+@page{size:A4;margin:18mm 16mm 18mm 20mm;
+  @bottom-left{content:"I1 내부 보고서 · 2026-10-13 · 1.0";font-family:"Pretendard","Apple SD Gothic Neo",sans-serif;font-size:7.4pt;color:#6B7787;}
+  @bottom-right{content:"바이오메디컬컴퓨팅코어 · " counter(page) " / " counter(pages);
+    font-family:"Pretendard","Apple SD Gothic Neo",sans-serif;font-size:7.4pt;color:#6B7787;}}
+@page :first{margin:0; @bottom-left{content:none;} @bottom-right{content:none;}}
+@media print{
+  html,body{background:#fff;}
+  .sheet{padding:0;margin:0;box-shadow:none;max-width:none;}
+  .cover{margin:0;box-shadow:none;}
+  h2.appendix{break-before:page;}
+  a{color:inherit;text-decoration:none;}
+}
+</style></head>
+<body><section class="cover"><div class="bar"></div><div class="inner"><svg class="motif" viewBox="0 0 400 400" aria-hidden="true">
+  <defs><radialGradient id="g1" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#1F8A8C" stop-opacity=".16"/><stop offset="100%" stop-color="#1F8A8C" stop-opacity="0"/>
+  </radialGradient></defs>
+  <circle cx="200" cy="200" r="185" fill="url(#g1)"/>
+  <g fill="none" stroke="#14416E" stroke-opacity=".22"><circle cx="200" cy="200" r="72"/><circle cx="200" cy="200" r="118"/><circle cx="200" cy="200" r="164"/></g>
+  <g stroke="#1F8A8C" stroke-opacity=".55" stroke-width="1.1" fill="none">
+    <path d="M200 200 C 150 130, 90 140, 66 176"/><path d="M200 200 C 262 152, 316 178, 330 224"/>
+    <path d="M200 200 C 178 268, 118 292, 78 268"/><path d="M200 200 C 246 262, 236 320, 200 348"/>
+    <path d="M200 200 C 150 176, 118 104, 146 52"/></g>
+  <g fill="#14416E"><circle cx="200" cy="200" r="8.5"/><circle cx="66" cy="176" r="5"/><circle cx="330" cy="224" r="5"/>
+    <circle cx="78" cy="268" r="4.2"/><circle cx="200" cy="348" r="4.2"/><circle cx="146" cy="52" r="4.2"/></g>
+  <g fill="#1F8A8C" fill-opacity=".85"><circle cx="284" cy="112" r="3"/><circle cx="112" cy="118" r="3"/>
+    <circle cx="300" cy="300" r="3"/><circle cx="104" cy="316" r="2.4"/><circle cx="356" cy="164" r="2.4"/><circle cx="44" cy="222" r="2.4"/></g>
+</svg>
+<div class="kicker">내 부 보 고</div>
+<div class="issuer-top">I1 내부 보고서</div>
+<h1>뇌 그래프 모델은 정말 "뇌 영역 정보"를 쓰는가</h1>
+<p class="sub">MoBSE (Mixture of Brain-State Experts) — I1 뇌 그래프 prior 검증 프로토콜</p></div>
+<div class="meta"><div><span>보고 성격</span>내부 보고서 (BMC 보고서 작성 규정 §2) — 분량 제한 없음, 근거 · 기각된 대안까지 남김</div><div><span>연구책임자</span>Dr. Hwon Heo</div><div><span>보고일자 · 판</span>2026-10-13 · 1.0</div></div>
+<div class="issuer"><div class="org">서울아산병원 아산생명과학연구원<small>융합연구지원센터 바이오메디컬컴퓨팅코어</small></div>
+<div class="en">Biomedical Computing Core, Convergence Research Support Center, Asan Institute for Life Sciences, Asan Medical Center</div></div></section><div class="sheet"><main><nav class="toc"><h2>목차</h2><ol><li><span class="no">0</span><a href="#s1">이 보고서에 대해</a></li><li><span class="no">1</span><a href="#s2">한눈에 보기</a></li><li><span class="no">2</span><a href="#s3">무엇을 물었나</a></li><li><span class="no">3</span><a href="#s4">용어 풀이</a></li><li><span class="no">4</span><a href="#s5">어떻게 했나</a></li><li><span class="no">5</span><a href="#s6">결과 Ⅰ — 원래 성능 (기준선과 원판)</a></li><li><span class="no">6</span><a href="#s7">결과 Ⅱ — 영역을 뒤섞으면 성능이 얼마나 떨어지나</a></li><li><span class="no">7</span><a href="#s8">결과 Ⅲ — 한 번만 학습하면 착시가 생기나 (D3)</a></li><li><span class="no">8</span><a href="#s9">결과 Ⅳ — 학습이 끝난 모델은 영역 순서에 무관한가 (D1)</a></li><li><span class="no">9</span><a href="#s10">결과 Ⅴ — 학습이 망가진 경우 (붕괴)</a></li><li><span class="no">10</span><a href="#s11">결과 Ⅵ — 공개 코드를 돌리는 어려움 (C5)</a></li><li><span class="no">11</span><a href="#s12">안 된 것 · 음성 결과 (숨기지 않음)</a></li><li><span class="no">12</span><a href="#s13">계획에서 벗어난 것과 운영 사건</a></li><li><span class="no">13</span><a href="#s14">한계</a></li><li><span class="no">14</span><a href="#s15">비용 (h197, RTX 3090 Ti 1 장 · 12 코어, 공유 GPU)</a></li><li><span class="no">15</span><a href="#s16">결론과 남은 판단</a></li><li><span class="no"></span><a href="#s17">첨부 A. C1–C5 확정 문장 원문 (결정 55 · 56)</a></li><li><span class="no"></span><a href="#s18">첨부 B. 산출물 목록 · 잠금</a></li><li><span class="no"></span><a href="#s19">첨부 C. 재현 방법 (실제로 돈 진입점)</a></li><li><span class="no"></span><a href="#s20">첨부 D. 인용 대조 결과</a></li></ol></nav>
+<h2 id="s1">0. 이 보고서에 대해</h2>
+<ul><li>
+<strong>목적</strong>: I1 본 실행 결과를 비전공자도 판단할 수 있게 정리함.
+<ul><li>
+6 개월 뒤 다시 읽어도 무엇을 했고 무엇이 안 됐는지 알 수 있게 근거 · 음성 결과 · 계획 이탈을 함께 남김.
+</li></ul>
+</li><li>
+수치는 모두 <strong>h197 본 실행 산출에서 나온 값</strong>임. 이 보고서에서 새로 계산한 값은 <code>[계산]</code> 으로 표시함.
+<ul><li>
+산출 위치: data root 상대 <code>i1/main/20261005_ac3bad06_a2/</code> (이하 "run 폴더"). 물리 경로는 Notion Data Assets 에만 둠.
+</li></ul>
+</li><li>
+인용 수치는 <code>scripts/h197/30_verify_i1_report_citations.py</code> 로 산출물과 <strong>기계 대조함</strong> — 결과는 첨부 D.
+</li><li>
+<strong>통계 판정은 모두 탐색적임.</strong>
+<ul><li>
+신뢰구간 (CI) 판정에 다중비교 보정을 하지 않음 — 잠금 설계가 "기술용 · 보정 없음" 으로 정한 것임.
+</li><li>
+BMC 규정 §4 에 따라 보정을 거치지 않은 소견은 전부 "탐색적" 으로 읽을 것.
+</li></ul>
+</li><li>
+같은 이름의 <code>.html</code> · <code>.pdf</code> 는 이 md 를 <code>scripts/reports/build_bmc_report.py</code> 로 만든 산출물임 — <strong>md 가 정본</strong>이며 HTML · PDF 를 직접 고치지 말 것.
+</li><li>
+형식 · 위치는 2026-10-13 선생님 지시 "bmc 내부 보고서 형식으로, 단 용어 및 내용은 좀 더 비전공자 친화적으로" 를 따름.
+</li></ul>
+<h3>정정 이력</h3>
+<table><thead><tr><th class="c">판</th><th class="c">날짜</th><th>내용</th></tr></thead><tbody><tr><td class="c">초안</td><td class="c">2026-10-13</td><td>연구 결과 패키지 형식 초안 (<code>i1_research_package_2026-10-13.md</code>, 커밋 <code>d3e8ca6</code>). 이 판으로 대체하고 저장소에서 내림</td></tr><tr><td class="n">1.0</td><td class="c">2026-10-13</td><td>BMC 내부 보고서 형식 · 쉬운 말로 다시 씀. 초안 오류 1 건 정정 — "ABIDE 공개 모델 단일 CI 반폭 중앙 0.0307–0.0510" 의 상한 0.0510 은 BQN site 분할 값이 섞인 것임. 세 공개 모델만이면 <strong>0.0307–0.0483</strong> (대조 스크립트가 찾음)</td></tr></tbody></table>
+<h2 id="s2">1. 한눈에 보기</h2>
+<h3>핵심 지표</h3>
+<table><thead><tr><th>항목</th><th>값</th></tr></thead><tbody><tr><td>비교한 모델</td><td>공개 모델 3 종 (BQN · BNT · Han) + MoBSE 2 종 (mean · embedding)</td></tr><tr><td>자료</td><td>ABIDE (자폐 분류, 1,009 명) · AOMIC (과제 분류, 126 명)</td></tr><tr><td>공개 모델 학습 횟수</td><td>1,620 회, 최종 실패 0</td></tr><tr><td>학습이 망가진 횟수 (붕괴)</td><td>222/1,620</td></tr><tr><td>전체 실행 시간</td><td>약 91.6 시간 [계산]</td></tr></tbody></table>
+<h3>핵심 결과</h3>
+<table><thead><tr><th class="c">미리 세운 주장</th><th>쉬운 말</th><th>판정</th></tr></thead><tbody><tr><td class="c">C2</td><td>뒤섞는 방법에 따라 "뇌 영역 정보를 쓴다" 는 결론이 달라질 것</td><td><strong>지지 안 됨</strong> — 결론은 같고 크기만 달라짐</td></tr><tr><td class="c">C3</td><td>한 번만 학습한 결과는 "유의" 를 과하게 낼 것</td><td>효과가 작은 MoBSE embedding 에서만 관찰됨</td></tr><tr><td class="c">C4</td><td>문제가 너무 쉬우면 (천장) 모델 비교가 무의미해질 것</td><td>AOMIC 에서 맞음. 다만 뒤섞기 판정은 쉬운 자료 · 어려운 자료에서 같았음</td></tr><tr><td class="c">C1</td><td>영역 순서에 무관한 모델은 뒤섞어도 같은 모델이 됨</td><td>이론으로는 성립함. 실측 확인은 한 모델 하나뿐이고 지표에 따라 부호가 바뀜</td></tr><tr><td class="c">C5</td><td>공개 코드를 그대로 돌리기 어려울 것</td><td>맞음 — 네 저장소의 분할 · seed · 평가 규칙이 모두 달랐음</td></tr></tbody></table>
+<ul><li>
+공개 모델 세 종은 영역을 뒤섞으면 성능이 <strong>분명히 떨어짐</strong> (두 자료 · 세 뒤섞기 방법 모두).
+<ul><li>
+즉 "이 모델들은 영역 정보를 쓴다" 는 판정 자체는 흔들리지 않았음.
+</li></ul>
+</li><li>
+예상과 달리 <strong>뒤섞는 방법이 판정을 바꾸지 않았음</strong> — 이 연구의 중심 주장 (C2) 은 지지되지 않음.
+</li><li>
+원래 성능 (원판) 은 모델 우열이나 자폐 진단 성능의 근거가 아님 — 진단을 위한 재료로만 씀.
+</li></ul>
+<h2 id="s3">2. 무엇을 물었나</h2>
+<ul><li>
+뇌 fMRI 를 그래프 (영역 = 점, 영역 사이 연결 = 선) 로 바꿔 학습하는 딥러닝 모델이 많음.
+</li><li>
+이런 모델이 잘 맞히면 흔히 "모델이 <strong>어느 영역인지 · 어디에 있는지</strong>를 활용한다" 고 해석함.
+<ul><li>
+이 해석을 확인하는 표준 방법은 영역을 뒤섞은 가짜 자료 (null) 로 다시 학습해 성능이 떨어지는지 보는 것임.
+</li></ul>
+</li><li>
+I1 은 그 확인 방법 자체가 얼마나 믿을 만한지를 물음.
+<ul><li>
+모델 구조, 뒤섞는 방법, 학습을 다시 할 때의 흔들림, 문제의 난이도에 따라 결론이 달라지는지 잼.
+</li></ul>
+</li><li>
+미리 세운 주장 다섯 개 (원문은 프로토콜 초안 §1, 확정 문장은 첨부 A):
+</li></ul>
+<table><thead><tr><th class="c">#</th><th>원래 주장 (요지)</th></tr></thead><tbody><tr><td class="c">C1</td><td>영역 순서에 무관한 구조 (등변 구성) 에서는 원래 그래프와 뒤섞은 그래프가 원리적으로 같은 모델임</td></tr><tr><td class="c">C2</td><td>"영역 대응을 쓰는가" 의 판정은 뒤섞는 방법 (null 종류) 에 따라 달라짐</td></tr><tr><td class="c">C3</td><td>한 번 학습한 결과의 CI 는 재학습 흔들림을 빠뜨려, 효과가 없어도 "유의" 를 자주 냄</td></tr><tr><td class="c">C4</td><td>너무 쉬운 문제 (포화) 에서는 구조 비교가 정보를 잃음 — 단순 기준선이 이를 미리 보여 줌</td></tr><tr><td class="c">C5</td><td>공개 구현을 그대로 돌리는 데 드는 수정 · 실패를 기록함</td></tr></tbody></table>
+<h2 id="s4">3. 용어 풀이</h2>
+<table><thead><tr><th>용어</th><th>뜻</th></tr></thead><tbody><tr><td>영역 (ROI)</td><td>뇌를 나눈 구역. ABIDE 는 CC200 (200 개) 을 씀</td></tr><tr><td>기능 연결성 (FC)</td><td>두 영역의 신호가 함께 오르내리는 정도 (상관). 모든 영역 쌍을 모은 표가 연결성 행렬임</td></tr><tr><td>AUC</td><td>맞히는 능력. 0.5 = 동전 던지기, 1.0 = 완벽</td></tr><tr><td>BA (균형 정확도)</td><td>두 집단 정답률의 평균. 보조 지표로만 씀</td></tr><tr><td>원판</td><td>영역을 뒤섞지 않은 원래 자료로 학습한 모델</td></tr><tr><td>null (뒤섞기 대조)</td><td>영역 정보를 일부러 망가뜨린 가짜 자료. 여기서 성능이 떨어지면 모델이 그 정보를 쓴다는 근거가 됨</td></tr><tr><td>Δ (델타)</td><td>원판 AUC − 뒤섞은 자료 AUC. 클수록 영역 정보 의존이 큼</td></tr><tr><td>n0</td><td>모든 사람에게 <strong>같은 방식으로</strong> 영역 번호를 바꿈 — 이름표만 바뀐 셈이라 성능이 그대로여야 정상 (점검용)</td></tr><tr><td>n1</td><td>사람마다 <strong>다르게</strong> 영역 번호를 무작위로 섞음 (순열)</td></tr><tr><td>n2</td><td>사람마다 다르게 섞되 <strong>가까운 영역은 가깝게</strong> 남도록 뇌를 돌림 (spin, 좌우 반구 안에서)</td></tr><tr><td>n3</td><td>연결의 세기 분포는 남기고 <strong>연결 상대를 바꿈</strong> (rewire). 연결성 행렬만 바꾸고 시계열은 원래 것을 둠</td></tr><tr><td>등변성</td><td>영역 순서를 바꿔도 출력이 같은 성질. 이런 모델은 뒤섞어도 성능이 원리적으로 같아야 함</td></tr><tr><td>신뢰구간 (CI)</td><td>값이 있을 법한 범위. 95 % CI 가 0 을 넘으면 "0 보다 크다" 로 읽음</td></tr><tr><td>재학습 포함 CI</td><td>학습을 여러 번 다시 해서 생기는 흔들림까지 넣은 CI — 이 보고서의 판정 기준</td></tr><tr><td>단일 CI</td><td>한 번 학습한 모델에서 사람만 다시 뽑아 만든 CI — 재학습 흔들림이 빠짐</td></tr><tr><td>포화 (천장)</td><td>문제가 너무 쉬워 모든 모델이 거의 만점을 받는 상태</td></tr><tr><td>붕괴</td><td>학습이 망가져 모든 사람에게 같은 답을 내는 경우 (예측값이 거의 상수, 또는 한쪽 답만 냄)</td></tr><tr><td>fold · seed</td><td>fold = 자료를 학습용 · 시험용으로 나눈 한 갈래. seed = 무작위 출발점 번호</td></tr><tr><td>잠금</td><td>실행 전에 코드 · 자료 · 설계를 해시로 고정하는 장치. 결과를 보고 설계를 바꾸지 못하게 함</td></tr><tr><td>기준선</td><td>딥러닝 없이 연결성 행렬로 바로 맞히는 단순 모델 (FC logistic · FC-MLP · S1)</td></tr></tbody></table>
+<h2 id="s5">4. 어떻게 했나</h2>
+<h3>자료</h3>
+<table><thead><tr><th>자료</th><th>역할</th><th>규모</th><th>나누는 방법</th></tr></thead><tbody><tr><td>ABIDE I (PCP 전처리, CC200)</td><td>주 자료 — 자폐 대 대조군, 쉽지 않은 문제</td><td>1,009 명</td><td>5-fold, 진단 × 촬영 기관 비율을 맞춤</td></tr><tr><td>AOMIC PIOP1</td><td>양성 대조 — 두 과제 구분, 너무 쉬운 문제</td><td>126 명, run 252 개</td><td>v1 의 나누기를 그대로 씀</td></tr><tr><td>ABIDE 기관 분할 (BQN 만)</td><td>민감도 — 시험 기관을 학습에서 아예 뺌</td><td>1,009 명</td><td>기관 묶음 5-fold</td></tr><tr><td>AOMIC PIOP2</td><td>쓰지 않음 (결정 27)</td><td>—</td><td>—</td></tr></tbody></table>
+<ul><li>
+ABIDE 는 PCP 를 다시 받아 표준 파일을 만듦 — 시점 100 개 미만 26 명을 빼서 1,009 명.
+</li><li>
+AOMIC 은 짧은 구간 (창) 으로 학습하고 run 단위로 평균해 평가함.
+</li></ul>
+<h3>모델</h3>
+<table><thead><tr><th>모델</th><th>출처 (commit)</th><th>비고</th></tr></thead><tbody><tr><td>BQN</td><td><code>5dc31b7</code></td><td>200 epoch, 튜닝 없음</td></tr><tr><td>BNT</td><td><code>8a588aa</code></td><td>200 epoch, 튜닝 없음</td></tr><tr><td>Han (dual-pathway)</td><td><code>cde613f</code></td><td>100 epoch, 튜닝 없음</td></tr><tr><td>BrainGB</td><td>—</td><td><strong>제외</strong> (결정 47) — 저장소 설정으로 학습이 되지 않음 (6 장)</td></tr><tr><td>MoBSE mean</td><td>v1 결과 재사용</td><td>등변 구조. 새 학습 없음, AOMIC 만</td></tr><tr><td>MoBSE embedding</td><td>v3 잠금 <code>c0c8ed77db50</code></td><td>순서 의존 구조. 새 학습 196 회, AOMIC 만</td></tr></tbody></table>
+<h3>절차</h3>
+<table><thead><tr><th class="c">항목</th><th>내용</th></tr></thead><tbody><tr><td class="c">반복</td><td>뒤섞기 5 판 × seed 3 개 × fold 5 개 → 자료당 공개 모델 하나에 255 회 학습</td></tr><tr><td class="c">시험 예측</td><td>검증 손실이 가장 낮은 epoch 의 예측 — 세 모델 같은 규칙</td></tr><tr><td class="c">판정 문장</td><td>"재학습 포함 CI 가 0 을 넘음" 또는 "0 을 포함함". 최소 관심 효과 (δ) 없음</td></tr><tr><td class="c">bootstrap</td><td>2,000 회, seed 20261006, 원판과 뒤섞은 자료에 같은 사람 재표집</td></tr><tr><td class="c">다중비교 보정</td><td>없음 — <strong>탐색적 판정</strong></td></tr><tr><td class="c">실패 규칙</td><td>실패는 다시 돌리지 않고 셈. 붕괴는 표시하고, 뺀 결과를 민감도로 따로 봄</td></tr><tr><td class="c">진단</td><td>D1 등변성 · D2 null · D3 재학습 흔들림 · D4 기준선 · D5 재현 마찰</td></tr></tbody></table>
+<h2 id="s6">5. 결과 Ⅰ — 원래 성능 (기준선과 원판)</h2>
+<table class="wide"><thead><tr><th class="c">자료</th><th class="n">FC logistic</th><th class="n">FC-MLP</th><th class="n">S1</th><th class="n">BQN</th><th class="n">BNT</th><th class="n">Han</th></tr></thead><tbody><tr><td class="c">AOMIC (쉬움)</td><td class="n">1.0000</td><td class="n">0.9999</td><td class="n">0.9925</td><td class="n">1.0000</td><td class="n">1.0000</td><td class="n">1.0000</td></tr><tr><td class="c">ABIDE (어려움)</td><td class="n">0.7624</td><td class="n">0.7337</td><td class="n">0.6022</td><td class="n">0.7025</td><td class="n">0.7508</td><td class="n">0.7521</td></tr></tbody></table>
+<table><thead><tr><th>그 밖의 원판</th><th class="n">AUC</th></tr></thead><tbody><tr><td>ABIDE BQN 기관 분할</td><td class="n">0.6634</td></tr><tr><td>AOMIC MoBSE mean</td><td class="n">0.9561</td></tr><tr><td>AOMIC MoBSE embedding</td><td class="n">0.9324</td></tr></tbody></table>
+<ul><li>
+AOMIC 은 단순 기준선까지 거의 만점임 — <strong>모델 간 비교가 불가능함</strong> (C4 의 앞부분 성립).
+</li><li>
+ABIDE 의 공개 모델 원판 (0.703–0.752) 은 점추정으로 FC logistic (0.762) 보다 낮거나 비슷함.
+<ul><li>
+CI 로 비교하지 않았으므로 우열을 주장하지 않음.
+</li></ul>
+</li></ul>
+<h2 id="s7">6. 결과 Ⅱ — 영역을 뒤섞으면 성능이 얼마나 떨어지나</h2>
+<ul><li>
+표의 값은 Δ = 원판 AUC − 뒤섞은 AUC, 괄호는 재학습 포함 95 % CI임 (모두 탐색적).
+</li><li>
+n0 은 점검용이라 0 근처여야 정상임.
+</li></ul>
+<table class="wide"><thead><tr><th class="c">모델</th><th class="c">자료</th><th>n0 (점검)</th><th>n1 (무작위 섞기)</th><th>n2 (돌리기)</th><th>n3 (연결 바꾸기)</th><th>함께 읽을 것 (교락)</th></tr></thead><tbody><tr><td class="c">BQN</td><td class="c">AOMIC</td><td><span class="ci">+0.0000<small>[−0.0001, +0.0003]</small></span></td><td><span class="ci">+0.4034<small>[+0.3614, +0.4463]</small></span></td><td><span class="ci">+0.3721<small>[+0.3347, +0.4120]</small></span></td><td><span class="ci">+0.0495<small>[+0.0271, +0.0745]</small></span></td><td>천장 자료 · 붕괴 34/255</td></tr><tr><td class="c"></td><td class="c">ABIDE</td><td><span class="ci">−0.0087<small>[−0.0316, +0.0133]</small></span></td><td><span class="ci">+0.2045<small>[+0.1711, +0.2390]</small></span></td><td><span class="ci">+0.2066<small>[+0.1746, +0.2383]</small></span></td><td><span class="ci">+0.1418<small>[+0.1133, +0.1727]</small></span></td><td>붕괴 74/255</td></tr><tr><td class="c">BNT</td><td class="c">AOMIC</td><td><span class="ci">+0.0000<small>[−0.0000, +0.0000]</small></span></td><td><span class="ci">+0.4531<small>[+0.4258, +0.4793]</small></span></td><td><span class="ci">+0.3820<small>[+0.3439, +0.4207]</small></span></td><td><span class="ci">+0.0627<small>[+0.0412, +0.0859]</small></span></td><td>천장 자료 · 붕괴 40/255</td></tr><tr><td class="c"></td><td class="c">ABIDE</td><td><span class="ci">−0.0053<small>[−0.0221, +0.0119]</small></span></td><td><span class="ci">+0.2366<small>[+0.2052, +0.2696]</small></span></td><td><span class="ci">+0.2424<small>[+0.2098, +0.2738]</small></span></td><td><span class="ci">+0.1835<small>[+0.1532, +0.2142]</small></span></td><td>붕괴 41/255</td></tr><tr><td class="c">Han</td><td class="c">AOMIC</td><td><span class="ci">+0.0000<small>[−0.0000, +0.0000]</small></span></td><td><span class="ci">+0.2755<small>[+0.2284, +0.3253]</small></span></td><td><span class="ci">+0.2312<small>[+0.1887, +0.2765]</small></span></td><td><span class="ci">+0.0365<small>[+0.0177, +0.0574]</small></span></td><td>천장 자료 · 붕괴 없음</td></tr><tr><td class="c"></td><td class="c">ABIDE</td><td><span class="ci">−0.0003<small>[−0.0047, +0.0036]</small></span></td><td><span class="ci">+0.2146<small>[+0.1822, +0.2486]</small></span></td><td><span class="ci">+0.2123<small>[+0.1794, +0.2460]</small></span></td><td><span class="ci">+0.1255<small>[+0.0986, +0.1539]</small></span></td><td>붕괴 없음 · OOM 재실행 149 회 (결정 50)</td></tr><tr><td class="c">BQN 기관 분할</td><td class="c">ABIDE</td><td>—</td><td><span class="ci">+0.1932<small>[+0.1565, +0.2306]</small></span></td><td>—</td><td>—</td><td>붕괴 33/90 · 뺀 민감도 계산 불가</td></tr></tbody></table>
+<ul><li>
+n3 열 전체의 교락: 연결성 행렬만 바꾸고 시계열은 원래 것을 둠.
+<ul><li>
+세 모델 모두 시계열도 받으므로 두 입력이 서로 어긋남 (잠금 §9) — n3 의 Δ 가 "연결 상대" 만의 효과라고 단정할 수 없음.
+</li></ul>
+</li><li>
+읽는 법:
+<ul><li>
+점검용 n0 은 모두 0 을 포함함 — 이름표만 바꾼 경우 성능이 그대로임을 확인함.
+</li><li>
+n1 · n2 · n3 은 두 자료 · 세 모델 모두 CI 가 0 을 넘음 — <strong>"영역 정보를 쓴다" 는 판정이 뒤섞는 방법과 무관하게 같음.</strong>
+</li><li>
+바뀐 것은 크기뿐임. n3 이 가장 작음 (AOMIC 0.04–0.06 · ABIDE 0.13–0.18), n1 · n2 는 0.20–0.45.
+</li></ul>
+</li></ul>
+<h3>MoBSE (AOMIC, 영역 순서 정보 (prior) 만 뒤섞음)</h3>
+<table><thead><tr><th>구조</th><th>무작위 섞기</th><th>돌리기</th><th>연결 바꾸기</th><th>함께 읽을 것</th></tr></thead><tbody><tr><td>mean (등변)</td><td><span class="ci">+0.0151<small>[+0.0038, +0.0264]</small></span></td><td>— (v1 에 없음)</td><td>—</td><td>같은 예측을 v1 방식 (BA · seed 3 개 평균) 으로 보면 Δ −0.016 또는 0 — 지표에 따라 부호가 바뀜</td></tr><tr><td>embedding (순서 의존)</td><td><span class="ci">−0.0058<small>[−0.0186, +0.0052]</small></span></td><td><span class="ci">+0.0027<small>[−0.0077, +0.0138]</small></span></td><td><span class="ci">−0.0106<small>[−0.0222, +0.0010]</small></span></td><td>셋 다 0 을 포함함</td></tr></tbody></table>
+<ul><li>
+MoBSE mean 은 등변 구조라 이론상 Δ 가 0 이어야 함 (C1).
+<ul><li>
+I1 방식 (seed 별 AUC) 으로는 0 을 넘고, v1 방식 (BA · seed 평균) 으로는 0 을 포함함.
+</li><li>
+부호 차이는 지표 (AUC 대 BA) 와 seed 평균 여부 두 갈래에서 옴 (결정 52) — <strong>"같음을 실측으로 확인했다" 고 쓰지 않음.</strong>
+</li></ul>
+</li><li>
+MoBSE embedding 은 세 방법 모두 영역 정보 의존을 보이지 않음.
+</li></ul>
+<h2 id="s8">7. 결과 Ⅲ — 한 번만 학습하면 착시가 생기나 (D3)</h2>
+<ul><li>
+단일 CI (한 번 학습) 가 0 을 벗어난 비율을 셈. 재학습 포함 CI 와 결론이 같은지 봄.
+</li></ul>
+<table><thead><tr><th>대상</th><th class="c">n0</th><th>n1 · n2 · n3</th><th>재학습 포함 CI 와 결론</th></tr></thead><tbody><tr><td>공개 모델 셋 · 두 자료</td><td class="c">0/3 짝</td><td>15/15 짝</td><td>같음</td></tr><tr><td>BQN 기관 분할 (ABIDE, n1)</td><td class="c">—</td><td>15/15</td><td>같음</td></tr><tr><td>MoBSE mean (무작위 섞기)</td><td class="c">—</td><td class="n">0.27</td><td>같음 (둘 다 0 을 넘음)</td></tr><tr><td>MoBSE embedding</td><td class="c">—</td><td>무작위 섞기 0.20 · 돌리기 0.07 · 연결 바꾸기 0.40</td><td><strong>다름</strong> — 재학습 포함 CI 는 셋 다 0 을 포함</td></tr></tbody></table>
+<ul><li>
+효과가 큰 곳 (공개 모델) 에서는 한 번 학습해도 결론이 같았음.
+</li><li>
+효과가 작은 곳 (MoBSE embedding) 에서는 한 번 학습한 CI 가 "유의" 를 냄 — <strong>C3 는 이 좁은 범위에서만 관찰됨.</strong>
+<ul><li>
+예: 연결 바꾸기 한 짝 (k0/r42) 의 단일 −0.025 [−0.052, −0.001] 대 재학습 포함 −0.011 [−0.022, +0.001].
+</li></ul>
+</li><li>
+흔들림의 크기 (ABIDE 공개 모델 n1–n3):
+</li></ul>
+<table><thead><tr><th>항목</th><th>범위</th></tr></thead><tbody><tr><td>seed 간 Δ 의 표준편차</td><td>0.0078–0.0228</td></tr><tr><td>단일 CI 반폭 중앙값</td><td>0.0307–0.0483</td></tr></tbody></table>
+<h2 id="s9">8. 결과 Ⅳ — 학습이 끝난 모델은 영역 순서에 무관한가 (D1)</h2>
+<ul><li>
+원판 모델에 영역 순서만 20 가지로 바꾼 같은 입력을 넣고, 예측 확률이 가장 크게 달라진 값을 잼.
+<ul><li>
+0 이면 순서에 무관 (등변), 클수록 순서에 의존함.
+</li></ul>
+</li></ul>
+<table><thead><tr><th class="c">모델</th><th>AOMIC fold 0 · 1 · 2</th><th>ABIDE fold 0 · 1 · 2</th><th>학습 전</th></tr></thead><tbody><tr><td class="c">BQN</td><td>0.983 · 0.994 · 0.997</td><td>0.667 · 0.975 · 0.453</td><td>4.9e−4 (순서 의존)</td></tr><tr><td class="c">BNT</td><td>0.626 · 0.689 · 0.695</td><td>0.603 · 0.514 · 0.744</td><td>1.3e−3 (순서 의존)</td></tr><tr><td class="c">Han</td><td>0.756 · 0.788 · 0.806</td><td>0.729 · 0.863 · 0.693</td><td>재지 않음 (코드상 순서 의존)</td></tr></tbody></table>
+<ul><li>
+같은 입력을 두 번 넣은 차이는 18 개 모두 0 — 측정 자체는 안정함.
+</li><li>
+세 공개 모델은 학습 뒤에도 순서에 강하게 의존함 (0.45–0.997).
+</li><li>
+ABIDE 에는 순서에 무관한 공개 모델이 없음 — BrainGB 가 제외됐기 때문임. C1 의 실측 범위가 AOMIC MoBSE mean 하나로 좁아진 이유임.
+</li></ul>
+<h2 id="s10">9. 결과 Ⅴ — 학습이 망가진 경우 (붕괴)</h2>
+<table><thead><tr><th class="c">자료</th><th class="c">BQN</th><th class="c">BNT</th><th class="n">Han</th></tr></thead><tbody><tr><td class="c">AOMIC</td><td class="c">34/255</td><td class="c">40/255</td><td class="n">0</td></tr><tr><td class="c">ABIDE</td><td class="c">74/255</td><td class="c">41/255</td><td class="n">0</td></tr><tr><td class="c">ABIDE 기관 분할</td><td class="c">33/90</td><td class="c">—</td><td class="c">—</td></tr><tr><td class="c">합계</td><td class="c">222/1,620</td><td class="c"></td><td class="c"></td></tr></tbody></table>
+<ul><li>
+판정은 붕괴를 포함한 전체로 함 (잠금 §8). 붕괴를 뺀 결과는 민감도로만 봄 (결정 55-1).
+</li><li>
+BQN ABIDE n3 의 상수 붕괴 5 회는 뒤섞은 쪽 AUC 를 낮춰 Δ 를 키우는 방향임.
+<ul><li>
+붕괴를 빼도 +0.134 [+0.099, +0.167] 로 0 을 넘음 — 결론 유지.
+</li></ul>
+</li><li>
+ABIDE BQN n1 · n2 는 붕괴를 빼면 1 짝만 남아 재학습 포함 CI 를 따로 낼 수 없음.
+</li><li>
+기관 분할은 붕괴 없는 단위가 원판 r3 하나뿐이라 <strong>뺀 민감도를 계산할 수 없음</strong> — 이 한계와 함께 읽을 것.
+</li><li>
+붕괴가 <strong>왜</strong> 생겼는지는 재지 않음 — 모양 (어느 기준에 걸렸는지 · 어느 답으로 몰렸는지) 만 진단함.
+</li></ul>
+<h2 id="s11">10. 결과 Ⅵ — 공개 코드를 돌리는 어려움 (C5)</h2>
+<table><thead><tr><th class="c">항목</th><th>관찰</th></tr></thead><tbody><tr><td class="c">저장소 수정</td><td>파일은 고치지 않고 분할 · 평가 · seed 함수를 메모리에서 바꿔 끼움 (모델당 4–7 항목)</td></tr><tr><td class="c">호환 수정</td><td>BNT · Han 은 torch ≥ 2.0 호환 수정 필요</td></tr><tr><td class="c">공통 5-fold</td><td>네 저장소 모두 쓰지 않음</td></tr><tr><td class="c">시험값 고르는 규칙</td><td>저장소마다 다름 — 검증 손실 최소 · 검증 AUC 최대 · 고르지 않음 · 마지막 epoch</td></tr><tr><td class="c">seed 고정</td><td>셋 (BQN · BNT · BrainGB) 은 재현 가능한 seed 를 바꿀 수 없었음</td></tr><tr><td class="c">학습 불가</td><td>BrainGB — 저장소 설정으로 학습되지 않아 제외 (결정 47)</td></tr><tr><td class="c">본 실행</td><td>공개 모델 1,620 회, 최종 실패 0. ABIDE Han 149 회는 GPU 메모리 부족 (OOM) 으로 다시 돌림 (결정 50)</td></tr></tbody></table>
+<h2 id="s12">11. 안 된 것 · 음성 결과 (숨기지 않음)</h2>
+<ol><li>
+<strong>C2 는 지지되지 않음</strong> — 미리 세운 주장 중 가장 중심이던 것임. 뒤섞는 방법은 판정을 바꾸지 않고 크기만 바꿈.
+</li><li>
+C3 는 좁게만 관찰됨 — 효과가 큰 공개 모델에서는 단일 CI 와 재학습 포함 CI 가 늘 같은 결론이었음.
+</li><li>
+C1 의 실측은 한 모델 · 한 자료이고 부호가 지표에 따라 바뀜 — "같음을 실측으로 확인" 이라고 쓰지 않음.
+</li><li>
+<strong>BrainGB (유일한 등변 공개 모델) 는 학습되지 않아 제외함</strong> (결정 47).
+<ul><li>
+원판 5 fold 시험 AUC 0.461–0.529, 학습 AUC 도 0.55 미만. degree z-score 입력으로도 같음 (0.448–0.527). 잠금 전 확인임.
+</li><li>
+원인 후보 (1 차원 strength 입력 + 평균 pooling · 저장소 학습 루프) 를 가르는 측정은 하지 않음.
+</li></ul>
+</li><li>
+붕괴 222/1,620 — 9 장. ABIDE 는 원판에도 붕괴가 있음 (BQN r1/f3 · 기관 분할 3 회, 200 epoch 상수 출력).
+</li><li>
+AOMIC 은 원판 비교에 쓸 수 없었음 — 기준선 · 원판 모두 천장. 양성 대조로만 작동함.
+</li><li>
+계산된 곳에서는 붕괴를 빼도 판정 문장이 바뀌지 않음. 단 ABIDE BQN n1 · n2 는 1 짝뿐임 (9 장).
+</li></ol>
+<h2 id="s13">12. 계획에서 벗어난 것과 운영 사건</h2>
+<table><thead><tr><th class="n">#</th><th>무엇</th><th>계획 (잠금) 과의 관계</th><th>결과에 미친 영향</th></tr></thead><tbody><tr><td class="n">1</td><td><strong>결정 50</strong> — ABIDE Han 의 GPU 메모리 부족 149 회 (재시도까지 실패 79 · 한 번 실패 70) 를 동시 실행 1 개로 다시 돌리고 실패로 세지 않음. 원문 "GPU OOM 이므로 실패로 치지 않음"</td><td><strong>이탈</strong> — 잠금 §8 은 "GPU 메모리 부족도 같은 규칙이다 (다시 돌리지 않고 센다)". 집계 규칙을 ABIDE 결과를 보기 <strong>전에</strong> 바꿈</td><td>Han 255 회 = 동시 2 개 22 회 + 동시 1 개 233 회. 이 처리가 없었으면 완전한 단위가 32/51 (두 번 실패만 뺄 때) 또는 17/51 (전부 뺄 때) — n0 · n1 이 사라짐</td></tr><tr><td class="n">2</td><td>결정 50-3 · 50-4 — 이 처리를 일반 규칙으로 만들지 않음. GPU 재시도는 GPU 정리 뒤에 함</td><td>잠긴 구동기는 고치지 않고 작업 실행 함수만 바꿔 끼운 래퍼 사용 (run 폴더, 버전 관리 밖)</td><td>교체 뒤 재시도 0</td></tr><tr><td class="n">3</td><td>첫 시도 (a1) 중지 — 환경 변수 <code>PYTHONPATH=.</code> 때문에 설치 패키지 목록이 달라져 잠금 검증이 막음</td><td>잠금이 제 역할을 한 사례 (이탈 아님)</td><td>없음 (a1 결과 미사용, 보존)</td></tr><tr><td class="n">4</td><td>잠금 생성 전 <code>.pyc</code> 0 확인 누락 (h197 사본 105 개)</td><td>절차 누락</td><td>없음 (해시는 <code>.py</code> 만, 재검증 rc=0)</td></tr><tr><td class="n">5</td><td>결정 49 — ABIDE 를 AOMIC 과 병행 실행</td><td>운영 방식만 바뀜. 잠금 · 설계 불변</td><td>없음</td></tr><tr><td class="n">6</td><td>지시 "ok" 를 "80 개 재실행 승인" 으로 잘못 읽음 → 되물어 정정</td><td>운영자 해석 오류</td><td>없음 (재실행이 끝난 fit 0 개에서 중지)</td></tr></tbody></table>
+<ul><li>
+잠금 전에 본 결과 (smoke 원판 fold 0 AUC · MoBSE mean 의 I1 방식 계산 · BrainGB 10 회) 는 잠금 문서 §9 에 적혀 있음. 그 값으로 설계를 바꾸지 않음.
+</li><li>
+v1 의 이탈 (결정 27 — PIOP2 외부 검증을 하지 않음) 은 I1 도 그대로 따름.
+</li></ul>
+<h2 id="s14">13. 한계</h2>
+<ol><li>
+<strong>다중비교 보정 없음</strong> — 모델 3 × 조건 4 × 자료 2 의 CI 는 모두 탐색적임.
+</li><li>
+ABIDE 에 순서에 무관한 공개 모델이 없음 — C1 의 실측은 AOMIC MoBSE mean 하나.
+</li><li>
+n3 은 연결성만 바꾸고 시계열은 원래 것 — 두 입력이 어긋남 (6 장 교락 열).
+</li><li>
+CC200 은 좌우 반구를 나눠 만든 영역 지도가 아님 — 반구에 걸친 영역 22 개에서 n2 의 반구 판정이 임의적임.
+</li><li>
+AOMIC 은 30 시점 짧은 창 — 공개 모델이 원래 쓰던 긴 시계열과 다르고, 천장이라 원판 비교가 불가함.
+</li><li>
+MoBSE mean 에는 돌리기 · 연결 바꾸기 대조가 없음 (v1 에 없음, 결정 44).
+</li><li>
+붕괴가 많음 (ABIDE BQN 74/255 · 기관 분할 33/90) — 전체로 판정하고 진단을 병기함. 기관 분할은 뺀 민감도 계산 불가.
+</li><li>
+튜닝하지 않음 — 저장소 기본 설정 · 저자 명령. 원판 성능이 저자 보고값과 같은지 대조하지 않음.
+</li><li>
+학습 시간은 공유 GPU · 동시 실행 아래 값 — 효율 비교에 쓰지 말 것.
+</li></ol>
+<h2 id="s15">14. 비용 (h197, RTX 3090 Ti 1 장 · 12 코어, 공유 GPU)</h2>
+<table><thead><tr><th>항목</th><th>값</th><th>시간 환산 [계산]</th><th>출처</th></tr></thead><tbody><tr><td>학습 1 회 (단독 smoke, ABIDE fold 0 · seed 1)</td><td>BQN 152 s · BNT 194 s · Han 517 s (BrainGB 728 s)</td><td>—</td><td>잠금 문서 §5.1</td></tr><tr><td>ABIDE Han 학습 1 회 (본 실행, 동시 1 개)</td><td>508–529 s</td><td>—</td><td>handoff §11.6 · §11.10</td></tr><tr><td>n3 가짜 자료 만들기 (5 판)</td><td>AOMIC 12,229 s · ABIDE 44,988 s</td><td>3.4 · 12.5 시간</td><td><code>driver_{aomic,abide}.log</code></td></tr><tr><td>AOMIC BQN 255 회</td><td>30,757 s</td><td>8.5 시간</td><td><code>driver_aomic.log</code></td></tr><tr><td>ABIDE BQN 255 회</td><td>59,588 s</td><td>16.6 시간</td><td><code>driver_abide.log</code></td></tr><tr><td>ABIDE Han OOM 재실행 149 회</td><td>78,891 s</td><td>21.9 시간</td><td><code>driver_abide.log</code></td></tr><tr><td>ABIDE 기관 분할 90 회</td><td>10,856 s</td><td>3.0 시간</td><td><code>driver_abide.log</code></td></tr><tr><td>전체</td><td>10-05 03:15 → 10-08 22:52 KST</td><td>91.6 시간</td><td><code>status.txt</code></td></tr><tr><td>산출 크기</td><td>12,456 파일 · 15,558 MB (a1 중지판 199 파일 · 3 MB 별도)</td><td>—</td><td>Notion Data Asset (10-12 실측)</td></tr></tbody></table>
+<h2 id="s16">15. 결론과 남은 판단</h2>
+<ul><li>
+<strong>결론 (탐색적)</strong>:
+<ul><li>
+공개 뇌 그래프 모델 셋이 영역 정보를 쓴다는 판정은 뒤섞는 방법 · 자료 난이도와 무관하게 같았음.
+</li><li>
+따라서 "뒤섞는 방법을 바꾸면 판정이 달라진다" 는 이 연구의 중심 주장은 이번 자료에서 지지되지 않음.
+</li><li>
+한 번만 학습한 결과의 착시는 효과가 작을 때만 문제가 됨.
+</li></ul>
+</li><li>
+이 보고서가 답하지 못하는 것:
+<ul><li>
+붕괴가 왜 생겼는지 · BrainGB 가 왜 학습되지 않았는지 (원인 미측정).
+</li><li>
+공개 모델의 원판 성능이 저자 보고값과 같은지 (대조 안 함).
+</li></ul>
+</li><li>
+정하지 않은 것 (선생님 판단 필요):
+<ul><li>
+결과를 본 뒤의 설계 변경 (잠금 §10 — 새 잠금판 필요).
+</li><li>
+PIOP2 개방, I3 (TR 단위 상태 routing) 착수.
+</li></ul>
+</li></ul>
+<h2 id="s17" class="appendix">첨부 A. C1–C5 확정 문장 원문 (결정 55 · 56)</h2>
+<ul><li>
+본문의 쉬운 말 요약은 아래 원문보다 넓게 읽지 말 것. 출처 <code>docs/experiments/i1_final_statements_draft_2026-10-12.md</code> §1.
+</li></ul>
+<table><thead><tr><th class="c">#</th><th>확정 문장</th></tr></thead><tbody><tr><td class="c">C1</td><td>"C1 은 정리로 성립하고, 실측 대조는 MoBSE mean (AOMIC) 하나뿐이다. 그 대조에서 Δ 의 부호는 지표 · 집계에 따라 달라진다 — v1 방식 (seed 앙상블 · BA 0.5) 으로는 Δ −0.016 또는 0 (CI 0 포함, null seed 다섯), I1 방식 (seed 별 AUC 15 짝) 으로는 <span class="ci">+0.0151<small>[+0.0038, +0.0264]</small></span>. 따라서 '실측으로 같음을 확인했다' 고 쓰지 않는다. ABIDE 에는 등변 공개 모델이 없어 (D1 학습판 최대 차 0.45–0.997) C1 의 실측 범위는 AOMIC 의 한 모델이다."</td></tr><tr><td class="c">C2</td><td>"C2 는 이번 자료에서 지지되지 않았다 — 판정은 null 종류에 따라 바뀌지 않았다. 공개 모델은 두 자료 · 세 모델 모두 n1 · n2 · n3 에서 재학습 포함 CI 가 0 을 넘고, MoBSE embedding (AOMIC) 은 순열 · spin · rewire 모두 0 을 포함한다. 바뀐 것은 Δ 의 크기다 (n3 이 가장 작다: AOMIC 0.04–0.06 · ABIDE 0.13–0.18, n1 · n2 는 0.20–0.45). n3 은 FC–시계열 불일치가 있다 (잠금 §9)."</td></tr><tr><td class="c">C3</td><td>"C3 는 효과가 작은 곳에서만 관찰됐다. 효과가 큰 곳 (공개 모델 n1–n3) 에서는 단일 CI 가 짝 15/15 모두 0 을 벗어나고 재학습 포함 CI 와 결론이 같다. 대조 n0 (짝 3) 에서는 두 자료 · 세 모델 모두 단일 CI 가 0 을 벗어난 짝이 없다. 효과가 작은 MoBSE embedding (AOMIC) 에서는 재학습 포함 CI 가 0 을 포함하는데 단일 CI 가 0 을 벗어난 짝이 0.07 (spin) · 0.20 (순열) · 0.40 (rewire) 이었다 (k0/r42 의 rewire 단일 <span class="ci">−0.025<small>[−0.052, −0.001]</small></span> 대 재학습 포함 <span class="ci">−0.011<small>[−0.022, +0.001]</small></span>)."</td></tr><tr><td class="c">C4</td><td>"AOMIC 에서는 기준선 (FC logistic 1.000 · FC-MLP 0.9999 · S1 0.9925) 과 공개 모델 원판 (세 모델 1.000) 이 모두 천장이라 원판 성능으로는 모델 · 구조를 가를 수 없었다 — 기준선이 이를 미리 보여 줬다. 그러나 null Δ 의 판정은 포화 (AOMIC) · 비포화 (ABIDE) 자료에서 같았다 — 포화가 null 판정을 바꾸지는 않았다. ABIDE 에서 공개 모델 원판 (0.703–0.752) 은 점추정으로 FC logistic (0.762) 보다 낮거나 비슷하다 (CI 비교 없음 — 우열 주장 없음)."</td></tr><tr><td class="c">C5</td><td>"세 공개 모델 (BQN · BNT · Han) 은 저장소 파일을 고치지 않고 분할 · 평가 · seed 함수를 메모리에서 바꿔 끼워 돌렸다 (모델당 4–7 항목, BNT · Han 은 torch ≥ 2.0 호환 수정 포함). 네 저장소 모두 공통 5-fold 를 쓰지 않았고, test 값을 고르는 규칙이 서로 달랐으며 (val loss 최소 · val AUC 최대 · 고르지 않음 · 마지막 epoch), 셋 (BQN · BNT · BrainGB) 은 재현 가능한 seed 를 바꿀 수 없었다. BrainGB 는 저장소 설정에서 학습되지 않아 제외했다 (결정 47). 본 실행 공개 모델 1,620 fit 의 최종 프로세스 실패는 0 이나, ABIDE Han 149 fit 은 실행기 동시성이 만든 GPU OOM 으로 k=1 에서 다시 돌렸고 (실패로 세지 않음, 결정 50), 붕괴 fit 은 222 (BQN 141 · BNT 81 · Han 0) 이다."</td></tr><tr><td class="c">붕괴 표기</td><td>"ABIDE 판정은 전체 단위로 한다 (잠금 §8). 붕괴 fit BQN 74/255 · BNT 41/255 · site 33/90 · Han 0. … BQN n3 의 상수 붕괴 5 fit 은 null AUC 를 낮춘다 (Δ 를 키우는 방향) — 뺀 민감도는 <span class="ci">+0.134<small>[+0.099, +0.167]</small></span> 로 0 을 넘는다. site 는 뺀 민감도를 계산할 수 없다 — 이 한계와 함께 읽는다." (전문은 최종 문장 문서 §1)</td></tr></tbody></table>
+<h2 id="s18" class="appendix">첨부 B. 산출물 목록 · 잠금</h2>
+<table><thead><tr><th class="c">항목</th><th>값</th></tr></thead><tbody><tr><td class="c">I1 잠금</td><td><code>results/i1/locks/i1_lock.json</code> — lock_hash <code>ac3bad06f6ef</code> · code_hash <code>a5738888b83c</code> · data_hash <code>b50b69aa8c4c</code> · v1 묶음 <code>08385bf94c3f</code></td></tr><tr><td class="c">잠금 문서</td><td><code>docs/experiments/i1_lock_v1.md</code> (sha <code>e418cbf78562</code>)</td></tr><tr><td class="c">함께 쓴 잠금</td><td>v1 측정 <code>9b7b11cf8576</code> (MoBSE mean) · v3 <code>c0c8ed77db50</code> (MoBSE embedding)</td></tr><tr><td class="c">실행 상태</td><td>전 단계 rc=0 · <code>fails_*.json</code> 전부 빈 목록 · ABIDE <code>logs/</code> 1,702 개에 Traceback · OOM 0 (k=2 OOM 로그는 <code>han_oom_k2_20261007/</code> 에 따로) · <code>incomplete_units</code> 전부 0</td></tr></tbody></table>
+<table><thead><tr><th>분석 산출 (run 폴더 <code>analysis/</code>)</th><th>sha256 앞 12 자</th></tr></thead><tbody><tr><td><code>aomic/bqn.json</code> · <code>bnt.json</code> · <code>han.json</code></td><td><code>28b175dce707</code> · <code>374944e55ec0</code> · <code>89a07cf9c85e</code></td></tr><tr><td><code>aomic/mobse_mean.json</code> · <code>mobse_embedding.json</code></td><td><code>15cb501a8925</code> · <code>6cef00596fea</code></td></tr><tr><td><code>aomic/fc_logistic.json</code> · <code>fc_mlp.json</code> · <code>s1_logistic.json</code></td><td><code>715a440d66ad</code> · <code>290cfc3c7923</code> · <code>de4a051690d9</code></td></tr><tr><td><code>abide/bqn.json</code> · <code>bnt.json</code> · <code>han.json</code></td><td><code>993c1e990e87</code> · <code>79d130c26bfd</code> · <code>ecd9ee51b747</code></td></tr><tr><td><code>abide/fc_logistic.json</code> · <code>fc_mlp.json</code> · <code>s1_logistic.json</code></td><td><code>af82d07fe32e</code> · <code>883d12adaea3</code> · <code>f06187567f8c</code></td></tr><tr><td><code>abide_site/bqn.json</code></td><td><code>4fa4f5ca95f8</code></td></tr></tbody></table>
+<table><thead><tr><th>진단 (새 학습 없음, run 폴더 <code>diag/</code>)</th><th>스크립트 → 결과 sha256</th></tr></thead><tbody><tr><td><code>mobse_mean_20261007/</code></td><td><code>bda494c7515e</code> → <code>cbe742aa636b</code></td></tr><tr><td><code>collapse_20261012/</code></td><td><code>b9e84ab9c810</code> → <code>628d470f5b02</code></td></tr></tbody></table>
+<h2 id="s19" class="appendix">첨부 C. 재현 방법 (실제로 돈 진입점)</h2>
+<ul><li>
+h197, 저장소 사본 루트, venv-i1. <code>&lt;D&gt;</code> = data root, <code>&lt;R&gt;</code> = <code>&lt;D&gt;/i1/main/20261005_ac3bad06_a2</code>.
+</li></ul>
+<pre><code># 잠금 검증 (구동기도 맨 앞에서 같은 검증을 하고, 실패하면 아무것도 시작하지 않음)
+python scripts/i1/build_lock.py --verify --repo-root . --data-root &lt;D&gt; --doc docs/experiments/i1_lock_v1.md --out results/i1/locks/i1_lock.json
+# 단계 (dataset = abide | aomic; site 는 abide 만). PYTHONPATH 를 내보내지 말 것 (a1 중지 원인) — MoBSE 팔 명령에만 붙임
+python scripts/i1/run_main.py --data-root &lt;D&gt; --out &lt;R&gt; --dataset &lt;dataset&gt; --phase {nulls|fits|site|baselines|analyze} \
+    --lock results/i1/locks/i1_lock.json --doc docs/experiments/i1_lock_v1.md [--models bqn bnt han] [--k 2]
+# MoBSE 팔 (AOMIC 만, venv-mobse-v2 · v3 잠금 환경)
+PYTHONPATH=. python scripts/i1/mobse_arm.py {collect-mean|plan-embedding|run-embedding|collect-embedding} …
+# 분석 (구동기 analyze 단계가 모델마다 부름)
+python scripts/i1/analyze.py --root &lt;dataset root&gt; --model &lt;model&gt; --out &lt;json&gt; [--n-boot 2000]
+# 이 보고서의 HTML · PDF 생성 (Mac, 저장소 venv 를 건드리지 않는 일회용 환경)
+uv run --no-project --with playwright==1.63.0 python scripts/reports/build_bmc_report.py results/i1/reports/i1_report_2026-10-13.md --pdf
+# 이 보고서의 인용 대조
+python scripts/h197/30_verify_i1_report_citations.py --data-root &lt;D&gt; --doc results/i1/reports/i1_report_2026-10-13.md</code></pre>
+<ul><li>
+실제 실행은 run 폴더의 사슬 스크립트 (<code>orchestrate.sh</code> · <code>switch.sh</code> · <code>chain_*.sh</code> · <code>gpu_clean_retry.py</code> · <code>run_*_gc.py</code>) 가 위 진입점을 부름.
+<ul><li>
+저장소 밖에 둠 — <code>scripts/i1</code> 에 두면 잠금이 바뀜. h197 run 폴더에 보존됨.
+</li></ul>
+</li><li>
+공개 모델 저장소는 commit 고정 clone 을 쓰고 파일을 고치지 않음 (잠금이 clone 의 <code>git status</code> 를 확인). 바꿔 끼운 함수는 fit 마다 <code>summary.json</code> <code>patches</code> 에 남음.
+</li><li>
+대조 스크립트는 <code>scripts/h197/</code> 에 둠 — <code>scripts/i1/</code> 에 두면 I1 잠금의 code_hash 가 바뀜.
+</li></ul>
+<h2 id="s20" class="appendix">첨부 D. 인용 대조 결과</h2>
+<ul><li>
+대조 스크립트가 산출물에서 값을 다시 읽어 이 문서와 같은 형식으로 만들고, 그 문자열이 문서에 있는지 확인함.
+</li><li>
+대조 범위:
+</li></ul>
+<table><thead><tr><th>대상</th><th>내용</th></tr></thead><tbody><tr><td>분석 산출 15 개 · 진단 2 개</td><td>sha256 앞 12 자</td></tr><tr><td>원판 · 기준선</td><td>AUC (4 자리) · ABIDE 범위</td></tr><tr><td>Δ · 재학습 포함 CI</td><td>공개 모델 24 칸 · 기관 분할 · MoBSE 4 칸 · 붕괴 뺀 민감도</td></tr><tr><td>D3</td><td>짝 수 · 비율 · seed 간 SD 범위 · 단일 CI 반폭 범위</td></tr><tr><td>붕괴</td><td>모델별 수 · 합계, 분석 산출과 진단 산출의 일치</td></tr><tr><td>D1</td><td>18 개 최대 차 · 같은 입력 차 0</td></tr><tr><td>비용</td><td><code>status.txt</code> 벽시계 · driver 로그 경과 6 개</td></tr></tbody></table>
+<ul><li>
+대조하지 않는 값: 잠금 해시 · 잠금 전 측정 (BrainGB · smoke 시간) · 산출 크기 · 결정 50 의 단위 수 — 위 산출물에 없는 값임.
+</li><li>
+결과 (2026-10-13, h197): 대조 항목 183 · <strong>불일치 0</strong> (rc=0).
+<ul><li>
+돌연변이 확인: 값 하나를 바꾼 사본 5 개 (Δ · 붕괴 수 · 벽시계 · D1 · sha) 모두 불일치 1 로 잡힘.
+</li><li>
+한계: 문자열이 문서 <strong>어딘가에</strong> 있는지를 봄 — 같은 값이 여러 곳에 나올 때 한 곳만 틀리면 놓칠 수 있음.
+</li></ul>
+</li><li>
+HTML 렌더 본문 텍스트와 PDF 추출 텍스트도 같은 스크립트로 대조함 — 둘 다 183 · 불일치 0.
+</li><li>
+같은 스크립트로 초안 (<code>d3e8ca6</code>) 을 대조하면 불일치 5 — 4 개는 표기 형식 차이, 1 개는 정정 이력의 반폭 범위 오류임.
+</li></ul>
+</main></div></body></html>
