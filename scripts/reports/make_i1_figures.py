@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""I1 보고서 그림 (모식도 3 · 결과 5) 을 본 실행 산출에서 만든다.
+"""I1 보고서 그림 (모식도 3 · 결과 6) 을 본 실행 산출에서 만든다.
 
 결과 그림 (4–8) 은 run 폴더의 ``analysis/*.json`` · ``diag/collapse_20261012/diag_collapse.json`` ·
 ``{aomic,abide}/<모델>/orig/k0/r1/f*/d1.json`` 만 읽는다. 읽기 전에 분석 산출의 sha256 을 보고서에
-적은 값과 대조하고, 다르면 그림을 만들지 않는다. 모식도 (1–3) 의 행렬 · 노드 그림은 **개념도**이며 실제 자료가 아니다.
+적은 값과 대조하고, 다르면 그림을 만들지 않는다. 그림 9 (2.1 판) 는 ABIDE MoBSE 확장 실행 (결정 59) 의
+``analysis/*.json`` (963 명 공통 분석) 만 읽고, 같은 방식으로 sha256 을 대조한다. 모식도 (1–3) 의 행렬 · 노드 그림은 **개념도**이며 실제 자료가 아니다.
 
 SVG 의 글자는 경로로 넣으므로 (``svg.fonttype = path``) 보는 쪽에 글꼴이 없어도 같게 보인다.
 
 Usage:
     .venv/bin/python scripts/reports/make_i1_figures.py --run-root <run 폴더 또는 그 사본> \
-        --out results/i1/reports/figs
+        --abide963-root <확장 run 폴더 또는 그 사본> --out results/i1/reports/figs
 """
 from __future__ import annotations
 
@@ -38,6 +39,10 @@ EXPECTED_SHA12 = {
     "analysis/abide_site/bqn.json": "4fa4f5ca95f8",
     "diag/collapse_20261012/diag_collapse.json": "628d470f5b02",
 }
+EXPECTED_SHA12_963 = {
+    "analysis/mobse_mean.json": "ff640c14bae2", "analysis/mobse_embedding.json": "821cb4bf43c6",
+    "analysis/bqn.json": "6cc9e7177f93", "analysis/bnt.json": "4f1c6c739545", "analysis/han.json": "0825cdb89a1f",
+}
 
 BRAND, ACCENT, INK, INK3, LINE, WASH, WARN = "#14416E", "#1F8A8C", "#10151C", "#6B7787", "#D3DBE4", "#F2F5F8", "#B37500"
 NULL_COLOR = {"n0": "#9AA5B1", "n1": BRAND, "n2": ACCENT, "n3": WARN}
@@ -56,7 +61,7 @@ def setup_fonts() -> None:
         "font.family": family, "font.size": 8, "axes.titlesize": 9, "axes.labelsize": 8,
         "axes.edgecolor": INK3, "axes.linewidth": .6, "xtick.color": INK3, "ytick.color": INK,
         "xtick.labelsize": 7.5, "ytick.labelsize": 8, "axes.spines.top": False, "axes.spines.right": False,
-        "svg.fonttype": "path", "axes.unicode_minus": False, "figure.dpi": 100,
+        "svg.fonttype": "path", "svg.hashsalt": "i1-report", "axes.unicode_minus": False, "figure.dpi": 100,
     })
 
 
@@ -64,25 +69,26 @@ def sha12(p: Path) -> str:
     return hashlib.sha256(p.read_bytes()).hexdigest()[:12]
 
 
-def load_all(run: Path) -> Dict[str, dict]:
+def load_all(run: Path, expected: Dict[str, str] = EXPECTED_SHA12) -> Dict[str, dict]:
     """sha 를 대조한 뒤 분석 산출을 읽는다."""
-    bad = [f"{rel}: {sha12(run / rel)} ≠ {exp}" for rel, exp in EXPECTED_SHA12.items() if sha12(run / rel) != exp]
+    bad = [f"{rel}: {sha12(run / rel)} ≠ {exp}" for rel, exp in expected.items() if sha12(run / rel) != exp]
     if bad:
         raise SystemExit("분석 산출이 보고서의 sha 와 다르다:\n" + "\n".join(bad))
-    return {rel: json.loads((run / rel).read_text(encoding="utf-8")) for rel in EXPECTED_SHA12}
+    return {rel: json.loads((run / rel).read_text(encoding="utf-8")) for rel in expected}
 
 
 def save(fig, out: Path, name: str) -> None:
-    fig.savefig(out / name, format="svg", bbox_inches="tight", pad_inches=.04)
+    fig.savefig(out / name, format="svg", bbox_inches="tight", pad_inches=.04, metadata={"Date": None})
     plt.close(fig)
     print("wrote", out / name)
 
 
 def box(ax, x, y, w, h, text, fc="white", ec=BRAND, color=INK, size=8, weight="normal", lw=1.0):
-    ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.006,rounding_size=0.012",
-                                fc=fc, ec=ec, lw=lw))
+    patch = ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.006,rounding_size=0.012",
+                                        fc=fc, ec=ec, lw=lw))
     ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", fontsize=size, color=color, weight=weight,
             linespacing=1.35)
+    return patch
 
 
 def arrow(ax, x0, y0, x1, y1, color=INK3, lw=1.1):
@@ -184,15 +190,15 @@ def fig2_nulls(out: Path) -> None:
 
 def fig3_design(out: Path) -> None:
     rows = ["BQN", "BNT", "Han", "MoBSE mean", "MoBSE embedding"]
-    cols = ["AOMIC (쉬운 문제, 126 명)", "ABIDE (어려운 문제, 1,009 명)"]
+    cols = ["AOMIC (쉬운 문제, 126 명)", "ABIDE (어려운 문제, 1,009 명 · 963 명)"]
     cells = {
         (0, 0): ("in", "입력 뒤섞기 n0–n3\n255 회 학습"), (0, 1): ("in", "입력 뒤섞기 n0–n3\n255 회 + 기관 분할 90 회"),
         (1, 0): ("in", "입력 뒤섞기 n0–n3\n255 회 학습"), (1, 1): ("in", "입력 뒤섞기 n0–n3\n255 회 학습"),
         (2, 0): ("in", "입력 뒤섞기 n0–n3\n255 회 학습"), (2, 1): ("in", "입력 뒤섞기 n0–n3\n255 회 학습"),
-        (3, 0): ("pr", "prior 만 뒤섞기 1 종 (무작위)\nv1 결과 재사용 · 새 학습 없음"), (3, 1): ("no", "실행 안 함"),
-        (4, 0): ("pr", "prior 만 뒤섞기 3 종\n(무작위 · 돌리기 · 연결 바꾸기)"), (4, 1): ("no", "실행 안 함"),
+        (3, 0): ("pr", "prior 만 뒤섞기 1 종 (무작위)\nv1 결과 재사용 · 새 학습 없음"), (3, 1): ("same", "입력 뒤섞기 n0–n2 (2.1 판)\n963 명 · 180 회 학습"),
+        (4, 0): ("pr", "prior 만 뒤섞기 3 종\n(무작위 · 돌리기 · 연결 바꾸기)"), (4, 1): ("same", "입력 뒤섞기 n0–n2 (2.1 판)\n963 명 · 180 회 학습"),
     }
-    style = {"in": ("#E7EEF6", BRAND), "pr": ("#E2F1F1", ACCENT), "no": ("#F4F5F6", "#B9C1CA")}
+    style = {"in": ("#E7EEF6", BRAND), "pr": ("#E2F1F1", ACCENT), "same": ("#E7EEF6", BRAND)}
     fig, ax = plt.subplots(figsize=(W, 2.9))
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
@@ -207,16 +213,18 @@ def fig3_design(out: Path) -> None:
         for j in range(2):
             kind, txt = cells[(i, j)]
             fc, ec = style[kind]
-            box(ax, x0 + cw * j + .006, y + .008, cw - .012, rh - .016, txt, fc=fc, ec=ec, size=7.1,
-                color=INK if kind != "no" else INK3)
+            b = box(ax, x0 + cw * j + .006, y + .008, cw - .012, rh - .016, txt, fc=fc, ec=ec, size=7.1)
+            if kind == "same":
+                b.set_linestyle((0, (3, 2)))
+                b.set_linewidth(1.4)
     yb = top - rh * 3
-    ax.plot([x0 - .16, x0 + 2 * cw + .01], [yb, yb], color=INK3, lw=.8, ls=(0, (4, 3)))
+    ax.plot([x0 - .16, x0 + cw + .006], [yb, yb], color=INK3, lw=.8, ls=(0, (4, 3)))
     lx = x0 + 2 * cw + .03
     ax.text(lx, top - .03, "읽는 법", fontsize=8, weight="bold", color=INK, va="top")
     notes = [(BRAND, "■ 입력 뒤섞기: 모델에 들어가는\n   연결성 · 시계열을 뒤섞음"),
              (ACCENT, "■ prior 뒤섞기: 입력은 그대로,\n   MoBSE 안의 영역 정보만 뒤섞음"),
-             ("#B9C1CA", "■ 실행 안 함"),
-             (INK, "점선 위 · 아래는 뒤섞는 대상과\n자료가 달라 Δ 를 나란히\n비교할 수 없음")]
+             (BRAND, "■ 점선 테두리 = 2.1 판 추가 실행:\n   공개 모델과 같은 fold · seed ·\n   입력 뒤섞기 (963 명 공통)"),
+             (INK, "AOMIC 열의 점선 위 · 아래는\n뒤섞는 대상이 달라 Δ 를\n나란히 비교할 수 없음")]
     yy = top - .11
     for c, t in notes:
         ax.text(lx, yy, t, fontsize=6.9, color=c if c != INK else INK, va="top", linespacing=1.3)
@@ -285,7 +293,7 @@ def fig5_auc(A: Dict[str, dict], out: Path) -> None:
             rel = f"analysis/{ds}/{m}.json"
             xi = x[i] + (k - .5) * .38
             if rel not in A:
-                ax.text(xi, .515, "실행\n안 함", ha="center", va="bottom", fontsize=6, color=INK3)
+                ax.text(xi, .515, "963 명\n그림 9", ha="center", va="bottom", fontsize=6, color=INK3)
                 continue
             v = A[rel]["all"]["orig_auc_mean"]
             ax.bar(xi, v - .5, bottom=.5, width=.36, color=col, label=lab if i == 0 else None)
@@ -371,13 +379,64 @@ def fig8_collapse(A: Dict[str, dict], out: Path) -> None:
     save(fig, out, "collapse.svg")
 
 
+def fig9_same(B: Dict[str, dict], out: Path) -> None:
+    """2.1 판 — ABIDE 963 명, 다섯 모델이 같은 fold · seed · 입력 뒤섞기. 왼쪽 원판 · 뒤섞은 AUC, 오른쪽 Δ."""
+    models = [("mobse_mean", "MoBSE mean"), ("mobse_embedding", "MoBSE embedding"),
+              ("bqn", "BQN"), ("bnt", "BNT"), ("han", "Han")]
+    fig, (ax, bx) = plt.subplots(1, 2, figsize=(W, 3.0), gridspec_kw={"width_ratios": [1, 1.45], "wspace": .08},
+                                 sharey=True)
+    off = {"n0": .27, "n1": .09, "n2": -.09, "n3": -.27}
+    for i, (m, name) in enumerate(models):
+        y = len(models) - 1 - i
+        a = B[f"analysis/{m}.json"]["all"]
+        conds = a["conditions"]
+        for z in (ax, bx):
+            if i % 2 == 0:
+                z.axhspan(y - .5, y + .5, color=WASH, zorder=0, lw=0)
+        orig = a["orig_auc_mean"]
+        nul = conds["n1"]["null_auc_mean"]
+        ax.plot([nul, orig], [y, y], color=LINE, lw=3, zorder=1, solid_capstyle="butt")
+        ax.scatter(nul, y, s=22, color=NULL_COLOR["n1"], zorder=3, edgecolor="white", lw=.4,
+                   label="n1 뒤섞은 AUC" if i == 0 else None)
+        ax.scatter(orig, y, s=26, color=INK, marker="D", zorder=3, edgecolor="white", lw=.4,
+                   label="원판 AUC" if i == 0 else None)
+        ax.text(orig + .008, y, f"{orig:.3f}", va="center", fontsize=6.6, color=INK)
+        for c, cond in conds.items():
+            lo, hi = cond["retrain_ci95"]
+            bx.plot([lo, hi], [y + off[c]] * 2, color=NULL_COLOR[c], lw=2.2, solid_capstyle="butt")
+            bx.scatter(cond["delta_mean"], y + off[c], s=14, color=NULL_COLOR[c], zorder=3, edgecolor="white", lw=.4)
+        if m.startswith("mobse"):
+            bx.text(.005, y + off["n3"], "n3 해당 없음", va="center", fontsize=6.2, color=INK3)
+    for z in (ax, bx):
+        z.axhline(2.5, color=INK3, lw=.6, ls=(0, (3, 3)))
+        z.set_ylim(-.6, len(models) - .4)
+    ax.axvline(.5, color=INK3, lw=.6)
+    ax.set_yticks(range(len(models)))
+    ax.set_yticklabels([n for _, n in models][::-1])
+    ax.set_xlim(.47, .82)
+    ax.set_xlabel("AUC (0.5 = 동전 던지기)")
+    ax.set_title("원판과 뒤섞은 AUC — 출발점이 다름", loc="left", color=BRAND, weight="bold", fontsize=8.2)
+    bx.axvline(0, color=INK, lw=.8)
+    bx.set_xlim(-.05, .3)
+    bx.set_xlabel("Δ = 원판 AUC − 뒤섞은 AUC (막대 = 재학습 포함 95 % CI)")
+    bx.set_title("Δ — 다섯 모델 모두 n1 · n2 에서 0 을 넘음", loc="left", color=BRAND, weight="bold", fontsize=8.2)
+    for c in ("n0", "n1", "n2", "n3"):
+        bx.plot([], [], color=NULL_COLOR[c], lw=2.2, label=NULL_NAME[c])
+    h1, l1 = ax.get_legend_handles_labels()
+    h2, l2 = bx.get_legend_handles_labels()
+    fig.legend(h1 + h2, l1 + l2, loc="upper center", bbox_to_anchor=(.5, -.02), ncol=3, fontsize=6.8, frameon=False)
+    save(fig, out, "same.svg")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--run-root", type=Path, required=True)
+    ap.add_argument("--abide963-root", type=Path, required=True, help="ABIDE MoBSE 확장 run 폴더 (결정 59) 또는 그 사본")
     ap.add_argument("--out", type=Path, required=True)
     a = ap.parse_args()
     setup_fonts()
     A = load_all(a.run_root)
+    B = load_all(a.abide963_root, EXPECTED_SHA12_963)
     a.out.mkdir(parents=True, exist_ok=True)
     fig1_pipeline(a.out)
     fig2_nulls(a.out)
@@ -387,6 +446,7 @@ def main() -> int:
     fig6_retrain(A, a.out)
     fig7_d1(a.run_root, a.out)
     fig8_collapse(A, a.out)
+    fig9_same(B, a.out)
     return 0
 
 

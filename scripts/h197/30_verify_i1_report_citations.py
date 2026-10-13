@@ -10,6 +10,8 @@
   * ``diag/collapse_20261012/diag_collapse.json`` · ``diag/mobse_mean_20261007/diag_mobse_mean.json``
   * ``{aomic,abide}/<모델>/orig/k0/r1/f{0,1,2}/d1.json`` — 학습 뒤 등변성 (D1)
   * ``status.txt`` · ``driver_{aomic,abide}.log`` — 벽시계 · 단계 경과 시간
+  * (2.1 판) 확장 run root ``analysis/*.json`` · ``kept_subjects.json`` · ``status.txt`` ·
+    ``abide/mobse_*/…/summary.json`` 과 확장 잠금 ``lock.json`` — 963 명 공통 분석 (결정 59)
 
 문서의 모든 수치를 덮지는 않는다 — 잠금 해시 · 잠금 전 측정 (BrainGB · smoke) ·
 산출 크기처럼 위 파일에 없는 값은 대조 대상이 아니다.
@@ -19,7 +21,8 @@
 Usage:
     python scripts/h197/30_verify_i1_report_citations.py \
         --data-root /mnt/data/mp2026/MoBSE_dataset \
-        --doc results/i1/reports/i1_report_2026-10-13.md
+        --doc results/i1/reports/i1_report_2026-10-13.md \
+        --lock results/i1_mobse_abide/locks/lock.json
 """
 from __future__ import annotations
 
@@ -34,6 +37,8 @@ from typing import Any, Dict, List
 
 DEFAULT_DATA_ROOT = Path("/mnt/data/mp2026/MoBSE_dataset")
 RUN_REL = Path("i1/main/20261005_ac3bad06_a2")
+EXT_REL = Path("i1_mobse_abide/main/20261013_64e75f1c_a1")
+MOBSE = ("mobse_mean", "mobse_embedding")
 PUBLIC = ("bqn", "bnt", "han")
 NULLS = ("n0", "n1", "n2", "n3")
 BASELINES = ("fc_logistic", "fc_mlp", "s1_logistic")
@@ -70,6 +75,102 @@ def log_seconds(log: Path, stage: str, total: int) -> int:
     if not hits:
         raise SystemExit(f"로그에 {stage} {total}/{total} 줄이 없다: {log}")
     return hits[-1]
+
+
+def crosscheck_ext(doc: str, ext: Path, lock: Path) -> List[str]:
+    """2.1 판 — ABIDE MoBSE 확장 실행 (963 명 공통 분석) 의 인용 수치를 대조한다.
+
+    Args:
+        doc: 보고서 본문 (빼기표를 ASCII 하이픈으로 바꾼 것).
+        ext: 확장 run root.
+        lock: 확장 잠금 ``lock.json``.
+
+    Returns:
+        불일치 사유 문자열의 목록.
+    """
+    fails: List[str] = []
+    checked = [0]
+
+    def need(s: str, why: str) -> None:
+        checked[0] += 1
+        if s not in doc:
+            fails.append(f"[2.1] {why}: '{s}' 가 문서에 없다")
+
+    def must(ok: bool, why: str) -> None:
+        checked[0] += 1
+        if not ok:
+            fails.append(f"[2.1] {why}")
+
+    an = ext / "analysis"
+    B = {m: load(an / f"{m}.json") for m in MOBSE + PUBLIC}
+    for m in MOBSE + PUBLIC:
+        need(sha12(an / f"{m}.json"), f"sha {m}.json")
+    need(sha12(ext / "kept_subjects.json"), "sha kept_subjects.json")
+    kept = load(ext / "kept_subjects.json")
+    must(kept["n_kept"] == 963 == len(kept["kept"]), f"963 명이 아니다: {kept['n_kept']}")
+    need(f"{1009 - kept['n_kept']} 명", "뺀 사람 수")
+    L = load(lock)
+    for v, why in ((L["lock_hash"], "lock_hash"), (L["code"]["code_hash"], "code_hash"),
+                   (L["data"]["data_hash"], "data_hash"), (L["public_predictions"]["bundle_hash"], "공개 예측 묶음")):
+        need(v[:12], f"확장 잠금 {why}")
+
+    for m in MOBSE + PUBLIC:
+        d = B[m]
+        a = d["all"]
+        must(d["incomplete_units"] == [], f"{m} incomplete_units 가 비어 있지 않다")
+        must(a["n_items"] == 963, f"{m} n_items {a['n_items']} ≠ 963")
+        must(d["n_fits"] == (180 if m in MOBSE else 255), f"{m} n_fits {d['n_fits']}")
+        need(f"{a['orig_auc_mean']:.4f}", f"{m} 원판 AUC")
+        conds = ("n0", "n1", "n2") if m in MOBSE else NULLS
+        must(sorted(a["conditions"]) == sorted(conds), f"{m} 조건이 {conds} 가 아니다")
+        for c in conds:
+            cond = a["conditions"][c]
+            need(delta_text(cond), f"{m} {c} Δ")
+            if c == "n0":
+                must(cond["retrain_ci95"][0] <= 0 <= cond["retrain_ci95"][1], f"{m} n0 CI 가 0 을 포함하지 않는다")
+            elif c in ("n1", "n2"):
+                must(cond["retrain_ci95"][0] > 0, f"{m} {c} 재학습 포함 CI 하한이 0 을 넘지 않는다")
+        if m in MOBSE:
+            need(f"{d['n_collapsed_fits']}/{d['n_fits']}", f"{m} 붕괴 수")
+            need(delta_text(d["excluding_collapsed"]["conditions"]["n1"]), f"{m} n1 붕괴 뺀 민감도")
+            must(d["excluding_collapsed"]["conditions"]["n1"]["retrain_ci95"][0] > 0, f"{m} 붕괴 뺀 n1 하한 ≤ 0")
+            for c in ("n1", "n2"):
+                need(f"{a['conditions'][c]['single_excludes_zero_rate']:.3f}", f"{m} {c} 단일 CI 비율")
+        else:
+            must(all(a["conditions"][c]["single_excludes_zero_rate"] == 1.0 for c in NULLS[1:]),
+                 f"{m} 단일 CI 비율이 모두 1.000 이 아니다")
+    for m in ("bqn", "bnt"):
+        need(f"{B[m]['n_collapsed_fits']}/{B[m]['n_fits']}", f"{m} 붕괴 수")
+    must(B["han"]["n_collapsed_fits"] == 0, "Han 붕괴가 0 이 아니다")
+
+    po = [B[m]["all"]["orig_auc_mean"] for m in PUBLIC]
+    need(f"{min(po):.4f}–{max(po):.4f}", "공개 모델 원판 범위 (963 명)")
+    mn = [B[m]["all"]["conditions"][c]["null_auc_mean"] for m in MOBSE for c in ("n1", "n2")]
+    pn = [B[m]["all"]["conditions"][c]["null_auc_mean"] for m in PUBLIC for c in ("n1", "n2")]
+    need(f"{min(mn):.3f}–{max(mn):.3f}", "MoBSE 뒤섞은 AUC 범위")
+    need(f"{min(pn):.3f}–{max(pn):.3f}", "공개 모델 뒤섞은 AUC 범위")
+
+    summ = [load(p) for p in sorted((ext / "abide").glob("mobse_*/*/k*/r*/f*/summary.json"))]
+    must(len(summ) == 360, f"summary.json {len(summ)} ≠ 360")
+    ne = [x["n_epochs"] for x in summ]
+    need(f"{min(ne)}–{max(ne)} epoch", "MoBSE epoch 수 범위")
+
+    st = (ext / "status.txt").read_text(encoding="utf-8").splitlines()
+    for ph, tot in (("prep", 60), ("fit", 360)):
+        hit = [l for l in st if f"END {ph} 실패 0 경과" in l]
+        must(len(hit) == 1, f"status END {ph} 실패 0 줄이 하나가 아니다")
+        if hit:
+            sec = int(re.search(r"경과 (\d+) s", hit[0]).group(1))
+            need(f"{sec:,} s", f"{ph} 경과")
+    t0 = st[0].split()[0]
+    t1 = next(l.split()[0] for l in st if l.endswith("ALL_DONE"))
+    hours = (datetime.fromisoformat(t1.replace("Z", "+00:00"))
+             - datetime.fromisoformat(t0.replace("Z", "+00:00"))).total_seconds() / 3600
+    need(f"{hours:.1f} 시간", "확장 전체 벽시계")
+    must(load(ext / "fails_prep.json") == [] and load(ext / "fails_fit.json") == [], "fails_*.json 이 비어 있지 않다")
+
+    print(f"2.1 판 대조 항목 {checked[0]}")
+    return fails
 
 
 def crosscheck(doc: str, run: Path) -> List[str]:
@@ -224,12 +325,16 @@ def main() -> int:
     ap.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
     ap.add_argument("--run", type=Path, default=RUN_REL, help="data root 상대 run root")
     ap.add_argument("--doc", type=Path, required=True, help="대조할 보고서 (md)")
+    ap.add_argument("--ext-run", type=Path, default=EXT_REL, help="data root 상대 확장 run root (2.1 판)")
+    ap.add_argument("--lock", type=Path, default=None, help="확장 잠금 lock.json — 주면 2.1 판 항목도 대조")
     a = ap.parse_args()
     run = a.data_root / a.run
     if not (run / "status.txt").is_file():
         raise SystemExit(f"run root 가 아니다: {run}")
     doc = a.doc.read_text(encoding="utf-8").replace("−", "-")
     fails = crosscheck(doc, run)
+    if a.lock is not None:
+        fails += crosscheck_ext(doc, a.data_root / a.ext_run, a.lock)
     for f in fails:
         print("FAIL", f)
     print("불일치", len(fails))
