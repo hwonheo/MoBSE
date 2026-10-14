@@ -1,8 +1,8 @@
-# I1 확장 잠금 v1 (안) — ADHD-200 에서 공개 모델 · MoBSE 를 같은 조건으로 (결정 62 · 63 · 64)
+# I1 확장 잠금 v1 — ADHD-200 에서 공개 모델 · MoBSE 를 같은 조건으로 (결정 62–65)
 
 > 이 문서는 `scripts/i1_adhd200/build_lock.py` 가 해시하는 잠금 문서다. 잠금 뒤 바꾸면 잠금 검증이 실패한다.
-> **지금은 잠금안**이다 — 잠금 생성 · 본 실행은 선생님 승인 뒤 (결정 63 "본 실행은 다시 물음").
-> 범위 확인 메모: `docs/experiments/i1_adhd200_scoping_2026-10-14.md`. 결정 원문: `docs/handoff/mobse_v3_checkpoint_2026-10-01.md` §11.25–§11.27.
+> 잠금 생성 · 본 실행은 결정 65 로 승인됨.
+> 범위 확인 메모: `docs/experiments/i1_adhd200_scoping_2026-10-14.md`. 결정 원문: `docs/handoff/mobse_v3_checkpoint_2026-10-01.md` §11.25–§11.28.
 > I1 (`ac3bad06f6ef`) · ABIDE MoBSE (`64e75f1c9d4f`) 잠금과 그 산출은 바꾸지 않는다.
 
 ## 1. 질문
@@ -15,6 +15,7 @@
 - 결정 62 (채팅): "제안 2 글로 정리, 제안 3 ADHD-200".
 - 결정 63 (TUI): A1 "버림 (Recommended)" · A2 "빼고 100 시점 (Recommended)" · 착수 "구현 → smoke → 잠금안 (Recommended)".
 - 결정 64 (TUI): "모두 188 영역 (Recommended)".
+- 결정 65 (TUI): "h197 전부 · 겹치기 · 동시 2 (Recommended)".
 
 ## 3. 자료 · 분할 · 뒤섞기
 
@@ -36,7 +37,8 @@
 | 공개 모델 | BQN · BNT · Han — I1 `scripts/i1/run_fold.py` 그대로 (저장소 commit · 설정 · 학습 길이 · 시험값 고르기 규칙 I1 과 같음). 조건 orig · n0 (k0) · n1–n3 (k0–4) × seed 1–3 × fold 5 = 모델당 **255 fit**. D1 학습판은 orig · r1 · fold 0–2 (I1 과 같음) |
 | 기준선 | FC logistic · S1 (seed 1) · FC-MLP (seed 1–3), 원판만 (I1 `baselines.py`) |
 | MoBSE | mean · embedding, cell A, config 0 — ABIDE MoBSE 잠금 §4 와 같음 (`scripts/i1_mobse_abide/` 를 경로만 바꿔 씀): 30 시점 창 3 개 · 학습 fold 창으로 PCA 10 + K=3 bank · update 예산 5,000 · I1 epoch 규칙. 조건 orig · n0 k0 · n1 · n2 k0–4 (n3 은 시계열을 바꾸지 않아 해당 없음) × seed 1–3 × fold 5 × 구조 2 = **360 fit** |
-| 구동기 | `scripts/i1_adhd200/run_main.py` — I1 `Main` 을 상속해 입력 경로만 바꿈. 단계 nulls → fits → baselines → mobse_prep → mobse_fit → analyze |
+| 구동기 | `scripts/i1_adhd200/run_main.py` — I1 `Main` 을 상속해 입력 경로만 바꿈. 단계 nulls · fits · baselines · mobse_prep · mobse_fit · analyze |
+| 실행 순서 (결정 65) | h197 한 곳에서 두 사슬을 함께 돌림 — CPU 사슬: nulls (n0–n2 → n3) → baselines → mobse_prep. GPU 사슬: n0–n2 입력이 생기면 fits (orig · n0 · n1 · n2) → n3 입력이 생기면 fits (n3) → mobse_prep 이 끝나면 mobse_fit. 둘 다 끝나면 analyze. 공개 모델 동시 2 · n3 worker 6 · MoBSE 동시 4 (운영 선택) |
 
 ## 5. 분석
 
@@ -46,6 +48,7 @@
 
 ## 6. 실패 규칙
 
+- null 단계가 실패하면 사슬을 멈추고 보고한다 (뒤 단계가 그 입력을 씀). 학습 · 기준선 · MoBSE 의 실패는 세고 다음 단계로 간다.
 - 공개 모델 · null · 기준선: I1 구동기 규칙 그대로 — 프로세스 오류는 같은 seed 로 **한 번** 다시 시도하고, 그래도 실패면 센다 (I1 결정 43 §3.3). GPU fit 은 여유 메모리 10 GB 를 기다려 시작 (I1 결정 48).
 - MoBSE: 다시 돌리지 않고 셈 (ABIDE MoBSE 잠금 §6 과 같음).
 - 중단 뒤 이어 돌리기는 끝난 작업 (`summary.json` · `meta.json` · `prep.json` 있음) 을 건너뛰는 것만 허용. 동시 실행 수는 운영 선택 (기록은 남김).
@@ -66,5 +69,5 @@
 ## 9. 산출 · 비용
 
 - h197 data root 상대 `adhd200/main/<날짜>_<lock 앞 8>_a<번호>/`: `inputs/adhd200/` · `adhd200/<모델>/…` · `mobse/` · `analysis/adhd200/*.json` · `driver_adhd200.log` · `fails_*.json` · `logs/`.
-- 비용 [추정, smoke 1 fit 시간 × 개수]: 공개 모델 BQN 255 × 77 s · BNT 255 × 109 s · Han 255 × 186 s ≈ 26 시간 (동시 1) · **약 13 시간 (동시 2)**. n3 생성 약 1 시간. 기준선 약 10 분. MoBSE 준비 60 + 학습 360 약 2–3 시간. 분석 약 15 분. **전체 약 16–18 시간 (동시 2)**.
+- 비용 [추정, smoke 1 fit 시간 × 개수, 겹치기 전]: 공개 모델 BQN 255 × 77 s · BNT 255 × 109 s · Han 255 × 186 s ≈ 26 시간 (동시 1) · **약 13 시간 (동시 2)**. n3 생성 약 1 시간. 기준선 약 10 분. MoBSE 준비 60 + 학습 360 약 2–3 시간. 분석 약 15 분. **전체 약 16–18 시간 (동시 2)**.
 - 저장소 쪽: 잠금 `results/i1_adhd200/locks/lock.json`, 결과 기록은 handoff 와 I1 보고서의 새 판.

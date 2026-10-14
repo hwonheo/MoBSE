@@ -8,6 +8,7 @@
   하위 작업은 이 프로세스의 python (venv-mobse-v2) 으로 돈다. n3 은 MoBSE 에 쓰지 않음 (결정 59 D2 와 같음).
 
 단계 (``--phase``): ``nulls`` · ``fits`` · ``baselines`` · ``mobse_prep`` · ``mobse_fit`` · ``analyze``.
+``fits`` 는 ``--conds`` 로 조건을 고를 수 있다 (결정 65: n3 생성 중에 orig · n0 · n1 · n2 를 먼저 학습).
 배치: ``<out>/adhd200/<model>/<cond>/k<k>/r<r>/f<f>/`` · null 입력 ``<out>/inputs/adhd200/<cond>_k<k>/abide.npy`` ·
 MoBSE ``<out>/mobse/abide/mobse_<구조>/…`` · 분석 ``<out>/analysis/adhd200/<model>.json``.
 
@@ -55,6 +56,23 @@ class AdhdMain(I1.Main):
         self.out.mkdir(parents=True, exist_ok=True)
         self.logf = self.out / "driver_adhd200.log"
         self.gpu_gate = threading.Lock()
+
+    def phase_fits(self) -> int:
+        """I1 ``phase_fits`` 와 같은 작업 목록을 ``--conds`` 로 좁힌다 (결정 65 — null 생성과 겹쳐 돌리기).
+
+        고른 조건의 입력이 하나라도 없으면 시작하지 않는다 (없는 입력으로 학습이 실패로 세지지 않게).
+        """
+        conds = self.a.conds.split(",") if self.a.conds else ["orig", "n0", *I1.NULLS]
+        rc = 0
+        for model in self.a.models:
+            K, R = I1.KR[model]
+            units = [(c, k) for c in conds for k in (range(1) if c in ("orig", "n0") else range(K))]
+            missing = [f"{c}_k{k}" for c, k in units if c != "orig" and not (self.input_npy(c, k).parent / "meta.json").exists()]
+            if missing:
+                raise SystemExit(f"null 입력이 없다: {missing} — nulls 단계를 먼저")
+            jobs = [self.fit_job(model, c, k, r, f) for c, k in units for r in range(1, R + 1) for f in range(I1.N_FOLDS)]
+            rc |= self.run_jobs(f"fits_{model}_{'-'.join(conds)}", jobs, self.a.k)
+        return rc
 
     def mobse(self, phase: str) -> int:
         M = load("i1_mobse_run", ROOT / "scripts/i1_mobse_abide/run_main.py")
@@ -113,6 +131,7 @@ def main(argv) -> int:
     ap.add_argument("--mobse-jobs", type=int, default=4)
     ap.add_argument("--n3-workers", type=int, default=8)
     ap.add_argument("--no-lock", action="store_true", help="구동기 smoke 전용")
+    ap.add_argument("--conds", default=None, help="fits: 쉼표로 고른 조건 (예: orig,n0,n1,n2) — 결정 65")
     ap.add_argument("--only", default=None, help="smoke: MoBSE 'cond_k/fold' 목록 (쉼표)")
     ap.add_argument("--seeds", default="1", help="smoke: --only 와 함께 쓸 MoBSE seed")
     a = ap.parse_args(argv[1:])
