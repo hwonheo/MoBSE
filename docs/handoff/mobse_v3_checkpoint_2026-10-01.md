@@ -1114,4 +1114,4 @@ Data Asset "I1 본 실행 산출물" — 이름을 "a2 완료" 로, 파일수 12
   - `scripts/reports/make_i1_figures.py`: `--abide963-root` (sha 대조 5 개) · `fig9_same` (same.svg) · design · auc 갱신. SVG 날짜 · clip id 를 고정 (`metadata Date None` · `svg.hashsalt`) — 두 번 생성해 바이트 동일 확인. 그래서 그림 9 개 전부가 한 번 바뀜 (내용 변경은 design · auc · same 셋).
   - `scripts/h197/30_verify_i1_report_citations.py`: `--lock` 을 주면 확장 항목 97 개 추가 대조. h197 결과 md · HTML 렌더 · PDF 추출 **셋 다 183 + 97 = 280 · 불일치 0**. 돌연변이 5 개 (MoBSE Δ · epoch 범위 · sha · 학습 경과 · 뒤섞은 AUC 범위) 모두 불일치 1.
   - PDF 23 쪽 · 넘친 요소 0, 새 쪽 (3 · 7 · 8 · 9) 눈 확인.
-- Notion 은 커넥터 재인증이 필요해 아직 기록하지 못함 (10-13 18:2x · 10-14 두 번 확인).
+- Notion 은 커넥터 재인증이 필요해 미뤘다가 (10-13 18:2x · 10-14 두 번), 선생님 재연결 뒤 기록함: Work Log 30 (`[MOBSE] 30 결과`, 결정 58–60) · Data Asset "I1 확장 — ABIDE MoBSE 팔 산출물" (1,687 파일 · 43.9 MB, 아카이브ID `MoBSE/MOBSE/2026-10-13_i1-mobse-abide`) · 프로젝트 페이지 To do · 현재 상태.
