@@ -12,6 +12,9 @@
   * ``status.txt`` · ``driver_{aomic,abide}.log`` — 벽시계 · 단계 경과 시간
   * (2.1 판) 확장 run root ``analysis/*.json`` · ``kept_subjects.json`` · ``status.txt`` ·
     ``abide/mobse_*/…/summary.json`` 과 확장 잠금 ``lock.json`` — 963 명 공통 분석 (결정 59)
+  * (2.3 판) ADHD-200 run root ``analysis/adhd200/*.json`` · ``mobse/kept_subjects.json`` ·
+    ``status.txt`` · ``mobse/status.txt`` · ``driver_adhd200.log`` · ``fails_*.json`` ·
+    ``mobse/abide/mobse_*/…/summary.json`` 과 ADHD-200 잠금 ``lock.json`` (결정 65)
 
 문서의 모든 수치를 덮지는 않는다 — 잠금 해시 · 잠금 전 측정 (BrainGB · smoke) ·
 산출 크기처럼 위 파일에 없는 값은 대조 대상이 아니다.
@@ -22,7 +25,8 @@ Usage:
     python scripts/h197/30_verify_i1_report_citations.py \
         --data-root /mnt/data/mp2026/MoBSE_dataset \
         --doc results/i1/reports/i1_report_2026-10-13.md \
-        --lock results/i1_mobse_abide/locks/lock.json
+        --lock results/i1_mobse_abide/locks/lock.json \
+        --adhd-lock results/i1_adhd200/locks/lock.json
 """
 from __future__ import annotations
 
@@ -38,6 +42,7 @@ from typing import Any, Dict, List
 DEFAULT_DATA_ROOT = Path("/mnt/data/mp2026/MoBSE_dataset")
 RUN_REL = Path("i1/main/20261005_ac3bad06_a2")
 EXT_REL = Path("i1_mobse_abide/main/20261013_64e75f1c_a1")
+ADHD_REL = Path("adhd200/main/20261014_9903dc89_a1")
 MOBSE = ("mobse_mean", "mobse_embedding")
 PUBLIC = ("bqn", "bnt", "han")
 NULLS = ("n0", "n1", "n2", "n3")
@@ -170,6 +175,146 @@ def crosscheck_ext(doc: str, ext: Path, lock: Path) -> List[str]:
     must(load(ext / "fails_prep.json") == [] and load(ext / "fails_fit.json") == [], "fails_*.json 이 비어 있지 않다")
 
     print(f"2.1 판 대조 항목 {checked[0]}")
+    return fails
+
+
+def crosscheck_adhd(doc: str, run: Path, lock: Path) -> List[str]:
+    """2.3 판 — ADHD-200 확장 실행 (541 명, 결정 65) 의 인용 수치를 대조한다.
+
+    Args:
+        doc: 보고서 본문 (빼기표를 ASCII 하이픈으로 바꾼 것).
+        run: ADHD-200 run root.
+        lock: ADHD-200 잠금 ``lock.json``.
+
+    Returns:
+        불일치 사유 문자열의 목록.
+    """
+    fails: List[str] = []
+    checked = [0]
+
+    def need(s: str, why: str) -> None:
+        checked[0] += 1
+        if s not in doc:
+            fails.append(f"[2.3] {why}: '{s}' 가 문서에 없다")
+
+    def must(ok: bool, why: str) -> None:
+        checked[0] += 1
+        if not ok:
+            fails.append(f"[2.3] {why}")
+
+    an = run / "analysis" / "adhd200"
+    models = MOBSE + PUBLIC + BASELINES
+    C = {m: load(an / f"{m}.json") for m in models}
+    for m in models:
+        need(sha12(an / f"{m}.json"), f"sha {m}.json")
+    kept_p = run / "mobse" / "kept_subjects.json"
+    need(sha12(kept_p), "sha kept_subjects.json")
+    kept = load(kept_p)
+    must(kept["n_kept"] == 541 == len(kept["kept"]), f"541 명이 아니다: {kept['n_kept']}")
+    need(f"{kept['n_kept']} 명", "대상 수")
+    L = load(lock)
+    for v, why in ((L["lock_hash"], "lock_hash"), (L["code"]["code_hash"], "code_hash"),
+                   (L["data"]["data_hash"], "data_hash")):
+        need(v[:12], f"ADHD-200 잠금 {why}")
+
+    n_fits = {"mobse_mean": 180, "mobse_embedding": 180, "bqn": 255, "bnt": 255, "han": 255,
+              "fc_logistic": 5, "fc_mlp": 15, "s1_logistic": 5}
+    positive = ("bqn", "bnt")  # n1–n3 하한 > 0 으로 적은 모델
+    for m in models:
+        d = C[m]
+        a = d["all"]
+        must(d["incomplete_units"] == [], f"{m} incomplete_units 가 비어 있지 않다")
+        must(a["n_items"] == 541, f"{m} n_items {a['n_items']} ≠ 541")
+        must(d["n_fits"] == n_fits[m], f"{m} n_fits {d['n_fits']} ≠ {n_fits[m]}")
+        need(f"{a['orig_auc_mean']:.4f}", f"{m} 원판 AUC")
+        if m in BASELINES:
+            continue
+        conds = ("n0", "n1", "n2") if m in MOBSE else NULLS
+        must(sorted(a["conditions"]) == sorted(conds), f"{m} 조건이 {conds} 가 아니다")
+        for c in conds:
+            cond = a["conditions"][c]
+            lo, hi = cond["retrain_ci95"]
+            need(delta_text(cond), f"{m} {c} Δ")
+            if m in positive and c != "n0":
+                must(lo > 0, f"{m} {c} 하한이 0 을 넘지 않는다")
+            else:
+                must(lo <= 0 <= hi, f"{m} {c} CI 가 0 을 포함하지 않는다")
+        if m in MOBSE:
+            must(d["n_collapsed_fits"] == 0, f"{m} 붕괴가 0 이 아니다")
+            must(all(v["single_excludes_zero_rate"] == 0.0 for v in a["conditions"].values()),
+                 f"{m} 단일 CI 비율이 모두 0.000 이 아니다")
+        need(f"{d['n_collapsed_fits']}/{d['n_fits']}", f"{m} 붕괴 수")
+    must(C["han"]["n_collapsed_fits"] == 0, "Han 붕괴가 0 이 아니다")
+
+    # 붕괴 단위 (뒤섞기 판 · seed) 와 붕괴 뺀 민감도
+    for m, name in (("bqn", "BQN"), ("bnt", "BNT")):
+        d = C[m]
+        tot = {}
+        for u in d["all"]["units"]:
+            tot[u.split("/")[0]] = tot.get(u.split("/")[0], 0) + 1
+        col = {}
+        for u in d["collapsed_units"]:
+            col[u.split("/")[0]] = col.get(u.split("/")[0], 0) + 1
+        parts = [f"원판 {col.get('orig', 0)}/{tot['orig']}"] + [f"{c} {col.get(c, 0)}/{tot[c]}" for c in NULLS]
+        need(f"{name} " + " · ".join(parts), f"{m} 붕괴 단위")
+        exc = d["excluding_collapsed"]["conditions"]
+        for c, v in exc.items():
+            if v["n_pairs"] == 1:
+                need(f"{c} 1 짝 ({v['delta_mean']:+.4f})", f"{m} {c} 붕괴 뺀 1 짝")
+            else:
+                need(f"{c} {v['n_pairs']} 짝 {delta_text(v)}", f"{m} {c} 붕괴 뺀 민감도")
+    eq = C["bqn"]["excluding_collapsed"]["conditions"]
+    must(sorted(eq) == ["n0", "n1", "n3"] and eq["n3"]["retrain_ci95"][0] <= 0,
+         "BQN 붕괴 뺀 조건 · n3 판정이 문서와 다르다")
+    et = C["bnt"]["excluding_collapsed"]["conditions"]
+    must(sorted(et) == ["n0", "n2", "n3"] and et["n2"]["retrain_ci95"][0] > 0 and et["n3"]["retrain_ci95"][0] > 0,
+         "BNT 붕괴 뺀 조건 · 판정이 문서와 다르다")
+    pn = [C[m]["all"]["conditions"][c]["null_auc_mean"] for m in positive for c in NULLS[1:]]
+    need(f"{min(pn):.3f}–{max(pn):.3f}", "BQN · BNT 뒤섞은 AUC 범위")
+
+    # 단일 CI 비율
+    for m, conds in (("han", NULLS[1:]), ("bqn", NULLS[1:]), ("bnt", NULLS)):
+        for c in conds:
+            need(f"{c} {C[m]['all']['conditions'][c]['single_excludes_zero_rate']:.3f}", f"{m} {c} 단일 CI 비율")
+
+    # 범위
+    mo = [C[m]["all"]["orig_auc_mean"] for m in MOBSE + PUBLIC]
+    need(f"{min(mo):.3f}–{max(mo):.3f}", "다섯 모델 원판 범위")
+    bo = [C[m]["all"]["orig_auc_mean"] for m in BASELINES]
+    need(f"{min(bo):.3f}–{max(bo):.3f}", "기준선 범위")
+    need(f"FC logistic {C['fc_logistic']['all']['orig_auc_mean']:.3f}", "FC logistic (3 자리)")
+
+    summ = [load(p) for p in sorted((run / "mobse" / "abide").glob("mobse_*/*/k*/r*/f*/summary.json"))]
+    must(len(summ) == 360, f"MoBSE summary.json {len(summ)} ≠ 360")
+    ne = sorted({x["n_epochs"] for x in summ})
+    need(f"{ne[0]} epoch" if len(ne) == 1 else f"{ne[0]}–{ne[-1]} epoch", "MoBSE epoch 수")
+
+    # 비용
+    st = (run / "status.txt").read_text(encoding="utf-8").splitlines()
+    t0 = next(l.split()[0] for l in st if " BEGIN lock " in l)
+    t1 = next(l.split()[0] for l in st if l.endswith("ALL_DONE"))
+    hours = (datetime.fromisoformat(t1.replace("Z", "+00:00"))
+             - datetime.fromisoformat(t0.replace("Z", "+00:00"))).total_seconds() / 3600
+    need(f"{hours:.1f} 시간", "ADHD-200 전체 벽시계")
+    mst = (run / "mobse" / "status.txt").read_text(encoding="utf-8").splitlines()
+    for ph in ("prep", "fit"):
+        hit = [l for l in mst if f"END {ph} 실패 0 경과" in l]
+        must(len(hit) == 1, f"mobse status END {ph} 실패 0 줄이 하나가 아니다")
+        if hit:
+            sec = int(re.search(r"경과 (\d+) s", hit[0]).group(1))
+            need(f"{sec:,} s", f"MoBSE {ph} 경과")
+    log = run / "driver_adhd200.log"
+    need(f"{log_seconds(log, 'nulls_n3', 5):,} s", "n3 생성 경과")
+    for m in ("bnt", "han"):
+        a = log_seconds(log, f"fits_{m}_orig-n0-n1-n2", 180)
+        b = log_seconds(log, f"fits_{m}_n3", 75)
+        need(f"{a:,} s + {b:,} s", f"{m} 255 회 경과")
+        need(f"{(a + b) / 3600:.1f} 시간", f"{m} 255 회 시간")
+    need(f"{log_seconds(log, 'fits_bqn_orig-n0-n1-n2', 79):,} s", "BQN 마지막 구간 경과")
+    fl = sorted(run.glob("fails_*.json")) + sorted((run / "mobse").glob("fails_*.json"))
+    must(len(fl) == 11 and all(load(p) == [] for p in fl), f"fails_*.json {len(fl)} 개가 모두 빈 목록이 아니다")
+
+    print(f"2.3 판 대조 항목 {checked[0]}")
     return fails
 
 
@@ -327,6 +472,8 @@ def main() -> int:
     ap.add_argument("--doc", type=Path, required=True, help="대조할 보고서 (md)")
     ap.add_argument("--ext-run", type=Path, default=EXT_REL, help="data root 상대 확장 run root (2.1 판)")
     ap.add_argument("--lock", type=Path, default=None, help="확장 잠금 lock.json — 주면 2.1 판 항목도 대조")
+    ap.add_argument("--adhd-run", type=Path, default=ADHD_REL, help="data root 상대 ADHD-200 run root (2.3 판)")
+    ap.add_argument("--adhd-lock", type=Path, default=None, help="ADHD-200 잠금 lock.json — 주면 2.3 판 항목도 대조")
     a = ap.parse_args()
     run = a.data_root / a.run
     if not (run / "status.txt").is_file():
@@ -335,6 +482,8 @@ def main() -> int:
     fails = crosscheck(doc, run)
     if a.lock is not None:
         fails += crosscheck_ext(doc, a.data_root / a.ext_run, a.lock)
+    if a.adhd_lock is not None:
+        fails += crosscheck_adhd(doc, a.data_root / a.adhd_run, a.adhd_lock)
     for f in fails:
         print("FAIL", f)
     print("불일치", len(fails))

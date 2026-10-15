@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-"""I1 보고서 그림 (모식도 3 · 결과 6) 을 본 실행 산출에서 만든다.
+"""I1 보고서 그림 (모식도 3 · 결과 7) 을 본 실행 산출에서 만든다.
 
 결과 그림 (4–8) 은 run 폴더의 ``analysis/*.json`` · ``diag/collapse_20261012/diag_collapse.json`` ·
 ``{aomic,abide}/<모델>/orig/k0/r1/f*/d1.json`` 만 읽는다. 읽기 전에 분석 산출의 sha256 을 보고서에
 적은 값과 대조하고, 다르면 그림을 만들지 않는다. 그림 9 (2.1 판) 는 ABIDE MoBSE 확장 실행 (결정 59) 의
-``analysis/*.json`` (963 명 공통 분석) 만 읽고, 같은 방식으로 sha256 을 대조한다. 모식도 (1–3) 의 행렬 · 노드 그림은 **개념도**이며 실제 자료가 아니다.
+``analysis/*.json`` (963 명 공통 분석) 만 읽고, 같은 방식으로 sha256 을 대조한다. 그림 10 (2.3 판) 은
+ADHD-200 확장 실행 (결정 65) 의 ``analysis/adhd200/*.json`` 만 읽고, 역시 sha256 을 대조한다. 모식도 (1–3) 의 행렬 · 노드 그림은 **개념도**이며 실제 자료가 아니다.
 
 SVG 의 글자는 경로로 넣으므로 (``svg.fonttype = path``) 보는 쪽에 글꼴이 없어도 같게 보인다.
 
 Usage:
     .venv/bin/python scripts/reports/make_i1_figures.py --run-root <run 폴더 또는 그 사본> \
-        --abide963-root <확장 run 폴더 또는 그 사본> --out results/i1/reports/figs
+        --abide963-root <확장 run 폴더 또는 그 사본> --adhd-root <ADHD-200 run 폴더 또는 그 사본> \
+        --out results/i1/reports/figs
 """
 from __future__ import annotations
 
@@ -42,6 +44,12 @@ EXPECTED_SHA12 = {
 EXPECTED_SHA12_963 = {
     "analysis/mobse_mean.json": "ff640c14bae2", "analysis/mobse_embedding.json": "821cb4bf43c6",
     "analysis/bqn.json": "6cc9e7177f93", "analysis/bnt.json": "4f1c6c739545", "analysis/han.json": "0825cdb89a1f",
+}
+EXPECTED_SHA12_ADHD = {
+    "analysis/adhd200/mobse_mean.json": "5ff5c10d1992", "analysis/adhd200/mobse_embedding.json": "a10050bb6c3e",
+    "analysis/adhd200/bqn.json": "f67b639849a9", "analysis/adhd200/bnt.json": "35898d7a9294",
+    "analysis/adhd200/han.json": "bc2c6c338872", "analysis/adhd200/fc_logistic.json": "752bc847e3ee",
+    "analysis/adhd200/fc_mlp.json": "41ef8c41d573", "analysis/adhd200/s1_logistic.json": "41745c8ca877",
 }
 
 BRAND, ACCENT, INK, INK3, LINE, WASH, WARN = "#14416E", "#1F8A8C", "#10151C", "#6B7787", "#D3DBE4", "#F2F5F8", "#B37500"
@@ -428,15 +436,73 @@ def fig9_same(B: Dict[str, dict], out: Path) -> None:
     save(fig, out, "same.svg")
 
 
+def fig10_adhd(C: Dict[str, dict], out: Path) -> None:
+    """2.3 판 — ADHD-200 541 명, 다섯 모델이 같은 fold · seed · 입력 뒤섞기. 왼쪽 원판 · 뒤섞은 AUC, 오른쪽 Δ."""
+    models = [("mobse_mean", "MoBSE mean"), ("mobse_embedding", "MoBSE embedding"),
+              ("bqn", "BQN"), ("bnt", "BNT"), ("han", "Han")]
+    fig, (ax, bx) = plt.subplots(1, 2, figsize=(W, 3.0), gridspec_kw={"width_ratios": [1, 1.45], "wspace": .08},
+                                 sharey=True)
+    off = {"n0": .27, "n1": .09, "n2": -.09, "n3": -.27}
+    for i, (m, name) in enumerate(models):
+        y = len(models) - 1 - i
+        d = C[f"analysis/adhd200/{m}.json"]
+        a = d["all"]
+        conds = a["conditions"]
+        for z in (ax, bx):
+            if i % 2 == 0:
+                z.axhspan(y - .5, y + .5, color=WASH, zorder=0, lw=0)
+        orig = a["orig_auc_mean"]
+        nul = conds["n1"]["null_auc_mean"]
+        ax.plot([nul, orig], [y, y], color=LINE, lw=3, zorder=1, solid_capstyle="butt")
+        ax.scatter(nul, y, s=22, color=NULL_COLOR["n1"], zorder=3, edgecolor="white", lw=.4,
+                   label="n1 뒤섞은 AUC" if i == 0 else None)
+        ax.scatter(orig, y, s=26, color=INK, marker="D", zorder=3, edgecolor="white", lw=.4,
+                   label="원판 AUC" if i == 0 else None)
+        ax.text(max(orig, nul) + .006, y, f"{orig:.3f}", va="center", fontsize=6.6, color=INK)
+        for c, cond in conds.items():
+            lo, hi = cond["retrain_ci95"]
+            bx.plot([lo, hi], [y + off[c]] * 2, color=NULL_COLOR[c], lw=2.2, solid_capstyle="butt")
+            bx.scatter(cond["delta_mean"], y + off[c], s=14, color=NULL_COLOR[c], zorder=3, edgecolor="white", lw=.4)
+        if m.startswith("mobse"):
+            bx.text(.005, y + off["n3"], "n3 해당 없음", va="center", fontsize=6.2, color=INK3)
+        if d["n_collapsed_fits"]:
+            bx.text(.205, y, f"붕괴 {d['n_collapsed_fits']}/{d['n_fits']}", va="center", fontsize=6.4, color="#A5342E")
+    for z in (ax, bx):
+        z.axhline(2.5, color=INK3, lw=.6, ls=(0, (3, 3)))
+        z.set_ylim(-.6, len(models) - .4)
+    fcl = C["analysis/adhd200/fc_logistic.json"]["all"]["orig_auc_mean"]
+    ax.axvline(fcl, color=ACCENT, lw=.9, ls=(0, (2, 2)))
+    ax.text(fcl, len(models) - .45, f"FC logistic {fcl:.3f}", ha="center", va="bottom", fontsize=6.2, color=ACCENT)
+    ax.axvline(.5, color=INK3, lw=.6)
+    ax.set_yticks(range(len(models)))
+    ax.set_yticklabels([n for _, n in models][::-1])
+    ax.set_xlim(.47, .67)
+    ax.set_xlabel("AUC (0.5 = 동전 던지기)")
+    ax.set_title("원판과 뒤섞은 AUC", loc="left", color=BRAND, weight="bold", fontsize=8.2)
+    bx.axvline(0, color=INK, lw=.8)
+    bx.set_xlim(-.06, .26)
+    bx.set_xlabel("Δ = 원판 AUC − 뒤섞은 AUC (막대 = 재학습 포함 95 % CI)")
+    bx.set_title("Δ — BQN · BNT 는 n1–n3 이 0 을 넘고, 나머지는 0 포함", loc="left", color=BRAND, weight="bold",
+                 fontsize=8.2)
+    for c in ("n0", "n1", "n2", "n3"):
+        bx.plot([], [], color=NULL_COLOR[c], lw=2.2, label=NULL_NAME[c])
+    h1, l1 = ax.get_legend_handles_labels()
+    h2, l2 = bx.get_legend_handles_labels()
+    fig.legend(h1 + h2, l1 + l2, loc="upper center", bbox_to_anchor=(.5, -.02), ncol=3, fontsize=6.8, frameon=False)
+    save(fig, out, "adhd.svg")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--run-root", type=Path, required=True)
     ap.add_argument("--abide963-root", type=Path, required=True, help="ABIDE MoBSE 확장 run 폴더 (결정 59) 또는 그 사본")
+    ap.add_argument("--adhd-root", type=Path, required=True, help="ADHD-200 run 폴더 (결정 65) 또는 그 사본")
     ap.add_argument("--out", type=Path, required=True)
     a = ap.parse_args()
     setup_fonts()
     A = load_all(a.run_root)
     B = load_all(a.abide963_root, EXPECTED_SHA12_963)
+    C = load_all(a.adhd_root, EXPECTED_SHA12_ADHD)
     a.out.mkdir(parents=True, exist_ok=True)
     fig1_pipeline(a.out)
     fig2_nulls(a.out)
@@ -447,6 +513,7 @@ def main() -> int:
     fig7_d1(a.run_root, a.out)
     fig8_collapse(A, a.out)
     fig9_same(B, a.out)
+    fig10_adhd(C, a.out)
     return 0
 
 
