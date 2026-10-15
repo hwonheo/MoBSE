@@ -1290,4 +1290,11 @@ Data Asset "I1 본 실행 산출물" — 이름을 "a2 완료" 로, 파일수 12
 
 | # | 일시 (KST) | 원문 | 방식 | 정한 것 | 정하지 않은 것 | 그 승인으로 실제로 한 일 |
 |---|---|---|---|---|---|---|
-| 50 | 10-16 | "① 과 ② 둘 다" | TUI | 결정 67 — I3 · ABIDE A–D 범위 확인 | 본 트랙 선택 · 잠금 · 본 실행 · main 126 명 사용 · PIOP2 · I2 · 푸시 | (진행 중 — 아래에 적음) |
+| 50 | 10-16 | "① 과 ② 둘 다" | TUI | 결정 67 — I3 · ABIDE A–D 범위 확인 | 본 트랙 선택 · 잠금 · 본 실행 · main 126 명 사용 · PIOP2 · I2 · 푸시 | 자료 복사 (h197 → Mac) · pilot 31 재추출 · I3 기준선 · I3 smoke 7 판 · ABIDE smoke 11 판 · 범위 확인 메모 (아래) |
+
+- 선생님 지시 (작업 중 원문): "**그런데, 지금 h197의 리소스가 busy 여서.. mac에서 돌려야 할 듯**" → 범위 확인은 전부 Mac (`.venv`, torch 2.10, MPS). 지시 직전 h197 점검값은 GPU 0 % · load 1.8 (08:40 KST) 이었으나 선생님 판단을 따름.
+- 한 일 (10-16, 결정 67): 범위 확인 메모 **`docs/experiments/h1h2_scoping_2026-10-16.md`**, 스크립트 `scripts/h1h2_scope/` (`abide_cells_smoke.py` · `i3_extract_pilot.py` · `i3_baselines.py` · `i3_smoke.py`). 자료는 h197 에서 Mac `data/h1h2_scope/` (gitignore) 로 복사 — ABIDE `abide.npy` · folds, pilot 31 명 emomatching BOLD · mask · confounds · events, rest 창 124 개, 아틀라스 (370 s · 3.4 GB).
+  - ① I3: 블록 8 개/run (30 s · 15 frame) · 재추출 31/31 ok (h197 저장 창과 최대 차이 2.4e-7) · 기준선 **활성 BA 0.95 (lag 4) · 0.98 (lag 6) — 천장**, **블록 FC BA 0.55 (p 0.095) · 0.66 (p 0.005)** · 블록 FC 안정성 같은 조건 0.36 · 다른 조건 0.36. → blockz (블록 안 ROI z-score) 입력이면 FC 만 남음. smoke 7 판 학습됨 · 붕괴 0 · train AUC 0.93–1.00 (과적합). `fc_taskreg` 는 구조상 블록 FC 와 같아 판단에 쓰지 않음.
+  - ② ABIDE: smoke 11 판 (A–D × mean · embedding · C rewire · NG · SG) 학습됨 · 붕괴 0 · 41–52 s/판. 검출력 (기존 n0 CI 반폭) 0.017–0.019 AUC. 본 실행 약 2.1 h [추정]. A−S 크게 음수 예상 (FC logistic 0.762 대 MoBSE 0.61–0.62).
+  - test 피험자는 어느 smoke 도 읽지 않음. 셀 차이 해석 없음.
+- **결정 대기**: 본 트랙 (권고 ①) · ① 이면 PIOP1 main 126 명 재추출 · 사용 · 실행 호스트.
