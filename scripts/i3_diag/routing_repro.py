@@ -40,9 +40,13 @@ def summarize(w: np.ndarray) -> dict:
     return {"mean": w.mean(axis=0).tolist(), "sd": w.std(axis=0).tolist(), "entropy_mean": float(entropy(w).mean())}
 
 
-def repro_one(prep_dir: Path, cell: str, structure: str, null_kind, seed: int, out_dir: Path, ref_dir: Path,
-              device: str = "mps") -> dict:
-    """``core.fit_one`` 과 같은 학습 + routing 기록."""
+def repro_one(prep_dir: Path, cell: str, structure: str, null_kind, seed: int, out_dir: Path, ref_dir=None,
+              device: str = "mps", pca_scale=None) -> dict:
+    """``core.fit_one`` 과 같은 학습 + routing 기록.
+
+    ``ref_dir`` 를 주면 그 ``predictions.jsonl`` 과 바이트 동일한지 잰다. ``pca_scale=(mu, sd)`` 를 주면 gate 입력을
+    ``(pca - mu) / sd`` 로 바꿔 학습한다 (``gate_scale_pilot.py`` 용 — 기본값 None 이면 ``fit_one`` 과 같다).
+    """
     import torch
 
     from mobse.v2.models import CELL_SPEC, ModelConfig
@@ -62,7 +66,12 @@ def repro_one(prep_dir: Path, cell: str, structure: str, null_kind, seed: int, o
     model = MoBSEv3(cfg, torch.as_tensor(tm), routing=spec["routing"], roi_structure=structure).to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=gc.learning_rate, weight_decay=gc.weight_decay)
     lossf = torch.nn.CrossEntropyLoss()
-    T = {r: (torch.as_tensor(z[f"x_{r}"]).to(dev), torch.as_tensor(z[f"pca_{r}"]).to(dev)) for r in ("train", "val", "test")}
+    def pca(r):
+        if pca_scale is None:
+            return z[f"pca_{r}"]
+        return ((z[f"pca_{r}"] - pca_scale[0]) / pca_scale[1]).astype(np.float32)
+
+    T = {r: (torch.as_tensor(z[f"x_{r}"]).to(dev), torch.as_tensor(pca(r)).to(dev)) for r in ("train", "val", "test")}
     yt = torch.as_tensor(z["y_train"], dtype=torch.long).to(dev)
     y_val = z["y_val"]
 
@@ -110,12 +119,15 @@ def repro_one(prep_dir: Path, cell: str, structure: str, null_kind, seed: int, o
         json.dumps({"subject": str(s), "block": int(b), "label": int(y), "p1": float(p), "w": [float(v) for v in w]}) + "\n"
         for s, b, y, p, w in zip(z["subj_test"], z["block_test"], z["y_test"], p_test, w_test)))
 
-    ref = [json.loads(l) for l in (ref_dir / "predictions.jsonl").read_text().splitlines()]
-    identical = len(ref) == len(p_test) and all(r["p1"] == float(p) and r["block"] == int(b)
-                                                for r, p, b in zip(ref, p_test, z["block_test"]))
+    identical = None
+    if ref_dir is not None:
+        ref = [json.loads(l) for l in (ref_dir / "predictions.jsonl").read_text().splitlines()]
+        identical = len(ref) == len(p_test) and all(r["p1"] == float(p) and r["block"] == int(b)
+                                                    for r, p, b in zip(ref, p_test, z["block_test"]))
     y_test = z["y_test"]
     summary = {"cell": cell, "structure": structure, "seed": seed, "routing": spec["routing"], "n_epochs": n_epochs,
-               "selected_epoch": best, "val_loss": rows[best]["val_loss"], "repro_identical": bool(identical),
+               "selected_epoch": best, "val_loss": rows[best]["val_loss"],
+               "repro_identical": None if identical is None else bool(identical),
                "test_acc_block": float(((p_test >= 0.5) == y_test).mean()),
                "test_routing": summarize(w_test), "val_routing": summarize(w_val),
                "routing_label_gap": (w_test[y_test == 1].mean(axis=0) - w_test[y_test == 0].mean(axis=0)).tolist()}

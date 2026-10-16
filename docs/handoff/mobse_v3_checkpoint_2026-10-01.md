@@ -1429,3 +1429,25 @@ Data Asset "I1 본 실행 산출물" — 이름을 "a2 완료" 로, 파일수 12
   - 초기화 직후 (seed 42–44) gate entropy (균일 1.099): **raw val 0.068–0.443 · test 0.145–0.455 → rest 기준 표준화 1.080–1.095 · 과제 블록 기준 표준화 1.075–1.088.**
   - rest PCA 점수의 열 SD 9.7–39.0. 과제 블록 평균을 rest SD 단위로 재면 첫 성분 −1.04, 나머지 −0.24 ~ +0.91.
 - **정하지 않은 것**: 확인 범위 (pilot 학습 여부) · 맞추는 기준 · 새 탐색 버전 착수 · I3 마감.
+
+### 11.39 결정 73 — gate 입력 크기 맞춤 pilot 학습 확인 (2026-10-16 KST, 채팅)
+
+- 채팅: 선생님 "추천은?" → 답 "pilot 학습까지 · (가) (나) 둘 다 비교 (정확도보다 routing 이 조건을 따르는지 · 고정 대조 손익을 주로 봄, 새 버전 결정을 위한 사전 확인)" → 선생님 "**ok**".
+- **정한 것**: pilot 31 명 학습으로 gate 입력 raw · (가) rest 기준 · (나) 과제 블록 기준을 비교.
+- **정하지 않은 것**: 새 탐색 버전 착수, I3 마감 확정, main 자료 사용, PIOP2, 푸시.
+
+| # | 일시 (KST) | 원문 | 방식 | 정한 것 | 정하지 않은 것 | 그 승인으로 실제로 한 일 |
+|---|---|---|---|---|---|---|
+| 56 | 10-16 | "ok" (추천안: pilot 학습 + 두 방식 비교) | 채팅 | 결정 73 — pilot gate 크기 맞춤 확인 | 새 버전 · 마감 · main 사용 · PIOP2 · 푸시 | `scripts/i3_diag/gate_scale_pilot.py` · `routing_repro.repro_one` 에 선택 인자 2 개 (아래) |
+
+- 구현: `routing_repro.repro_one` 에 `ref_dir=None` · `pca_scale=None` 선택 인자 (기본값이면 이전과 같음 — A embedding outer 2 seed 43 재현이 본 실행과 바이트 동일, `test_routing.jsonl` 도 이전 재현과 동일 확인).
+- `scripts/i3_diag/gate_scale_pilot.py` (tmux `i3gate`, 13:03–13:21 KST, 60 fit 실패 0): pilot 31 명 5 fold (test 7 · 6 · 6 · 6 · 6, val 6, train 18–19) · A embedding × {raw · rest_std · task_std} + B embedding · seed 42–44. 산출 `data/i3/diag/gate_scale_pilot_a1/summary.json` (sha 앞 12 `3a17630c088e`). main 피험자는 읽지 않음.
+
+| 칸 | test 정확도 (248 블록) | A−B (피험자 bootstrap 95 %) | test entropy 중앙 | label 사이 routing 차이 중앙 | gate 고정 대조 | val loss 중앙 |
+|---|---:|---|---:|---:|---:|---:|
+| A raw | 0.605 | +0.085 [+0.036, +0.137] | 0.195 | 0.163 | 0.540 | 0.671 |
+| A rest_std (가) | 0.573 | +0.052 [+0.008, +0.097] | 0.360 | 0.136 | 0.524 | 0.659 |
+| A task_std (나) | 0.560 | +0.040 [−0.020, +0.105] | 0.390 | 0.034 | 0.552 | 0.672 |
+| B (고정 gate) | 0.520 | — | 1.095 | 0 | — | 0.658 |
+
+- 관찰 (해석 없음): 표준화하면 학습 전 쏠림은 없어지나 (§11.38) 학습 뒤 entropy 는 0.36–0.39 로 다시 낮아짐. label 사이 routing 차이는 raw 가 가장 큼. pilot 에서는 세 입력 모두 gate 고정이 손해 (main 의 A embedding 은 이득 +0.048). **pilot 의 B 0.520 은 main 의 B 0.712 와 크게 다름** — 학습 18–19 명과 66 명 안팎의 차이일 수 있으나 확인하지 않음.
