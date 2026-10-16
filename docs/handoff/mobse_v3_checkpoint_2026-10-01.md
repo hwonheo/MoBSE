@@ -1378,3 +1378,28 @@ Data Asset "I1 본 실행 산출물" — 이름을 "a2 완료" 로, 파일수 12
 - 보조 (95 %): A−S mean −0.093 · embedding −0.071 (둘 다 상한 < 0). A−NG mean +0.030 (0 포함) · embedding +0.052 (하한 > 0). A−SG 둘 다 0 포함. A−C_spin mean +0.021 (하한 > 0) · embedding +0.022 (0 포함). A−C_rewire mean +0.034 · embedding +0.034 (둘 다 하한 > 0).
 - 민감도 (첫 짝 제외, 97.5 %): mean H2 +0.0212 [−0.0013, +0.0437] **0 포함으로 바뀜** · 나머지 세 판정은 그대로 (embedding H1 −0.128 상한 < 0).
 - 결과는 보았으나 해석 · 다음 단계는 정하지 않음.
+
+### 11.36 결정 71 — I3 routing 재현 · mean H2 "지지 안 됨" · 진단 기록 (2026-10-16 KST, 선택 TUI)
+
+- 직전 TUI (같은 세 질문의 앞 판) 는 60 s 무응답으로 끝났고, 그 사이 **읽기 진단만** 해 두었다 (결정 없음 · 새 학습 없음). 선생님 "다시" 로 재질문.
+- 선택 원문 셋:
+  - 다음 단계 "**routing 재현 (Recommended)**" — 설명 원문 "A·B embedding 30 fit 을 같은 seed 로 다시 돌려 (MPS 결정론 확인됨) routing 가중치·expert 사용률·학습 중 변화를 기록. 잠금 밖 진단 코드 추가 (본 결과 불변), 계산 약 10 분 [추정]".
+  - mean H2 표기 "**지지 안 됨 (Recommended)**" — "'하한 > 0 이나 δ 0.02 미달, 첫 짝 제외 민감도에서 0 포함' 으로 적고 지지 주장은 하지 않음. mean 구조 전 칸이 같은 약한 상태 (val loss 0.683–0.685) 라는 진단도 함께 적음".
+  - 진단 기록 "**기록 + 스크립트 커밋 (Recommended)**" — "진단 스크립트를 scripts/i3/ 밖 (잠금 영향 없는 위치, 예: scripts/i3_diag/) 에 두고 결과를 handoff §11.36 에 해석 없이 기록, 로컬 커밋".
+- **정한 것**: A·B embedding routing 재현 30 fit · mean H2 = **지지 안 됨** (하한 > 0 이나 δ 미달 · 첫 짝 제외 시 0 포함) · 진단 기록과 `scripts/i3_diag/` 커밋.
+- **정하지 않은 것**: 진단 결과의 해석, I3 마감 여부, gate 입력 스케일 등 설계 변경 (하면 새 탐색 버전), ② ABIDE, PIOP2, 푸시.
+
+| # | 일시 (KST) | 원문 | 방식 | 정한 것 | 정하지 않은 것 | 그 승인으로 실제로 한 일 |
+|---|---|---|---|---|---|---|
+| 54 | 10-16 | 위 세 선택 원문 | TUI | 결정 71 — routing 재현 · mean H2 지지 안 됨 · 진단 기록 | 해석 · 마감 · 설계 변경 · ② · PIOP2 · 푸시 | `scripts/i3_diag/` 3 개 · 재현 30 fit · gate 초기 상태 점검 (아래) |
+
+- **읽기 진단** (`scripts/i3_diag/read_diag.py`, 본 실행 산출만, 칸당 15 fit 중앙):
+  - B · D embedding (routing 고정, bank 정렬 · 순열 · spin · rewire 넷) 만 선택 시점 val loss 0.54–0.59 · 확률 SD 0.29–0.32 · 선택 epoch 106–112 · 정확도 0.68–0.71. A · C embedding (입력 routing) 은 val loss 0.67–0.68 · SD 0.09–0.12 · 정확도 0.56–0.59. mean 구조 전 칸 · SG 는 val loss 0.683–0.685. NG 는 선택 epoch 6.
+  - 블록 위치별 정확도: mean 칸 · SG 는 짝수 블록 (control 2 · 4 · 6) 약 0.65–0.72, 홀수 블록 (emotion 3 · 5 · 7) 약 0.40–0.49 로 번갈음. routing 고정 embedding 칸은 블록 1–7 에서 0.66–0.81. 블록 0 은 모든 칸 최저 (0.39–0.56).
+- **routing 재현** (`scripts/i3_diag/routing_repro.py`, tmux `i3diag`, `data/i3/diag/routing_a1/`, 11:55–12:03 KST, 30 fit 실패 0):
+  - **30/30 이 본 실행 test 예측과 바이트 동일** (smoke 1 판 `data/i3/diag/routing_smoke/` 도 동일).
+  - A embedding: test routing 이 표본마다 거의 한 expert — entropy 중앙 0.164 (범위 0.094–0.305, 균일 ln 3 = 1.099), expert 별 표본 사이 SD 0.38–0.42. label 사이 routing 차이 최대 중앙 0.068. val entropy 는 epoch 0 에 이미 0.298.
+  - B embedding: 고정 gate 는 균일 근처 — entropy 중앙 1.027 (0.761–1.080), epoch 50 까지 1.097 이상.
+  - **routing 고정 대조 (새 학습 없음)**: A embedding best checkpoint 의 gate 를 그 fit 의 val 평균 weight 로 바꾸면 블록 정확도 (seed 평균) **0.594 → 0.642**. CI 는 계산하지 않음 (기술값).
+- **gate 초기 상태** (`scripts/i3_diag/gate_init_check.py`, 학습 없음, seed 42): 초기화 그대로 val entropy 0.310–0.530 (outer 0–4). gate 입력 PCA 10 은 학습 피험자 rest 창으로 맞춘 것 (`fit_transform_on_training_rest`, v1 과 같은 설계) 이라 과제 블록에서 열 평균이 0 이 아님 (outer 0 첫 성분 −27.0) · 열 SD 5.3–25.9.
+- 시험 영향: `tests/v2/test_import_closure.py` 1 failed · 4 passed — 기존 실패 (§11.33) 그대로이고 `scripts/i3_diag/` 가 더한 이름은 없다 (`core` 는 이미 목록에 있음).
