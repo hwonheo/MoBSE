@@ -1331,4 +1331,13 @@ Data Asset "I1 본 실행 산출물" — 이름을 "a2 완료" 로, 파일수 12
 
 | # | 일시 (KST) | 원문 | 방식 | 정한 것 | 정하지 않은 것 | 그 승인으로 실제로 한 일 |
 |---|---|---|---|---|---|---|
-| 52 | 10-16 | 위 네 선택 원문 + "백그라운드 처리시 tmux 사용" | TUI · 채팅 | 결정 69 — I3 설계 값 · 구현 · 잠금 | 본 실행 · ② · PIOP2 · 푸시 | (진행 중) |
+| 52 | 10-16 | 위 네 선택 원문 + "백그라운드 처리시 tmux 사용" | TUI · 채팅 | 결정 69 — I3 설계 값 · 구현 · 잠금 | 본 실행 · ② · PIOP2 · 푸시 | 구동기 `scripts/i3/` · 시험 `tests/i3` · 잠금 문서 · smoke (pilot) · 결정론 확인 · 잠금 `1bc3622dcd85` (아래) |
+
+- 한 일 (10-16, 결정 69):
+  - 구동기 `scripts/i3/` (`core.py` · `run_main.py` · `analyze.py` · `build_lock.py`), 시험 `tests/i3/test_i3.py` (7 개 pass), 잠금 문서 `docs/experiments/i3_lock_v1.md`.
+  - **smoke** (pilot 31 명 가짜 분할 · seed 42 · 18 칸, tmux `i3smoke`): `data/i3/smoke/smoke_a1/` **ALL_DONE rc=0**, fit 18 · 실패 0 · 붕괴 0 · fit 단계 301 s (동시 2). main 피험자는 읽지 않음.
+  - **MPS 결정론**: A_mean · NG (seed 42) 단독 재실행이 원판 (동시 2) 과 test 예측 · epoch 별 val loss 바이트 동일.
+  - 시험 (tmux `i3tests`, `tests/v2 tests/v3 tests/i3`): **1,381 pass · 1 fail · 15 skip** (202 s). fail 은 `tests/v2/test_import_closure.py::test_repo_scope_pins_cover_imports` — **세션 전 커밋 `dcd2e7c` 에서도 같은 실패** (I1 · ADHD-200 · reports 스크립트의 핀 없는 import). 오늘 파일이 더한 이름은 `abide_cells_smoke` · `i3_baselines` (같은 폴더 스크립트를 가드가 third-party 로 분류, 기존 `core` 와 같은 유형). release scope 시험은 pass. 고치지 않음.
+  - `.pyc` 27 개 (`__pycache__`, gitignore) 를 지우고 0 확인 뒤 잠금 생성.
+  - **잠금 `results/i3/locks/lock.json`**: lock_hash `1bc3622dcd85` · code_hash `34b04c7c307c` · data_hash `e141ff75dda5`, `--verify` rc 0 (차이 0 · 문제 0).
+- **결정 대기**: I3 본 실행 (270 fit, Mac MPS, tmux `i3main`).
