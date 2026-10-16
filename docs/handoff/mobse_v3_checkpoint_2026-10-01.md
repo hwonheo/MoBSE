@@ -1341,3 +1341,18 @@ Data Asset "I1 본 실행 산출물" — 이름을 "a2 완료" 로, 파일수 12
   - `.pyc` 27 개 (`__pycache__`, gitignore) 를 지우고 0 확인 뒤 잠금 생성.
   - **잠금 `results/i3/locks/lock.json`**: lock_hash `1bc3622dcd85` · code_hash `34b04c7c307c` · data_hash `e141ff75dda5`, `--verify` rc 0 (차이 0 · 문제 0).
 - **결정 대기**: I3 본 실행 (270 fit, Mac MPS, tmux `i3main`).
+
+### 11.34 결정 70 — I3 본 실행 개시 (2026-10-16 10:0x KST, 채팅)
+
+- 원문: "**본 실행 개시. tmux로 돌려**" (직전 질문 "얼마나 걸려?" 에 smoke 실측 기준 약 1 시간 15 분–1 시간 45 분 [추정] 으로 답함 — 결정 69 의 3.5 h [추정] 보다 짧다).
+- **정한 것**: I3 본 실행 (잠금 `1bc3622dcd85`, 270 fit, Mac MPS, 동시 2, tmux `i3main`).
+- **정하지 않은 것**: 결과 해석 · 보고서, ② ABIDE 보조, PIOP2, 푸시.
+
+| # | 일시 (KST) | 원문 | 방식 | 정한 것 | 정하지 않은 것 | 그 승인으로 실제로 한 일 |
+|---|---|---|---|---|---|---|
+| 53 | 10-16 | "본 실행 개시. tmux로 돌려" | 채팅 | 결정 70 — I3 본 실행 | 해석 · 보고서 · ② · PIOP2 · 푸시 | tmux `i3main` 에서 `run_main.py --mode main --run-id 20261016_1bc3622d_a1 --jobs 2` (아래) |
+
+- 한 일 (10-16, 결정 70):
+  - 첫 시도 (10:00:14) 는 **잠금 검증에서 멈춤, 아무것도 시작하지 않음** — `environment` 차이, "pip freeze 에 mobse 가 있다". 원인: 저장소 루트의 `mobse.egg-info` (04-16 legacy 설치 흔적, gitignore) 가 `PYTHONPATH=.` 일 때 `pip freeze` 에 잡힘. 구동기 사용법은 `PYTHONPATH=.` 를 요구하고 검증 subprocess 가 그 환경을 물려받는다.
+  - 조치: `mobse.egg-info` 를 `.backup/to-delete_20261016/` 로 **옮김** (삭제 아님). 코드 · 잠금은 바꾸지 않음. `PYTHONPATH=.` 로 `--verify` rc 0 (차이 0 · 문제 0). 확인 중 생긴 `.pyc` 5 개를 지우고 0 확인. 첫 시도 로그도 같은 폴더로 옮김.
+  - 재시작 10:01:44 KST: prep outer 0–4 ok (train 528–536 · val 272 · test 200–208 블록), fit 270 착수. 산출 `data/i3/main/20261016_1bc3622d_a1/` (gitignore), tmux 로그 `data/i3/main/20261016_1bc3622d_a1.tmux.log`.
