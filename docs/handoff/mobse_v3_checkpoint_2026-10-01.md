@@ -1356,3 +1356,25 @@ Data Asset "I1 본 실행 산출물" — 이름을 "a2 완료" 로, 파일수 12
   - 첫 시도 (10:00:14) 는 **잠금 검증에서 멈춤, 아무것도 시작하지 않음** — `environment` 차이, "pip freeze 에 mobse 가 있다". 원인: 저장소 루트의 `mobse.egg-info` (04-16 legacy 설치 흔적, gitignore) 가 `PYTHONPATH=.` 일 때 `pip freeze` 에 잡힘. 구동기 사용법은 `PYTHONPATH=.` 를 요구하고 검증 subprocess 가 그 환경을 물려받는다.
   - 조치: `mobse.egg-info` 를 `.backup/to-delete_20261016/` 로 **옮김** (삭제 아님). 코드 · 잠금은 바꾸지 않음. `PYTHONPATH=.` 로 `--verify` rc 0 (차이 0 · 문제 0). 확인 중 생긴 `.pyc` 5 개를 지우고 0 확인. 첫 시도 로그도 같은 폴더로 옮김.
   - 재시작 10:01:44 KST: prep outer 0–4 ok (train 528–536 · val 272 · test 200–208 블록), fit 270 착수. 산출 `data/i3/main/20261016_1bc3622d_a1/` (gitignore), tmux 로그 `data/i3/main/20261016_1bc3622d_a1.tmux.log`.
+
+### 11.35 I3 본 실행 ALL_DONE (2026-10-16 11:11:48 KST) — 결과 정리 (해석 없음)
+
+- `data/i3/main/20261016_1bc3622d_a1/` (잠금 `1bc3622dcd85`): fit 270 · **실패 0 · 붕괴 0** · fit · s · analyze 모두 rc 0 · tmux rc 0. 벽시계 70 분 (10:01:44–11:11:48), fit 합계 8,191 s (동시 2). best epoch 중앙 79, epoch 0 선택 0.
+- `analysis/analysis.json` sha 앞 12 `20318dd9c961`. 126 명 · 1,008 블록 (504 : 504) · bootstrap 10,000 (seed 20261016).
+
+| 칸 | mean | embedding |
+|---|---:|---:|
+| A | 0.572 [0.543, 0.602] | 0.594 [0.562, 0.627] |
+| B | 0.562 | **0.712** [0.681, 0.743] |
+| C (순열) | 0.553 | 0.586 |
+| D (순열) | 0.562 | 0.677 |
+| C spin · rewire | 0.552 · 0.539 | 0.572 · 0.561 |
+| D spin · rewire | 0.563 · 0.563 | 0.690 · 0.698 |
+
+- 비교 칸: NG 0.543 · SG 0.560 · S (blockz FC logistic) 0.666 · REF (활성 logistic, 천장 참고) 0.981.
+- **주 contrast (97.5 %)**:
+  - mean H1 A−B +0.0099 [−0.0149, +0.0337] CI 0 포함 · **mean H2 A−C +0.0198 [+0.0010, +0.0387] 하한 > 0 (δ 0.02 미만)**
+  - embedding H1 A−B **−0.1181 [−0.1558, −0.0813] 상한 < 0** · embedding H2 A−C +0.0079 [−0.0268, +0.0417] CI 0 포함
+- 보조 (95 %): A−S mean −0.093 · embedding −0.071 (둘 다 상한 < 0). A−NG mean +0.030 (0 포함) · embedding +0.052 (하한 > 0). A−SG 둘 다 0 포함. A−C_spin mean +0.021 (하한 > 0) · embedding +0.022 (0 포함). A−C_rewire mean +0.034 · embedding +0.034 (둘 다 하한 > 0).
+- 민감도 (첫 짝 제외, 97.5 %): mean H2 +0.0212 [−0.0013, +0.0437] **0 포함으로 바뀜** · 나머지 세 판정은 그대로 (embedding H1 −0.128 상한 < 0).
+- 결과는 보았으나 해석 · 다음 단계는 정하지 않음.
