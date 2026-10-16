@@ -1527,3 +1527,4 @@ Data Asset "I1 본 실행 산출물" — 이름을 "a2 완료" 로, 파일수 12
 | # | 일시 (KST) | 원문 | 방식 | 정한 것 | 정하지 않은 것 | 그 승인으로 실제로 한 일 |
 |---|---|---|---|---|---|---|
 | 60 | 10-16 | "D. 정리 + PIOP2 확증 (Recommended)" | TUI | 결정 77 — 방향 D, PIOP2 확증 범위 확인 · 잠금안 | 주장 문구 · δ · null · 학습 자료 · 호스트 · 잠금 · 본 실행 · 보고서 | PIOP2 자료 점검 (성능 값 없음) · 잠금안 초안 (아래) |
+- 한 일 (결정 77, 10-16): PIOP2 범위 확인 — **성능 값은 보지 않음** (events · 적격 목록 · 파일 수만). emomatching BOLD · events 각 222, 적격 189. 블록 구조는 222 run 전부 `control emotion` × 4 · 30 s × 8 (PIOP1 과 같음 — 조건 · 시간 위치 혼입도 같음). 검정력 `scripts/piop2_confirm/power.py` (학습 없음, I3 피험자별 차이를 189 명으로 복원 추출, 산출 `data/piop2_confirm/power.json`): P(97.5 % 하한>0) B emb−S 0.74 (θ=I3) · 0.21 (절반), B−D spin 0.54 · 0.17, B−D 순열 0.92 · 0.35, 보정 0.012–0.014. 잠금안 초안 **`docs/experiments/piop2_confirm_lock_draft_2026-10-16.md`** (정할 것 5 개).
