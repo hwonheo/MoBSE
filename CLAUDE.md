@@ -5,6 +5,14 @@
 > 이전판(2026-09-18)은 `.backup/CLAUDE_20260925_201635.md` 에, 2026-04-17판은 `.backup/CLAUDE.md_20260918_*.md` 에 보존됨.
 > **현행 상태의 정본은 이 파일이 아님** — 저장소 `docs/handoff/` 의 문서 (읽는 순서는 아래 "인수인계 — 2026-09-29" 절) 와 가장 높은 revision 의 `gate_evidence.json`. 이 파일은 저장소에 들어온 사람을 위한 방향 안내다.
 
+## I3 (PIOP1 emomatching 과제 안 조건) — 2026-10-16 음성 마감
+
+정본은 `docs/handoff/mobse_v3_checkpoint_2026-10-01.md` §11.31–§11.43 (결정 67–75 · 승인 대장 50–58 행), 마감본 `results/i3/reports/i3_closing_report_2026-10-16.md`.
+- 포화되지 않은 target (emotion 대 control 블록, blockz 입력) 에서 H1 · H2 를 다시 물음. 잠금 `results/i3/locks/lock.json` (`1bc3622dcd85`), 구동기 `scripts/i3/`, 진단 `scripts/i3_diag/`. **Mac MPS 로 실행** (tmux), 산출물은 h197 `MoBSE_dataset/i3/` 로 옮김 (sha256 전부 일치, Mac 사본도 유지).
+- 결과: 주가설 넷 모두 지지 안 됨, embedding H1 은 반대 방향 (A−B −0.118), 어떤 A 도 S 를 못 넘음. 진단: 입력 의존 gate 가 학습 전부터 블록마다 expert 하나를 고름 (v1 에서는 그 선택이 과제 label 을 따름). gate 입력 크기 맞춤은 pilot 에서 효과 없음.
+- 해석 (결정 75 확정): H1 이 잰 것은 이 gate 구현의 손익. 남는 단서는 routing 을 끈 embedding 모델 (B−S +0.047, 기술값) — 정렬 bank 의 고유 기여는 점추정 0.014–0.036 이고 spin · rewire 대비로는 0 에 닿음.
+- Notion Work Log 는 2026-10-16 판 본문 템플릿으로 전부 재구성됨 (32 가 I3). 다음 방향은 정하지 않음.
+
 ## I1 (뇌 그래프 prior 검증 프로토콜) — 2026-10-12 결과 · 최종 문장 확정
 
 정본은 `docs/handoff/mobse_v3_checkpoint_2026-10-01.md` §10.11–§11.12 (결정 37–56 원문 · 승인 대장 1–31 행). 요지만 적는다.
