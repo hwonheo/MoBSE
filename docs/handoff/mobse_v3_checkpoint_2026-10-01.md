@@ -1403,3 +1403,20 @@ Data Asset "I1 본 실행 산출물" — 이름을 "a2 완료" 로, 파일수 12
   - **routing 고정 대조 (새 학습 없음)**: A embedding best checkpoint 의 gate 를 그 fit 의 val 평균 weight 로 바꾸면 블록 정확도 (seed 평균) **0.594 → 0.642**. CI 는 계산하지 않음 (기술값).
 - **gate 초기 상태** (`scripts/i3_diag/gate_init_check.py`, 학습 없음, seed 42): 초기화 그대로 val entropy 0.310–0.530 (outer 0–4). gate 입력 PCA 10 은 학습 피험자 rest 창으로 맞춘 것 (`fit_transform_on_training_rest`, v1 과 같은 설계) 이라 과제 블록에서 열 평균이 0 이 아님 (outer 0 첫 성분 −27.0) · 열 SD 5.3–25.9.
 - 시험 영향: `tests/v2/test_import_closure.py` 1 failed · 4 passed — 기존 실패 (§11.33) 그대로이고 `scripts/i3_diag/` 가 더한 이름은 없다 (`core` 는 이미 목록에 있음).
+
+### 11.37 결정 72 — I3 마감 초안 + v1 gate 점검 (2026-10-16 KST, 선택 TUI)
+
+- 선택 원문 "**마감 초안 + v1 점검 (Recommended)**" — 설명 원문 "I3 마감 문서 초안 (결과·진단·사전 기록한 한계) 을 쓰고, 같은 gate 쏠림이 v1 (PIOP1 run identity) main OOF 에도 있었는지 기존 checkpoint 로 확인 (h197, 새 학습 없음, 수 분 [추정])".
+- **정한 것**: I3 마감 문서 **초안** · v1 main OOF checkpoint 로 gate 점검 (새 학습 없음).
+- **정하지 않은 것**: 마감 확정 · 해석 문장의 확정, 설계 변경 (새 탐색 버전), ② ABIDE, PIOP2, 푸시.
+
+| # | 일시 (KST) | 원문 | 방식 | 정한 것 | 정하지 않은 것 | 그 승인으로 실제로 한 일 |
+|---|---|---|---|---|---|---|
+| 55 | 10-16 | "마감 초안 + v1 점검 (Recommended)" | TUI | 결정 72 — I3 마감 초안 · v1 gate 점검 | 마감 확정 · 해석 확정 · 설계 변경 · ② · PIOP2 · 푸시 | `scripts/i3_diag/v1_gate_check.py` · h197 실행 (아래) · 마감 초안 `results/i3/reports/i3_closing_draft_2026-10-16.md` |
+
+- **v1 gate 점검** (h197 tmux `v1gate`, 그 run 의 code 사본 `$R/code` 로, 스레드 2, 12:21–12:26 KST, rc 0): 산출 h197 `$D/i3_diag/v1_gate_20261016/v1_gate_check.json` (sha 앞 12 `c6cf0f1e665b`). 대상 v1 main OOF `20260928_1cd4054_main_a2` 의 outer A · C × seed 42–44 × outer 0–4 = 30 checkpoint.
+  - **재현**: 저장 `window_predictions.jsonl` 과 확률 최대 차이 3.7e-6, seed 평균 run BA **A 0.8770 · C 0.8929 — v1 보고값과 같음**.
+  - test 창 routing entropy 중앙 A 0.102 (0.037–0.168) · C 0.107 (0.034–0.162), expert 별 SD 최대 중앙 0.47. **label 사이 routing 차이 최대 중앙 A 0.523 · C 0.520** (I3 A embedding 0.068).
+  - 초기화 직후 (torch.manual_seed(seed), 학습 없음) test entropy 중앙 0.419 (0.253–0.660). test PCA 첫 성분 평균 −8.2 ~ −16.7 · SD 23.7–28.1.
+  - **routing 고정 대조** (gate 를 그 fit 의 train 창 평균 weight 로): seed 평균 run BA **A 0.877 → 0.730 · C 0.893 → 0.770** (I3 A embedding 은 0.594 → 0.642 로 반대 방향).
+  - 초기화 entropy 의 seed 처리는 `train_fold` 의 seed 경로와 같은지 확인하지 않았다 (기술값).
