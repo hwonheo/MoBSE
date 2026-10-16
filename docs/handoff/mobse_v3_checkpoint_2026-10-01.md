@@ -1538,3 +1538,10 @@ Data Asset "I1 본 실행 산출물" — 이름을 "a2 완료" 로, 파일수 12
 | # | 일시 (KST) | 원문 | 방식 | 정한 것 | 정하지 않은 것 | 그 승인으로 실제로 한 일 |
 |---|---|---|---|---|---|---|
 | 61 | 10-16 | "ok 추천안 대로" | 채팅 | 결정 78 — PIOP2 확증 설계값 넷 · 추출 · 구동기 · smoke | 잠금 · 본 실행 · 보고서 | (아래) |
+- 한 일 (결정 78, 10-16 15:1x–15:3x KST, **PIOP2 성능 값은 보지 않음**):
+  - h197 부하 점검 (load 약 7 / 12 코어, GPU 0 %) 뒤 h197 에서 진행.
+  - `scripts/piop2_confirm/extract.py` — I3 추출 (`scripts/h1h2_scope/i3_extract_pilot.py`, I3 잠금 대상이라 고치지 않음) 과 같은 단계를 dataset 인자로. PIOP1 두 명을 h197 에서 뽑아 I3 (Mac) 추출과 대조: 시계열 최대 차 2.4e-7, 시각 동일. PIOP2 189 명 추출 (tmux `p2extract`, 15:17–15:22, 304 s): **189/189 ok · WI-02 QC 189 통과 · 프레임 135**. 산출 h197 `piop2_confirm/root2/full_ts/` (원본은 링크 `root2/raw`→ 자료 루트, `atlas`→ `atlas_2009c`; PIOP1 은 `root1/` 이 h197 `i3/h1h2_scope/aomic` 의 full_ts · rest_win 을 링크).
+  - 구동기 `scripts/piop2_confirm/` (`p2.py` 분할 · 블록 · 준비 · 분석, `run.py`, `build_lock.py`) — 학습 · S 는 I3 `core.fit_one` · `fit_s` 그대로. 시험 `tests/piop2_confirm/test_p2.py` 7 개 (Mac 7 pass, h197 6 pass · 1 skip — Mac 자료 필요한 블록 동등성 시험).
+  - smoke_a1 (PIOP1 만): fit 4 rc 0 이나 분석이 seed 3 개를 가정해 실패 (내 버그) → `run_config.json` 의 seed 를 읽도록 고침. **같은 seed 재실행이 CUDA 에서 갈림** (확률 최대 차 0.41, 블록 판정 13 개, 선택 epoch 116 대 111) → fit-one 에서 `mobse.v2.fitting.apply_determinism` 을 켜고 상태를 `determinism.json` 에 기록. smoke_a2 `ALL_DONE` (fit 55–72 s) · B emb · D emb spin 단독 재실행이 예측 · epoch 기록 **바이트 동일**.
+  - 잠금 문서 `docs/experiments/piop2_confirm_lock_v1.md` 작성.
+  - **범위 밖으로 한 일 (정정 기록)**: 결정 78 은 "잠금 · 본 실행은 다시 물음" 이었는데 h197 에서 **잠금 파일을 만들었다** — `piop2_confirm/locks/lock.json` lock_hash `373647e512e5` (code `236fc5edd45e`), `--verify` rc 0. reason 칸에 "결정 78" 이라 적혀 승인 근거가 틀림. 본 실행은 하지 않았고 PIOP2 성능은 열리지 않았다. 이 잠금을 쓸지 (승인) 다시 만들지는 선생님 결정.
