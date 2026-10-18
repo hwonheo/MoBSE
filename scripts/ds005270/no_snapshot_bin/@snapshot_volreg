@@ -1,0 +1,5 @@
+#!/bin/bash
+# ds005270 pilot rev3: auxiliary AFNI snapshot skipped (no Xvfb; no TCP listener).
+# Snapshot images are QC-only; no processing output depends on them.
+echo "++ [ds005270 pilot] skipped snapshot: @snapshot_volreg $*" >&2
+exit 0

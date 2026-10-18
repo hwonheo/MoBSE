@@ -1,0 +1,188 @@
+{
+  "protocol_version": "ds005270_protocol_v1",
+  "locked_date_kst": "2026-10-17",
+  "status": "protocol fixed before any performance access; this file approves no model training/evaluation, no full-cohort processing",
+  "source_protocol": {
+    "file": "ds005270_audit_2026-10-17/PROTOCOL.md (Codex task-7 audit folder)",
+    "sha256": "8052977f79b8522a6c4b076f08bbaa9ef0d8f7fbb449aed3a82b3055153cbc01",
+    "audit_files_sha256": {
+      "validation.json": "1e732ead45cfaabd2086ef36cbf3804ecbdd8a167064673187ea517e9e7a5bb6",
+      "subject_inventory.csv": "05a32491c22b70c8e4d65bce53c94e9162d8adb9bc201a6b500bb057b5d40e82",
+      "events.json": "ed2f4f03af3460f74a63c9064facab8895892174e4a048e22d9a38ce1540653b",
+      "summary.json": "5939c1a0257f540eda4e2efa02eed36046dcbe4c5493578a89b78bff2bf49499"
+    },
+    "user_approval": "ok 권장안대로 진행해 (2026-10-17, relayed)"
+  },
+  "dataset": {
+    "id": "ds005270",
+    "version": "1.0.0",
+    "commit": "5690e4a22132ca79ff6d7e76b381f45f3309defd",
+    "raw_root_rel": "data/openneuro/ds005270/1.0.0",
+    "download_verification_rel": "data/openneuro/ds005270/1.0.0/_download_provenance/verification.json",
+    "download_verification": {"files": 2990, "bytes": 43906931656, "missing": 0, "all_sha256_verified": true}
+  },
+  "cohort": {
+    "n_total": 158,
+    "primary_exclusions": [
+      {"subject": "sub-080", "reason": "n-back events 285 rows (expected 294; 9 rows short inside blocks)", "rule": "R1_events_incomplete", "source": "audit events.json", "rule_version": "ds005270_protocol_v1", "raw_deleted": false}
+    ],
+    "n_primary_candidates": 157,
+    "not_exclusion_reasons": ["missing rest", "missing DWI", "missing task-switch", "missing fieldmap"]
+  },
+  "task": {
+    "name": "nbk",
+    "conditions": ["ZeroBack", "OneBack", "TwoBack"],
+    "labels": {"ZeroBack": 0, "OneBack": 1, "TwoBack": 2},
+    "condition_of_row": "prefix of trial_type before the first underscore",
+    "orders_audit_n_after_exclusion": {"OneBack>TwoBack>ZeroBack": 27, "ZeroBack>OneBack>TwoBack": 31, "TwoBack>ZeroBack>OneBack": 18, "TwoBack>OneBack>ZeroBack": 27, "ZeroBack>TwoBack>OneBack": 28, "OneBack>ZeroBack>TwoBack": 26}
+  },
+  "windows": {
+    "tr_s": 2.0,
+    "n_volumes": 266,
+    "dummy_volumes_removed": 0,
+    "time_origin": "first stored volume acquired at t=0 s; event onsets used as given; slice timing corrected to reference 0 s (3dTshift -tzero 0)",
+    "B": "first recorded onset of the condition",
+    "E": "max(onset + duration) of the condition",
+    "main": {"start_buffer_s": 10, "end_buffer_s": 6},
+    "sensitivity": {"start_buffer_s": 16, "end_buffer_s": 10},
+    "s0_rule": "s0 = 2 * ceil((B + start_buffer) / 2)",
+    "window_rule": "[s0 + 30k, s0 + 30(k+1)), k = 0..3; must satisfy s0 + 120 <= E - end_buffer",
+    "n_windows_per_condition": 4,
+    "window_s": 30,
+    "frames_per_window": 15,
+    "volume_index_rule": "first volume index = s0 / 2 + 15k; 15 consecutive volumes",
+    "no_cue_interval_used": true,
+    "no_interpolation_or_splicing": true
+  },
+  "features_spec_not_executed": {
+    "rois": 100,
+    "fullts": "15 x 100 flattened in time order (1,500)",
+    "fc": "Pearson over the 15 frames, upper triangle 4,950, clip +-(1-1e-6), Fisher z; window demeaning only inside FC",
+    "mean": "ROI mean over 15 frames (100)",
+    "mean_var": "ROI mean (100) + sample SD ddof=1 (100)",
+    "no_window_zscore": true,
+    "non_finite_or_zero_variance": "QC failure, never silently replaced"
+  },
+  "model_spec_not_executed": {
+    "estimator": "multinomial L2 logistic regression (scikit-learn LogisticRegression)",
+    "solver": "lbfgs",
+    "tol": 1e-6,
+    "max_iter": 10000,
+    "C_grid": [0.001, 0.01, 0.1, 1, 10, 100],
+    "seed": 20261017,
+    "scaler": "per-feature mean/SD fitted on the training fold only; zero-variance training features dropped with the same mask applied to validation/test",
+    "convergence_failures": "counted and reported per fold; not silently retried",
+    "class_weight": "none (sample weights below)"
+  },
+  "evaluation_spec_not_executed": {
+    "outer": "6 folds, leave-one-order-out: all persons, conditions, windows of one order held out",
+    "inner": "5 folds, leave-one-order-out within the outer-training orders",
+    "unit": "person",
+    "inner_score": "per-person 3-block accuracy, averaged within order, orders equally weighted",
+    "C_selection": "max inner score; ties within 1e-12 -> smaller C",
+    "refit": "final C refit on all outer-training persons; test predicted once",
+    "sample_weight": "w(window) proportional to 1 / (n_order x 3 x m_person_condition); orders, persons within order, conditions within person, windows within condition equal",
+    "aggregation": "mean window probabilities within the condition block, argmax; ties broken 0 -> 1 -> 2",
+    "secondary_window_metric": "window-level accuracy averaged within person first",
+    "primary_endpoint": "per-person proportion of the 3 blocks correct (= macro recall)",
+    "primary_estimand": "Delta = fullTS - FC: mean over the 6 orders (equal weight) of within-order person means, paired by person",
+    "secondary_estimand": "person-count-weighted mean paired difference",
+    "ci": "stratified (within order) paired person bootstrap, 10,000 resamples, seed 20261017, percentile 95%",
+    "reading": {"lower_gt_0": "statistically superior", "lower_gt_delta": "exceeds the practical threshold", "ci_includes_0": "no difference detected; not equivalence"},
+    "delta": 0.02,
+    "delta_note": "absolute accuracy 0.02; operational design threshold, not a clinically or cognitively validated threshold",
+    "single_primary_comparison": "fullTS - FC; mean and mean+SD baselines descriptive only",
+    "position_confound_note": "leave-one-order-out reduces but does not remove block-position effects; no claim of order-invariant load or stimulus generalisation"
+  },
+  "preprocessing": {
+    "host": "Mac (arm64) CPU only",
+    "threads": {"OMP_NUM_THREADS": 4, "OMP_NUM_THREADS_note": "rev4: 4 from sub-002 on; sub-001 steps 01-02 ran with 2 under rev3", "OPENBLAS_NUM_THREADS": 2, "MKL_NUM_THREADS": 2, "VECLIB_MAXIMUM_THREADS": 2, "NUMEXPR_NUM_THREADS": 2},
+    "concurrency": "one subject at a time, sequential",
+    "software": {
+      "afni": "AFNI_26.2.07 (macos_13_ARM), afni_proc.py 8.08, sswarper2 3.0",
+      "python_for_extraction": "MoBSE .venv: nibabel 5.4.2, nilearn 0.13.1, numpy 2.4.3, scipy 1.17.1, matplotlib 3.10.8",
+      "not_used": ["fMRIPrep", "FSL", "ANTs", "FreeSurfer", "Docker"]
+    },
+    "template": {
+      "file": "MNI152_2009_template_SSW.nii.gz (AFNI abin)",
+      "afni_space": "MNI_2009c_asym",
+      "equivalent": "MNI152NLin2009cAsym (1 mm grid origin -96,-132,-78 identical to TemplateFlow res-01)"
+    },
+    "atlas": {
+      "name": "Schaefer2018 100 parcels 7 networks",
+      "file_rel": "data/h1h2_scope/aomic/atlas/tpl-MNI152NLin2009cAsym_res-02_atlas-Schaefer2018_desc-100Parcels7Networks_dseg.nii.gz",
+      "sha256": "7221cee56943599833dc2b98aac56626584e9c0067f28c768b46f7b7ff7408ac",
+      "lut_rel": "data/h1h2_scope/aomic/atlas/tpl-MNI152NLin2009cAsym_atlas-Schaefer2018_desc-100Parcels7Networks_dseg.tsv",
+      "lut_sha256": "a81a63f67fdaffd7b2b4b6c7df05f75b16899cba70100f464bbccba0a257cc6c",
+      "space": "MNI152NLin2009cAsym, 2 mm, 97x115x97",
+      "same_file_as": "MoBSE redesign_v1 atlas_spec_2009c.json (sha256 identical)",
+      "not_used": "Schaefer FSLMNI152 (= MNI152NLin6Asym) files in ~/nilearn_data; different template space"
+    },
+    "anat": "sswarper2 -input T1w -base MNI152_2009_template_SSW.nii.gz -subid <sub> -odir <work>/anat (defaults: minp 11, unifize on, no deoblique)",
+    "func_afni_proc": {
+      "blocks": ["tshift", "align", "tlrc", "volreg", "mask"],
+      "tcat_remove_first_trs": 0,
+      "tshift": "3dTshift -tzero 0 -tpattern @<SliceTiming from the subject's JSON, seconds> (afni_proc default interpolation)",
+      "align": "-align_unifize_epi local; align_epi_anat.py -cost lpc+ZZ -giant_move -check_flip; anat = sswarper2 anatSS (no skull)",
+      "tlrc": "-tlrc_base MNI152_2009_template_SSW.nii.gz -tlrc_NL_warp -tlrc_NL_warped_dsets anatQQ, aff12, WARP from sswarper2",
+      "volreg": "-volreg_align_to MIN_OUTLIER -volreg_align_e2a -volreg_tlrc_warp -volreg_warp_master <atlas 2 mm grid> -volreg_warp_final_interp wsinc5 -volreg_compute_tsnr yes",
+      "mask": "-mask_epi_anat yes -mask_segment_anat yes -mask_segment_erode yes",
+      "html_review": "none (APQC needs matplotlib/flask in AFNI python; not installed)"
+    },
+    "distortion_correction": "none: no fieldmap or reverse phase-encoding EPI in the dataset; no synthetic or fieldmap-less correction applied (limitation)",
+    "not_applied": ["despike", "spatial smoothing", "band-pass / temporal filtering", "global signal regression", "censoring inside regression", "task regressors", "per-window z-score", "label-dependent normalisation"],
+    "roi_extraction": "mean over voxels in (atlas ROI AND EPI full_mask) of the volreg output on the atlas grid",
+    "scaling": "per-ROI percent signal change by run mean: 100 * (x / mean_t(x) - 1)",
+    "nuisance": {
+      "regressors": ["intercept", "linear trend in volume index", "motion 6 (dfile_rall: roll, pitch, yaw, dS, dL, dP)", "motion derivatives 6 (backward difference, first row 0)", "squares of the 12 above", "WM mean (eroded 3dSeg WM mask, PSC)", "CSF mean (eroded 3dSeg CSF mask, PSC)"],
+      "n_regressors": 28,
+      "fit": "ordinary least squares over the full run (266 volumes) per subject; offline analysis that uses future time points",
+      "output": "residual ROI time series 266 x 100"
+    },
+    "offline_limitation": "run-wide slice timing, motion, registration, scaling and nuisance estimation use the whole 532 s run; results do not support a claim that 30 s of acquisition suffices"
+  },
+  "qc": {
+    "Q1_inputs": "T1w and n-back present and readable; sha256 equals download verification; TR 2 s; 266 volumes; events with 3 complete conditions (98 rows each); sub-080 excluded (R1)",
+    "Q2_motion": {
+      "fd": "Power FD, rotations in degrees converted to mm on a 50 mm sphere, from dfile_rall; FD_0 = 0",
+      "mean_fd_over": "volumes 1..265",
+      "exclude_if_mean_fd_gt_mm": 0.3,
+      "exclude_if_fraction_fd_gt_0p5_mm_exceeds": 0.20
+    },
+    "Q3_windows": {
+      "spike": "volume t with FD_t > 0.5 mm",
+      "flagged_volumes": "{t-1, t, t+1} for each spike t",
+      "window_excluded_if": "any flagged volume inside the 15 window volumes",
+      "min_windows_per_condition": 3,
+      "same_windows_for_all_models": true
+    },
+    "Q4_registration": {
+      "pipeline": "all steps rc = 0 and expected outputs present",
+      "lr_flip": "align_epi_anat -check_flip must not prefer the flipped EPI",
+      "visual_checklist": ["V1 no left-right flip", "V2 anatQQ outline, ventricles and major sulci on the template without gross misalignment", "V3 mean EPI in template space: brain edge and ventricles on the template without gross shift; expected susceptibility dropout (orbitofrontal / inferior temporal) noted, not counted as registration failure", "V4 no cortical cut-off by the EPI slab beyond what coverage reports"],
+      "descriptive_numbers": ["anatQQ vs template Pearson r inside template brain mask", "mean EPI vs template Pearson r inside template brain mask (2 mm)", "Dice(EPI full_mask, template brain mask at 2 mm)"]
+    },
+    "Q5_roi": {
+      "coverage": "fraction of atlas ROI voxels inside EPI full_mask (2 mm atlas grid)",
+      "fail_if_any_roi_coverage_lt": 0.90,
+      "fail_if_roi_series_non_finite_or_zero_variance": true,
+      "interpretation": "subject-level common exclusion (same subjects for all models); rule applied as written, not tuned on the pilot"
+    },
+    "Q6_nuisance_masks": "eroded WM and CSF masks non-empty and their series finite with variance > 0; voxel counts reported",
+    "Q7_descriptive_only": ["DVARS (RMS of backward-difference voxel PSC inside full_mask)", "tSNR (mean / SD after linear detrend, median in full_mask and per ROI)", "volume-0 to run-median global intensity ratio", "registration numbers in Q4"],
+    "stop_rule": "before training: stop and review if any order has n < 10 or more than 20% of the 157 candidates are excluded",
+    "blinding": "QC decided before and without any classification output; no classification is run in this protocol step",
+    "exclusion_table_fields": ["subject", "reason", "source", "rule_version"]
+  },
+  "pilot": {
+    "subjects": ["sub-001", "sub-002", "sub-003", "sub-004", "sub-006", "sub-013"],
+    "selection_rule": "lowest subject ID within each of the 6 block orders (non-performance; fixed before preprocessing)",
+    "orders": {"sub-001": "OneBack>TwoBack>ZeroBack", "sub-002": "ZeroBack>OneBack>TwoBack", "sub-003": "TwoBack>ZeroBack>OneBack", "sub-004": "TwoBack>OneBack>ZeroBack", "sub-006": "ZeroBack>TwoBack>OneBack", "sub-013": "OneBack>ZeroBack>TwoBack"},
+    "inputs_per_subject": ["anat/<sub>_T1w.nii.gz", "func/<sub>_task-nbk_bold.nii.gz", "func/<sub>_task-nbk_bold.json", "func/<sub>_task-nbk_events.tsv"],
+    "not_processed": ["rest", "go/no-go", "task-switch", "FLAIR", "DWI"],
+    "work_root_rel": "data/openneuro/ds005270_work/afni_nbk_pilot_20261017",
+    "derivatives_root_rel": "data/openneuro/ds005270_derivatives/afni_nbk_pilot_20261017",
+    "feasibility_success": "pipeline rc = 0 and complete outputs for 6/6; QC computed for 6/6",
+    "full_processing_recommendation_rule": "recommend full 157-subject processing (separate approval) only if feasibility succeeds and no systematic registration or coverage failure appears; otherwise report the failing step and stop"
+  }
+}
