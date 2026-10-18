@@ -1,0 +1,713 @@
+{
+  "reviewed_at_utc": "2026-10-18T23:04:10.764686+00:00",
+  "scope": "4 subjects, 25 existing low-mask ROIs; selected 3-axis maximum ROI-area EPI/T1 slices and entire 266-frame ROI traces; native fMRIPrep coreg/normalization/SDC report states",
+  "reviewer": "Codex image inspection; not an exhaustive expert whole-volume certification",
+  "interpretation": "Observed attenuation and boundary differences are distinct from acquired FOV. Susceptibility-like appearance is not a proven etiology. Finite/nonzero masked signals do not establish whole-ROI representativeness.",
+  "human_decision_remaining": "Accept documented local attenuation/partial ROI representation for these four Schaefer100 inputs? Focus: ROI33 in all four, especially sub-002/sub-004; sub-004 ROI91 local boundary uncertainty.",
+  "new_thresholds": false,
+  "roi_changes": false,
+  "preprocessing_rerun": false,
+  "cohort_or_training_run": false,
+  "release_ready": false,
+  "release_reasons": [
+    "scientific acceptance of documented partial ROI limitations not recorded",
+    "full-cohort/training execution not authorized"
+  ],
+  "subjects": [
+    {
+      "subject": "sub-001",
+      "review_status": "targeted_visual_review_complete",
+      "recommendation": "retain_with_documented_local_signal_and_partial_ROI_limitations",
+      "final_inclusion_approved": false,
+      "gross_registration_failure_observed": false,
+      "actual_fov_deficit_observed": false,
+      "main_windows": {
+        "ZeroBack": 4,
+        "OneBack": 4,
+        "TwoBack": 4
+      },
+      "rois": [
+        {
+          "roi": 31,
+          "name": "7Networks_LH_Limbic_OFC_1",
+          "category": "signal_and_boundary",
+          "observation": "안와전두 하부·후방의 EPI 감쇠와 하부 마스크 경계 차이. 원시 시계열의 느린 추세는 잔차에서 감소.",
+          "mask_fraction": 0.8609929078014185,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 437.33183772990856,
+          "raw_sd_ddof0": 7.942887742979932,
+          "raw_variance_ddof0": 63.089465697580835,
+          "inmask_detrended_tsnr_median": 14.236057970551988,
+          "residual_sd_psc_ddof0": 0.5622310183977107,
+          "residual_variance_psc_squared_ddof0": 0.31610371804852694,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-001_roi_panel_1.png",
+          "figure_row_1based": 1,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 32,
+          "name": "7Networks_LH_Limbic_TempPole_1",
+          "category": "signal_and_boundary",
+          "observation": "측두극 하연의 경계 차이와 부분 감쇠. ROI 전체 소실은 아님.",
+          "mask_fraction": 0.8778542950344328,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 476.67164188593904,
+          "raw_sd_ddof0": 7.849333279652773,
+          "raw_variance_ddof0": 61.612032935064555,
+          "inmask_detrended_tsnr_median": 15.216614207611503,
+          "residual_sd_psc_ddof0": 0.4191735535522717,
+          "residual_variance_psc_squared_ddof0": 0.1757064679976392,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-001_roi_panel_1.png",
+          "figure_row_1based": 2,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 33,
+          "name": "7Networks_LH_Limbic_TempPole_2",
+          "category": "signal_and_boundary",
+          "observation": "T1 조직이 보이는 하외측 부위에서 뚜렷한 EPI 감쇠. ROI 일부가 기능 마스크 밖으로 연장.",
+          "mask_fraction": 0.7296839729119639,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 454.85170204251546,
+          "raw_sd_ddof0": 3.3564484054055668,
+          "raw_variance_ddof0": 11.265745898149572,
+          "inmask_detrended_tsnr_median": 18.7371630325151,
+          "residual_sd_psc_ddof0": 0.374402960984894,
+          "residual_variance_psc_squared_ddof0": 0.14017757719425605,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-001_roi_panel_1.png",
+          "figure_row_1based": 3,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 79,
+          "name": "7Networks_RH_Limbic_OFC_1",
+          "category": "signal_and_boundary",
+          "observation": "기저부 EPI 감쇠와 하부 경계 차이.",
+          "mask_fraction": 0.7984150569588906,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 377.3311359778923,
+          "raw_sd_ddof0": 4.924314920529042,
+          "raw_variance_ddof0": 24.248877436544948,
+          "inmask_detrended_tsnr_median": 14.773146461043307,
+          "residual_sd_psc_ddof0": 0.42321993036623684,
+          "residual_variance_psc_squared_ddof0": 0.17911510945920237,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-001_roi_panel_2.png",
+          "figure_row_1based": 1,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 80,
+          "name": "7Networks_RH_Limbic_TempPole_1",
+          "category": "boundary_with_limited_attenuation",
+          "observation": "하연의 경계 차이·제한적 감쇠. ROI 대부분에는 신호가 보임.",
+          "mask_fraction": 0.8475323149236192,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 469.0061839442961,
+          "raw_sd_ddof0": 3.375577388048707,
+          "raw_variance_ddof0": 11.394522702705732,
+          "inmask_detrended_tsnr_median": 19.248888043278004,
+          "residual_sd_psc_ddof0": 0.3288059085204716,
+          "residual_variance_psc_squared_ddof0": 0.10811332547797273,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-001_roi_panel_2.png",
+          "figure_row_1based": 2,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 91,
+          "name": "7Networks_RH_Default_Temp_1",
+          "category": "boundary_predominant",
+          "observation": "외측·하부 주변부의 atlas/mask 경계 차이. 검토 절편에서 뚜렷한 내부 신호 공백은 없음.",
+          "mask_fraction": 0.7647345348270823,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 537.5816860027942,
+          "raw_sd_ddof0": 3.5946222005299107,
+          "raw_variance_ddof0": 12.921308764542497,
+          "inmask_detrended_tsnr_median": 26.10410170588643,
+          "residual_sd_psc_ddof0": 0.3045282358008513,
+          "residual_variance_psc_squared_ddof0": 0.0927374463999789,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-001_roi_panel_2.png",
+          "figure_row_1based": 3,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        }
+      ]
+    },
+    {
+      "subject": "sub-002",
+      "review_status": "targeted_visual_review_complete",
+      "recommendation": "retain_with_documented_local_signal_and_partial_ROI_limitations",
+      "final_inclusion_approved": false,
+      "gross_registration_failure_observed": false,
+      "actual_fov_deficit_observed": false,
+      "main_windows": {
+        "ZeroBack": 4,
+        "OneBack": 4,
+        "TwoBack": 4
+      },
+      "rois": [
+        {
+          "roi": 31,
+          "name": "7Networks_LH_Limbic_OFC_1",
+          "category": "signal_and_boundary",
+          "observation": "안와전두 하부 EPI 감쇠와 경계 차이.",
+          "mask_fraction": 0.7560283687943262,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 313.3776832543598,
+          "raw_sd_ddof0": 3.8877400324356457,
+          "raw_variance_ddof0": 15.114522559802715,
+          "inmask_detrended_tsnr_median": 12.951955737388994,
+          "residual_sd_psc_ddof0": 0.5847263223532134,
+          "residual_variance_psc_squared_ddof0": 0.3419048720527141,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-002_roi_panel_1.png",
+          "figure_row_1based": 1,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 32,
+          "name": "7Networks_LH_Limbic_TempPole_1",
+          "category": "signal_and_boundary",
+          "observation": "하부 측두극 감쇠와 안쪽으로 들어온 기능 마스크 경계.",
+          "mask_fraction": 0.6444363899963755,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 335.71753019664214,
+          "raw_sd_ddof0": 3.9455196228370295,
+          "raw_variance_ddof0": 15.567125094192056,
+          "inmask_detrended_tsnr_median": 13.685860441763644,
+          "residual_sd_psc_ddof0": 0.55030801223824,
+          "residual_variance_psc_squared_ddof0": 0.3028389083336029,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-002_roi_panel_1.png",
+          "figure_row_1based": 2,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 33,
+          "name": "7Networks_LH_Limbic_TempPole_2",
+          "category": "signal_and_boundary",
+          "observation": "넓은 하외측 감쇠와 부분 마스크 포함. 354초 원시 신호 급변은 FD 표시 및 주 창 밖임을 대조.",
+          "mask_fraction": 0.5519187358916479,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 235.06213494800406,
+          "raw_sd_ddof0": 4.216088218706442,
+          "raw_variance_ddof0": 17.77539986791526,
+          "inmask_detrended_tsnr_median": 11.64734900381038,
+          "residual_sd_psc_ddof0": 0.6171380776739168,
+          "residual_variance_psc_squared_ddof0": 0.3808594069150574,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-002_roi_panel_1.png",
+          "figure_row_1based": 3,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 79,
+          "name": "7Networks_RH_Limbic_OFC_1",
+          "category": "signal_and_boundary",
+          "observation": "안와전두 하부 EPI 감쇠와 경계 차이.",
+          "mask_fraction": 0.8380386329866271,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 303.84242614686997,
+          "raw_sd_ddof0": 4.085659120249011,
+          "raw_variance_ddof0": 16.692610446873925,
+          "inmask_detrended_tsnr_median": 13.316967355428464,
+          "residual_sd_psc_ddof0": 0.46435700182111767,
+          "residual_variance_psc_squared_ddof0": 0.21562742514029748,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-002_roi_panel_2.png",
+          "figure_row_1based": 1,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 80,
+          "name": "7Networks_RH_Limbic_TempPole_1",
+          "category": "signal_and_boundary",
+          "observation": "측두극 하연의 감쇠와 경계 차이.",
+          "mask_fraction": 0.7435370152761457,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 316.76154350017686,
+          "raw_sd_ddof0": 2.839884742329541,
+          "raw_variance_ddof0": 8.064945349716124,
+          "inmask_detrended_tsnr_median": 18.027796653905707,
+          "residual_sd_psc_ddof0": 0.38934388665019487,
+          "residual_variance_psc_squared_ddof0": 0.1515886620718798,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-002_roi_panel_2.png",
+          "figure_row_1based": 2,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 91,
+          "name": "7Networks_RH_Default_Temp_1",
+          "category": "boundary_predominant",
+          "observation": "주로 외측·하연 경계 차이. 내부 신호 유지. 공통 원시 급변이 잔차에서는 감소.",
+          "mask_fraction": 0.867510959571359,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 406.08978461131977,
+          "raw_sd_ddof0": 2.2253174815959595,
+          "raw_variance_ddof0": 4.952037893896584,
+          "inmask_detrended_tsnr_median": 27.86102519916691,
+          "residual_sd_psc_ddof0": 0.3126321017127603,
+          "residual_variance_psc_squared_ddof0": 0.0977388310213377,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-002_roi_panel_2.png",
+          "figure_row_1based": 3,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        }
+      ]
+    },
+    {
+      "subject": "sub-004",
+      "review_status": "targeted_visual_review_complete",
+      "recommendation": "retain_with_documented_local_signal_and_partial_ROI_limitations",
+      "final_inclusion_approved": false,
+      "gross_registration_failure_observed": false,
+      "actual_fov_deficit_observed": false,
+      "main_windows": {
+        "ZeroBack": 4,
+        "OneBack": 4,
+        "TwoBack": 4
+      },
+      "rois": [
+        {
+          "roi": 4,
+          "name": "7Networks_LH_Vis_4",
+          "category": "boundary_predominant",
+          "observation": "후방 atlas/mask 주변부 경계 차이. 조직과 신호가 있으며 sub-003과 같은 후방 획득 FOV 절단은 아님. 528초 급변은 주 창 밖.",
+          "mask_fraction": 0.8376865671641791,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 346.9696257424914,
+          "raw_sd_ddof0": 4.96869831093223,
+          "raw_variance_ddof0": 24.687962905060797,
+          "inmask_detrended_tsnr_median": 27.396211492813684,
+          "residual_sd_psc_ddof0": 0.4921827492320878,
+          "residual_variance_psc_squared_ddof0": 0.24224385864165623,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-004_roi_panel_1.png",
+          "figure_row_1based": 1,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 31,
+          "name": "7Networks_LH_Limbic_OFC_1",
+          "category": "signal_and_boundary",
+          "observation": "안와전두 하부의 뚜렷한 감쇠와 경계 차이. 528초 급변은 주 창 밖.",
+          "mask_fraction": 0.7106382978723405,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 312.76748343598865,
+          "raw_sd_ddof0": 3.059516312225302,
+          "raw_variance_ddof0": 9.360640064772712,
+          "inmask_detrended_tsnr_median": 16.675239334896247,
+          "residual_sd_psc_ddof0": 0.45429493693408995,
+          "residual_variance_psc_squared_ddof0": 0.20638388972394878,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-004_roi_panel_1.png",
+          "figure_row_1based": 2,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 32,
+          "name": "7Networks_LH_Limbic_TempPole_1",
+          "category": "boundary_with_limited_attenuation",
+          "observation": "측두극 하연의 경계 차이 및 부분 감쇠. 내부 신호 유지.",
+          "mask_fraction": 0.7984777093149692,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 397.89016479985736,
+          "raw_sd_ddof0": 3.106594338980009,
+          "raw_variance_ddof0": 9.650928386982638,
+          "inmask_detrended_tsnr_median": 24.667620237876093,
+          "residual_sd_psc_ddof0": 0.3396672738965035,
+          "residual_variance_psc_squared_ddof0": 0.11537385695628231,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-004_roi_panel_1.png",
+          "figure_row_1based": 3,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 33,
+          "name": "7Networks_LH_Limbic_TempPole_2",
+          "category": "signal_and_boundary",
+          "observation": "넓은 하외측 감쇠와 안쪽 마스크 경계. ROI의 약 절반만 평균에 포함되어 전체 ROI 대표성 제한이 가장 큼.",
+          "mask_fraction": 0.505079006772009,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 306.0708974836108,
+          "raw_sd_ddof0": 5.0633407586788,
+          "raw_variance_ddof0": 25.637419638498006,
+          "inmask_detrended_tsnr_median": 18.934952655598952,
+          "residual_sd_psc_ddof0": 0.3936925767011859,
+          "residual_variance_psc_squared_ddof0": 0.15499384494961915,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-004_roi_panel_2.png",
+          "figure_row_1based": 1,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 79,
+          "name": "7Networks_RH_Limbic_OFC_1",
+          "category": "signal_and_boundary",
+          "observation": "안와전두 기저부의 뚜렷한 감쇠와 경계 차이.",
+          "mask_fraction": 0.6592372461614661,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 275.8665446801952,
+          "raw_sd_ddof0": 3.384192116485535,
+          "raw_variance_ddof0": 11.452756281282845,
+          "inmask_detrended_tsnr_median": 17.935730468374388,
+          "residual_sd_psc_ddof0": 0.553224354968669,
+          "residual_variance_psc_squared_ddof0": 0.3060571869304998,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-004_roi_panel_2.png",
+          "figure_row_1based": 2,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 80,
+          "name": "7Networks_RH_Limbic_TempPole_1",
+          "category": "boundary_predominant",
+          "observation": "하연 경계 차이. ROI 대부분의 조직·신호 유지.",
+          "mask_fraction": 0.814042303172738,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 388.8968895093007,
+          "raw_sd_ddof0": 2.228587247523325,
+          "raw_variance_ddof0": 4.96660111982359,
+          "inmask_detrended_tsnr_median": 25.256781691584862,
+          "residual_sd_psc_ddof0": 0.3545521157454663,
+          "residual_variance_psc_squared_ddof0": 0.12570720277958652,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-004_roi_panel_2.png",
+          "figure_row_1based": 3,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 91,
+          "name": "7Networks_RH_Default_Temp_1",
+          "category": "boundary_local_deformation_uncertain",
+          "observation": "비교 대상보다 큰 외측·하연 경계 불일치. 국소 변형과 감쇠의 기여를 이 절편만으로 분리할 수 없음; 전역 정합 실패로 판정하지 않음.",
+          "mask_fraction": 0.6902094495859717,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 363.69213297253003,
+          "raw_sd_ddof0": 2.87182983665245,
+          "raw_variance_ddof0": 8.247406610687237,
+          "inmask_detrended_tsnr_median": 25.107971515042177,
+          "residual_sd_psc_ddof0": 0.33373485621843785,
+          "residual_variance_psc_squared_ddof0": 0.11137895425514138,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-004_roi_panel_3.png",
+          "figure_row_1based": 1,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        }
+      ]
+    },
+    {
+      "subject": "sub-013",
+      "review_status": "targeted_visual_review_complete",
+      "recommendation": "retain_with_documented_local_signal_and_partial_ROI_limitations",
+      "final_inclusion_approved": false,
+      "gross_registration_failure_observed": false,
+      "actual_fov_deficit_observed": false,
+      "main_windows": {
+        "ZeroBack": 4,
+        "OneBack": 4,
+        "TwoBack": 4
+      },
+      "rois": [
+        {
+          "roi": 31,
+          "name": "7Networks_LH_Limbic_OFC_1",
+          "category": "signal_and_boundary",
+          "observation": "마스크 내부 tSNR과 별개로 안와전두 기저부의 국소 EPI 감쇠가 보임.",
+          "mask_fraction": 0.7981087470449173,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 510.1163059026321,
+          "raw_sd_ddof0": 3.228762887933524,
+          "raw_variance_ddof0": 10.424909786496832,
+          "inmask_detrended_tsnr_median": 28.631735108675464,
+          "residual_sd_psc_ddof0": 0.44370735258949034,
+          "residual_variance_psc_squared_ddof0": 0.1968762147419743,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-013_roi_panel_1.png",
+          "figure_row_1based": 1,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 32,
+          "name": "7Networks_LH_Limbic_TempPole_1",
+          "category": "boundary_with_limited_attenuation",
+          "observation": "측두극 하연 경계 차이 및 부분 감쇠. 내부 신호 유지.",
+          "mask_fraction": 0.8698803914461761,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 526.9249249624178,
+          "raw_sd_ddof0": 3.1875440668837443,
+          "raw_variance_ddof0": 10.16043717832576,
+          "inmask_detrended_tsnr_median": 29.940021132276428,
+          "residual_sd_psc_ddof0": 0.36990540491602625,
+          "residual_variance_psc_squared_ddof0": 0.13683000858608935,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-013_roi_panel_1.png",
+          "figure_row_1based": 2,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 33,
+          "name": "7Networks_LH_Limbic_TempPole_2",
+          "category": "signal_and_boundary",
+          "observation": "T1 조직이 남아 있는 하부의 넓은 EPI 감쇠. 부분 ROI 대표성 제한.",
+          "mask_fraction": 0.6151241534988713,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 413.99713763469657,
+          "raw_sd_ddof0": 1.8964044384187961,
+          "raw_variance_ddof0": 3.5963497940545097,
+          "inmask_detrended_tsnr_median": 23.787373756095924,
+          "residual_sd_psc_ddof0": 0.38011793258298016,
+          "residual_variance_psc_squared_ddof0": 0.14448964267115905,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-013_roi_panel_1.png",
+          "figure_row_1based": 3,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 79,
+          "name": "7Networks_RH_Limbic_OFC_1",
+          "category": "signal_and_boundary",
+          "observation": "안와전두 기저부 국소 감쇠와 경계 차이.",
+          "mask_fraction": 0.7939574046557701,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 517.789139117277,
+          "raw_sd_ddof0": 2.67568458181167,
+          "raw_variance_ddof0": 7.159287981344691,
+          "inmask_detrended_tsnr_median": 35.95154646318426,
+          "residual_sd_psc_ddof0": 0.3240993659987096,
+          "residual_variance_psc_squared_ddof0": 0.10504039904076551,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-013_roi_panel_2.png",
+          "figure_row_1based": 1,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 80,
+          "name": "7Networks_RH_Limbic_TempPole_1",
+          "category": "boundary_predominant",
+          "observation": "측두극 주변부 경계 차이. 내부 신호 유지.",
+          "mask_fraction": 0.868096357226792,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 575.090066805303,
+          "raw_sd_ddof0": 2.52618557021715,
+          "raw_variance_ddof0": 6.381613535173346,
+          "inmask_detrended_tsnr_median": 36.31862393651151,
+          "residual_sd_psc_ddof0": 0.27888632924733514,
+          "residual_variance_psc_squared_ddof0": 0.07777758464105301,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-013_roi_panel_2.png",
+          "figure_row_1based": 2,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        },
+        {
+          "roi": 91,
+          "name": "7Networks_RH_Default_Temp_1",
+          "category": "boundary_predominant",
+          "observation": "얇은 외측·하연 경계 차이. 내부 신호 유지. 시계열에 큰 공통 급변이 두드러지지 않음.",
+          "mask_fraction": 0.8650754992693619,
+          "acquired_fov_allvol": 1.0,
+          "raw_mean_arbitrary_units": 618.212025654742,
+          "raw_sd_ddof0": 1.7554603352038844,
+          "raw_variance_ddof0": 3.0816409884741343,
+          "inmask_detrended_tsnr_median": 43.386806988242924,
+          "residual_sd_psc_ddof0": 0.2570165907191581,
+          "residual_variance_psc_squared_ddof0": 0.06605752790489923,
+          "inmask_nonfinite_values": 0,
+          "inmask_zero_variance_voxels": 0,
+          "figure": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-013_roi_panel_2.png",
+          "figure_row_1based": 3,
+          "registration_failure": "not established; local correspondence uncertainty remains",
+          "actual_fov_deficit": false
+        }
+      ]
+    }
+  ],
+  "transients": [
+    {
+      "subject": "sub-002",
+      "roi": 33,
+      "max_abs_raw_psc_volume": 177,
+      "seconds": 354,
+      "raw_psc": 11.137184283231427,
+      "fd_mm": 1.49823904156107,
+      "flagged": "True",
+      "inside_main_windows": []
+    },
+    {
+      "subject": "sub-004",
+      "roi": 4,
+      "max_abs_raw_psc_volume": 264,
+      "seconds": 528,
+      "raw_psc": -15.998173238144842,
+      "fd_mm": 2.1089921961762084,
+      "flagged": "True",
+      "inside_main_windows": []
+    },
+    {
+      "subject": "sub-004",
+      "roi": 31,
+      "max_abs_raw_psc_volume": 264,
+      "seconds": 528,
+      "raw_psc": 8.231185872570634,
+      "fd_mm": 2.1089921961762084,
+      "flagged": "True",
+      "inside_main_windows": []
+    }
+  ],
+  "evidence_files": [
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_roi_adapter_validation_a1/sub-001/roi_signal_review.tsv",
+      "sha256": "9776a944711bf037a8988f3fe3400a281e2b53ba9270b36d1b14885ab7b2047a"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_pilot6_comparison/sub-001_roi_coverage.tsv",
+      "sha256": "110c33f1df3cbe64049f10c20ac67f81642e12a254192179337b033a7c6f4a15"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_pilot6_comparison/sub-001_volume_validation.json",
+      "sha256": "3fd175fd6d26b568edc35f0f6e684d0c44bf7851c8e2d6994c750986e505450f"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-001_fmriprep_qc_fixed.png",
+      "sha256": "e8b3a981721ff81906792653912dde5bb0f01e9318df9df6bb233a0adfa88225"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-001_roi_panel_1.png",
+      "sha256": "320f44e7ade6eb7e2cc27e63338e0004da092d640ee8975bd72cf458cefa2a70"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-001_roi_panel_2.png",
+      "sha256": "5c5d164955b716305e8e42f60509b569059901381077eabb31876a436c016fc3"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_roi_adapter_validation_a1/sub-002/roi_signal_review.tsv",
+      "sha256": "9cd7415ab41a311d3e4edcec19c76695863dfebfc004c95c90252776c1685fc7"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_pilot6_comparison/sub-002_roi_coverage.tsv",
+      "sha256": "76ee7b37961f42127c86bf7520323c0628871e503f906ef541232eb6742c150b"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_pilot6_comparison/sub-002_volume_validation.json",
+      "sha256": "b174eedc6e0344e2ef1d5723585b67d66105047cfd773698d793856e098a951f"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-002_fmriprep_qc_fixed.png",
+      "sha256": "f627abe9ead91699cb849ae895f23f1090aff7cbc249402b5c2416a192a3418b"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-002_roi_panel_1.png",
+      "sha256": "fd0e7dc252d8b05eb28581e229b92e80cb02dc8cf9df3c4746f87dd6be271060"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-002_roi_panel_2.png",
+      "sha256": "62835289e7cce832a513c13d3b205f01f5a3881f97aa3ec5ef34b67016d968cb"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_roi_adapter_validation_a1/sub-004/roi_signal_review.tsv",
+      "sha256": "04c3b3f93d92d5c0710f9a262ec697d72c05da2ec042406a330901f910dc8eb2"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_pilot6_comparison/sub-004_roi_coverage.tsv",
+      "sha256": "568e4f322d699b61b111048b1f93b147238901b42fd2ee8f544e4bab3cfb055a"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_pilot6_comparison/sub-004_volume_validation.json",
+      "sha256": "3e566cca03060402c98cbd1497082c4414cc6f537a56dddd195b5c86a66ff2de"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-004_fmriprep_qc_fixed.png",
+      "sha256": "c3b4f417099274d60e770bf69e6d56097ce5a0f4a1c74b8cf808d9bdfd08e135"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-004_roi_panel_1.png",
+      "sha256": "c82f4275fdcd51d04fc12fc28c156f736ff57e5dd9fdf5e3088f67fff011c7bd"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-004_roi_panel_2.png",
+      "sha256": "2dd139f0558adefd07d2f6655d7aa9c7fbc34760778125b93c13081954750d28"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-004_roi_panel_3.png",
+      "sha256": "62770a763b4e5f6e358d8f6df86aad39a27971e0c360bddda4e1ffd73a8a9efc"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_roi_adapter_validation_a1/sub-013/roi_signal_review.tsv",
+      "sha256": "0dc2eb438ab0895ddc268a35c488d34b37b29d715a79df9359fe2516b9d05c67"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_pilot6_comparison/sub-013_roi_coverage.tsv",
+      "sha256": "3135b1882bafb4ee9f3e82eee5b2b7072e5b2cb53fa79c7455fbb70f518c99ec"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_pilot6_comparison/sub-013_volume_validation.json",
+      "sha256": "8bc347b3823b3d182588a929a307f6d644cdcc34d0da26364e08efe61848c110"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-013_fmriprep_qc_fixed.png",
+      "sha256": "59ae7cd38cb01c0d7d5da2201403954b5fa30efe2df4ec4dff7f011665f73ca6"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-013_roi_panel_1.png",
+      "sha256": "8590dc84e2629c50bef2e1bbeecf00e4f740f1c8c754a470b545fe8014c49612"
+    },
+    {
+      "path": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_targeted_visual_review_a1/sub-013_roi_panel_2.png",
+      "sha256": "65d51b6e692dd4ba7b706aed18b069c70f38f221ba3ffd767fe40cc5569a8230"
+    }
+  ],
+  "excluded_render_intermediates": "sub-*_fmriprep_qc.png lacked embedded image layers in initial SVG rendering; only *_fixed.png inspected and used as QC evidence."
+}

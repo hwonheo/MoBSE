@@ -1,0 +1,8 @@
+{
+  "subject_status_checks": 6,
+  "unchanged_scientific_sections": 9,
+  "adapter_tests": 4,
+  "base_policy_tests": 5,
+  "failed_checks": 0,
+  "execution_disabled": true
+}

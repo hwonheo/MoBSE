@@ -1,0 +1,750 @@
+{
+  "rule_version": "ds005270_fmriprep_nuisance_v3_20261019",
+  "evidence_kind": "existing pilot measurements plus completed targeted visual review and final pilot inclusion approval; no new imaging analysis",
+  "subjects": [
+    {
+      "subject": "sub-001",
+      "rule_version": "ds005270_fmriprep_nuisance_v3_20261019",
+      "status": "include_with_limitations",
+      "analysis_inclusion_approved": true,
+      "reasons": [
+        "targeted_visual_and_signal_review_completed",
+        "user_approved_pilot_inclusion_with_limitations"
+      ],
+      "metrics": {
+        "motion_pass_existing_rule": true,
+        "windows_pass_existing_rule": true,
+        "mean_fd_mm": 0.17351404809533347,
+        "fraction_fd_gt_0p5": 0.007547169811320755,
+        "main_windows": [
+          4,
+          4,
+          4
+        ],
+        "sensitivity_windows": [
+          4,
+          4,
+          4
+        ],
+        "mask_min": 0.7296839729119639,
+        "mask_n_lt90": 6,
+        "fov_min": 1.0,
+        "fov_n_lt90": 0,
+        "fov_flagged_rois": [],
+        "coverage_action": "review flag only; no automatic subject exclusion",
+        "signal_status": "Direct signal and targeted anatomical review completed; local attenuation and partial ROI representation accepted for this pilot."
+      },
+      "residual_rois": [
+        {
+          "roi": 31,
+          "name": "7Networks_LH_Limbic_OFC_1",
+          "mask_fraction": 0.8609929078014185,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 32,
+          "name": "7Networks_LH_Limbic_TempPole_1",
+          "mask_fraction": 0.8778542950344328,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 33,
+          "name": "7Networks_LH_Limbic_TempPole_2",
+          "mask_fraction": 0.7296839729119639,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 79,
+          "name": "7Networks_RH_Limbic_OFC_1",
+          "mask_fraction": 0.7984150569588906,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 80,
+          "name": "7Networks_RH_Limbic_TempPole_1",
+          "mask_fraction": 0.8475323149236192,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 91,
+          "name": "7Networks_RH_Default_Temp_1",
+          "mask_fraction": 0.7647345348270823,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        }
+      ],
+      "visual_review": {
+        "subject": "sub-001",
+        "scope": "기존 대표 8개 축상/관상 단면 검토 재사용; 전뇌 또는 독립 전문가 QC 아님",
+        "observations": [
+          "대표 단면에서 두 작업 흐름의 큰 전역 이동·회전 이탈은 뚜렷하지 않습니다.",
+          "피질과 하부 경계 차이가 남습니다. ROI 마스크 포함률은 높아졌지만 공통 격자 T1 상관은 낮아 단일 우열을 정하지 않았습니다."
+        ],
+        "acquired_fov_primary_min": 1.0,
+        "acquired_fov_strict_centers_min": 1.0
+      },
+      "registration_metrics": {
+        "AFNI": {
+          "r_T1_template_common_2mm": 0.8589047100974764,
+          "r_EPI_template_common_2mm": -0.04116160111085399,
+          "dice_functional_mask_template": 0.9430050263283868
+        },
+        "fMRIPrep": {
+          "r_T1_template_common_2mm": 0.8090233509270677,
+          "r_EPI_template_common_2mm": 0.015228970215667643,
+          "dice_functional_mask_template": 0.9405642367824419
+        }
+      },
+      "signal_review": "completed_with_accepted_limitations",
+      "raw_and_derivatives_preserved": true,
+      "inclusion_scope": "completed pilot only",
+      "targeted_visual_review": {
+        "status": "complete",
+        "reference": "results/ds005270/qc_adoption_v3/visual_review_completed.json",
+        "reviewed_roi_count": 6,
+        "limitations": [
+          {
+            "roi": 33,
+            "mask_fraction": 0.7296839729119639,
+            "observation": "T1 조직이 보이는 하외측 부위에서 뚜렷한 EPI 감쇠. ROI 일부가 기능 마스크 밖으로 연장."
+          }
+        ],
+        "whole_roi_representativeness_guaranteed": false
+      }
+    },
+    {
+      "subject": "sub-002",
+      "rule_version": "ds005270_fmriprep_nuisance_v3_20261019",
+      "status": "include_with_limitations",
+      "analysis_inclusion_approved": true,
+      "reasons": [
+        "targeted_visual_and_signal_review_completed",
+        "user_approved_pilot_inclusion_with_limitations"
+      ],
+      "metrics": {
+        "motion_pass_existing_rule": true,
+        "windows_pass_existing_rule": true,
+        "mean_fd_mm": 0.12022046030999005,
+        "fraction_fd_gt_0p5": 0.022641509433962263,
+        "main_windows": [
+          4,
+          4,
+          4
+        ],
+        "sensitivity_windows": [
+          4,
+          4,
+          4
+        ],
+        "mask_min": 0.5519187358916479,
+        "mask_n_lt90": 6,
+        "fov_min": 1.0,
+        "fov_n_lt90": 0,
+        "fov_flagged_rois": [],
+        "coverage_action": "review flag only; no automatic subject exclusion",
+        "signal_status": "Direct signal and targeted anatomical review completed; local attenuation and partial ROI representation accepted for this pilot."
+      },
+      "residual_rois": [
+        {
+          "roi": 31,
+          "name": "7Networks_LH_Limbic_OFC_1",
+          "mask_fraction": 0.7560283687943262,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 32,
+          "name": "7Networks_LH_Limbic_TempPole_1",
+          "mask_fraction": 0.6444363899963755,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 33,
+          "name": "7Networks_LH_Limbic_TempPole_2",
+          "mask_fraction": 0.5519187358916479,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 79,
+          "name": "7Networks_RH_Limbic_OFC_1",
+          "mask_fraction": 0.8380386329866271,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 80,
+          "name": "7Networks_RH_Limbic_TempPole_1",
+          "mask_fraction": 0.7435370152761457,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 91,
+          "name": "7Networks_RH_Default_Temp_1",
+          "mask_fraction": 0.867510959571359,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        }
+      ],
+      "visual_review": {
+        "subject": "sub-002",
+        "scope": "공통 격자 대표 8개 축상/관상 단면 검토; 독립 전문가 또는 전뇌 판정 아님",
+        "observations": [
+          "대표 단면에서 두 작업 흐름 모두 큰 전역 이동·회전 이탈은 뚜렷하지 않습니다.",
+          "하부 전두·측두 및 소뇌 주변에서 기능영상 마스크와 해부 경계 차이가 남습니다. 촬영범위 수치와 함께 검토하며, 마스크 누락만으로 저신호나 정합 실패를 확정하지 않았습니다."
+        ],
+        "reviewed_files": [
+          "sub-002_alignment.png",
+          "sub-002_template_alignment.png"
+        ]
+      },
+      "registration_metrics": {
+        "AFNI": {
+          "r_T1_template_common_2mm": 0.850993805477683,
+          "r_EPI_template_common_2mm": -0.005062175171623816,
+          "dice_functional_mask_template": 0.9289886682441699
+        },
+        "fMRIPrep": {
+          "r_T1_template_common_2mm": 0.7873147280679591,
+          "r_EPI_template_common_2mm": 0.04836144245312106,
+          "dice_functional_mask_template": 0.9334533108069505
+        }
+      },
+      "signal_review": "completed_with_accepted_limitations",
+      "raw_and_derivatives_preserved": true,
+      "inclusion_scope": "completed pilot only",
+      "targeted_visual_review": {
+        "status": "complete",
+        "reference": "results/ds005270/qc_adoption_v3/visual_review_completed.json",
+        "reviewed_roi_count": 6,
+        "limitations": [
+          {
+            "roi": 33,
+            "mask_fraction": 0.5519187358916479,
+            "observation": "넓은 하외측 감쇠와 부분 마스크 포함. 354초 원시 신호 급변은 FD 표시 및 주 창 밖임을 대조."
+          }
+        ],
+        "whole_roi_representativeness_guaranteed": false
+      }
+    },
+    {
+      "subject": "sub-003",
+      "rule_version": "ds005270_fmriprep_nuisance_v3_20261019",
+      "status": "exclude",
+      "analysis_inclusion_approved": false,
+      "reasons": [
+        "user_approved_primary_exclusion_posterior_FOV_deficit"
+      ],
+      "metrics": {
+        "motion_pass_existing_rule": true,
+        "windows_pass_existing_rule": true,
+        "mean_fd_mm": 0.09387110480998084,
+        "fraction_fd_gt_0p5": 0.011320754716981131,
+        "main_windows": [
+          4,
+          3,
+          4
+        ],
+        "sensitivity_windows": [
+          4,
+          3,
+          4
+        ],
+        "mask_min": 0.559255079006772,
+        "mask_n_lt90": 9,
+        "fov_min": 0.7641129032258065,
+        "fov_n_lt90": 4,
+        "fov_flagged_rois": [
+          4,
+          5,
+          8,
+          54
+        ],
+        "coverage_action": "review flag only; no automatic subject exclusion",
+        "signal_status": "not inferred from mask coverage; dedicated signal review needed for low-inclusion ROIs"
+      },
+      "residual_rois": [
+        {
+          "roi": 4,
+          "name": "7Networks_LH_Vis_4",
+          "mask_fraction": 0.7848258706467661,
+          "acquired_fov_fraction": 0.7748756218905473,
+          "strict_center_fov_fraction": 0.7077114427860697
+        },
+        {
+          "roi": 5,
+          "name": "7Networks_LH_Vis_5",
+          "mask_fraction": 0.7701612903225806,
+          "acquired_fov_fraction": 0.7641129032258065,
+          "strict_center_fov_fraction": 0.7106854838709677
+        },
+        {
+          "roi": 8,
+          "name": "7Networks_LH_Vis_8",
+          "mask_fraction": 0.8498367791077258,
+          "acquired_fov_fraction": 0.8465723612622416,
+          "strict_center_fov_fraction": 0.8133841131664853
+        },
+        {
+          "roi": 31,
+          "name": "7Networks_LH_Limbic_OFC_1",
+          "mask_fraction": 0.7966903073286052,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 33,
+          "name": "7Networks_LH_Limbic_TempPole_2",
+          "mask_fraction": 0.559255079006772,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 54,
+          "name": "7Networks_RH_Vis_4",
+          "mask_fraction": 0.7831747621432148,
+          "acquired_fov_fraction": 0.7811717576364546,
+          "strict_center_fov_fraction": 0.7205808713069605
+        },
+        {
+          "roi": 79,
+          "name": "7Networks_RH_Limbic_OFC_1",
+          "mask_fraction": 0.8053491827637445,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 80,
+          "name": "7Networks_RH_Limbic_TempPole_1",
+          "mask_fraction": 0.7946533490011751,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 91,
+          "name": "7Networks_RH_Default_Temp_1",
+          "mask_fraction": 0.7340477350219191,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        }
+      ],
+      "visual_review": {
+        "subject": "sub-003",
+        "scope": "기존 대표 8개 축상/관상 단면 검토 재사용; 전뇌 또는 독립 전문가 QC 아님",
+        "observations": [
+          "대표 단면에서 큰 전역 이동·회전 이탈은 뚜렷하지 않습니다.",
+          "두 작업 흐름 모두 후방 경계 잘림이 남고, 주 FOV 기준에서 같은 시각 ROI 4개가 90% 미만입니다.",
+          "국소 피질·하부 경계 차이가 남으며, 마스크 포함률 증가가 미촬영 조직의 복원을 뜻하지 않습니다."
+        ],
+        "acquired_fov_primary_min": 0.7641129032258065,
+        "acquired_fov_strict_centers_min": 0.7077114427860697
+      },
+      "registration_metrics": {
+        "AFNI": {
+          "r_T1_template_common_2mm": 0.8191984890035429,
+          "r_EPI_template_common_2mm": -0.03303288205036659,
+          "dice_functional_mask_template": 0.9324143033606817
+        },
+        "fMRIPrep": {
+          "r_T1_template_common_2mm": 0.7478678529592524,
+          "r_EPI_template_common_2mm": 0.045934465163461786,
+          "dice_functional_mask_template": 0.9327974985304683
+        }
+      },
+      "signal_review": "unresolved; no direct signal conclusion from mask inclusion",
+      "raw_and_derivatives_preserved": true
+    },
+    {
+      "subject": "sub-004",
+      "rule_version": "ds005270_fmriprep_nuisance_v3_20261019",
+      "status": "include_with_limitations",
+      "analysis_inclusion_approved": true,
+      "reasons": [
+        "targeted_visual_and_signal_review_completed",
+        "user_approved_pilot_inclusion_with_limitations"
+      ],
+      "metrics": {
+        "motion_pass_existing_rule": true,
+        "windows_pass_existing_rule": true,
+        "mean_fd_mm": 0.13403688318520732,
+        "fraction_fd_gt_0p5": 0.018867924528301886,
+        "main_windows": [
+          4,
+          4,
+          4
+        ],
+        "sensitivity_windows": [
+          4,
+          4,
+          4
+        ],
+        "mask_min": 0.505079006772009,
+        "mask_n_lt90": 7,
+        "fov_min": 1.0,
+        "fov_n_lt90": 0,
+        "fov_flagged_rois": [],
+        "coverage_action": "review flag only; no automatic subject exclusion",
+        "signal_status": "Direct signal and targeted anatomical review completed; local attenuation and partial ROI representation accepted for this pilot."
+      },
+      "residual_rois": [
+        {
+          "roi": 4,
+          "name": "7Networks_LH_Vis_4",
+          "mask_fraction": 0.8376865671641791,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 31,
+          "name": "7Networks_LH_Limbic_OFC_1",
+          "mask_fraction": 0.7106382978723405,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 32,
+          "name": "7Networks_LH_Limbic_TempPole_1",
+          "mask_fraction": 0.7984777093149692,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 33,
+          "name": "7Networks_LH_Limbic_TempPole_2",
+          "mask_fraction": 0.505079006772009,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 79,
+          "name": "7Networks_RH_Limbic_OFC_1",
+          "mask_fraction": 0.6592372461614661,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 80,
+          "name": "7Networks_RH_Limbic_TempPole_1",
+          "mask_fraction": 0.814042303172738,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 91,
+          "name": "7Networks_RH_Default_Temp_1",
+          "mask_fraction": 0.6902094495859717,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        }
+      ],
+      "visual_review": {
+        "subject": "sub-004",
+        "scope": "공통 격자 대표 8개 축상/관상 단면 검토; 독립 전문가 또는 전뇌 판정 아님",
+        "observations": [
+          "대표 단면에서 두 작업 흐름 모두 큰 전역 이동·회전 이탈은 뚜렷하지 않습니다.",
+          "하부 전두·측두와 후방/소뇌 경계에서 국소 영상·마스크 차이가 남습니다. 단면만으로 촬영범위 부족과 저신호를 확정하지 않고 별도 FOV 수치와 함께 검토합니다."
+        ],
+        "reviewed_files": [
+          "sub-004_alignment.png",
+          "sub-004_template_alignment.png"
+        ]
+      },
+      "registration_metrics": {
+        "AFNI": {
+          "r_T1_template_common_2mm": 0.8245740276359121,
+          "r_EPI_template_common_2mm": -0.011508934711850126,
+          "dice_functional_mask_template": 0.9346096897489756
+        },
+        "fMRIPrep": {
+          "r_T1_template_common_2mm": 0.7650976201343663,
+          "r_EPI_template_common_2mm": 0.03612872755933843,
+          "dice_functional_mask_template": 0.9360861551685663
+        }
+      },
+      "signal_review": "completed_with_accepted_limitations",
+      "raw_and_derivatives_preserved": true,
+      "inclusion_scope": "completed pilot only",
+      "targeted_visual_review": {
+        "status": "complete",
+        "reference": "results/ds005270/qc_adoption_v3/visual_review_completed.json",
+        "reviewed_roi_count": 7,
+        "limitations": [
+          {
+            "roi": 33,
+            "mask_fraction": 0.505079006772009,
+            "observation": "넓은 하외측 감쇠와 안쪽 마스크 경계. ROI의 약 절반만 평균에 포함되어 전체 ROI 대표성 제한이 가장 큼."
+          },
+          {
+            "roi": 91,
+            "mask_fraction": 0.6902094495859717,
+            "observation": "비교 대상보다 큰 외측·하연 경계 불일치. 국소 변형과 감쇠의 기여를 이 절편만으로 분리할 수 없음; 전역 정합 실패로 판정하지 않음."
+          }
+        ],
+        "whole_roi_representativeness_guaranteed": false
+      }
+    },
+    {
+      "subject": "sub-006",
+      "rule_version": "ds005270_fmriprep_nuisance_v3_20261019",
+      "status": "exclude",
+      "analysis_inclusion_approved": false,
+      "reasons": [
+        "Q2_motion",
+        "Q3_main_windows"
+      ],
+      "metrics": {
+        "motion_pass_existing_rule": false,
+        "windows_pass_existing_rule": false,
+        "mean_fd_mm": 0.36920330176510274,
+        "fraction_fd_gt_0p5": 0.2188679245283019,
+        "main_windows": [
+          3,
+          0,
+          0
+        ],
+        "sensitivity_windows": [
+          2,
+          0,
+          1
+        ],
+        "mask_min": 0.4958318231243204,
+        "mask_n_lt90": 11,
+        "fov_min": 1.0,
+        "fov_n_lt90": 0,
+        "fov_flagged_rois": [],
+        "coverage_action": "review flag only; no automatic subject exclusion",
+        "signal_status": "not inferred from mask coverage; dedicated signal review needed for low-inclusion ROIs"
+      },
+      "residual_rois": [
+        {
+          "roi": 4,
+          "name": "7Networks_LH_Vis_4",
+          "mask_fraction": 0.8196517412935324,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 31,
+          "name": "7Networks_LH_Limbic_OFC_1",
+          "mask_fraction": 0.6737588652482269,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 32,
+          "name": "7Networks_LH_Limbic_TempPole_1",
+          "mask_fraction": 0.4958318231243204,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 33,
+          "name": "7Networks_LH_Limbic_TempPole_2",
+          "mask_fraction": 0.5886004514672686,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 54,
+          "name": "7Networks_RH_Vis_4",
+          "mask_fraction": 0.8107160741111668,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 58,
+          "name": "7Networks_RH_Vis_8",
+          "mask_fraction": 0.8979591836734694,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 67,
+          "name": "7Networks_RH_DorsAttn_Post_1",
+          "mask_fraction": 0.8986889153754469,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 79,
+          "name": "7Networks_RH_Limbic_OFC_1",
+          "mask_fraction": 0.6473501733531452,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 80,
+          "name": "7Networks_RH_Limbic_TempPole_1",
+          "mask_fraction": 0.6706815511163338,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 82,
+          "name": "7Networks_RH_Cont_Par_2",
+          "mask_fraction": 0.8736059479553904,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 91,
+          "name": "7Networks_RH_Default_Temp_1",
+          "mask_fraction": 0.855820750121773,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        }
+      ],
+      "visual_review": {
+        "subject": "sub-006",
+        "scope": "공통 격자 대표 8개 축상/관상 단면 검토; 독립 전문가 또는 전뇌 판정 아님",
+        "observations": [
+          "대표 단면에서 큰 전역 이동·회전 이탈은 뚜렷하지 않지만 하부 EPI의 불균일한 강도와 국소 경계 차이가 남습니다.",
+          "두 작업 흐름의 마스크 범위 차이는 신호 회복의 증거가 아닙니다. 전처리 정상 종료와 별도로 기존 움직임·시간창 기준을 적용합니다."
+        ],
+        "reviewed_files": [
+          "sub-006_alignment.png",
+          "sub-006_template_alignment.png"
+        ]
+      },
+      "registration_metrics": {
+        "AFNI": {
+          "r_T1_template_common_2mm": 0.8129822013973587,
+          "r_EPI_template_common_2mm": 0.13968540162017523,
+          "dice_functional_mask_template": 0.9225533205612292
+        },
+        "fMRIPrep": {
+          "r_T1_template_common_2mm": 0.7657902904823868,
+          "r_EPI_template_common_2mm": 0.17079053912621245,
+          "dice_functional_mask_template": 0.937717688476087
+        }
+      },
+      "signal_review": "unresolved; no direct signal conclusion from mask inclusion",
+      "raw_and_derivatives_preserved": true
+    },
+    {
+      "subject": "sub-013",
+      "rule_version": "ds005270_fmriprep_nuisance_v3_20261019",
+      "status": "include_with_limitations",
+      "analysis_inclusion_approved": true,
+      "reasons": [
+        "targeted_visual_and_signal_review_completed",
+        "user_approved_pilot_inclusion_with_limitations"
+      ],
+      "metrics": {
+        "motion_pass_existing_rule": true,
+        "windows_pass_existing_rule": true,
+        "mean_fd_mm": 0.04278401713939537,
+        "fraction_fd_gt_0p5": 0.0,
+        "main_windows": [
+          4,
+          4,
+          4
+        ],
+        "sensitivity_windows": [
+          4,
+          4,
+          4
+        ],
+        "mask_min": 0.6151241534988713,
+        "mask_n_lt90": 6,
+        "fov_min": 1.0,
+        "fov_n_lt90": 0,
+        "fov_flagged_rois": [],
+        "coverage_action": "review flag only; no automatic subject exclusion",
+        "signal_status": "Direct signal and targeted anatomical review completed; local attenuation and partial ROI representation accepted for this pilot."
+      },
+      "residual_rois": [
+        {
+          "roi": 31,
+          "name": "7Networks_LH_Limbic_OFC_1",
+          "mask_fraction": 0.7981087470449173,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 32,
+          "name": "7Networks_LH_Limbic_TempPole_1",
+          "mask_fraction": 0.8698803914461761,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 33,
+          "name": "7Networks_LH_Limbic_TempPole_2",
+          "mask_fraction": 0.6151241534988713,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 79,
+          "name": "7Networks_RH_Limbic_OFC_1",
+          "mask_fraction": 0.7939574046557701,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 80,
+          "name": "7Networks_RH_Limbic_TempPole_1",
+          "mask_fraction": 0.868096357226792,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        },
+        {
+          "roi": 91,
+          "name": "7Networks_RH_Default_Temp_1",
+          "mask_fraction": 0.8650754992693619,
+          "acquired_fov_fraction": 1.0,
+          "strict_center_fov_fraction": 1.0
+        }
+      ],
+      "visual_review": {
+        "subject": "sub-013",
+        "scope": "공통 격자 대표 8개 축상/관상 단면 검토; 독립 전문가 또는 전뇌 판정 아님",
+        "observations": [
+          "대표 단면에서 두 작업 흐름의 큰 전역 이동·회전 이탈은 뚜렷하지 않습니다.",
+          "상부 피질과 하부 경계에서 기능영상 마스크·T1 윤곽 차이가 남습니다. fMRIPrep의 마스크 Dice와 T1 상관은 AFNI보다 낮아 포함률만으로 전체 우수성을 판단하지 않았습니다."
+        ],
+        "reviewed_files": [
+          "sub-013_alignment.png",
+          "sub-013_template_alignment.png"
+        ]
+      },
+      "registration_metrics": {
+        "AFNI": {
+          "r_T1_template_common_2mm": 0.8478711054476484,
+          "r_EPI_template_common_2mm": 0.022844122597279113,
+          "dice_functional_mask_template": 0.930733365195688
+        },
+        "fMRIPrep": {
+          "r_T1_template_common_2mm": 0.7909491816277373,
+          "r_EPI_template_common_2mm": 0.08046293065145436,
+          "dice_functional_mask_template": 0.9252538998008826
+        }
+      },
+      "signal_review": "completed_with_accepted_limitations",
+      "raw_and_derivatives_preserved": true,
+      "inclusion_scope": "completed pilot only",
+      "targeted_visual_review": {
+        "status": "complete",
+        "reference": "results/ds005270/qc_adoption_v3/visual_review_completed.json",
+        "reviewed_roi_count": 6,
+        "limitations": [
+          {
+            "roi": 33,
+            "mask_fraction": 0.6151241534988713,
+            "observation": "T1 조직이 남아 있는 하부의 넓은 EPI 감쇠. 부분 ROI 대표성 제한."
+          }
+        ],
+        "whole_roi_representativeness_guaranteed": false
+      }
+    }
+  ],
+  "note": "Final pilot: include sub-001/002/004/013 with accepted local signal/partial ROI limitations; exclude sub-003/006 unchanged. No full-cohort/training authorization. Earlier visual review JSON is a preserved pre-approval evidence snapshot."
+}

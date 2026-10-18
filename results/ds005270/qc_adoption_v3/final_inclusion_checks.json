@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "checks": [
+    "sub-001: include_with_limitations",
+    "sub-002: include_with_limitations",
+    "sub-003: exclude",
+    "sub-004: include_with_limitations",
+    "sub-006: exclude",
+    "sub-013: include_with_limitations",
+    "motion failure: fail-closed verified",
+    "missing motion: fail-closed verified",
+    "FOV deficit: fail-closed verified",
+    "unapproved subject: fail-closed verified",
+    "missing review: fail-closed verified",
+    "All original scientific definitions and QC thresholds unchanged",
+    "All execution flags false; full release gate false",
+    "Only scoped pilot inclusion gate true"
+  ],
+  "validation_scope": "policy/decision consistency only; no imaging or model execution"
+}

@@ -1,0 +1,435 @@
+{
+  "rule_version": "ds005270_fmriprep_nuisance_v3_20261019",
+  "status": "four-subject final pilot inclusion approved with documented limitations; no full-cohort/training authorization",
+  "authority": "User approved Schaefer-100 retention, sub-003 primary exclusion and explicit fMRIPrep nuisance amendment with four-subject validation.",
+  "base_protocol": {
+    "path": "configs/ds005270/protocol_v1.json",
+    "sha256": "d29586d22b93734f3c9e7caa648480eb2f8e266c9508e4ed5e5fd62fc3da29b4"
+  },
+  "execution": {
+    "preprocessing": false,
+    "full_cohort": false,
+    "model_training": false,
+    "roi_extraction": false
+  },
+  "default_preprocessing": {
+    "pipeline": "fMRIPrep",
+    "version": "25.2.6",
+    "image": "nipreps/fmriprep@sha256:ccde6053b426c03111e0c1f18797e855b23491fb87c4dc4e9f46f7a9e232784e",
+    "reference_command_source": "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_pilot6_plan/run_compare.sh",
+    "platform": "linux/amd64",
+    "output_space": "MNI152NLin2009cAsym:res-2",
+    "slice_time_ref": 0,
+    "dummy_scans": 0,
+    "fs_reconall": false,
+    "sdc": "fieldmap-less SyN (--use-syn-sdc error), as in completed pilot; no acquired fieldmap",
+    "cpus": 4,
+    "omp_threads": 4,
+    "mem_mb": 18000,
+    "container_memory": "20g",
+    "concurrency": 1,
+    "network": "none",
+    "raw_mount": "readonly",
+    "limitation": "Mask gains are not recovered acquisition support or evidence of universal registration superiority.",
+    "legacy_runner": "Existing run_pilot.sh and protocol_v1.json remain historical AFNI artifacts; do not use them for this new default.",
+    "downstream_adapter": "scripts/ds005270/validate_adapter.py; fMRIPrep provided white_matter and csf means explicitly adopted in v3; numerical validation reused from four subjects"
+  },
+  "atlas": {
+    "name": "Schaefer2018 100 parcels 7 networks",
+    "file_rel": "data/h1h2_scope/aomic/atlas/tpl-MNI152NLin2009cAsym_res-02_atlas-Schaefer2018_desc-100Parcels7Networks_dseg.nii.gz",
+    "sha256": "7221cee56943599833dc2b98aac56626584e9c0067f28c768b46f7b7ff7408ac",
+    "lut_rel": "data/h1h2_scope/aomic/atlas/tpl-MNI152NLin2009cAsym_atlas-Schaefer2018_desc-100Parcels7Networks_dseg.tsv",
+    "lut_sha256": "a81a63f67fdaffd7b2b4b6c7df05f75b16899cba70100f464bbccba0a257cc6c",
+    "space": "MNI152NLin2009cAsym, 2 mm, 97x115x97",
+    "same_file_as": "MoBSE redesign_v1 atlas_spec_2009c.json (sha256 identical)",
+    "not_used": "Schaefer FSLMNI152 (= MNI152NLin6Asym) files in ~/nilearn_data; different template space"
+  },
+  "dataset": {
+    "id": "ds005270",
+    "version": "1.0.0",
+    "commit": "5690e4a22132ca79ff6d7e76b381f45f3309defd",
+    "raw_root_rel": "data/openneuro/ds005270/1.0.0",
+    "download_verification_rel": "data/openneuro/ds005270/1.0.0/_download_provenance/verification.json",
+    "download_verification": {
+      "files": 2990,
+      "bytes": 43906931656,
+      "missing": 0,
+      "all_sha256_verified": true
+    }
+  },
+  "cohort": {
+    "n_total": 158,
+    "primary_exclusions": [
+      {
+        "subject": "sub-080",
+        "reason": "n-back events 285 rows (expected 294; 9 rows short inside blocks)",
+        "rule": "R1_events_incomplete",
+        "source": "audit events.json",
+        "rule_version": "ds005270_protocol_v1",
+        "raw_deleted": false
+      }
+    ],
+    "n_primary_candidates": 157,
+    "not_exclusion_reasons": [
+      "missing rest",
+      "missing DWI",
+      "missing task-switch",
+      "missing fieldmap"
+    ]
+  },
+  "task": {
+    "name": "nbk",
+    "conditions": [
+      "ZeroBack",
+      "OneBack",
+      "TwoBack"
+    ],
+    "labels": {
+      "ZeroBack": 0,
+      "OneBack": 1,
+      "TwoBack": 2
+    },
+    "condition_of_row": "prefix of trial_type before the first underscore",
+    "orders_audit_n_after_exclusion": {
+      "OneBack>TwoBack>ZeroBack": 27,
+      "ZeroBack>OneBack>TwoBack": 31,
+      "TwoBack>ZeroBack>OneBack": 18,
+      "TwoBack>OneBack>ZeroBack": 27,
+      "ZeroBack>TwoBack>OneBack": 28,
+      "OneBack>ZeroBack>TwoBack": 26
+    }
+  },
+  "roi_scope": {
+    "model_roi_ids": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71,
+      72,
+      73,
+      74,
+      75,
+      76,
+      77,
+      78,
+      79,
+      80,
+      81,
+      82,
+      83,
+      84,
+      85,
+      86,
+      87,
+      88,
+      89,
+      90,
+      91,
+      92,
+      93,
+      94,
+      95,
+      96,
+      97,
+      98,
+      99,
+      100
+    ],
+    "scientifically_essential_subset": null,
+    "partial_fov_acceptance_rule": "sub-003 excluded from primary analysis by explicit decision for posterior FOV deficit; no new numeric exclusion threshold for other subjects",
+    "roi_removal_allowed": false,
+    "imputation_allowed": false,
+    "interpretation": "All 100 parcels are specified model inputs; a narrower scientific essential set and partial-support acceptance rule are not defined."
+  },
+  "windows": {
+    "tr_s": 2.0,
+    "n_volumes": 266,
+    "dummy_volumes_removed": 0,
+    "time_origin": "first stored volume at t=0; events unchanged; fMRIPrep --slice-time-ref 0; dummy scans 0",
+    "B": "first recorded onset of the condition",
+    "E": "max(onset + duration) of the condition",
+    "main": {
+      "start_buffer_s": 10,
+      "end_buffer_s": 6
+    },
+    "sensitivity": {
+      "start_buffer_s": 16,
+      "end_buffer_s": 10
+    },
+    "s0_rule": "s0 = 2 * ceil((B + start_buffer) / 2)",
+    "window_rule": "[s0 + 30k, s0 + 30(k+1)), k = 0..3; must satisfy s0 + 120 <= E - end_buffer",
+    "n_windows_per_condition": 4,
+    "window_s": 30,
+    "frames_per_window": 15,
+    "volume_index_rule": "first volume index = s0 / 2 + 15k; 15 consecutive volumes",
+    "no_cue_interval_used": true,
+    "no_interpolation_or_splicing": true
+  },
+  "features_spec_not_executed": {
+    "rois": 100,
+    "fullts": "15 x 100 flattened in time order (1,500)",
+    "fc": "Pearson over the 15 frames, upper triangle 4,950, clip +-(1-1e-6), Fisher z; window demeaning only inside FC",
+    "mean": "ROI mean over 15 frames (100)",
+    "mean_var": "ROI mean (100) + sample SD ddof=1 (100)",
+    "no_window_zscore": true,
+    "non_finite_or_zero_variance": "QC failure, never silently replaced"
+  },
+  "model_spec_not_executed": {
+    "estimator": "multinomial L2 logistic regression (scikit-learn LogisticRegression)",
+    "solver": "lbfgs",
+    "tol": 1e-06,
+    "max_iter": 10000,
+    "C_grid": [
+      0.001,
+      0.01,
+      0.1,
+      1,
+      10,
+      100
+    ],
+    "seed": 20261017,
+    "scaler": "per-feature mean/SD fitted on the training fold only; zero-variance training features dropped with the same mask applied to validation/test",
+    "convergence_failures": "counted and reported per fold; not silently retried",
+    "class_weight": "none (sample weights below)"
+  },
+  "evaluation_spec_not_executed": {
+    "outer": "6 folds, leave-one-order-out: all persons, conditions, windows of one order held out",
+    "inner": "5 folds, leave-one-order-out within the outer-training orders",
+    "unit": "person",
+    "inner_score": "per-person 3-block accuracy, averaged within order, orders equally weighted",
+    "C_selection": "max inner score; ties within 1e-12 -> smaller C",
+    "refit": "final C refit on all outer-training persons; test predicted once",
+    "sample_weight": "w(window) proportional to 1 / (n_order x 3 x m_person_condition); orders, persons within order, conditions within person, windows within condition equal",
+    "aggregation": "mean window probabilities within the condition block, argmax; ties broken 0 -> 1 -> 2",
+    "secondary_window_metric": "window-level accuracy averaged within person first",
+    "primary_endpoint": "per-person proportion of the 3 blocks correct (= macro recall)",
+    "primary_estimand": "Delta = fullTS - FC: mean over the 6 orders (equal weight) of within-order person means, paired by person",
+    "secondary_estimand": "person-count-weighted mean paired difference",
+    "ci": "stratified (within order) paired person bootstrap, 10,000 resamples, seed 20261017, percentile 95%",
+    "reading": {
+      "lower_gt_0": "statistically superior",
+      "lower_gt_delta": "exceeds the practical threshold",
+      "ci_includes_0": "no difference detected; not equivalence"
+    },
+    "delta": 0.02,
+    "delta_note": "absolute accuracy 0.02; operational design threshold, not a clinically or cognitively validated threshold",
+    "single_primary_comparison": "fullTS - FC; mean and mean+SD baselines descriptive only",
+    "position_confound_note": "leave-one-order-out reduces but does not remove block-position effects; no claim of order-invariant load or stimulus generalisation"
+  },
+  "qc": {
+    "mean_fd_exclude_gt_mm": 0.3,
+    "fraction_fd_gt_0p5_exclude_gt": 0.2,
+    "fd_definition": "Power FD, 50 mm; fMRIPrep trans mm / rot radians; summaries over 1..265 (first difference omitted)",
+    "spike_gt_mm": 0.5,
+    "adjacent_flag_volumes": 1,
+    "minimum_main_windows_per_condition": 3,
+    "coverage_review_lt": 0.9,
+    "coverage_automatic_exclusion": false,
+    "coverage_definition": "Atlas ROI fraction inside functional brain mask; acquired FOV is measured separately with all-volume transformed acquisition-grid support.",
+    "fov_review_lt": 0.9,
+    "fov_action": "Individual review; sub-003 primary exclusion explicitly approved for posterior deficit. No general new numeric cutoff.",
+    "signal": "Mask omission alone does not establish signal dropout. Check ROI signal, finite/nonzero variance and spatial correspondence before final inclusion.",
+    "Q1_inputs": "T1w and n-back present and readable; sha256 equals download verification; TR 2 s; 266 volumes; events with 3 complete conditions (98 rows each); sub-080 excluded (R1)",
+    "Q6_nuisance_masks": "fMRIPrep supplied WM/CSF signals must be finite, nonzero-variance and nonzero run mean; source-mask provenance retained. Historical AFNI voxel counts are not reused as fMRIPrep mask counts.",
+    "Q7_descriptive_only": [
+      "DVARS (RMS of backward-difference voxel PSC inside full_mask)",
+      "tSNR (mean / SD after linear detrend, median in full_mask and per ROI)",
+      "volume-0 to run-median global intensity ratio",
+      "registration numbers in Q4"
+    ],
+    "Q4_visual_checklist": [
+      "no left-right flip on anatomical review; AFNI check_flip is historical, not an fMRIPrep gate",
+      "T1 outline, ventricles and major sulci without gross template mismatch",
+      "EPI brain edge and ventricles without gross shift; local susceptibility effects separately documented",
+      "EPI slab truncation assessed with separate acquired support"
+    ],
+    "non_finite_or_zero_variance_roi": "QC failure; never replace silently",
+    "registration": "Gross mismatch requires review; correlations and Dice are descriptive, no new cutoffs.",
+    "review_completion": "Targeted visual and signal review complete for sub-001/002/004/013; final pilot inclusion approved with limitations. Not exhaustive whole-volume expert QC or approval for other subjects.",
+    "stop_rule": "before training: stop and review if any order has n < 10 or more than 20% of the 157 candidates are excluded",
+    "same_subjects_windows_rois_all_models": true
+  },
+  "release_gate": {
+    "ready": false,
+    "reasons": [
+      "full-cohort/training execution not authorized"
+    ],
+    "resolved": [
+      "Schaefer100 maintained",
+      "sub-003 primary exclusion approved",
+      "fMRIPrep WM/CSF definition approved",
+      "four-subject adapter technical validation passed",
+      "four-subject targeted ROI/anatomical review completed",
+      "final pilot inclusion approved with local signal and partial ROI limitations"
+    ],
+    "pilot_inclusion_ready": true
+  },
+  "supersedes": "protocol_v2_qc_policy.json (preserved)",
+  "scope": "Four-subject final pilot inclusion approved; subsequent preprocessing, ROI extraction, full-cohort execution and training remain disabled.",
+  "nuisance": {
+    "version": "fmriprep_regional_means_v1",
+    "definition_change": "Replace AFNI 3dSeg eroded mask WM/CSF means with fMRIPrep 25.2.6 provided regional white_matter/csf means. No equivalence to legacy eroded masks claimed.",
+    "source": "subject task-nbk desc-confounds_timeseries.tsv, white_matter and csf columns; exact file SHA and run provenance retained",
+    "mask_source": "fMRIPrep generated WM/CSF regional masks from its anatomical tissue segmentation workflow; executed CITATION.md identifies FSL FAST tissue segmentation. Exact regional-mean binary masks are not exported among collected derivatives; no extra erosion or probability threshold applied here. aCompCor masks are not substituted.",
+    "reproduction": "Use exact pinned fMRIPrep image/run and archived confounds TSV. Do not reconstruct regional means from standard-space probseg files using guessed thresholds.",
+    "columns": [
+      "intercept",
+      "linear_trend",
+      "rot_x",
+      "rot_y",
+      "rot_z",
+      "trans_x",
+      "trans_y",
+      "trans_z",
+      "rot_x_derivative1",
+      "rot_y_derivative1",
+      "rot_z_derivative1",
+      "trans_x_derivative1",
+      "trans_y_derivative1",
+      "trans_z_derivative1",
+      "rot_x_power2",
+      "rot_y_power2",
+      "rot_z_power2",
+      "trans_x_power2",
+      "trans_y_power2",
+      "trans_z_power2",
+      "rot_x_derivative1_power2",
+      "rot_y_derivative1_power2",
+      "rot_z_derivative1_power2",
+      "trans_x_derivative1_power2",
+      "trans_y_derivative1_power2",
+      "trans_z_derivative1_power2",
+      "white_matter_PSC",
+      "csf_PSC"
+    ],
+    "motion_units": "rot_x/y/z radians read from metadata, converted to degrees for nuisance; trans_x/y/z mm. FD uses radians times 50mm.",
+    "derivatives": "backward differences computed directly from motion; first derivative row exactly 0 by definition",
+    "sequence": "atlas ROI intersect fMRIPrep functional brain mask -> unweighted voxel mean -> run-mean PSC; separately regional WM/CSF mean -> run-mean PSC; OLS 28-column full-run design -> residual 266x100 -> fixed 15-frame windows -> features",
+    "trend": "(volume_index - mean)/population SD",
+    "missing": "Reject nonfinite motion/WM/CSF/ROI/design; no imputation. Reject zero-mean PSC signals or zero-variance signals. First reported FD undefined row excluded from summaries; own FD_0=0 by definition.",
+    "filter": "No added smoothing, bandpass, cosine, CompCor, global signal, task regression or window z-score",
+    "fit": "OLS full 266 volumes, numpy.linalg.lstsq rcond=None; require rank28, finite nonzero-variance residual; no regression censoring",
+    "censor": "FD>0.5mm plus t-1,t,t+1; reject whole 15-frame windows; no removed/interpolated frames; main >=3/condition, sensitivity cannot rescue main failure",
+    "offline_limitation": "Full-run preprocessing, PSC and nuisance use time points outside each window; no 30-second-acquisition claim"
+  },
+  "approved_primary_exclusions": {
+    "sub-003": "posterior acquired FOV deficit; explicit user decision",
+    "sub-006": "existing Q2 motion and Q3 windows failure"
+  },
+  "pilot_final_inclusion": {
+    "approved_subjects": [
+      "sub-001",
+      "sub-002",
+      "sub-004",
+      "sub-013"
+    ],
+    "scope": "completed four-subject pilot only",
+    "review_reference": "results/ds005270/qc_adoption_v3/visual_review_completed.json",
+    "review_sha256": "84e7aee282a252dacb7fa07ab52a2d57c574567005b78c1d1c2679e31afeed9d",
+    "limitations_accepted": true,
+    "limitations": {
+      "sub-001": [
+        {
+          "roi": 33,
+          "mask_fraction": 0.7296839729119639,
+          "observation": "T1 조직이 보이는 하외측 부위에서 뚜렷한 EPI 감쇠. ROI 일부가 기능 마스크 밖으로 연장."
+        }
+      ],
+      "sub-002": [
+        {
+          "roi": 33,
+          "mask_fraction": 0.5519187358916479,
+          "observation": "넓은 하외측 감쇠와 부분 마스크 포함. 354초 원시 신호 급변은 FD 표시 및 주 창 밖임을 대조."
+        }
+      ],
+      "sub-004": [
+        {
+          "roi": 33,
+          "mask_fraction": 0.505079006772009,
+          "observation": "넓은 하외측 감쇠와 안쪽 마스크 경계. ROI의 약 절반만 평균에 포함되어 전체 ROI 대표성 제한이 가장 큼."
+        },
+        {
+          "roi": 91,
+          "mask_fraction": 0.6902094495859717,
+          "observation": "비교 대상보다 큰 외측·하연 경계 불일치. 국소 변형과 감쇠의 기여를 이 절편만으로 분리할 수 없음; 전역 정합 실패로 판정하지 않음."
+        }
+      ],
+      "sub-013": [
+        {
+          "roi": 33,
+          "mask_fraction": 0.6151241534988713,
+          "observation": "T1 조직이 남아 있는 하부의 넓은 EPI 감쇠. 부분 ROI 대표성 제한."
+        }
+      ]
+    },
+    "whole_roi_representativeness_guaranteed": false,
+    "approval_record": "docs/handoff/ds005270_qc_v3_pilot_final_inclusion_2026-10-19.md"
+  }
+}
