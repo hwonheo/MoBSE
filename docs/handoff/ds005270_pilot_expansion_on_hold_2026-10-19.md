@@ -1,6 +1,6 @@
 # ds005270 최소 실제 fMRI 파일럿 확장안 — 실행 보류
 
-2026-10-19 KST. 현재 허용 범위는 계획 및 h197 입력 복사뿐이다. 신규 전처리·QC 계산·모델 학습·자동 보충은 시작하지 않았다. 실행 드라이버나 예약 작업은 만들지 않았고, 로컬 초기 대상 목록도 `queue_planned_only.txt`로 명시했다.
+2026-10-19 KST. 현재 허용 범위는 계획 및 h197 입력 복사뿐이다. 신규 전처리·QC 계산·모델 학습·자동 보충은 시작하지 않았다. 실행 드라이버나 예약 작업은 만들지 않았고, 로컬 초기 대상 목록도 `queue_planned_only.txt`로 명시했다 (위치는 아래 "기록 파일 위치").
 
 향후 운영 목표는 QC 통과 30명이다. 기존 포함 sub-001/002/004/013의 4명을 재사용하고 추가 26명부터 검토하며, 실패·제외·보류는 통과 인원에 넣지 않는 안이다. 실행 재승인 후 부족하면 같은 고정 순서에서 보충하고 30명 도달 시 멈춘다. 기존 처리 001/002/003/004/006/013은 재실행하지 않고 003/006/080 제외를 유지한다.
 
@@ -18,4 +18,17 @@ h197 자원 확인(2026-10-18 23:15 UTC): 논리 CPU12, RAM31GiB 중 가용25GiB
 
 서버 기존 입력 목록은 비교 파일럿001/003과 나머지 파일럿002/004/006/013뿐이며, 저장소 원자료 경로는 없었다. 따라서 151명 입력은 모두 새 준비 경로에 필요했다. 새 경로는 `/mnt/data/mp2026/MoBSE_dataset/ds005270_inputs_remaining151_20261019_a1/`이고 BIDS 구조는 `bids/`, 전송명세·해시·보류계획은 `provenance/`에 둔다. 기존 6명 입력과 산출물을 덮어쓰거나 삭제하지 않는다. 서버에는 실행 스크립트를 배포하지 않는다.
 
-전송 완료 여부의 정본은 이 문서가 아니라 같은 로컬 폴더의 `copy_completed.json`이다. `transfer_manifest.json`은 대상·경로·크기·SHA, `remote_hash_verification.log`는 서버 대조 결과, `completion_remote_state.log`는 완료 시 파일 수·대상자 수·컨테이너 상태를 담는다. 완료 기록이 없으면 전송 완료로 간주하지 않는다.
+전송 완료 여부의 정본은 이 문서가 아니라 `copy_completed.json`이다. `transfer_manifest.json`은 대상·경로·크기·SHA, `remote_hash_verification.log`는 서버 대조 결과, `completion_remote_state.log`는 완료 시 파일 수·대상자 수·컨테이너 상태를 담는다. 완료 기록이 없으면 전송 완료로 간주하지 않는다.
+
+## 기록 파일 위치 (2026-10-19 12:1x KST 정정)
+
+처음 판은 "같은 로컬 폴더" 라고만 적어 위치가 모호했다. 아래 파일은 **이 저장소에 없다** (버전 관리 밖).
+
+| 파일 | Mac (Codex 작업 폴더, iCloud) | h197 |
+|---|---|---|
+| `copy_completed.json` | `~/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_copy151_a1/` | 위 새 경로의 `provenance/` |
+| `transfer_manifest.json` · `remote_hash_verification.log` · `inputs.sha256` · `candidate_order.tsv` · `execution_on_hold_plan.json` · `EXECUTION_ON_HOLD.txt` | 같은 Mac 폴더 | 같은 `provenance/` |
+| `completion_remote_state.log` | 같은 Mac 폴더 | 없음 |
+| `queue_planned_only.txt` | `…/task-7/ds005270_expansion30_a1/provenance/` | 없음 |
+
+- 12:13 KST 확인: `copy_completed.json` 의 sha256 은 Mac 과 h197 이 같다 (`17f0ed22c006…`). 내용은 151 명 · 760 파일 · 8,896,432,701 bytes · 불일치 0 · `status` `COPY_COMPLETE_EXECUTION_ON_HOLD` · `compute_started` false · 완료 2026-10-18T23:43:19Z. 같은 시각 h197 `bids/` 아래 파일 760 · 대상자 151, 실행 중 Docker 컨테이너 0.

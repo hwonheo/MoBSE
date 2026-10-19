@@ -1,9 +1,38 @@
 # CLAUDE.md — MoBSE Project Context
 
-> 최종 갱신 2026-09-30 — **커밋 규약 적용**: 이력 161 개를 영문 1줄로 재작성하고 co-author 태그 제거, 무효가 된 커밋 SHA 기록 삭제 (gate 필드 7 · 문서 토큰 284) → **gate rev78**. 선생님 지시로 `origin/redesign-v1` 에 `--force-with-lease` 푸시 (원격 = 로컬, 162 커밋, co-author 0). 그 직전: **WI-11 연구 결과 패키지** 작성 (v1 내부 마감, `reports/wi11_research_package_2026-09-29.md`) → **gate rev76** (G5 check 5 건 pass) → **rev77** (승인으로 G5 `planned` → `cleared_with_limitations`), 인용 수치 독립 대조 실패 0. **결정 33** (v3 config 잠금 키: 8 칸 · 최대 수준에서 한 번 선택 · PCA 10 고정 · null M=20). v3 빌드 1·2·3·5 단계 완료. 그 직전: **결정 30·31·32**: 새 버전 축은 **T4 저표본 곡선**, 코드는 **새 모듈 `mobse/v3/`** (`mobse/v2` 불변 → v1 잠금·gate rev75 유효), 학습은 **update 예산 5,000 고정·epoch 상한 없음·best checkpoint 선택 자유**. 그 직전: **결정 29** (G-a·G-b 는 차단이 아니라 보고 장치; pilot 만·버리는 쪽으로만) 와 **G-a 선별 실행 완료** — 양성 대조 v1 target 1.000 (gate 가 작동함), 나머지 0.52–0.70 이나 pilot 31 규모라 우연과 구분 불가 (`sex` 0.536 이 민감도 경고). gate 는 rev75 그대로. 그 직전: **결정 28: 새 탐색 버전 설계 세 갈래** (축 미정 → 포화 선별 gate 우선 · ROI 구조 둘 다 병행 · null 은 M 축소 + 종류 확대) 와 설계안 초안 `docs/experiments/mobse_exploratory_v2_design_draft_2026-09-29.md`. 착수 전 확인 2건 완료 (등변성·spin). gate 는 **rev75 그대로** (v2 설계 측정은 v1 근거가 아님). 그 직전: **결정 27: 진로 (나) 확정** (현 버전 내부 마감 · PIOP2 미개방 · 새 탐색 버전 설계) + interaction 판독 철회, **A−S 진단** (결정 25-6) → **gate evidence rev75**, 부록 BZ·CA. 그 직전: WI-09 null 민감도 완료 → rev74, 부록 BY. 그 전 같은 날: 결정 25 기록, rev73 (09-28 실행 기록 + gate 표기), 부록 BT–BX, `resource_budget.md` 9.2, 커밋. claude.ai Project 사본 동기화 중단 — 정본은 저장소 `docs/handoff/`.
+> 최종 갱신 2026-10-19 12:1x KST — 아래 세 절 추가: **ds005270** (입력 151 명 h197 복사 완료 · 실행 보류) · **R2T** (T1 실제 pilot 31 명, 추가 튜닝 중단) · **PIOP2 확증** (P1 · P2 확증, 그래프 고유 이득 근거 없음). 10-16 I3 절 이후 빠져 있던 결정 76–91 과 10-19 ds005270 기록을 요약했다. 그 아래 절들은 손대지 않았다.
+> 이전 갱신 2026-09-30 — **커밋 규약 적용**: 이력 161 개를 영문 1줄로 재작성하고 co-author 태그 제거, 무효가 된 커밋 SHA 기록 삭제 (gate 필드 7 · 문서 토큰 284) → **gate rev78**. 선생님 지시로 `origin/redesign-v1` 에 `--force-with-lease` 푸시 (원격 = 로컬, 162 커밋, co-author 0). 그 직전: **WI-11 연구 결과 패키지** 작성 (v1 내부 마감, `reports/wi11_research_package_2026-09-29.md`) → **gate rev76** (G5 check 5 건 pass) → **rev77** (승인으로 G5 `planned` → `cleared_with_limitations`), 인용 수치 독립 대조 실패 0. **결정 33** (v3 config 잠금 키: 8 칸 · 최대 수준에서 한 번 선택 · PCA 10 고정 · null M=20). v3 빌드 1·2·3·5 단계 완료. 그 직전: **결정 30·31·32**: 새 버전 축은 **T4 저표본 곡선**, 코드는 **새 모듈 `mobse/v3/`** (`mobse/v2` 불변 → v1 잠금·gate rev75 유효), 학습은 **update 예산 5,000 고정·epoch 상한 없음·best checkpoint 선택 자유**. 그 직전: **결정 29** (G-a·G-b 는 차단이 아니라 보고 장치; pilot 만·버리는 쪽으로만) 와 **G-a 선별 실행 완료** — 양성 대조 v1 target 1.000 (gate 가 작동함), 나머지 0.52–0.70 이나 pilot 31 규모라 우연과 구분 불가 (`sex` 0.536 이 민감도 경고). gate 는 rev75 그대로. 그 직전: **결정 28: 새 탐색 버전 설계 세 갈래** (축 미정 → 포화 선별 gate 우선 · ROI 구조 둘 다 병행 · null 은 M 축소 + 종류 확대) 와 설계안 초안 `docs/experiments/mobse_exploratory_v2_design_draft_2026-09-29.md`. 착수 전 확인 2건 완료 (등변성·spin). gate 는 **rev75 그대로** (v2 설계 측정은 v1 근거가 아님). 그 직전: **결정 27: 진로 (나) 확정** (현 버전 내부 마감 · PIOP2 미개방 · 새 탐색 버전 설계) + interaction 판독 철회, **A−S 진단** (결정 25-6) → **gate evidence rev75**, 부록 BZ·CA. 그 직전: WI-09 null 민감도 완료 → rev74, 부록 BY. 그 전 같은 날: 결정 25 기록, rev73 (09-28 실행 기록 + gate 표기), 부록 BT–BX, `resource_budget.md` 9.2, 커밋. claude.ai Project 사본 동기화 중단 — 정본은 저장소 `docs/handoff/`.
 > 이전 갱신 2026-09-29 09:2x KST — "인수인계 — 2026-09-29" 절 추가 (Cowork 세션 → 터미널 Claude Code), 정본 포인터를 저장소 `docs/handoff/` 로 옮김 (그때 gate 는 rev72). 그 이전 (2026-09-26 23:3x, rev60–rev72 의 세부) 은 `.backup/CLAUDE_2026092*.md` 에 있다. 모든 수치는 실측값이며 출처를 함께 적음.
 > 이전판(2026-09-18)은 `.backup/CLAUDE_20260925_201635.md` 에, 2026-04-17판은 `.backup/CLAUDE.md_20260918_*.md` 에 보존됨.
 > **현행 상태의 정본은 이 파일이 아님** — 저장소 `docs/handoff/` 의 문서 (읽는 순서는 아래 "인수인계 — 2026-09-29" 절) 와 가장 높은 revision 의 `gate_evidence.json`. 이 파일은 저장소에 들어온 사람을 위한 방향 안내다.
+
+## ds005270 (n-back 0/1/2) — 2026-10-19 입력 복사 완료 · 실행 보류
+
+정본은 `docs/handoff/ds005270_*_2026-10-19.md` (최신 상태는 `ds005270_pilot_expansion_on_hold_2026-10-19.md`), 잠금 `docs/experiments/ds005270_protocol_lock_v1_2026-10-17.md`, 설계 맥락 checkpoint §11.61 · Notion Work Log 36.
+- 전처리는 fMRIPrep 25.2.6 (고정 digest) 이고 nuisance 는 fMRIPrep white_matter/csf 평균을 쓴 28 열 OLS (QC v3) 다. AFNI 침식 마스크와 같다고 주장하지 않는다. Schaefer-100 전체 입력이며 ROI 삭제 · 보간은 없다.
+- pilot 6 명: **sub-001/002/004/013 포함** (`include_with_limitations`, 국소 저신호 ROI 한계 수용). sub-003 은 후방 FOV 부족, sub-006 은 움직임 · 주 창 기준으로 제외. sub-080 도 제외를 유지한다.
+- 확장안: 목표는 QC 통과 30 명 (기존 4 명 + 고정 순서 26 명부터, seed 20261019 SHA 정렬). 순차 전처리 약 34 h [추정].
+- **입력 복사 완료**: 남은 151 명의 760 파일 (8.9 GB) 을 h197 `MoBSE_dataset/ds005270_inputs_remaining151_20261019_a1/` 로 옮겼다. sha 불일치 0, `copy_completed.json` 의 상태는 `COPY_COMPLETE_EXECUTION_ON_HOLD`.
+- **승인 안 된 것**: 전처리 · QC 계산 · 학습 · 자동 보충 (실행 재승인 필요). 미확정 항목은 cue · 이벤트 이상 · 최소 의미 효과.
+- 전송 기록 원본은 저장소 밖 Codex 작업 폴더 (iCloud) 와 h197 `provenance/` 에 있다 — 위치표는 보류 문서 "기록 파일 위치".
+
+## R2T (rest 상태 공분산 prior → 가린 ROI 복원) — 2026-10-17 실제 pilot · 튜닝 중단
+
+정본은 checkpoint §11.51–§11.60 (결정 82–91 · 승인 대장 65–74 행). 계획서 `docs/experiments/r2t_rest_state_prior_plan_v1_2026-10-16.md` (v1.3), 결과 `docs/experiments/r2t_t1_pilot_real_results_2026-10-17.md`.
+- 탐색 가설: rest 에서 얻은 상태별 연결 구조가, 짧고 불완전한 task 관측에서 같은 입력을 쓰는 강한 선형 모델보다 예측을 개선하는가. I3 · H1 · H2 실패를 재해석하는 작업이 아니다.
+- 합성 검증은 F1–F4 → F4R → F4R1 순서로 했다. 초기 실패 기록도 보존한다 (`docs/experiments/r2t_commit_preservation_review.md`).
+- 실제 pilot (PIOP1 31 명, 5-fold, 잠금 `981f5b7643b2`): 주지표 **Δ(BEST-T − F4R1) −0.00116 [−0.00187, −0.00054]** — F4R1 이 조금 나쁘다. τ̂ 는 다섯 fold 모두 0 이었다. → **이 경로의 추가 튜닝 중단.** 이미 분석했던 자료라 독립 확인으로 주장하지 않는다.
+- 공개한 정정: `pilot31.json` 의 `synthetic_only: true` 는 표기 오류다. BEST7 자동 판정과 BEST-T 주지표가 어긋난 점도 공개했다.
+- Notion Work Log 34 (실험) · 35 (실제 pilot 결과). 산출물의 h197 · Data Asset 등록은 하지 않았다.
+
+## PIOP2 확증 (I3 단서의 사전 등록 확증) — 2026-10-16 확증 · 해석 확정
+
+정본은 checkpoint §11.44–§11.50 (결정 76–81), 잠금 `docs/experiments/piop2_confirm_lock_v1.md` (`373647e512e5`), h197 `piop2_confirm/main/20261016_373647e5_a1/`.
+- PIOP1 으로 학습하고 PIOP2 189 명에서 평가했다 (97.5 %, 하한 > 0 이면 확증).
+  - **P1 B emb − S +0.128 [+0.095, +0.161] 확증.**
+  - **P2 B − D (순열) +0.028 [+0.008, +0.048] 확증.** spin · rewire 대비로는 0 을 포함한다.
+- **해석 확정 (결정 81)**: 같은 블록 시계열을 그래프 없이 쓴 선형 logistic (S_ts) 이 B emb 과 같거나 우수하다 (PIOP2 −0.020 [−0.042, +0.003] · PIOP1 −0.128). → 이득은 FC 대신 블록 시계열을 쓴 데서 오는 것으로 보이며, **그래프 고유 이득의 근거는 없다.** 이 비교는 사후 진단이다.
+- P2 는 "ROI 에 맞춘 bank 가 ROI 를 섞은 bank 보다 낫다" 까지만 쓴다. "공간 구조를 넘어선 정렬의 기여" 라고 쓰지 않는다. I3 마감본의 blockz 전제는 정정했다. Notion Work Log 33.
 
 ## I3 (PIOP1 emomatching 과제 안 조건) — 2026-10-16 음성 마감
 
