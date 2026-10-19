@@ -1,0 +1,92 @@
+{
+ "schema": "r2t-t1-pilot-reg-config-0.1",
+ "decision": 88,
+ "status": "합성 개발용 — 결정 87 설정 (t1_pilot.json) 복사 + MIX 조건부 예측 λ 후보 (F1). 실제 자료 실행 승인 아님",
+ "design_doc": "docs/experiments/r2t_pilot_design_v1_2026-10-16.md",
+ "plan_doc": "docs/experiments/r2t_rest_state_prior_plan_v1_2026-10-16.md",
+ "claim_level": "T1",
+ "subjects": {
+  "source": "data/h1h2_scope/aomic/splits/folds.json",
+  "key": "pilot.subjects",
+  "dataset": "ds002785",
+  "id_format": "dataset:subject (접두어를 떼어 파일 이름에 씀)",
+  "expected_n": 31,
+  "rule": "WI-03 적격 (세 task 모두 · QC) · pilot seed 20260917 · 1 사람 = 1 group · 추가 제외 없음"
+ },
+ "data": {
+  "task_full_ts": "data/h1h2_scope/aomic/full_ts/{s}_emomatching.npz",
+  "task_key": "ts",
+  "task_frames": 135,
+  "task_manifest": "data/h1h2_scope/aomic/full_ts/manifest.json",
+  "rest_window": "data/h1h2_scope/aomic/rest_win/derivatives_v3/{s}/{s}_task-restingstate_acq-mb3_win-{i}.npy",
+  "rest_windows_per_subject": 4,
+  "rest_window_frames": 30,
+  "atlas_tsv": "data/h1h2_scope/aomic/atlas/tpl-MNI152NLin2009cAsym_atlas-Schaefer2018_desc-100Parcels7Networks_dseg.tsv",
+  "n_roi": 100
+ },
+ "split": {
+  "n_folds": 5,
+  "fold_seed": 20261017,
+  "inner_val_frac": 0.2,
+  "inner_seed": 20261018
+ },
+ "window": {
+  "length": 15,
+  "overlap": false,
+  "start_frame": 0
+ },
+ "mask": {
+  "frac": 0.2,
+  "hemisphere_balanced": true,
+  "n_masks": 10,
+  "seed": 20261019
+ },
+ "best_candidates": [
+  "G1-LW",
+  "G1-OAS",
+  "RIDGE λ=100",
+  "RIDGE λ=10",
+  "RIDGE λ=1",
+  "RIDGE λ=0.1",
+  "RIDGE λ=0.01"
+ ],
+ "mix": {
+  "K": 3,
+  "tau_candidates": [
+   "0",
+   "ess",
+   "1"
+  ],
+  "em_seed": 1,
+  "n_init": 10,
+  "tol": 1e-06,
+  "max_iter": 500,
+  "min_occupancy": 0.05,
+  "eig_floor_rel": 1e-06,
+  "cond_lambda_candidates": [
+   100,
+   10,
+   1,
+   0.1,
+   0.01
+  ],
+  "selection_order": "λ 큰 쪽 → 작은 쪽, 같은 λ 안에서 τ 0 → ess → 1 (동률이면 앞쪽)"
+ },
+ "selection": {
+  "tie": 0.0001,
+  "criterion": "inner val 사람 평균 NMSE (분모 inner train task 창)"
+ },
+ "bootstrap": {
+  "n": 10000,
+  "seed": 20261020,
+  "level": 95
+ },
+ "delta_report_only": 0.01,
+ "stop_rules": {
+  "mix_fail_folds_max": 1,
+  "nonfinite": "stop",
+  "delta_upper_lt_0": "K>1 경로 중단 권고",
+  "all_folds_tau_zero": "적응 경로 중단 권고"
+ },
+ "derived_from": "configs/r2t/t1_pilot.json"
+}

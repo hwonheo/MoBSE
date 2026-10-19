@@ -1,0 +1,121 @@
+{
+ "schema": "r2t-f4-results-manifest-0.1",
+ "decision": 88,
+ "synthetic_only": true,
+ "created_kst": "2026-10-17 11:26:16",
+ "purpose": "F4 독립 검증 결과 고정 — 보존된 결과 파일 · 실행 명령 · 최종 문서의 실제 sha256. 추가 계산 없음.",
+ "code_config_hashes": "frozen_sha256.txt (22 개, 이 manifest 는 그 파일 자체의 sha256 만 기록하고 내용은 바꾸지 않음)",
+ "val4_rows": 65,
+ "not_preserved": [
+  "Δ 사람 간 SD (65 행 모두 delta_sd null — 파이프라인 키 delta_sd_all 을 평가 스크립트가 읽지 않음)",
+  "사람별 · fold 별 NMSE",
+  "생성 시계열",
+  "mask 색인",
+  "inner 명단",
+  "후보별 inner 점수",
+  "적합 · 후보 실패 원인 (status · reason)"
+ ],
+ "note": "진단 문서 · 검토 보고서는 이후 기록이 덧붙으면 해시가 바뀐다 — 이 해시는 이 시점 판이다.",
+ "files": {
+  "results/r2t/t1_diag/val4_bnd.json": {
+   "sha256": "fa66372a82a4ba4df4105f76a73ff3c9d815b803645cf7442d91ffebc1467345",
+   "bytes": 36683
+  },
+  "results/r2t/t1_diag/val4_dwell8.json": {
+   "sha256": "e109962bbd9c12b0d3e7dcfe01e49f8de86adb10582c561493dc99a08c41767a",
+   "bytes": 24469
+  },
+  "results/r2t/t1_diag/val4_old.json": {
+   "sha256": "62fcac322c27d743a5e63778004740032c9a6d26c8f726b8ec89df5586fc57c5",
+   "bytes": 34053
+  },
+  "results/r2t/t1_diag/val4_rho.json": {
+   "sha256": "72002436b729761b2a036d6510e0081ce13637ff2ad4039f04b3e94294ce6fc3",
+   "bytes": 24317
+  },
+  "results/r2t/t1_diag/val4_sep.json": {
+   "sha256": "76fd9386407d8d9e78d98981abe232d10f3215224d8fc2da1e636861a35342de",
+   "bytes": 36858
+  },
+  "results/r2t/t1_diag/val4_bnd.log": {
+   "sha256": "e0a715d930b315d30667ff69e578654fe2fe27b8aaecc95da6bf1c77a9d61fbb",
+   "bytes": 3161
+  },
+  "results/r2t/t1_diag/val4_dwell8.log": {
+   "sha256": "01d42447fd9120b441a35146ec822d3b5e3d1c47b362ccb03428dac955ae2736",
+   "bytes": 2436
+  },
+  "results/r2t/t1_diag/val4_old.log": {
+   "sha256": "8d8279d8485ce7c288d98f9f6f6eb71f3ee95c659d585dd1809375899a6af1c1",
+   "bytes": 3028
+  },
+  "results/r2t/t1_diag/val4_rho.log": {
+   "sha256": "de6bbced762f325d12f229b8deb72c9ef7876666cf119c203f5630efdbb623c3",
+   "bytes": 2232
+  },
+  "results/r2t/t1_diag/val4_sep.log": {
+   "sha256": "b34ea8a53783fce1d728e25a7d7a4c43ecddc8a45c9cbf8b674f539ead1940c5",
+   "bytes": 3159
+  },
+  "results/r2t/t1_diag/val4_bnd.partial.jsonl": {
+   "sha256": "177eb2e1931552aee22a37929b2278833aea6ea074d64718d1ba1c987313ff7c",
+   "bytes": 28931
+  },
+  "results/r2t/t1_diag/val4_dwell8.partial.jsonl": {
+   "sha256": "a5a2bef4ef41bf8a673a8345634c8cde1e216d81263455ff0a510bfb6cf014a5",
+   "bytes": 19294
+  },
+  "results/r2t/t1_diag/val4_rho.partial.jsonl": {
+   "sha256": "84484f2aa6b65fdef309d1146c076737042aa69b2144aef5f3455d0fe0a80eaa",
+   "bytes": 19142
+  },
+  "results/r2t/t1_diag/val4_sep.partial.jsonl": {
+   "sha256": "9257a5433a34ae90ba794d75e1d154ddc5f1f7986b67f658157f51718c567fd7",
+   "bytes": 29115
+  },
+  "results/r2t/t1_diag/val4_a.rc": {
+   "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+   "bytes": 2
+  },
+  "results/r2t/t1_diag/val4_b.rc": {
+   "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+   "bytes": 2
+  },
+  "results/r2t/t1_diag/val4_c.rc": {
+   "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+   "bytes": 2
+  },
+  "results/r2t/t1_diag/val4_d.rc": {
+   "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+   "bytes": 2
+  },
+  "results/r2t/t1_diag/val4_e.rc": {
+   "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+   "bytes": 2
+  },
+  "results/r2t/t1_diag/f4_validation_snapshot/commands_full.md": {
+   "sha256": "9d6c9e0a08c2254a657e024f01ed64e73c1ceaecf8ab790c7ccec16fadabf88b",
+   "bytes": 3327
+  },
+  "results/r2t/t1_diag/f4_validation_snapshot/frozen_sha256.txt": {
+   "sha256": "8e7ef4c931ea5cdf3a09465a696b3711c418fea97643133fd0666e765b1cdf27",
+   "bytes": 1995
+  },
+  "results/r2t/t1_diag/f4_validation_snapshot/seeds.json": {
+   "sha256": "7f7d91f2ab1c78ccac18063851a90d9fe59bda55f3cb8a3d0fadc9595e62bfec",
+   "bytes": 1208
+  },
+  "results/r2t/t1_diag/f4_validation_snapshot/environment.json": {
+   "sha256": "678ccb0c4dc37ab2dc2b82e18ec1704efe3529814636665b45d4f8e7daa18bb4",
+   "bytes": 228
+  },
+  "docs/experiments/r2t_t1_f4_review_2026-10-17.md": {
+   "sha256": "f1768f4aaf9f9f73fe0bfe9f979a9e985195deaf1905b918273b57ecf3c900aa",
+   "bytes": 14971
+  },
+  "docs/experiments/r2t_t1_synth_diagnosis_2026-10-17.md": {
+   "sha256": "bfd687bb49821ad3108801d310e879d6b20a8f29df66204b91b9a7fe564c0978",
+   "bytes": 66605
+  }
+ }
+}

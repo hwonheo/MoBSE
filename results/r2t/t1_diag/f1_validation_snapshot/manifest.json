@@ -1,0 +1,138 @@
+{
+ "schema": "r2t-f1-validation-snapshot-0.1",
+ "decision": 88,
+ "synthetic_only": true,
+ "purpose": "F1 검증 (seed 9001–9005 · 9101–9105 · 9201–9205, 100 ROI · 31 명) 당시 코드 · 설정 · 결과 보존본",
+ "pre_validation_hash_source": "docs/experiments/r2t_t1_synth_diagnosis_2026-10-17.md §4 (sha256 앞 12)",
+ "all_pre_validation_hashes_match": true,
+ "missing_from_snapshot": [],
+ "eval_t1_worlds_note": "저장소 현행판 (5f6e52ea1408) 은 F2 등록 (t1_reg2 import · METHODS 항목 · 출력 키 em_a) 이 더해진 판. 보존본은 그 세 줄 변경을 정확히 되돌려 복원했고 sha 가 검증 전 값 cad9c3379a7c 와 일치한다 (실제 이전 파일 사본은 없음 — 백업을 남기지 않았다).",
+ "results_note": "val_*.log 는 두 번째 시도 로그. 첫 시도는 zsh 가 세계 목록을 한 인자로 넘겨 인자 해석에서 실패 (어떤 세계도 실행 · 출력 전), 그 로그는 지웠다.",
+ "environment": {
+  "python": "3.11.17",
+  "numpy": "2.4.3",
+  "scipy": "1.17.1",
+  "sklearn": "1.8.0",
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "machine": "arm64",
+  "OMP_NUM_THREADS": "2",
+  "PYTHONDONTWRITEBYTECODE": "1"
+ },
+ "commands": [
+  "cd <repo>; export OMP_NUM_THREADS=2 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=.",
+  ".venv/bin/python -B scripts/r2t/eval_t1_worlds.py --method t1_reg --worlds pos:9001 pos:9002 pos:9003 pos:9004 pos:9005 null:9101 null:9102 null:9103 null:9104 null:9105 wrong:9201 wrong:9202 wrong:9203 wrong:9204 wrong:9205 --tag validation --out results/r2t/t1_diag/val_reg_r100_n31.json",
+  ".venv/bin/python -B scripts/r2t/eval_t1_worlds.py --method t1 --worlds (같은 15 개) --tag 'validation (승인판 참고)' --out results/r2t/t1_diag/val_t1_r100_n31.json",
+  "보존본에서 재실행: 위 명령의 scripts/r2t/ 를 results/r2t/t1_diag/f1_validation_snapshot/scripts/r2t/ 로 바꾸고 --out 은 새 경로 (스크립트의 ROOT 가 보존본 폴더를 가리켜 보존본 configs 를 읽는다)"
+ ],
+ "files": {
+  "configs/r2t/t1_pilot.json": {
+   "sha256": "839edf29aa13a264857fe2550afee0f238a6361da63b4b90d8f10068c02bd5a2",
+   "pre_validation_sha12": "839edf29aa13",
+   "match_pre_validation": true,
+   "current_repo_sha12": "839edf29aa13"
+  },
+  "configs/r2t/t1_pilot_reg.json": {
+   "sha256": "bb5076d42aba366171f1363a9185104b0ed53636853946be9fec8fce7a1d7d75",
+   "pre_validation_sha12": "bb5076d42aba",
+   "match_pre_validation": true,
+   "current_repo_sha12": "bb5076d42aba"
+  },
+  "results/val_reg_r100_n31.json": {
+   "sha256": "3fbf92030a82374b64cd1dfcde46ebdd77f2d7f17f9ee8804dc4887faae05caa",
+   "pre_validation_sha12": null,
+   "match_pre_validation": null,
+   "current_repo_sha12": "3fbf92030a82"
+  },
+  "results/val_reg_r100_n31.log": {
+   "sha256": "dd84ec9f69d4c1c92d56d5b6c186f137c3d7bbf535afd01fa8bf6f9908dddf22",
+   "pre_validation_sha12": null,
+   "match_pre_validation": null,
+   "current_repo_sha12": "dd84ec9f69d4"
+  },
+  "results/val_t1_r100_n31.json": {
+   "sha256": "40440c73ccaf285972218f307c5a9d0af95fb1a448711a681ae56cb4b4f4dd2e",
+   "pre_validation_sha12": null,
+   "match_pre_validation": null,
+   "current_repo_sha12": "40440c73ccaf"
+  },
+  "results/val_t1_r100_n31.log": {
+   "sha256": "be46a533a067d471d4828fd2aa9b1cbde94e8a084a534443b5397a3596f64975",
+   "pre_validation_sha12": null,
+   "match_pre_validation": null,
+   "current_repo_sha12": "be46a533a067"
+  },
+  "scripts/r2t/eval_t1_worlds.py": {
+   "sha256": "cad9c3379a7cc656d3855e55ec2a364ca1381c395f7ac7856dac6a4619ad60e1",
+   "pre_validation_sha12": "cad9c3379a7c",
+   "match_pre_validation": true,
+   "current_repo_sha12": "5f6e52ea1408"
+  },
+  "scripts/r2t/mix.py": {
+   "sha256": "1af287a2416aab65fc50cf045507644348de71d3ff2d1ad8ab9c22bf16ac08cf",
+   "pre_validation_sha12": "1af287a2416a",
+   "match_pre_validation": true,
+   "current_repo_sha12": "1af287a2416a"
+  },
+  "scripts/r2t/r2t_lib.py": {
+   "sha256": "3da6f648b4d424230877f9f2effe9d5e52d2a35154e0f190eb05b1fb2e4ca0c6",
+   "pre_validation_sha12": "3da6f648b4d4",
+   "match_pre_validation": true,
+   "current_repo_sha12": "3da6f648b4d4"
+  },
+  "scripts/r2t/select_rules.py": {
+   "sha256": "390b38379b17129dea53f2fc4258b4c869b3859778a42870d49bec0f8c301359",
+   "pre_validation_sha12": "390b38379b17",
+   "match_pre_validation": true,
+   "current_repo_sha12": "390b38379b17"
+  },
+  "scripts/r2t/synth.py": {
+   "sha256": "7ac0c4a9f30253a075df0139c40a4a461aa6f71810382386496b7ae5a064de26",
+   "pre_validation_sha12": "7ac0c4a9f302",
+   "match_pre_validation": true,
+   "current_repo_sha12": "7ac0c4a9f302"
+  },
+  "scripts/r2t/synth_mix.py": {
+   "sha256": "009ad86c9a63fe84ba3e0ee9e1f15df62e48624d454f67090a1a5df6710e6c37",
+   "pre_validation_sha12": "009ad86c9a63",
+   "match_pre_validation": true,
+   "current_repo_sha12": "009ad86c9a63"
+  },
+  "scripts/r2t/synth_t1.py": {
+   "sha256": "4034a0e854ec043b6d103757104ea9ee3f09dbd162c0623e44a134f1a10a8010",
+   "pre_validation_sha12": "4034a0e854ec",
+   "match_pre_validation": true,
+   "current_repo_sha12": "4034a0e854ec"
+  },
+  "scripts/r2t/synth_variants.py": {
+   "sha256": "3edbf8095a38db51b50c7d3f0259680733da069f936daac99caaf3e9a0c21772",
+   "pre_validation_sha12": "3edbf8095a38",
+   "match_pre_validation": true,
+   "current_repo_sha12": "3edbf8095a38"
+  },
+  "scripts/r2t/t1.py": {
+   "sha256": "645c939c6a22a1300da253cb471f29f0c63d39a0abb22839b683c65a10192ceb",
+   "pre_validation_sha12": "645c939c6a22",
+   "match_pre_validation": true,
+   "current_repo_sha12": "645c939c6a22"
+  },
+  "scripts/r2t/t1_reg.py": {
+   "sha256": "a1686f760efad685d217af9f42689102702cac6cec23a84186da03d3c3c110e1",
+   "pre_validation_sha12": "a1686f760efa",
+   "match_pre_validation": true,
+   "current_repo_sha12": "a1686f760efa"
+  }
+ },
+ "reproduction_check": {
+  "when_kst": "2026-10-17 (보존본 생성 직후)",
+  "world": "pos:9001",
+  "command": "OMP_NUM_THREADS=2 PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -B results/r2t/t1_diag/f1_validation_snapshot/scripts/r2t/eval_t1_worlds.py --method t1_reg --worlds pos:9001 --tag '보존본 재현 확인' --out <scratchpad>/repro_pos9001.json",
+  "result": "delta · mean_nmse · folds 모두 보존 결과와 같음 (Δ +0.051577 [+0.048641, +0.054474])",
+  "note": "코드 변경 없이 같은 seed 를 다시 계산한 재현 확인 — 새 개봉이 아니다. 출력은 scratchpad (저장소 밖)."
+ },
+ "timestamps_kst": {
+  "val_t1_r100_n31.json": "09:13:51",
+  "val_reg_r100_n31.json": "09:13:58",
+  "t1_reg2.py 생성": "09:19:55",
+  "eval_t1_worlds.py F2 등록 수정": "09:20:06"
+ }
+}

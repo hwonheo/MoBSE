@@ -1,0 +1,10 @@
+{
+ "python": "3.11.17",
+ "numpy": "2.4.3",
+ "scipy": "1.17.1",
+ "sklearn": "1.8.0",
+ "platform": "macOS-27.0.1-arm64-arm-64bit",
+ "OMP_NUM_THREADS": "2",
+ "PYTHONDONTWRITEBYTECODE": "1",
+ "tests": "tests/r2t 87 passed (442 s); test_r2t_t1_rel 12 passed; 돌연변이 R4 끔 · 누출 모두 검출"
+}

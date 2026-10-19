@@ -1,0 +1,12 @@
+{"decision": 88, "method": "t1_reg4", "source": "docs/experiments/r2t_t1_synth_diagnosis_2026-10-17.md §17.3",
+ "worlds_old": {"pos": [11001, 11002, 11003, 11004, 11005], "null": [11101, 11102, 11103, 11104, 11105], "wrong": [11201, 11202, 11203, 11204, 11205]},
+ "worlds_hard": {"sep=0.3": [11301, 11302, 11303, 11304, 11305], "ns=1": [11401, 11402, 11403, 11404, 11405],
+                 "sep=0.3,wrong=1": [11501, 11502, 11503, 11504, 11505],
+                 "dwell=8,phase=random": [11601, 11602, 11603, 11604, 11605], "dwell=8,phase=random,wrong=1": [11701, 11702, 11703, 11704, 11705],
+                 "rho=0.9": [11801, 11802, 11803, 11804, 11805], "rho=0.9,wrong=1": [11851, 11852, 11853, 11854, 11855],
+                 "dwell=15,phase=random": [11901, 11902, 11903, 11904, 11905], "sep=0.2": [11951, 11952, 11953, 11954, 11955],
+                 "sep=0.1": [11981, 11982, 11983, 11984, 11985]},
+ "judged": {"positive": ["pos", "sep=0.3", "dwell=8,phase=random", "rho=0.9"],
+            "no_spurious_gain": ["null", "wrong", "ns=1", "sep=0.3,wrong=1", "dwell=8,phase=random,wrong=1", "rho=0.9,wrong=1"],
+            "descriptive": ["dwell=15,phase=random", "sep=0.2", "sep=0.1"]},
+ "n_runs": 65}
