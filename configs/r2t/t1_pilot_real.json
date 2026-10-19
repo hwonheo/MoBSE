@@ -1,0 +1,172 @@
+{
+ "schema": "r2t-t1-pilot-real-config-0.1",
+ "decision": 91,
+ "status": "실제 자료 pilot (결정 91 후보) — F4R1 고정 · BEST-T 43 비교. 잠금 전 검토용",
+ "design_doc": "docs/experiments/r2t_pilot_design_v1_2026-10-16.md",
+ "plan_doc": "docs/experiments/r2t_rest_state_prior_plan_v1_2026-10-16.md",
+ "claim_level": "T1",
+ "subjects": {
+  "source": "data/h1h2_scope/aomic/splits/folds.json",
+  "key": "pilot.subjects",
+  "dataset": "ds002785",
+  "id_format": "dataset:subject (접두어를 떼어 파일 이름에 씀)",
+  "expected_n": 31,
+  "rule": "WI-03 적격 (세 task 모두 · QC) · pilot seed 20260917 · 1 사람 = 1 group · 추가 제외 없음"
+ },
+ "data": {
+  "task_full_ts": "data/h1h2_scope/aomic/full_ts/{s}_emomatching.npz",
+  "task_key": "ts",
+  "task_frames": 135,
+  "task_manifest": "data/h1h2_scope/aomic/full_ts/manifest.json",
+  "rest_window": "data/h1h2_scope/aomic/rest_win/derivatives_v3/{s}/{s}_task-restingstate_acq-mb3_win-{i}.npy",
+  "rest_windows_per_subject": 4,
+  "rest_window_frames": 30,
+  "atlas_tsv": "data/h1h2_scope/aomic/atlas/tpl-MNI152NLin2009cAsym_atlas-Schaefer2018_desc-100Parcels7Networks_dseg.tsv",
+  "n_roi": 100
+ },
+ "split": {
+  "n_folds": 5,
+  "fold_seed": 20261017,
+  "inner_val_frac": 0.2,
+  "inner_seed": 20261018
+ },
+ "window": {
+  "length": 15,
+  "overlap": false,
+  "start_frame": 0
+ },
+ "mask": {
+  "frac": 0.2,
+  "hemisphere_balanced": true,
+  "n_masks": 10,
+  "seed": 20261019
+ },
+ "best_candidates": [
+  "G1-LW",
+  "G1-OAS",
+  "RIDGE λ=100",
+  "RIDGE λ=10",
+  "RIDGE λ=1",
+  "RIDGE λ=0.1",
+  "RIDGE λ=0.01"
+ ],
+ "mix": {
+  "K": 3,
+  "tau_candidates": [
+   "0",
+   "ess",
+   "1"
+  ],
+  "em_seed": 1,
+  "n_init": 10,
+  "tol": 1e-06,
+  "max_iter": 500,
+  "min_occupancy": 0.05,
+  "eig_floor_rel": 1e-06,
+  "cond_lambda_candidates": [
+   100,
+   10,
+   1,
+   0.1,
+   0.01
+  ],
+  "selection_order": "EM a: LW → 0.091 → 0.5 → 0.909, λ 큰 → 작은, τ 0 → ess → 1, 가중치 단위 창 전체 → 5 → 3 → 1 (동률이면 앞쪽)",
+  "em_shrink_candidates": [
+   0.090909,
+   0.5,
+   0.909091
+  ],
+  "weight_unit_candidates": [
+   "window",
+   5,
+   3,
+   1
+  ],
+  "init": {
+   "features": "창 산포행렬 상삼각 → 열 표준화 → SVD 상위 주성분",
+   "n_pc": 20,
+   "occupancy_check": "최종 해에서만"
+  }
+ },
+ "selection": {
+  "tie": 0.0001,
+  "criterion": "inner val 사람 평균 NMSE (분모 inner train task 창)"
+ },
+ "bootstrap": {
+  "n": 10000,
+  "seed": 20261020,
+  "level": 95
+ },
+ "delta_report_only": 0.01,
+ "stop_rules": {
+  "mix_fail_folds_max": 1,
+  "nonfinite": "stop",
+  "delta_upper_lt_0": "K>1 경로 중단 권고",
+  "all_folds_tau_zero": "적응 경로 중단 권고"
+ },
+ "derived_from": "configs/r2t/t1_pilot_rel.json",
+ "reliability": {
+  "rules_doc": "docs/experiments/r2t_t1_reliability_2026-10-17.md §0",
+  "keep_predictions": true,
+  "selection_audit": false,
+  "best_tuned": true,
+  "failure_classes": {
+   "normal": [
+    "not_converged",
+    "sparse_component"
+   ],
+   "numeric": [
+    "numerical",
+    "nonfinite"
+   ]
+  },
+  "fallback": "R3 정상 실패만 → BEST fallback; R4 수치 실패 섞이면 fold 중단"
+ },
+ "best_tuned": {
+  "g1_shrink": [
+   "LW",
+   "OAS",
+   "0.090909",
+   "0.5",
+   "0.909091"
+  ],
+  "g1_cond_lambda": [
+   0,
+   100,
+   10,
+   1,
+   0.1,
+   0.01
+  ],
+  "ridge_lambda": [
+   1000.0,
+   316.227766,
+   100.0,
+   31.622777,
+   10.0,
+   3.162278,
+   1.0,
+   0.316228,
+   0.1,
+   0.031623,
+   0.01,
+   0.003162,
+   0.001
+  ]
+ },
+ "primary": {
+  "metric": "BEST-T − F4R (31 명, 공정성)",
+  "definition": "Δ = NMSE(BEST-T) − NMSE(F4R1), 31 명 전원 (fallback 사람 포함), 사람 단위 bootstrap 10,000 · 95 % CI · SD",
+  "fallback_prediction": "F4R1 고정 규칙 그대로 — fold BEST (원래 7 후보) 예측. 따라서 fallback 사람의 주지표 Δ = NMSE(BEST-T) − NMSE(BEST) (0 이 아닐 수 있음)",
+  "secondary": [
+   "BEST − F4R (31 명, 주지표)  [원래 7 후보 대비, 보조]",
+   "성공 fold 한정 Δ (참고)",
+   "MIX-p − F4R (기전 보조)"
+  ]
+ },
+ "output": {
+  "dir": "data/r2t_pilot_real/run",
+  "prefix": "pilot31",
+  "note": "실제 자료 사람별 점수 · 예측은 gitignore 영역 (/data/) 에 둔다. 잠금 · 설계 · 사전 점검 · 요약 · manifest 는 results/r2t/t1_pilot_real/"
+ }
+}
