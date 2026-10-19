@@ -1,0 +1,92 @@
+{
+  "version": "ds005270_fmriprep_nuisance_v3_20261019",
+  "method": "existing arrays reused by explicit content hashes; no duplicate BOLD extraction",
+  "subjects": [
+    {
+      "subject": "sub-001",
+      "status": "pass_technical_validation_only",
+      "rank": 28,
+      "design_exact_reproduction": true,
+      "residual_max_abs_difference": 0.0,
+      "main_windows": {
+        "ZeroBack": 4,
+        "OneBack": 4,
+        "TwoBack": 4
+      },
+      "source_lineage_sha256": {
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_fmriprep_results/sub-001-run/sub-001/func/sub-001_task-nbk_desc-confounds_timeseries.tsv": "9cdc89e7700beec67b56521ba6d2af975b85747dde294136c40509add63b2d35",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_fmriprep_results/sub-001-run/sub-001/log/20261017-233701_48d5ddce-7385-4899-bb7d-4943de8c9b00/fmriprep.toml": "47dafff5a6c442c974986a6c5b35f565361d750e178a48735c05f985bdd9c1e1",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_fmriprep_results/sub-001-run/logs/CITATION.md": "4dd640116ba9296244d6c50e08e059b4b5ac353ef7097dd8746fec59ec2b7dc3",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_roi_adapter_validation_a1/sub-001/roi_raw.npy": "b8f75c4335d91f05bf262db460f7bb7280b8244f945f757a9bbd94db9efd4272",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_roi_adapter_validation_a1/sub-001/nuisance_candidate.npy": "a4a14e0aa148ebb1ba848cba860fdd0b2cd3ece139fdb164ba262429177bf4d1",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_roi_adapter_validation_a1/sub-001/roi_clean_candidate.npy": "debaab1863542bc68a3240ba97a45be6e3dec58ae0f1eecf01bd428bdc204465"
+      }
+    },
+    {
+      "subject": "sub-002",
+      "status": "pass_technical_validation_only",
+      "rank": 28,
+      "design_exact_reproduction": true,
+      "residual_max_abs_difference": 0.0,
+      "main_windows": {
+        "ZeroBack": 4,
+        "OneBack": 4,
+        "TwoBack": 4
+      },
+      "source_lineage_sha256": {
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_pilot6_results/sub-002-run/sub-002/func/sub-002_task-nbk_desc-confounds_timeseries.tsv": "5bf9470fe8e14ebd260124a75e7c26e78b4787ea918b6144049ee3ceeccd4f8c",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_pilot6_results/sub-002-run/sub-002/log/20261018-102354_7d7f371f-eea5-4658-91e1-2fa8bf34843d/fmriprep.toml": "9c8059fbd757d62600bc43e4a6a7f1a8c845709a831b45bda77fcc4b6f945752",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_pilot6_results/sub-002-run/logs/CITATION.md": "4dd640116ba9296244d6c50e08e059b4b5ac353ef7097dd8746fec59ec2b7dc3",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_roi_adapter_validation_a1/sub-002/roi_raw.npy": "24202c343ce47aa1975ba724d563fe38b6f8f1e1ef65254d246d1f01b40e5658",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_roi_adapter_validation_a1/sub-002/nuisance_candidate.npy": "b3c23fdd7e886ee14027cfef0fab28236dc0acf43dd9b6303b2226a0a7cb08cf",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_roi_adapter_validation_a1/sub-002/roi_clean_candidate.npy": "47a0a5b75b2457520ccb0ae873d5170f9ad8a5afc58f3cbaad0fc4f77722e343"
+      }
+    },
+    {
+      "subject": "sub-004",
+      "status": "pass_technical_validation_only",
+      "rank": 28,
+      "design_exact_reproduction": true,
+      "residual_max_abs_difference": 0.0,
+      "main_windows": {
+        "ZeroBack": 4,
+        "OneBack": 4,
+        "TwoBack": 4
+      },
+      "source_lineage_sha256": {
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_pilot6_results/sub-004-run/sub-004/func/sub-004_task-nbk_desc-confounds_timeseries.tsv": "b26c6b40a781947b4c029c902069daa8f5858e9a8a4d6349374d0cc317b9a385",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_pilot6_results/sub-004-run/sub-004/log/20261018-114218_4002da23-15e6-4360-8106-4852b5b5cc9f/fmriprep.toml": "652a6bd89835eea01612c15f554b4f0c143307317c9da4fc2864fd7b7e88b117",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_pilot6_results/sub-004-run/logs/CITATION.md": "4dd640116ba9296244d6c50e08e059b4b5ac353ef7097dd8746fec59ec2b7dc3",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_roi_adapter_validation_a1/sub-004/roi_raw.npy": "6c11fbf1e1aadc3db301ceec5b673edb956c1dba50567ae366a5d1f6567a3ec9",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_roi_adapter_validation_a1/sub-004/nuisance_candidate.npy": "2f8c68df8a6a81e8c7e042ea070acec7464cb692d1088d6215e377e9ff787ecd",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_roi_adapter_validation_a1/sub-004/roi_clean_candidate.npy": "64e28945b794032ef42f8af498cb125d4adaef0a39ea22e8ba08a8ad7acaa263"
+      }
+    },
+    {
+      "subject": "sub-013",
+      "status": "pass_technical_validation_only",
+      "rank": 28,
+      "design_exact_reproduction": true,
+      "residual_max_abs_difference": 0.0,
+      "main_windows": {
+        "ZeroBack": 4,
+        "OneBack": 4,
+        "TwoBack": 4
+      },
+      "source_lineage_sha256": {
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_pilot6_results/sub-013-run/sub-013/func/sub-013_task-nbk_desc-confounds_timeseries.tsv": "a61a56f1f01c9034adcf5f18b552a2b975feac22490c1cdd04a4f84892352be5",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_pilot6_results/sub-013-run/sub-013/log/20261018-142113_14b792e4-8437-4614-8120-750a70c4e1bd/fmriprep.toml": "82fb884cba47dfcc30b8a06966354f58b720e0c34385544bb058c27ed70c636d",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_pilot6_results/sub-013-run/logs/CITATION.md": "4dd640116ba9296244d6c50e08e059b4b5ac353ef7097dd8746fec59ec2b7dc3",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_roi_adapter_validation_a1/sub-013/roi_raw.npy": "47f6abdf0d1fa6c5ea2746c78cdcf5e00eb1a0aa840bb7d15d1cc19e739c02b8",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_roi_adapter_validation_a1/sub-013/nuisance_candidate.npy": "e85ff0cd7367a395ae4de6d08e16a44dba7eb3edb7974649da22e7a718ee26eb",
+        "/Users/hwon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Codex/2026-10-16/task-7/ds005270_roi_adapter_validation_a1/sub-013/roi_clean_candidate.npy": "646b556f1346c446535581ae632247a4235f84c7c4c269c54c8805d9593c3edb"
+      }
+    }
+  ],
+  "source_checks_passed": true,
+  "new_scientific_thresholds": false,
+  "training_executed": false,
+  "preprocessing_rerun": false,
+  "full_cohort_executed": false,
+  "remaining_quality_review": true
+}

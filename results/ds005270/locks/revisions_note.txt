@@ -1,0 +1,1 @@
+note: times from locked_at_utc (+9h) and driver logs; the hashed lock document still says '21:4x' for rev4 and will be corrected only in a later revision (not while rev4 runs).

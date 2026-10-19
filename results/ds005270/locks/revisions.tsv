@@ -1,0 +1,5 @@
+rev	lock_hash	locked_at_kst	first_run_start_kst	reason	previous_lock	applies_to	processing_or_qc_changed
+rev1	3638df1a70a6	2026-10-17T20:39:05	2026-10-17T20:39:24	initial lock	-	pilot 6 (sub-001 started, then stopped; no processing outputs)	-
+rev2	004420a547c7	2026-10-17T20:41:47	2026-10-17T20:41:49	AFNI snapshot Xvfb retried up to 99x (no /tmp/.X11-unix); Xvfb via TCP	3638df1a70a6	sub-001 started, then stopped on user notice (TCP listener on all interfaces); no processing outputs	no
+rev3	c7fbcdb6eb22	2026-10-17T20:43:43	2026-10-17T20:43:55	TCP listener not allowed; stub only the two Xvfb-starting snapshot helpers	004420a547c7	sub-001 steps 01-02 (OMP 2); step 03 failed (rc=1, 21:35:03)	no
+rev4	77ac844753af	2026-10-17T21:36:31	2026-10-17T21:36:42 (sub-001 step 03); 2026-10-17T21:37:28 (sub-002)	user-approved OMP 2->4 (BLAS 2 kept); fix 5D template indexing in 03 QC plotting; STEPS option; status omp/lock columns	c7fbcdb6eb22	sub-001 step 03 rerun; sub-002/003/004/006/013 all steps (OMP 4)	no

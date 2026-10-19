@@ -1,0 +1,68 @@
+{
+  "locked_at_utc": "2026-10-17T11:43:43Z",
+  "lock_hash": "c7fbcdb6eb22328810d2b224c464b780f6ab1ba8080650a5f3a7aafd6b9ba822",
+  "content": {
+    "lock_name": "ds005270_preproc_pilot_lock_v1",
+    "protocol_version": "ds005270_protocol_v1",
+    "config": {
+      "path": "configs/ds005270/protocol_v1.json",
+      "sha256": "86709c61570c226fa0e49cd74c8395f10feb3f8757fd1934467f7a06d8a7ed85"
+    },
+    "document": {
+      "path": "docs/experiments/ds005270_protocol_lock_v1_2026-10-17.md",
+      "sha256": "181510e35bac60f6fd553317877dd652d842cfb5182c4b95cfcd3edfaedb0fd0"
+    },
+    "scripts": {
+      "scripts/ds005270/common.py": "e38cd8d43b5450e7345a3d8df198802e11732ab2b7289721ca4c64771090e37b",
+      "scripts/ds005270/00_reference.py": "f8256b561f4a14f6cb9323e3ff0a74cfeda01a73c932df9d1c7e804e6e0e7d28",
+      "scripts/ds005270/01_prepare_inputs.py": "a73e8eff26dbfd20210500b109d46bc86334763751bb2b5cafdcb16774d5e91a",
+      "scripts/ds005270/02_afni_subject.sh": "b6be488ed37a46ecd287f1be25d813bb61ef0e204c155a898e8cbdecd9dd4736",
+      "scripts/ds005270/03_extract_qc.py": "89c06c04725b823bbc24b602556fc4507188b6e7dcf1858076c2c6b47b7e2db2",
+      "scripts/ds005270/04_pilot_summary.py": "11de068de04e4bc816a97a9dadde5f3413746feec734bc2373cab873acd0156d",
+      "scripts/ds005270/build_lock.py": "bd0a910ba52c242f8eca1dd02387853da8ad73cd01fb83784cf64bae69137398",
+      "scripts/ds005270/run_pilot.sh": "f124af6ecf40687052dd5e0c254a0bcc389ba8661fd1ec5a70626e9fe73f9324",
+      "scripts/ds005270/no_snapshot_bin/@chauffeur_afni": "a902ddaa69b6be3cae01c6fa789896c7b2c704beb4521afb543acc9ade1f6533",
+      "scripts/ds005270/no_snapshot_bin/@snapshot_volreg": "80b282577f13d7dd30a086044a6308b013a9dc48ba9514ff6b27b6dc4591c743"
+    },
+    "atlas_sha256": "7221cee56943599833dc2b98aac56626584e9c0067f28c768b46f7b7ff7408ac",
+    "atlas_lut_sha256": "a81a63f67fdaffd7b2b4b6c7df05f75b16899cba70100f464bbccba0a257cc6c",
+    "template_sha256": "1c85bc836d0ce2ce41abab5c54cae6ceb9e3c6d87ba651c5c01fab99448350cf",
+    "inputs_sha256": {
+      "sub-001/anat/sub-001_T1w.nii.gz": "8afd3a1415a1a98bc7b4abfe0c183266e7796a0d7447220e5378446a024a210e",
+      "sub-001/func/sub-001_task-nbk_bold.nii.gz": "f7e36af01c10b8d124d85e33e58619bc9a997285428ce52098920e238120e26a",
+      "sub-001/func/sub-001_task-nbk_bold.json": "0a6d361d8baaee1fc31cf57f654b2c09a93d6b204df879e705e32ab21fe3a6c6",
+      "sub-001/func/sub-001_task-nbk_events.tsv": "88aa1c6bfeb39f4cc708c09ad0cd1d75c7648cc7b900249de30ac22dd0a85efb",
+      "sub-002/anat/sub-002_T1w.nii.gz": "27dbae1d5847f00d1fc842e316914828111dbf8a30792b60e16ce7bc1df87d89",
+      "sub-002/func/sub-002_task-nbk_bold.nii.gz": "31f154b36dd866da6853729f1f86d7a1218f368968929a5842ee8adfaadd2af0",
+      "sub-002/func/sub-002_task-nbk_bold.json": "602e639abd222189e8604e5941dd202819dc5b7559dcd6f7b5022ba68e29dfbf",
+      "sub-002/func/sub-002_task-nbk_events.tsv": "47a5eb5a888ffb9328e2fb01779e3451d8def759fec3983f9235d6f6bd8e356b",
+      "sub-003/anat/sub-003_T1w.nii.gz": "39e6ab91f5ccd1a19f2166af0d7003c3538e65fb85aabe9fd9c9935633f7e298",
+      "sub-003/func/sub-003_task-nbk_bold.nii.gz": "65e409e5cfad8c5403ab751b06c255d193e3eef9d1ae939b8387d8a92cb32325",
+      "sub-003/func/sub-003_task-nbk_bold.json": "859fc0b6a50fa6781d4a421264514e58f8e3d8639db0c4b5b8b0c31b533d4bef",
+      "sub-003/func/sub-003_task-nbk_events.tsv": "dd03994eca75490704fa2ecf49c7917cd1ff9fb3bf4616208df26e5b114e1fec",
+      "sub-004/anat/sub-004_T1w.nii.gz": "b7d3729646083ae9bc1dc4a6ac08b7fa47c555468080d254bdf63ef3667f3f41",
+      "sub-004/func/sub-004_task-nbk_bold.nii.gz": "db0856b8079b93672f235be0ce0e127960158898464ff3cec67bdfaeb752c804",
+      "sub-004/func/sub-004_task-nbk_bold.json": "2273239c7df9a81f4d3d6dea20c9726125291d108f0813ee395e4564745c8171",
+      "sub-004/func/sub-004_task-nbk_events.tsv": "dd2d481c60a1e5f577550be66a4927170f5afb57353cb7397e6fa43baba0a340",
+      "sub-006/anat/sub-006_T1w.nii.gz": "d78d6c653cec8033fc3c18d3ae4ccd48bf39b0588bed2e774b8effc9c7a6bf04",
+      "sub-006/func/sub-006_task-nbk_bold.nii.gz": "f795c8142afc8bae361202b4987a428bb38fc679120b40644b673d8bf4e3a031",
+      "sub-006/func/sub-006_task-nbk_bold.json": "8beb7aa3eeaa306cb7b668a621d919e6da2cdf9f578082ed40107313f06eaef9",
+      "sub-006/func/sub-006_task-nbk_events.tsv": "9f0f275ee433c2063da7e8ecb3555554beabd2d02ab94bda566c3cc8198617f3",
+      "sub-013/anat/sub-013_T1w.nii.gz": "cd47d942f4669ceed7d861e828c8e56ece4c070412df61fd1f746e5074981b5e",
+      "sub-013/func/sub-013_task-nbk_bold.nii.gz": "ba8f0b08534daf078fa107f01cc12c3eee800a6e9754a2a976a312d3e99571d5",
+      "sub-013/func/sub-013_task-nbk_bold.json": "463a0757d8f60fe0dd659204e2b404123d2188862d71d179e08e621051049f79",
+      "sub-013/func/sub-013_task-nbk_events.tsv": "41a89e881dc76c98c65ff5d976ee5db1e7a82acde36079fbe1899eb70e3af295"
+    },
+    "tools": {
+      "afni": "Precompiled binary macos_13_ARM: Sep  9 2026 (Version AFNI_26.2.07 'Gordian III')",
+      "afni_proc": "version 8.08, September 4, 2026",
+      "python_venv": "3.11.17",
+      "nibabel": "5.4.2",
+      "nilearn": "0.13.1",
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "matplotlib": "3.10.8",
+      "sklearn": "1.8.0"
+    }
+  }
+}
