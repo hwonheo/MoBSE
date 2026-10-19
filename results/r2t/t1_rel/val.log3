@@ -1,0 +1,3 @@
+wrong:12201 | BEST−F4R -0.0000 [-0.0001, +0.0001] sd 0.0002 | BEST-T−F4R +0.0000 [-0.0000, +0.0000] sd 0.0000 | status ['ok', 'ok', 'ok', 'ok', 'ok'] | roundtrip 문제 0 | 270s
+wrong:12202 | BEST−F4R +0.0006 [-0.0004, +0.0013] sd 0.0025 | BEST-T−F4R +0.0006 [-0.0004, +0.0014] sd 0.0025 | status ['ok', 'ok', 'ok', 'ok', 'ok'] | roundtrip 문제 0 | 270s
+wrong:12203 | BEST−F4R +0.0000 [-0.0001, +0.0001] sd 0.0003 | BEST-T−F4R -0.0004 [-0.0007, -0.0001] sd 0.0008 | status ['ok', 'ok', 'ok', 'ok', 'ok'] | roundtrip 문제 0 | 269s

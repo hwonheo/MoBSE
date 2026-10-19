@@ -1,0 +1,28 @@
+{
+ "schema": "r2t-t1-pilot-real-results-manifest-0.1",
+ "lock_hash": "981f5b7643b2511c46cc972f07dbef7958cc3e78befa17e7a18f6f58bd85f794",
+ "verify": {
+  "ok": true,
+  "problems": [],
+  "n_arrays_checked": 15,
+  "n_subject_scores_rechecked": 93
+ },
+ "files": {
+  "data/r2t_pilot_real/run/pilot31.json": {
+   "sha256": "01878fd905d8588c5483d28f5f3c65dd42f651b89db3ed013d035a8753845c67",
+   "bytes": 166798
+  },
+  "data/r2t_pilot_real/run/pilot31.npz": {
+   "sha256": "b4d20fbe28905e5242ec9e55ee0cc9acfcb039944aa867d03d552587153eccb4",
+   "bytes": 19267267
+  },
+  "data/r2t_pilot_real/run/run_log.jsonl": {
+   "sha256": "acb6e47602f9ce38a719abc2fae12e07e65adcb180210645aaea07ba251620a6",
+   "bytes": 780
+  },
+  "results/r2t/t1_pilot_real/lock.json": {
+   "sha256": "b7ff8dfcbf0719ed7199ca39b0ad618790ddf2e081ca159d761e45e355e88fe4",
+   "bytes": 25513
+  }
+ }
+}

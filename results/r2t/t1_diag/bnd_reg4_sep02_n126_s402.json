@@ -1,0 +1,122 @@
+{
+ "schema": "r2t-t1-hard-0.1",
+ "synthetic_only": true,
+ "decision": 88,
+ "method": "t1_reg4",
+ "config": "t1_pilot_reg4.json",
+ "tag": "boundary 진단 (F4, 126 명, 개발 seed)",
+ "n_roi": 100,
+ "n_subjects": 126,
+ "rows": [
+  {
+   "world": "sep=0.2:402",
+   "params": {
+    "sep": 0.2,
+    "dwell": 15,
+    "phase": "aligned",
+    "rho": 0.5,
+    "ns": 3,
+    "wrong": 0
+   },
+   "seed": 402,
+   "task_windows_with_state_change": 0.0,
+   "seconds": 451.51614108285867,
+   "mean_nmse": {
+    "BEST": 0.5163403517714074,
+    "F3": 0.49869510795926675,
+    "MIX-a": 0.49869510795926675,
+    "MIX-p": 0.528079022625635,
+    "MIX-f": 0.543299872003341
+   },
+   "delta": [
+    0.01764524381214064,
+    0.016604324977318737,
+    0.018680199309223825
+   ],
+   "delta_sd": null,
+   "aux": {
+    "MIX-a 대 MIX-p (성공 fold 한정)": [
+     0.029383914666368284,
+     0.02852100910671053,
+     0.030208964715182057
+    ],
+    "MIX-a 대 MIX-f (성공 fold 한정)": [
+     0.044604764044074284,
+     0.04339895409021093,
+     0.04574870611281968
+    ],
+    "MIX-p 대 BEST (성공 fold 한정)": [
+     -0.011738670854227641,
+     -0.01294653958986327,
+     -0.010514607930484312
+    ]
+   },
+   "n_fallback_subjects": 0,
+   "mix_fail_folds": 0,
+   "inner_failed_a_total": 4,
+   "delta_okfolds_reference": [
+    0.01764524381214064,
+    0.016604324977318737,
+    0.018680199309223825
+   ],
+   "verdict": {
+    "flags": [],
+    "stop": false,
+    "mix_fail_folds": 0,
+    "next": "기술값 보고"
+   },
+   "folds": [
+    {
+     "best": "RIDGE λ=0.1",
+     "mix_pick": "a=0.500|λ=0.01|τ=ess|h=win",
+     "tau_label": "ess",
+     "lam": 0.01,
+     "em_a": 0.5,
+     "h": "win",
+     "tau_ess": 0.4660753259775585,
+     "mix": "ok"
+    },
+    {
+     "best": "RIDGE λ=0.1",
+     "mix_pick": "a=0.500|λ=0.01|τ=ess|h=win",
+     "tau_label": "ess",
+     "lam": 0.01,
+     "em_a": 0.5,
+     "h": "win",
+     "tau_ess": 0.4627384576940612,
+     "mix": "ok"
+    },
+    {
+     "best": "RIDGE λ=0.1",
+     "mix_pick": "a=0.500|λ=0.01|τ=ess|h=win",
+     "tau_label": "ess",
+     "lam": 0.01,
+     "em_a": 0.5,
+     "h": "win",
+     "tau_ess": 0.46567282812256067,
+     "mix": "ok"
+    },
+    {
+     "best": "RIDGE λ=0.1",
+     "mix_pick": "a=0.500|λ=0.01|τ=ess|h=win",
+     "tau_label": "ess",
+     "lam": 0.01,
+     "em_a": 0.5,
+     "h": "win",
+     "tau_ess": 0.46538469195824883,
+     "mix": "ok"
+    },
+    {
+     "best": "RIDGE λ=0.1",
+     "mix_pick": "a=0.500|λ=0.01|τ=ess|h=win",
+     "tau_label": "ess",
+     "lam": 0.01,
+     "em_a": 0.5,
+     "h": "win",
+     "tau_ess": 0.46393157038190747,
+     "mix": "ok"
+    }
+   ]
+  }
+ ]
+}

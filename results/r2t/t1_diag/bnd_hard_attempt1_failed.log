@@ -1,0 +1,12 @@
+sep=1.0:401 mixed=0.00 Δ=+0.0413 [+0.0375, +0.0449] BEST=0.5335 aMp=+0.0422 picks=['λ=1|τ=ess'] 36s
+sep=0.5:401 mixed=0.00 Δ=+0.0395 [+0.0360, +0.0428] BEST=0.5583 aMp=+0.0417 picks=['λ=1|τ=ess'] 23s
+sep=0.3:401 mixed=0.00 Δ=-0.0004 [-0.0031, +0.0022] BEST=0.5430 aMp=+0.0014 picks=['λ=0.1|τ=0', 'λ=1|τ=ess'] 22s
+sep=0.2:401 mixed=0.00 Δ=-0.0010 [-0.0012, -0.0008] BEST=0.5293 aMp=-0.0003 picks=['λ=1|τ=0'] 23s
+Traceback (most recent call last):
+  File "/Users/hwon/projects/Git/Manuscript/MoBSE/scripts/r2t/eval_t1_hard.py", line 74, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/Users/hwon/projects/Git/Manuscript/MoBSE/scripts/r2t/eval_t1_hard.py", line 64, in main
+    f"aMp={res['aux']['MIX-a 대 MIX-p'][0]:+.4f} picks={sorted(set(f.get('mix_pick') or f.get('tau_label') for f in row['folds']))} "
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: '<' not supported between instances of 'str' and 'NoneType'

@@ -1,0 +1,147 @@
+{
+ "schema": "r2t-t1-rel1-verify-0.1",
+ "synthetic_only": true,
+ "model_fit_or_eval_rerun": false,
+ "truth": "생성기 + seed 로 재생성",
+ "n_runs": 15,
+ "n_failed": 0,
+ "n_arrays_checked": 225,
+ "n_subject_scores_rechecked": 1395,
+ "runs": [
+  {
+   "run": "results/r2t/t1_rel/val/dwell_8_phase_random_12401.json",
+   "world": "sep=1.0,dwell=8,phase=random,rho=0.5,ns=3,wrong=0:12401",
+   "ok": true,
+   "problems": [],
+   "n_arrays_checked": 15,
+   "n_subject_scores_rechecked": 93,
+   "oracle_refit_records": "미보존 (이 판의 oracle 재적합 실패 원인은 저장되지 않았음 — 추정하지 않음)"
+  },
+  {
+   "run": "results/r2t/t1_rel/val/dwell_8_phase_random_12402.json",
+   "world": "sep=1.0,dwell=8,phase=random,rho=0.5,ns=3,wrong=0:12402",
+   "ok": true,
+   "problems": [],
+   "n_arrays_checked": 15,
+   "n_subject_scores_rechecked": 93,
+   "oracle_refit_records": "미보존 (이 판의 oracle 재적합 실패 원인은 저장되지 않았음 — 추정하지 않음)"
+  },
+  {
+   "run": "results/r2t/t1_rel/val/dwell_8_phase_random_12403.json",
+   "world": "sep=1.0,dwell=8,phase=random,rho=0.5,ns=3,wrong=0:12403",
+   "ok": true,
+   "problems": [],
+   "n_arrays_checked": 15,
+   "n_subject_scores_rechecked": 93,
+   "oracle_refit_records": "미보존 (이 판의 oracle 재적합 실패 원인은 저장되지 않았음 — 추정하지 않음)"
+  },
+  {
+   "run": "results/r2t/t1_rel/val/null_12101.json",
+   "world": "null:12101",
+   "ok": true,
+   "problems": [],
+   "n_arrays_checked": 15,
+   "n_subject_scores_rechecked": 93,
+   "oracle_refit_records": "미보존 (이 판의 oracle 재적합 실패 원인은 저장되지 않았음 — 추정하지 않음)"
+  },
+  {
+   "run": "results/r2t/t1_rel/val/null_12102.json",
+   "world": "null:12102",
+   "ok": true,
+   "problems": [],
+   "n_arrays_checked": 15,
+   "n_subject_scores_rechecked": 93,
+   "oracle_refit_records": "미보존 (이 판의 oracle 재적합 실패 원인은 저장되지 않았음 — 추정하지 않음)"
+  },
+  {
+   "run": "results/r2t/t1_rel/val/null_12103.json",
+   "world": "null:12103",
+   "ok": true,
+   "problems": [],
+   "n_arrays_checked": 15,
+   "n_subject_scores_rechecked": 93,
+   "oracle_refit_records": "미보존 (이 판의 oracle 재적합 실패 원인은 저장되지 않았음 — 추정하지 않음)"
+  },
+  {
+   "run": "results/r2t/t1_rel/val/pos_12001.json",
+   "world": "pos:12001",
+   "ok": true,
+   "problems": [],
+   "n_arrays_checked": 15,
+   "n_subject_scores_rechecked": 93,
+   "oracle_refit_records": "미보존 (이 판의 oracle 재적합 실패 원인은 저장되지 않았음 — 추정하지 않음)"
+  },
+  {
+   "run": "results/r2t/t1_rel/val/pos_12002.json",
+   "world": "pos:12002",
+   "ok": true,
+   "problems": [],
+   "n_arrays_checked": 15,
+   "n_subject_scores_rechecked": 93,
+   "oracle_refit_records": "미보존 (이 판의 oracle 재적합 실패 원인은 저장되지 않았음 — 추정하지 않음)"
+  },
+  {
+   "run": "results/r2t/t1_rel/val/pos_12003.json",
+   "world": "pos:12003",
+   "ok": true,
+   "problems": [],
+   "n_arrays_checked": 15,
+   "n_subject_scores_rechecked": 93,
+   "oracle_refit_records": "미보존 (이 판의 oracle 재적합 실패 원인은 저장되지 않았음 — 추정하지 않음)"
+  },
+  {
+   "run": "results/r2t/t1_rel/val/sep_0_3_12301.json",
+   "world": "sep=0.3,dwell=15,phase=aligned,rho=0.5,ns=3,wrong=0:12301",
+   "ok": true,
+   "problems": [],
+   "n_arrays_checked": 15,
+   "n_subject_scores_rechecked": 93,
+   "oracle_refit_records": "미보존 (이 판의 oracle 재적합 실패 원인은 저장되지 않았음 — 추정하지 않음)"
+  },
+  {
+   "run": "results/r2t/t1_rel/val/sep_0_3_12302.json",
+   "world": "sep=0.3,dwell=15,phase=aligned,rho=0.5,ns=3,wrong=0:12302",
+   "ok": true,
+   "problems": [],
+   "n_arrays_checked": 15,
+   "n_subject_scores_rechecked": 93,
+   "oracle_refit_records": "미보존 (이 판의 oracle 재적합 실패 원인은 저장되지 않았음 — 추정하지 않음)"
+  },
+  {
+   "run": "results/r2t/t1_rel/val/sep_0_3_12303.json",
+   "world": "sep=0.3,dwell=15,phase=aligned,rho=0.5,ns=3,wrong=0:12303",
+   "ok": true,
+   "problems": [],
+   "n_arrays_checked": 15,
+   "n_subject_scores_rechecked": 93,
+   "oracle_refit_records": "미보존 (이 판의 oracle 재적합 실패 원인은 저장되지 않았음 — 추정하지 않음)"
+  },
+  {
+   "run": "results/r2t/t1_rel/val/wrong_12201.json",
+   "world": "wrong:12201",
+   "ok": true,
+   "problems": [],
+   "n_arrays_checked": 15,
+   "n_subject_scores_rechecked": 93,
+   "oracle_refit_records": "미보존 (이 판의 oracle 재적합 실패 원인은 저장되지 않았음 — 추정하지 않음)"
+  },
+  {
+   "run": "results/r2t/t1_rel/val/wrong_12202.json",
+   "world": "wrong:12202",
+   "ok": true,
+   "problems": [],
+   "n_arrays_checked": 15,
+   "n_subject_scores_rechecked": 93,
+   "oracle_refit_records": "미보존 (이 판의 oracle 재적합 실패 원인은 저장되지 않았음 — 추정하지 않음)"
+  },
+  {
+   "run": "results/r2t/t1_rel/val/wrong_12203.json",
+   "world": "wrong:12203",
+   "ok": true,
+   "problems": [],
+   "n_arrays_checked": 15,
+   "n_subject_scores_rechecked": 93,
+   "oracle_refit_records": "미보존 (이 판의 oracle 재적합 실패 원인은 저장되지 않았음 — 추정하지 않음)"
+  }
+ ]
+}

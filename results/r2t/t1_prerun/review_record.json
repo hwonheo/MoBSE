@@ -1,0 +1,58 @@
+{
+ "schema": "r2t-t1-review-record-0.1",
+ "decision": 87,
+ "is_lock": false,
+ "created_utc": "2026-10-16T13:30:33+00:00",
+ "note": "실행 전 검토용 해시 기록. 잠금 · 실제 값 적재 · pilot 실행은 별도 승인",
+ "config": {
+  "configs/r2t/t1_pilot.json": "839edf29aa13a264857fe2550afee0f238a6361da63b4b90d8f10068c02bd5a2"
+ },
+ "docs": {
+  "docs/experiments/r2t_rest_state_prior_plan_v1_2026-10-16.md": "4f8d3645f9d174f0872ef8eb8942a9966905a11fed6e62ce0f4a70b9392b17e8",
+  "docs/experiments/r2t_pilot_design_v1_2026-10-16.md": "3d6005986d949fb6e444e9a16bd012eba479339ec83b6f5d2814ca7c702a39cc"
+ },
+ "code": {
+  "scripts/r2t/bench_mix.py": "0d7c292f61b53a414a9d8807c445a1060a1ec5749026929ab39cdb3b335adf97",
+  "scripts/r2t/bench_stage0.py": "ef90559985cbc05515c6c23b7d92f08f68cd1f787e7fc7dc1d02db5b20e39d67",
+  "scripts/r2t/bench_t1.py": "5c5b73c25076c0a88f32020f494075ffdc7f92c54bbe733ce09f8c623c76f40f",
+  "scripts/r2t/mix.py": "1af287a2416aab65fc50cf045507644348de71d3ff2d1ad8ab9c22bf16ac08cf",
+  "scripts/r2t/r2t_lib.py": "3da6f648b4d424230877f9f2effe9d5e52d2a35154e0f190eb05b1fb2e4ca0c6",
+  "scripts/r2t/select_rules.py": "390b38379b17129dea53f2fc4258b4c869b3859778a42870d49bec0f8c301359",
+  "scripts/r2t/synth.py": "7ac0c4a9f30253a075df0139c40a4a461aa6f71810382386496b7ae5a064de26",
+  "scripts/r2t/synth_mix.py": "009ad86c9a63fe84ba3e0ee9e1f15df62e48624d454f67090a1a5df6710e6c37",
+  "scripts/r2t/synth_t1.py": "4034a0e854ec043b6d103757104ea9ee3f09dbd162c0623e44a134f1a10a8010",
+  "scripts/r2t/synth_variants.py": "3edbf8095a38db51b50c7d3f0259680733da069f936daac99caaf3e9a0c21772",
+  "scripts/r2t/t1.py": "645c939c6a22a1300da253cb471f29f0c63d39a0abb22839b683c65a10192ceb",
+  "scripts/r2t/t1_review_record.py": "19ba22c94dd1e8e0ce0fb97ccc7626e309bab705421206d18f03fe09c5e2cc26"
+ },
+ "tests": {
+  "tests/r2t/test_r2t_mix.py": "c7615125004f0451ca31446e7eb4bcf2a8f6cc3860b144f7b7b333a08e42d1b7",
+  "tests/r2t/test_r2t_select.py": "f75448934ba59c1211450a4663492002b0a89557b6d9bd215223d20b461f006f",
+  "tests/r2t/test_r2t_stage0.py": "3b4aacbe97c1571b783541c9c381d1248c9bf22169a234a4af32e0528eb5279a",
+  "tests/r2t/test_r2t_t1.py": "1ed34668a2a8e5e5ef69b43c6eced424498449beefcf3c1e7ec1a1b7f2a92d83"
+ },
+ "upstream_extraction_code": {
+  "mobse/v2/extract.py": "45425fc516cc790e45e911af11c03fe5937c573fbfed3985e4bc6e7d5e7316f9",
+  "mobse/v2/preprocess.py": "689ed2d8dbf186b12fd3ae4e58ab153693b31f8d59f047efee32d067f9bea7de",
+  "scripts/h197/10_wi02_extract.py": "9f04e02737c0c82477ea7ebef95d635483112b535860d158a9fed0f20cb4594f",
+  "scripts/h1h2_scope/i3_extract_pilot.py": "daa89cfe56968425d16563f7725a2582bdee69c1a7812ec568445123070b61af"
+ },
+ "metadata": {
+  "data/h1h2_scope/aomic/splits/folds.json": "242ba87d6101f70438cc8a1d5fa9b3dcb6679ea307918f18a11f649cd3600b5b",
+  "data/h1h2_scope/aomic/full_ts/manifest.json": "818501967f4fea5634649fdb337fa41b5c583c7894a2aecb079419eb0a8e6831",
+  "data/h1h2_scope/aomic/atlas/tpl-MNI152NLin2009cAsym_atlas-Schaefer2018_desc-100Parcels7Networks_dseg.tsv": "a81a63f67fdaffd7b2b4b6c7df05f75b16899cba70100f464bbccba0a257cc6c"
+ },
+ "preflight": {
+  "n_subjects": 31,
+  "problems": [],
+  "task_shapes": [
+   "((135, 100), 'float32')"
+  ],
+  "rest_shapes": [
+   "((30, 100), 'float32')"
+  ],
+  "atlas_lh": 50,
+  "atlas_n": 100,
+  "values_read": false
+ }
+}

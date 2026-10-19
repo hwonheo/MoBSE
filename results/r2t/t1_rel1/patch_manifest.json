@@ -1,0 +1,45 @@
+{
+ "schema": "r2t-f4r1-patch-manifest-0.1",
+ "synthetic_only": true,
+ "created_kst": "2026-10-17 12:18:48",
+ "purpose": "F4R1 검증기 패치 — 새 코드 · 시험 · 읽기 검증 보고서 · 문서. 모델 튜닝 · 전체 합성 검증 재실행 없음.",
+ "new_files": {
+  "scripts/r2t/t1_rel1.py": {
+   "sha256": "e852c19c99d9e9ecfcb96febf2865f454642f6996a8e27ca626bf81e468aed2c",
+   "bytes": 18410
+  },
+  "scripts/r2t/eval_t1_rel1.py": {
+   "sha256": "cea616981762a33f3329d14a6c9468215b9dd26853b655b11a00fec964f28c4c",
+   "bytes": 2432
+  },
+  "scripts/r2t/verify_t1_rel1.py": {
+   "sha256": "69b281edfbeb8211056e9672a5c4948c811affde381925f20cc1dbdeef6253d4",
+   "bytes": 3107
+  },
+  "tests/r2t/test_r2t_t1_rel1.py": {
+   "sha256": "034ebcae13bda78c0f86e7c96430e5adb9f2e4c94dfa0b5a72acae3bfeb6d650",
+   "bytes": 12222
+  },
+  "results/r2t/t1_rel1/verify_existing/report_f4r_val15.json": {
+   "sha256": "d0f0495f2dec8a1eb1385ee68a206d0eaffea69950ea3dbcf9ed2d1db7115bc1",
+   "bytes": 5354
+  },
+  "docs/experiments/r2t_t1_rel1_patch_2026-10-17.md": {
+   "sha256": "a39fa97e9d5e85bd51a7f649f4bd312417ba188684d332cd2a7b240e1e82c292",
+   "bytes": 8042
+  }
+ },
+ "unchanged_dependencies": {
+  "scripts/r2t/t1_rel.py": "5f9dddf4d38e4bc1388248a1159feda4a3dd775c357f507171280422173b302a",
+  "scripts/r2t/eval_t1_rel.py": "e9d9514485c260ad7412865d3ec00442543910d65126cee8409d91dac4c0f034",
+  "configs/r2t/t1_pilot_rel.json": "b1eb5cec8988c6541a57205768f618f052ee85b0afb909c3e65982721a9872e8"
+ },
+ "unchanged_freezes": {
+  "F4 frozen_sha256.txt": "8e7ef4c931ea5cdf3a09465a696b3711c418fea97643133fd0666e765b1cdf27",
+  "F4 results_manifest.json": "75bee155b777096514f1a31af5781b523ff0b575b6f445ee43493326b84155f2",
+  "F4R frozen_sha256.txt": "7f1865a8e1a6b404547ab3a05205dfd9c342fc4733ac40d691e702f13f066a5e",
+  "F4R val_results_manifest.json": "affaf17222c60f7d1beef9e4617ee40fec5b6cc8e66d4c01cf9900d09e759e98"
+ },
+ "tests": "test_r2t_t1_rel1 15 passed (105 s); tests/r2t 102 passed (522 s)",
+ "existing_results_verified": "F4R 15 판 15/15 통과 (배열 225 · 사람별 점수 1,395), oracle 재적합 실패 원인 미보존 (추정 안 함)"
+}

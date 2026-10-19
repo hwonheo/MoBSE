@@ -1,0 +1,6 @@
+{"event": "시작", "lock_hash": "981f5b7643b2511c46cc972f07dbef7958cc3e78befa17e7a18f6f58bd85f794", "kst": "13:18:51"}
+{"event": "적재", "n_subjects": 31, "task_windows": "[9]", "rest_windows": "[8]", "window_shape": "[(15, 100)]", "kst": "13:18:51"}
+{"event": "적합 · 평가 끝", "seconds": 103.36252029100433, "verdict": {"flags": ["적응 경로 중단 권고: 성공 fold 모두 τ̂ = 0"], "stop": false, "fold_status": ["ok", "ok", "ok", "ok", "ok"], "next": "기술값 보고"}, "kst": "13:20:34"}
+{"event": "엄격 검증", "ok": true, "n_arrays": 15, "n_scores": 93, "problems": [], "kst": "13:20:35"}
+{"event": "완료", "ok": true, "note": "이 줄이 로그의 마지막 줄 — 결과 manifest 는 이 뒤에 로그를 포함해 만든다", "kst": "13:20:35"}
+결과 manifest results/r2t/t1_pilot_real/results_manifest.json sha12 b997b479cb40

@@ -1,0 +1,247 @@
+{
+ "schema": "r2t-stage0-bench-0.1",
+ "synthetic_only": true,
+ "decision": 83,
+ "host": "bmc2025mp16.local",
+ "platform": "macOS-27.0.1-arm64-arm-64bit",
+ "python": "3.11.17",
+ "numpy": "2.4.3",
+ "omp_threads": "2",
+ "scale_one_fold": {
+  "n_train": 100,
+  "n_test": 26,
+  "n_masks": 20,
+  "rho": 0.5,
+  "train_frames": 12000,
+  "ess_ar1_approx": 4000.0,
+  "lw_shrinkage": 0.0009500591957001984,
+  "oas_shrinkage": 0.0009342260442374819,
+  "cond_lw": 942.1922999115451,
+  "cond_oas": 943.0072075356426,
+  "nmse_mean": {
+   "G1-LW": 0.14228983794058817,
+   "G1-OAS": 0.14229035177979968,
+   "RIDGE": 0.1419358087741981,
+   "ORACLE": 0.1407190954420767
+  },
+  "nmse_ratio_to_oracle": {
+   "G1-LW": 1.0111622555103619,
+   "G1-OAS": 1.0111659070347687,
+   "RIDGE": 1.0086463981899474
+  },
+  "delta_ridge_minus_g1lw_note": "Δ = NMSE(G1-LW) − NMSE(RIDGE), 양수면 RIDGE 가 낫다 (부호 통일 시험용)",
+  "delta_ridge_vs_g1lw": [
+   0.00035402916639003777,
+   0.0003024032252680655,
+   0.0004075819747301922
+  ],
+  "ridge_lambda_chosen": [
+   0.03162277660168379,
+   0.1
+  ],
+  "seconds": {
+   "generate": 0.06894370797090232,
+   "prior_fit": 0.670290790963918,
+   "ridge_inner_and_fit": 5.5167259983718395,
+   "predict_eval": 1.8086966671980917
+  }
+ },
+ "scale_five_fold_seconds_estimate": 40.32328582252376,
+ "stability": [
+  {
+   "n_train": 10,
+   "n_test": 26,
+   "n_masks": 3,
+   "rho": 0.5,
+   "train_frames": 1200,
+   "ess_ar1_approx": 400.0,
+   "lw_shrinkage": 0.00936326664480215,
+   "oas_shrinkage": 0.009335939725088626,
+   "cond_lw": 908.2582440190107,
+   "cond_oas": 909.5218331221939,
+   "nmse_mean": {
+    "G1-LW": 0.16000543027096784,
+    "G1-OAS": 0.1600126363868835,
+    "RIDGE": 0.1523521305410386,
+    "ORACLE": 0.14646085923422852
+   },
+   "nmse_ratio_to_oracle": {
+    "G1-LW": 1.0924791176807045,
+    "G1-OAS": 1.0925283193305744,
+    "RIDGE": 1.0402242028185047
+   },
+   "delta_ridge_minus_g1lw_note": "Δ = NMSE(G1-LW) − NMSE(RIDGE), 양수면 RIDGE 가 낫다 (부호 통일 시험용)",
+   "delta_ridge_vs_g1lw": [
+    0.007653299729929244,
+    0.0070854167503037165,
+    0.008230737659204578
+   ],
+   "ridge_lambda_chosen": [
+    0.31622776601683794
+   ],
+   "seconds": {
+    "generate": 0.01828541699796915,
+    "prior_fit": 0.004630458075553179,
+    "ridge_inner_and_fit": 0.08683170774020255,
+    "predict_eval": 0.2730014577973634
+   }
+  },
+  {
+   "n_train": 25,
+   "n_test": 26,
+   "n_masks": 3,
+   "rho": 0.5,
+   "train_frames": 3000,
+   "ess_ar1_approx": 1000.0,
+   "lw_shrinkage": 0.003835694388615328,
+   "oas_shrinkage": 0.003750351498240692,
+   "cond_lw": 910.0356268773154,
+   "cond_oas": 914.4632415489428,
+   "nmse_mean": {
+    "G1-LW": 0.1456744511367703,
+    "G1-OAS": 0.14568455162969038,
+    "RIDGE": 0.1429782855132587,
+    "ORACLE": 0.14009593706679746
+   },
+   "nmse_ratio_to_oracle": {
+    "G1-LW": 1.0398192423475707,
+    "G1-OAS": 1.0398913393200566,
+    "RIDGE": 1.0205741044801815
+   },
+   "delta_ridge_minus_g1lw_note": "Δ = NMSE(G1-LW) − NMSE(RIDGE), 양수면 RIDGE 가 낫다 (부호 통일 시험용)",
+   "delta_ridge_vs_g1lw": [
+    0.00269616562351159,
+    0.0024290851391340217,
+    0.002971113498231141
+   ],
+   "ridge_lambda_chosen": [
+    0.1,
+    0.31622776601683794
+   ],
+   "seconds": {
+    "generate": 0.025857958011329174,
+    "prior_fit": 0.008855041116476059,
+    "ridge_inner_and_fit": 0.20601329114288092,
+    "predict_eval": 0.2709144994150847
+   }
+  },
+  {
+   "n_train": 100,
+   "n_test": 26,
+   "n_masks": 3,
+   "rho": 0.0,
+   "train_frames": 12000,
+   "ess_ar1_approx": 12000.0,
+   "lw_shrinkage": 0.000987915759345718,
+   "oas_shrinkage": 0.0009841657309045007,
+   "cond_lw": 876.6458940770686,
+   "cond_oas": 876.8293957854477,
+   "nmse_mean": {
+    "G1-LW": 0.12244375417969812,
+    "G1-OAS": 0.1224438013442338,
+    "RIDGE": 0.12237054089607172,
+    "ORACLE": 0.12168353637668514
+   },
+   "nmse_ratio_to_oracle": {
+    "G1-LW": 1.0062474992562647,
+    "G1-OAS": 1.0062478868562397,
+    "RIDGE": 1.005645829664745
+   },
+   "delta_ridge_minus_g1lw_note": "Δ = NMSE(G1-LW) − NMSE(RIDGE), 양수면 RIDGE 가 낫다 (부호 통일 시험용)",
+   "delta_ridge_vs_g1lw": [
+    7.321328362642242e-05,
+    2.317581135086731e-05,
+    0.00012332347591431013
+   ],
+   "ridge_lambda_chosen": [
+    0.01,
+    0.03162277660168379
+   ],
+   "seconds": {
+    "generate": 0.06304570892825723,
+    "prior_fit": 0.02869837498292327,
+    "ridge_inner_and_fit": 0.8260652513708919,
+    "predict_eval": 0.2706223751883954
+   }
+  },
+  {
+   "n_train": 100,
+   "n_test": 26,
+   "n_masks": 3,
+   "rho": 0.5,
+   "train_frames": 12000,
+   "ess_ar1_approx": 4000.0,
+   "lw_shrinkage": 0.0010435484523781036,
+   "oas_shrinkage": 0.0010276065916319827,
+   "cond_lw": 801.0038936015551,
+   "cond_oas": 801.6959438029638,
+   "nmse_mean": {
+    "G1-LW": 0.1583982300565643,
+    "G1-OAS": 0.15839886317246335,
+    "RIDGE": 0.15802399366717276,
+    "ORACLE": 0.15673386212509227
+   },
+   "nmse_ratio_to_oracle": {
+    "G1-LW": 1.010619070498905,
+    "G1-OAS": 1.0106231099316765,
+    "RIDGE": 1.0082313516976364
+   },
+   "delta_ridge_minus_g1lw_note": "Δ = NMSE(G1-LW) − NMSE(RIDGE), 양수면 RIDGE 가 낫다 (부호 통일 시험용)",
+   "delta_ridge_vs_g1lw": [
+    0.0003742363893915329,
+    0.00026878447208128226,
+    0.000477715456072993
+   ],
+   "ridge_lambda_chosen": [
+    0.03162277660168379,
+    0.1
+   ],
+   "seconds": {
+    "generate": 0.06352700013667345,
+    "prior_fit": 0.028290250105783343,
+    "ridge_inner_and_fit": 0.827810832997784,
+    "predict_eval": 0.27125245821662247
+   }
+  },
+  {
+   "n_train": 100,
+   "n_test": 26,
+   "n_masks": 3,
+   "rho": 0.8,
+   "train_frames": 12000,
+   "ess_ar1_approx": 1333.333333333333,
+   "lw_shrinkage": 0.0010156344124656607,
+   "oas_shrinkage": 0.0009685845585005131,
+   "cond_lw": 1100.9669195559281,
+   "cond_oas": 1104.7210219339415,
+   "nmse_mean": {
+    "G1-LW": 0.14971404087219087,
+    "G1-OAS": 0.14971655072517678,
+    "RIDGE": 0.14873594079122907,
+    "ORACLE": 0.14720425081164193
+   },
+   "nmse_ratio_to_oracle": {
+    "G1-LW": 1.0170497118575768,
+    "G1-OAS": 1.017066761996904,
+    "RIDGE": 1.0104052020994083
+   },
+   "delta_ridge_minus_g1lw_note": "Δ = NMSE(G1-LW) − NMSE(RIDGE), 양수면 RIDGE 가 낫다 (부호 통일 시험용)",
+   "delta_ridge_vs_g1lw": [
+    0.0009781000809618067,
+    0.0007587038202672438,
+    0.0012243546418272053
+   ],
+   "ridge_lambda_chosen": [
+    0.1
+   ],
+   "seconds": {
+    "generate": 0.06396979186683893,
+    "prior_fit": 0.02886504214257002,
+    "ridge_inner_and_fit": 0.8686153751332313,
+    "predict_eval": 0.28336258395574987
+   }
+  }
+ ],
+ "peak_rss_mb": 296.9375,
+ "wall_seconds_total": 14.358496834058315
+}
